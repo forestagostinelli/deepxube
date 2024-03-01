@@ -1,0 +1,16 @@
+*.DS_Store
+.idea/
+old/
+*_old\.*
+*_old\/*
+temp/
+build/
+builds/
+file.lock
+future/
+jobs/
+submit.sh
+avi_new.py
+*dummy*
+*__pycache__*
+*figures.pptx
