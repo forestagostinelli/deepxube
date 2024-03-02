@@ -1,6 +1,8 @@
 *.DS_Store
 .idea/
 old/
+*\.egg-info/
+setup.sh
 *_old\.*
 *_old\/*
 temp/

@@ -8,9 +8,9 @@ setup(
     url='https://github.com/forestagostinelli/DeepXube/',
     author='Forest Agostinelli',
     author_email='foresta@cse.sc.edu',
-    # license='BSD 2-clause',
+    license='MIT',
     packages=['deepxube'],
-    install_requires=['pytorch>=2.0',
+    install_requires=['torch>=2.0',
                       'numpy', 'matplotlib'],
 
     # classifiers=[
