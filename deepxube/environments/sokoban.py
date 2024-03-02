@@ -16,6 +16,7 @@ import pickle
 import re
 
 import pathlib
+import tarfile
 from filelock import FileLock
 
 
@@ -80,7 +81,10 @@ class SokobanGoal(Goal):
 
 
 def load_states(file_name: str) -> List[SokobanState]:
-    states_np = pickle.load(open(file_name, "rb"))
+    # states_np = pickle.load(open(file_name, "rb"))
+    t_file = tarfile.open(file_name, "r:gz")
+    states_np = pickle.load(t_file.extractfile(t_file.getmembers()[0]))
+
     states: List[SokobanState] = []
 
     agent_idxs = np.where(states_np == 1)
@@ -100,14 +104,16 @@ def _get_surfaces():
     parent_dir: str = str(pathlib.Path(__file__).parent.resolve())
     img_dir = f"{parent_dir}/data/sokoban/"
 
-    # Load images, representing the corresponding situation
-    box = imageio.imread(f"{img_dir}/surface/box.png")
-    # box_on_target = imageio.imread(f"{img_dir}/surface/box_on_target.png")
-    # box_target = imageio.imread(f"{img_dir}/surface/box_target.png")
-    floor = imageio.imread(f"{img_dir}/surface/floor.png")
-    player = imageio.imread(f"{img_dir}/surface/player.png")
-    # player_on_target = imageio.imread(f"{img_dir}/surface/player_on_target.png")
-    wall = imageio.imread(f"{img_dir}/surface/wall.png")
+    lock = FileLock(f"{parent_dir}/data/sokoban/file.lock")
+    with lock:
+        # Load images, representing the corresponding situation
+        box = imageio.imread(f"{img_dir}/surface/box.png")
+        # box_on_target = imageio.imread(f"{img_dir}/surface/box_on_target.png")
+        # box_target = imageio.imread(f"{img_dir}/surface/box_target.png")
+        floor = imageio.imread(f"{img_dir}/surface/floor.png")
+        player = imageio.imread(f"{img_dir}/surface/player.png")
+        # player_on_target = imageio.imread(f"{img_dir}/surface/player_on_target.png")
+        wall = imageio.imread(f"{img_dir}/surface/wall.png")
 
     # surfaces = [wall, floor, box_target, player, box, player_on_target, box_on_target]
     surfaces = [wall, floor, player, box]
@@ -118,8 +124,9 @@ def _get_surfaces():
 def _get_train_states() -> List[SokobanState]:
     parent_dir: str = str(pathlib.Path(__file__).parent.resolve())
     lock = FileLock(f"{parent_dir}/data/sokoban/file.lock")
+
     with lock:
-        states_train: List[SokobanState] = load_states(f"{parent_dir}/data/sokoban/train.pkl")
+        states_train: List[SokobanState] = load_states(f"{parent_dir}/data/sokoban/train.pkl.tar.gz")
 
     return states_train
 
