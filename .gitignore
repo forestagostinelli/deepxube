@@ -3,6 +3,7 @@
 old/
 *\.egg-info/
 setup.sh
+bk.lp
 *_old\.*
 *_old\/*
 temp/

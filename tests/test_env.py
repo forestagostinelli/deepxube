@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 
 from deepxube.environments.environment_abstract import Environment
 from deepxube.tests.test_env import test_env
-from misc import env_select
+from deepxube.utils import env_select
 
 import time
 

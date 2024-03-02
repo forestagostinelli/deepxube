@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='deepxube',
@@ -9,9 +9,12 @@ setup(
     author='Forest Agostinelli',
     author_email='foresta@cse.sc.edu',
     license='MIT',
-    packages=['deepxube'],
-    install_requires=['torch>=2.0',
-                      'numpy', 'matplotlib'],
+    packages=find_packages(),
+    install_requires=['torch>=2.0', 'numpy', 'matplotlib', 'clingo'],
+    include_package_data=True,
+    package_data={
+        "": ['*.pkl.tar.gz']
+    },
 
     # classifiers=[
     #    'Development Status :: 1 - Planning',
