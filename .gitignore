@@ -9,6 +9,7 @@ bk.lp
 temp/
 build/
 builds/
+models/
 file.lock
 future/
 jobs/
