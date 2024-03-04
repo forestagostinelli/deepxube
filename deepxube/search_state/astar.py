@@ -212,6 +212,8 @@ class AStar:
         :param heuristic_fn: heuristic function
         :return:
         """
+        assert len(states) == len(goals), "Number of states and goals should be the same"
+        assert len(goals) == len(weights), "Number of weights given should be the same as number of instances"
         # compute starting costs
         root_nodes: List[Node] = []
         is_solved_states: np.ndarray = np.array(self.env.is_solved(states, goals))

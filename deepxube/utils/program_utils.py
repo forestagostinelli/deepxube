@@ -5,6 +5,15 @@ import re
 
 
 def parse_literal(lit_str: str) -> Literal:
+    # check for negation
+    not_match = re.match("\s*not\s+(.*)", lit_str)
+    if not_match is None:
+        positive: bool = True
+    else:
+        positive: bool = False
+        lit_str = not_match.group(1).strip()
+
+    # parse literal
     lit_str = misc_utils.remove_all_whitespace(lit_str)
     match = re.match("([^(]+)(\((.*)\))?", lit_str)
     pred_name: str = match.group(1)
@@ -16,21 +25,8 @@ def parse_literal(lit_str: str) -> Literal:
     # TODO, better way to handle directions?
     directions = ["in"] * len(pred_args)
 
-    literal: Literal = Literal(pred_name, pred_args, tuple(directions))
+    literal: Literal = Literal(pred_name, pred_args, tuple(directions), positive=positive)
     return literal
-
-
-def parse_clause_literal(lit_str: str) -> Tuple[Literal, bool]:
-    neg_match = re.match("\s*neg\s+(.*)", lit_str)
-    if neg_match is not None:
-        negate: bool = True
-        lit_str = neg_match.group(1).strip()
-    else:
-        negate: bool = False
-
-    lit: Literal = parse_literal(lit_str)
-
-    return lit, negate
 
 
 def replace_anon_vars(lit: Literal, all_lits: List[Literal]):
@@ -57,19 +53,16 @@ def replace_anon_vars(lit: Literal, all_lits: List[Literal]):
 
 
 # TODO handle case with no arguments
-def parse_clause(constr_str: str) -> Tuple[Clause, List[bool], Dict[str, List[str]]]:
+def parse_clause(constr_str: str) -> Tuple[Clause, Dict[str, List[str]]]:
     head_str, body_str = constr_str.split(":-")
-    head_lit, hed_neg = parse_clause_literal(head_str)
+    head_lit = parse_literal(head_str)
 
     # lits
-    # TODO test more
     body_lit_strs: Tuple[str, ...] = tuple(re.findall("[^,]+\([^)]+\)|^\s*[^,]+|[^,)]+\s*$", body_str))
     body_lits: List[Literal] = []
-    body_negs: List[bool] = []
     for body_lit_str in body_lit_strs:
-        body_lit, body_neg = parse_clause_literal(body_lit_str)
+        body_lit = parse_literal(body_lit_str)
         body_lits.append(body_lit)
-        body_negs.append(body_neg)
 
     # subs forbid
     subs_forbid: Dict[str, List[str]] = dict()
@@ -90,7 +83,7 @@ def parse_clause(constr_str: str) -> Tuple[Clause, List[bool], Dict[str, List[st
         body_lits[idx] = replace_anon_vars(body_lit, [head_lit] + body_lits)
 
     clause: Clause = Clause(head_lit, tuple(body_lits))
-    return clause, [hed_neg] + body_negs, subs_forbid
+    return clause, subs_forbid
 
 
 def get_num_literals(clause: Clause) -> int:

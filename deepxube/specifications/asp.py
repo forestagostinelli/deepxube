@@ -62,21 +62,40 @@ class ASPSpec:
         self.ctl.ground([("base", [])])
 
     def get_models(self, goal: List[Clause], on_model: Callable, minimal: bool = True,
-                   num_models: int = 1, models_banned: Optional[List[Model]] = None) -> List[Model]:
+                   num_models: int = 1, assumed_true: Optional[Model] = None,
+                   models_banned: Optional[List[Model]] = None, num_atoms_gt: Optional[int] = None) -> List[Model]:
         """
 
         :param goal: Must have goal in the head.
         :param on_model: Callable that processes models
-        :param minimal:
-        :param num_models:
-        :param models_banned:
+        :param minimal: if true, only samples minimal models
+        :param num_models: number of models to sample
+        :param assumed_true: a model with atoms that are assumed to be true
+        :param models_banned: forbidden models (supersets of these models are also forbidden)
+        :param num_atoms_gt: Number of atoms in model found must be greater than given number
         :return:
         """
+
+        # add constraint if there is min number of atoms
+        if num_atoms_gt is not None:
+            goal_new = []
+            lit_count_gt: Literal = Literal("count_model_grnd_atoms_gt", (str(num_atoms_gt),), ("in",))
+            for clause in goal:
+                clause_new = Clause(clause.head, clause.body + (lit_count_gt,))
+                goal_new.append(clause_new)
+            goal = goal_new
+
+        # get assumptions
+        if assumed_true is None:
+            assumed_true = frozenset()
         if models_banned is None:
             models_banned = []
         atoms_true: List[Atom] = [(self._add_goal(goal),)]
 
-        assumptions: List[Tuple[Symbol, bool]] = self._make_assumptions(atoms_true, [], models_banned)
+        assumptions: List[Tuple[Symbol, bool]] = self._make_assumptions(atoms_true + list(assumed_true), [],
+                                                                        models_banned)
+
+        # get models
         models: List[Model] = []
         for _ in range(num_models):
             models_i: List[Model] = []
@@ -179,14 +198,6 @@ class ASPSpec:
             atoms_true.add(atom)
 
         return frozenset(atoms_true)
-
-    def samp_next_state(self, state_m: Model, on_model: Callable) -> List[Model]:
-        atoms_false: List[Atom] = [atom for atom in self.ground_atoms if atom not in state_m]
-        assumptions: List[Tuple[Symbol, bool]] = self._make_assumptions(list(state_m), atoms_false, [])
-        models_ret: List[Model] = []
-        self.ctl.solve(assumptions=assumptions, on_model=lambda x: models_ret.append(on_model(x)))
-
-        return models_ret
 
     def _add_goal(self, goal: List[Clause]) -> str:
         """ Adds all goal clauses with same head
