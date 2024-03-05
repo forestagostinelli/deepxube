@@ -239,11 +239,12 @@ def train_nnet(nnet: nn.Module, rb: ReplayBuffer, data_q: Queue, device: torch.d
         last_loss = loss.item()
         # display progress
         if (display_itrs > 0) and (train_itr % display_itrs == 0):
-            print("Itr: %i, lr: %.2E, loss: %.2E, targ_ctg: %.2f, nnet_ctg: %.2f, "
-                  "Time: %.2f" % (
+            print("Itr: %i, lr: %.2E, loss: %.2E, targ_ctg: %.2f, nnet_ctg: %.2f" % (
                       train_itr, lr_itr, loss.item(), ctgs_batch.mean().item(),
-                      ctgs_nnet.mean().item(), time.time() - start_time))
+                      ctgs_nnet.mean().item()))
+            print(times.get_time_str())
 
+            times.reset_times()
         train_itr = train_itr + 1
 
     return last_loss
