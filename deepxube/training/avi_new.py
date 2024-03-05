@@ -343,6 +343,8 @@ def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int
             num_batches_proc: int = num_batches_per_proc[proc_id]
             if num_batches_proc == 0:
                 continue
+            # update_runner(batch_size, num_batches_proc, step_max, heur_fn_q, env, data_q, solve_steps,
+            #              greedy_update_eps_max)
             proc = ctx.Process(target=update_runner, args=(batch_size, num_batches_proc, step_max, heur_fn_q, env,
                                                            data_q, solve_steps, greedy_update_eps_max))
             proc.daemon = True

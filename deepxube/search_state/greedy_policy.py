@@ -55,13 +55,51 @@ class Greedy:
         if times is None:
             times = Times()
 
+        # get unsolved instances
+        start_time = time.time()
+        instances: List[Instance] = self._get_unsolved_instances()
+        if len(instances) == 0:
+            return [], [], np.zeros(0)
+
+        states: List[State] = [instance.curr_state for instance in instances]
+        goals: List[Goal] = [instance.goal for instance in instances]
+        times.record_time("get_unsolved", time.time() - start_time)
+
+        # bellman
+        ctg_backups, ctg_next_p_tcs, states_exp, is_solved = search_utils.bellman(states, goals, heuristic_fn, self.env,
+                                                                                  times)
+
+        # take action
+        start_time = time.time()
+        rand_vals = np.random.random(len(instances))
+        for idx in range(len(instances)):
+            # add state to trajectory
+            instance: Instance = instances[idx]
+            state: State = states[idx]
+            ctg_backup: float = float(ctg_backups[idx])
+
+            instance.add_to_traj(state, ctg_backup)
+
+            # get next state
+            state_exp: List[State] = states_exp[idx]
+            ctg_next_p_tc: np.ndarray = ctg_next_p_tcs[idx]
+
+            state_next: State = state_exp[int(np.argmin(ctg_next_p_tc))]
+            seen_state: bool = state_next in instance.seen_states
+            if (rand_vals[idx] < instance.eps) or (seen_state and rand_seen):
+                state_next: State = random.choice(state_exp)
+
+            instance.next_state(state_next)
+        times.record_time("get_next", time.time() - start_time)
+
         # check which are solved
         start_time = time.time()
-        self._record_solved()
+        solved_idxs: List[int] = list(np.where(is_solved)[0])
+        for solved_idx in solved_idxs:
+            instances[solved_idx].is_solved = True
         times.record_time("record_solved", time.time() - start_time)
 
-        # take a step for unsolved states
-        return self._move(heuristic_fn, times, rand_seen)
+        return states, goals, ctg_backups
 
     def remove_instances(self, test_rem: Callable[[Instance], bool]) -> List[Instance]:
         """ Remove instances

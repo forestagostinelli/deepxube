@@ -16,7 +16,8 @@ def is_valid_soln(state: State, goal: Goal, soln: List[int], env: Environment) -
 
 
 def bellman(states: List[State], goals: List[Goal], heuristic_fn,
-            env: Environment, times: Optional[Times] = None) -> Tuple[np.ndarray, List[np.ndarray], List[List[State]]]:
+            env: Environment,
+            times: Optional[Times] = None) -> Tuple[np.ndarray, List[np.ndarray], List[List[State]], List[bool]]:
     if times is None:
         times = Times()
 
@@ -50,7 +51,7 @@ def bellman(states: List[State], goals: List[Goal], heuristic_fn,
     ctg_backup = np.array([np.min(x) for x in ctg_next_p_tc_l]) * np.logical_not(is_solved)
     times.record_time("backup", time.time() - start_time)
 
-    return ctg_backup, ctg_next_p_tc_l, states_exp
+    return ctg_backup, ctg_next_p_tc_l, states_exp, is_solved
 
 
 def q_step(states: List, goals: List[Goal], heuristic_fn, env: Environment) -> Tuple[np.array, np.ndarray]:
