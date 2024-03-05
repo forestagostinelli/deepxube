@@ -77,8 +77,9 @@ def do_update(step_max: int, update_num: int, env: Environment, step_update_max:
     return states_update_nnet, states_update_goal_nnet, ctgs
 
 
-def load_data(model_dir: str, nnet_file: str, status_file: str, env: Environment, num_test_per_step: int,
+def load_data(model_dir: str, nnet_file: str, env: Environment, num_test_per_step: int,
               step_max: int) -> Tuple[nn.Module, Status]:
+    status_file: str = "%s/status.pkl" % model_dir
     if os.path.isfile(nnet_file):
         nnet = nnet_utils.load_nnet(nnet_file, env.get_v_nnet())
     else:
@@ -234,7 +235,6 @@ def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int
     # Initialization
     targ_file: str = f"{nnet_dir}/target.pt"
     curr_file = f"{nnet_dir}/current.pt"
-    status_file: str = f"{nnet_dir}/status.pkl"
     output_save_loc = "%s/output.txt" % nnet_dir
 
     if not os.path.exists(nnet_dir):
@@ -259,26 +259,9 @@ def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int
 
     # load nnet
     print("Loading nnet and status")
-    nnet, status = load_data(nnet_dir, curr_file, status_file, env, num_test_per_step, step_max)
+    nnet, status = load_data(nnet_dir, curr_file, env, num_test_per_step, step_max)
     nnet.to(device)
     nnet = nn.DataParallel(nnet)
-
-    heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(num_update_procs, curr_file,
-                                                              device, on_gpu, env.get_v_nnet(), env,
-                                                              all_zeros=False, clip_zero=False,
-                                                              batch_size=update_nnet_batch_size)
-
-    max_solve_steps: int = min(status.update_num + 1, step_max)
-
-    start_time = time.time()
-    print("Testing greedy policy with %i states and %i steps" % (len(status.states_start_t), max_solve_steps))
-    per_solved: float = greedy_test(status.states_start_t, status.goals_t, status.state_t_steps_l, env,
-                                    heur_fn_qs, max_solve_steps=max_solve_steps)
-    print("Greedy policy solved (best): %.2f%% (%.2f%%)" % (per_solved, status.per_solved_best))
-    nnet_utils.stop_heuristic_fn_runners(heur_procs, heur_fn_qs)
-    print("Test time: %.2f" % (time.time() - start_time))
-
-    breakpoint()
 
     # training
     while status.itr < max_itrs:
