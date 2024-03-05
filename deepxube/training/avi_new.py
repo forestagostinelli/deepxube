@@ -355,6 +355,8 @@ def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int
 
         # stop parallel processes
         nnet_utils.stop_heuristic_fn_runners(heur_procs, heur_fn_qs)
+        for proc in procs:
+            proc.join()
 
         # test
         start_time = time.time()
