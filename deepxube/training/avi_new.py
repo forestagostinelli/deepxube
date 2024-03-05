@@ -169,11 +169,11 @@ class ReplayBuffer:
         return samp_idxs
 
 
-def train_nnet(nnet: nn.Module, rb: ReplayBuffer, data_q: Queue, device: torch.device, batch_size: int, num_itrs: int,
-               train_itr: int, lr: float, lr_d: float, on_gpu: bool, display_itrs: int) -> float:
+def train_nnet(nnet: nn.Module, optimizer: Optimizer, rb: ReplayBuffer, data_q: Queue, device: torch.device,
+               batch_size: int, num_itrs: int, train_itr: int, lr: float, lr_d: float, on_gpu: bool,
+               display_itrs: int) -> float:
     # optimization
     criterion = nn.MSELoss()
-    optimizer: Optimizer = optim.Adam(nnet.parameters(), lr=lr)
 
     # initialize status tracking
     times = Times()
@@ -329,6 +329,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int
     # training
     states_per_update: int = itrs_per_update * batch_size
     rb: ReplayBuffer = ReplayBuffer(states_per_update)
+    optimizer: Optimizer = optim.Adam(nnet.parameters(), lr=lr)
     while status.itr < max_itrs:
         # greedy policy data generation
         all_zeros: bool = not os.path.isfile(targ_file)
@@ -356,8 +357,8 @@ def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int
 
         # train nnet
         print("Training model for update number %i for %i iterations" % (status.update_num, itrs_per_update))
-        last_loss = train_nnet(nnet, rb, data_q, device, batch_size, itrs_per_update,
-                               status.itr, lr, lr_d, on_gpu, display)
+        last_loss = train_nnet(nnet, optimizer, rb, data_q, device, batch_size, itrs_per_update, status.itr, lr, lr_d,
+                               on_gpu, display)
         status.itr += itrs_per_update
 
         # save nnet
@@ -400,6 +401,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int
         if update_nnet:
             # Update nnet
             rb: ReplayBuffer = ReplayBuffer(states_per_update)
+            optimizer: Optimizer = optim.Adam(nnet.parameters(), lr=lr)
             shutil.copy(curr_file, targ_file)
             status.update_num = status.update_num + 1
 
