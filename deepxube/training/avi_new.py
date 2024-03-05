@@ -140,8 +140,8 @@ class ReplayBuffer:
         num_below_max: int = min(self.maxsize - self.curr_size, num_add)
         num_above_max: int = num_add - num_below_max
 
-        buff_idxs = np.concatenate((np.arange(num_below_max), np.random.randint(0, self.maxsize, size=num_above_max)),
-                                   axis=0)
+        buff_idxs = np.concatenate((np.arange(self.curr_size, self.curr_size + num_below_max),
+                                    np.random.randint(0, self.maxsize, size=num_above_max)), axis=0)
         state_nnet_rep_len: int = len(states_nnet)
         for nnet_rep_idx in range(state_nnet_rep_len):
             self.states_nnet[nnet_rep_idx][buff_idxs] = states_nnet[nnet_rep_idx]
