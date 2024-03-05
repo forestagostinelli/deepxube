@@ -263,6 +263,19 @@ def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int
     nnet.to(device)
     nnet = nn.DataParallel(nnet)
 
+    heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(num_update_procs, curr_file,
+                                                              device, on_gpu, env.get_v_nnet(), env,
+                                                              all_zeros=False, clip_zero=False,
+                                                              batch_size=update_nnet_batch_size)
+
+    max_solve_steps: int = min(status.update_num + 1, step_max)
+
+    print("Testing greedy policy with %i states and %i steps" % (len(status.states_start_t), max_solve_steps))
+    per_solved: float = greedy_test(status.states_start_t, status.goals_t, status.state_t_steps_l, env,
+                                    heur_fn_qs, max_solve_steps=max_solve_steps)
+    print("Greedy policy solved (best): %.2f%% (%.2f%%)" % (per_solved, status.per_solved_best))
+    breakpoint()
+
     # training
     while status.itr < max_itrs:
         # update
