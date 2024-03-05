@@ -164,14 +164,16 @@ def greedy_test(states: List[State], goals: List[Goal], state_steps_l: List[int]
         # update_runner(num_states_proc, back_max, step_probs, update_batch_size,
         #              heur_fn_q, env.env_name, self.result_queue, solve_steps, update_method, eps_max)
 
+        # start process
         end_idx: int = start_idx + num_states_proc
-        states_proc = states[start_idx:end_idx]
-        goals_proc = goals[start_idx:end_idx]
         proc = ctx.Process(target=greedy_runner, args=(env, heur_fn_q, proc_id, max_solve_steps, data_q, results_q))
         proc.daemon = True
         proc.start()
         procs.append(proc)
 
+        # put data
+        states_proc = states[start_idx:end_idx]
+        goals_proc = goals[start_idx:end_idx]
         data_q.put((states_proc, goals_proc))
         start_idx = end_idx
 
