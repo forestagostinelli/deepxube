@@ -196,12 +196,16 @@ def train_nnet(nnet: nn.Module, rb: ReplayBuffer, data_q: Queue, device: torch.d
         start_time = time.time()
         states_nnet_get, goals_nnet_get, ctgs_backup_get = data_q.get()
         rb.add(states_nnet_get, goals_nnet_get, ctgs_backup_get)
+        if on_gpu:
+            torch.cuda.synchronize()
         times.record_time("get_data", time.time() - start_time)
 
         # get training data
         start_time = time.time()
         states_batch_np, goals_batch_np, ctgs_batch_np = rb.sample(batch_size)
         ctgs_batch_np = np.expand_dims(ctgs_batch_np.astype(np.float32), 1)
+        if on_gpu:
+            torch.cuda.synchronize()
         times.record_time("rb_samp", time.time() - start_time)
 
         # send training data to device
