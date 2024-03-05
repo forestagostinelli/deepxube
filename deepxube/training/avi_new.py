@@ -118,8 +118,8 @@ class ReplayBuffer:
         self.states_nnet: List[np.ndarray] = []
         self.goals_nnet: List[np.ndarray] = []
         self.targets: np.array = np.zeros(0)
-        self.has_data: np.array = np.zeros(maxsize, dtype=bool)
 
+        self.curr_size: int = 0
         self.maxsize: int = maxsize
         self.empty_buff: bool = True
 
@@ -137,7 +137,11 @@ class ReplayBuffer:
             self.empty_buff = False
 
         # add data
-        buff_idxs: np.array = np.random.randint(0, self.maxsize, size=num_add)
+        num_below_max: int = min(self.maxsize - self.curr_size, num_add)
+        num_above_max: int = num_add - num_below_max
+
+        buff_idxs = np.concatenate((np.arange(num_below_max), np.random.randint(0, self.maxsize, size=num_above_max)),
+                                   axis=0)
         state_nnet_rep_len: int = len(states_nnet)
         for nnet_rep_idx in range(state_nnet_rep_len):
             self.states_nnet[nnet_rep_idx][buff_idxs] = states_nnet[nnet_rep_idx]
@@ -148,7 +152,7 @@ class ReplayBuffer:
 
         self.targets[buff_idxs] = targets
 
-        self.has_data[buff_idxs] = True
+        self.curr_size += num_add
 
     def sample(self, num: int) -> Tuple[List[np.ndarray], List[np.ndarray], np.array]:
         samp_idxs: np.array = self._sample_valid_idxs(num)
@@ -160,10 +164,9 @@ class ReplayBuffer:
         return states_nnet, goals_nnet, targets
 
     def _sample_valid_idxs(self, num: int) -> np.array:
-        valid_idxs: np.array = np.where(self.has_data)[0]
-        samp_idxs: np.array = np.random.randint(0, valid_idxs.shape[0], size=num)
+        samp_idxs: np.array = np.random.randint(0, self.curr_size, size=num)
 
-        return valid_idxs[samp_idxs]
+        return samp_idxs
 
 
 def train_nnet(nnet: nn.Module, rb: ReplayBuffer, data_q: Queue, device: torch.device, batch_size: int, num_itrs: int,
@@ -255,7 +258,7 @@ def train_nnet(nnet: nn.Module, rb: ReplayBuffer, data_q: Queue, device: torch.d
 
 
 def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int = 30, itrs_per_update: int = 5000,
-          num_update_procs: int = 1, update_nnet_batch_size: int = 30000, greedy_update_step_max: int = 1,
+          num_update_procs: int = 1, update_nnet_batch_size: int = 10000, greedy_update_step_max: int = 1,
           greedy_update_eps_max: int = 0.1, lr: float = 0.001, lr_d: float = 0.9999993, max_itrs: int = 1000000,
           batch_size: int = 1000, display: int = 100, debug: bool = False):
     """ Train a deep neural network heuristic (DNN) function with deep approximate value iteration (DAVI).
