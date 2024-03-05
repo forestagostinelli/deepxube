@@ -125,9 +125,9 @@ class Greedy:
 
 
 def greedy_runner(env: Environment, heur_fn_q: HeurFnQ, proc_id: int,
-                  max_solve_steps: int, results_queue):
+                  max_solve_steps: int, data_q, results_queue):
     heuristic_fn = heur_fn_q.get_heuristic_fn(env)
-    states, goals = results_queue.get()
+    states, goals = data_q.get()
 
     # Solve with GBFS
     greedy = Greedy(env)
@@ -152,6 +152,7 @@ def greedy_test(states: List[State], goals: List[Goal], state_steps_l: List[int]
         max_solve_steps = max(np.max(state_back_steps), 1)
 
     ctx = get_context("spawn")
+    data_q: ctx.Queue = ctx.Queue()
     results_q: ctx.Queue = ctx.Queue()
     procs: List[ctx.Process] = []
     num_states_per_proc: List[int] = misc_utils.split_evenly(len(states), len(heur_fn_qs))
@@ -166,12 +167,12 @@ def greedy_test(states: List[State], goals: List[Goal], state_steps_l: List[int]
         end_idx: int = start_idx + num_states_proc
         states_proc = states[start_idx:end_idx]
         goals_proc = goals[start_idx:end_idx]
-        proc = ctx.Process(target=greedy_runner, args=(env, heur_fn_q, proc_id, max_solve_steps, results_q))
+        proc = ctx.Process(target=greedy_runner, args=(env, heur_fn_q, proc_id, max_solve_steps, data_q, results_q))
         proc.daemon = True
         proc.start()
         procs.append(proc)
 
-        results_q.put((states_proc, goals_proc))
+        data_q.put((states_proc, goals_proc))
         start_idx = end_idx
 
     is_solved_l: List[List[bool]] = [[] for _ in heur_fn_qs]
