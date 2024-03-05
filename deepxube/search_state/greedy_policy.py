@@ -6,6 +6,7 @@ from deepxube.utils.nnet_utils import HeurFnQ
 import numpy as np
 from deepxube.utils import search_utils
 from torch.multiprocessing import get_context
+import pickle
 import random
 import time
 
@@ -124,10 +125,12 @@ class Greedy:
         return instances_unsolved
 
 
-def greedy_runner(env: Environment, states: List[State], goals: List[Goal], heur_fn_q: HeurFnQ, proc_id: int,
+def greedy_runner(env: Environment, start_idx: int, end_idx: int, status_file: str, heur_fn_q: HeurFnQ, proc_id: int,
                   max_solve_steps: int, results_queue):
     heuristic_fn = heur_fn_q.get_heuristic_fn(env)
-
+    status = pickle.load(open(status_file, "rb"))
+    states = status.states_start_t[start_idx:end_idx]
+    goals = status.goals_t[start_idx:end_idx]
     # Solve with GBFS
     greedy = Greedy(env)
     greedy.add_instances(states, goals, eps_l=None)
@@ -143,7 +146,7 @@ def greedy_runner(env: Environment, states: List[State], goals: List[Goal], heur
     results_queue.put((proc_id, is_solved_all, num_steps_all, state_ctg_all))
 
 
-def greedy_test(states: List[State], goals: List[Goal], state_steps_l: List[int], env: Environment,
+def greedy_test(states: List[State], goals: List[Goal], state_steps_l: List[int], status_file: str, env: Environment,
                 heur_fn_qs: List[HeurFnQ], max_solve_steps: Optional[int] = None) -> float:
     # initialize
     state_back_steps: np.ndarray = np.array(state_steps_l)
@@ -165,7 +168,7 @@ def greedy_test(states: List[State], goals: List[Goal], state_steps_l: List[int]
         end_idx: int = start_idx + num_states_proc
         states_proc = states[start_idx:end_idx]
         goals_proc = goals[start_idx:end_idx]
-        proc = ctx.Process(target=greedy_runner, args=(env, states_proc, goals_proc, heur_fn_q, proc_id,
+        proc = ctx.Process(target=greedy_runner, args=(env, start_idx, end_idx, status_file, heur_fn_q, proc_id,
                                                        max_solve_steps, results_q))
         proc.daemon = True
         proc.start()

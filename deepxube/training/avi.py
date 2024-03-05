@@ -77,9 +77,8 @@ def do_update(step_max: int, update_num: int, env: Environment, step_update_max:
     return states_update_nnet, states_update_goal_nnet, ctgs
 
 
-def load_data(model_dir: str, nnet_file: str, env: Environment, num_test_per_step: int,
+def load_data(model_dir: str, nnet_file: str, status_file: str, env: Environment, num_test_per_step: int,
               step_max: int) -> Tuple[nn.Module, Status]:
-    status_file: str = "%s/status.pkl" % model_dir
     if os.path.isfile(nnet_file):
         nnet = nnet_utils.load_nnet(nnet_file, env.get_v_nnet())
     else:
@@ -235,6 +234,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int
     # Initialization
     targ_file: str = f"{nnet_dir}/target.pt"
     curr_file = f"{nnet_dir}/current.pt"
+    status_file: str = f"{nnet_dir}/status.pkl"
     output_save_loc = "%s/output.txt" % nnet_dir
 
     if not os.path.exists(nnet_dir):
@@ -259,7 +259,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int
 
     # load nnet
     print("Loading nnet and status")
-    nnet, status = load_data(nnet_dir, curr_file, env, num_test_per_step, step_max)
+    nnet, status = load_data(nnet_dir, curr_file, status_file, env, num_test_per_step, step_max)
     nnet.to(device)
     nnet = nn.DataParallel(nnet)
 
@@ -272,7 +272,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int
 
     start_time = time.time()
     print("Testing greedy policy with %i states and %i steps" % (len(status.states_start_t), max_solve_steps))
-    per_solved: float = greedy_test(status.states_start_t, status.goals_t, status.state_t_steps_l, env,
+    per_solved: float = greedy_test(status.states_start_t, status.goals_t, status.state_t_steps_l, status_file, env,
                                     heur_fn_qs, max_solve_steps=max_solve_steps)
     print("Greedy policy solved (best): %.2f%% (%.2f%%)" % (per_solved, status.per_solved_best))
     nnet_utils.stop_heuristic_fn_runners(heur_procs, heur_fn_qs)
