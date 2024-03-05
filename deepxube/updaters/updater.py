@@ -13,11 +13,12 @@ def greedy_update(states: List[State], goals: List[Goal], env: Environment, num_
                   eps_max: float, times: Times):
     eps: List[float] = list(np.random.rand(len(states)) * eps_max)
 
-    greedy = Greedy(states, goals, env, eps_l=eps)
+    greedy = Greedy(env)
+    greedy.add_instances(states, goals, eps_l=eps)
     for _ in range(num_steps):
         greedy.step(heuristic_fn, times=times, rand_seen=True)
 
-    trajs: List[List[Tuple[State, float]]] = greedy.get_trajs()
+    trajs: List[List[Tuple[State, float]]] = [instance.traj for instance in greedy.instances]
 
     trajs_flat: List[Tuple[State, float]]
     trajs_flat, _ = misc_utils.flatten(trajs)
@@ -34,7 +35,7 @@ def greedy_update(states: List[State], goals: List[Goal], env: Environment, num_
 
     cost_to_go_update = np.array(cost_to_go_update_l)
 
-    is_solved: np.ndarray = np.array(greedy.get_is_solved())
+    is_solved: np.ndarray = np.array([instance.is_solved for instance in greedy.instances])
 
     return states_update, goals_update, cost_to_go_update, is_solved
 

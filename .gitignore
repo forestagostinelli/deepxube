@@ -14,7 +14,6 @@ file.lock
 future/
 jobs/
 submit.sh
-avi_new.py
 *dummy*
 *__pycache__*
 *figures.pptx

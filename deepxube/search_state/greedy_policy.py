@@ -16,36 +16,42 @@ class Instance:
         self.curr_state: State = state
         self.is_solved: bool = False
         self.goal: Goal = goal
-        self.num_steps: int = 0
-        self.trajs: List[Tuple[State, float]] = []
+        self.step_num: int = 0
+        self.traj: List[Tuple[State, float]] = []
         self.seen_states: Set[State] = set()
 
         self.eps = eps
 
     def add_to_traj(self, state: State, cost_to_go: float):
-        self.trajs.append((state, cost_to_go))
+        self.traj.append((state, cost_to_go))
         self.seen_states.add(state)
 
     def next_state(self, state: State):
         self.curr_state = state
-        self.num_steps += 1
+        self.step_num += 1
 
 
 class Greedy:
-    def __init__(self, states: List[State], goals: List[Goal], env: Environment,
-                 eps_l: Optional[List[float]] = None):
-        self.curr_states: List[State] = states
+    def __init__(self, env: Environment):
         self.env: Environment = env
+        self.instances: List[Instance] = []
+
+    def add_instances(self, states: List[State], goals: List[Goal], eps_l: Optional[List[float]]):
+        if eps_l is None:
+            eps_l = [0] * len(states)
+
+        assert len(states) == len(goals), "Number of states and goals should be the same"
+        assert len(goals) == len(eps_l), "Number of epsilon given should be the same as number of instances"
 
         if eps_l is None:
-            eps_l = [0] * len(self.curr_states)
+            eps_l = [0] * len(states)
 
-        self.instances: List[Instance] = []
         for state, goal, eps_inst in zip(states, goals, eps_l):
             instance: Instance = Instance(state, goal, eps_inst)
             self.instances.append(instance)
 
-    def step(self, heuristic_fn: Callable, times: Optional[Times] = None, rand_seen: bool = False) -> None:
+    def step(self, heuristic_fn: Callable, times: Optional[Times] = None,
+             rand_seen: bool = False) -> Tuple[List[State], List[Goal], np.array]:
         if times is None:
             times = Times()
 
@@ -55,24 +61,25 @@ class Greedy:
         times.record_time("record_solved", time.time() - start_time)
 
         # take a step for unsolved states
-        self._move(heuristic_fn, times, rand_seen)
+        return self._move(heuristic_fn, times, rand_seen)
 
-    def get_trajs(self) -> List[List[Tuple[State, float]]]:
-        trajs_all: List[List[Tuple[State, float]]] = []
+    def remove_instances(self, test_rem: Callable[[Instance], bool]) -> List[Instance]:
+        """ Remove instances
+
+        :param test_rem: A Callable that takes an instance as input and returns true if the instance should be removed
+        :return: List of removed instances
+        """
+        instances_remove: List[Instance] = []
+        instances_keep: List[Instance] = []
         for instance in self.instances:
-            trajs_all.append(instance.trajs)
+            if test_rem(instance):
+                instances_remove.append(instance)
+            else:
+                instances_keep.append(instance)
 
-        return trajs_all
+        self.instances = instances_keep
 
-    def get_is_solved(self) -> List[bool]:
-        is_solved: List[bool] = [x.is_solved for x in self.instances]
-
-        return is_solved
-
-    def get_num_steps(self) -> List[int]:
-        num_steps: List[int] = [x.num_steps for x in self.instances]
-
-        return num_steps
+        return instances_remove
 
     def _record_solved(self) -> None:
         # get unsolved instances
@@ -93,12 +100,13 @@ class Greedy:
                 instance.add_to_traj(state, 0.0)
                 instance.is_solved = True
 
-    def _move(self, heuristic_fn: Callable, times: Times, rand_seen: bool) -> None:
+    def _move(self, heuristic_fn: Callable, times: Times, rand_seen: bool) -> Tuple[List[State], List[Goal], np.array]:
         # get unsolved instances
         start_time = time.time()
         instances: List[Instance] = self._get_unsolved_instances()
         if len(instances) == 0:
-            return
+            return [], [], np.zeros(0)
+
         states: List[State] = [instance.curr_state for instance in instances]
         goals: List[Goal] = [instance.goal for instance in instances]
         times.record_time("get_unsolved", time.time() - start_time)
@@ -128,6 +136,8 @@ class Greedy:
             instance.next_state(state_next)
         times.record_time("get_next", time.time() - start_time)
 
+        return states, goals, ctg_backups
+
     def _get_unsolved_instances(self) -> List[Instance]:
         instances_unsolved: List[Instance] = [instance for instance in self.instances if not instance.is_solved]
         return instances_unsolved
@@ -138,12 +148,13 @@ def greedy_runner(env: Environment, states: List[State], goals: List[Goal], heur
     heuristic_fn = heur_fn_q.get_heuristic_fn(env)
 
     # Solve with GBFS
-    greedy = Greedy(states, goals, env, eps_l=None)
+    greedy = Greedy(env)
+    greedy.add_instances(states, goals, eps_l=None)
     for _ in range(max_solve_steps):
         greedy.step(heuristic_fn, rand_seen=False)
 
-    is_solved_all: np.ndarray = np.array(greedy.get_is_solved())
-    num_steps_all: np.ndarray = np.array(greedy.get_num_steps())
+    is_solved_all: np.ndarray = np.array([instance.is_solved for instance in greedy.instances])
+    num_steps_all: np.ndarray = np.array([instance.step_num for instance in greedy.instances])
 
     # Get state cost-to-go
     state_ctg_all: np.ndarray = heuristic_fn(states, goals)

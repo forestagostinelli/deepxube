@@ -30,7 +30,7 @@ class TestStringMethods(unittest.TestCase):
 
     def test_parse_lit_arity2_not(self):
         self.assertEqual(parse_literal("not lit(A,B)").to_code(), 'not lit(A,B)')
-        self.assertEqual(parse_literal("not lit(A, B)").to_code(), 'not lit(A,B)')
+        self.assertEqual(parse_literal("not lit( A, B )").to_code(), 'not lit(A,B)')
 
 
 if __name__ == '__main__':
