@@ -270,10 +270,14 @@ def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int
 
     max_solve_steps: int = min(status.update_num + 1, step_max)
 
+    start_time = time.time()
     print("Testing greedy policy with %i states and %i steps" % (len(status.states_start_t), max_solve_steps))
     per_solved: float = greedy_test(status.states_start_t, status.goals_t, status.state_t_steps_l, env,
                                     heur_fn_qs, max_solve_steps=max_solve_steps)
     print("Greedy policy solved (best): %.2f%% (%.2f%%)" % (per_solved, status.per_solved_best))
+    nnet_utils.stop_heuristic_fn_runners(heur_procs, heur_fn_qs)
+    print("Test time: %.2f" % (time.time() - start_time))
+
     breakpoint()
 
     # training
