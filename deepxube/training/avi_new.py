@@ -255,7 +255,7 @@ def train_nnet(nnet: nn.Module, rb: ReplayBuffer, data_q: Queue, device: torch.d
 
 
 def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int = 30, itrs_per_update: int = 5000,
-          num_update_procs: int = 1, update_nnet_batch_size: int = 10000, greedy_update_step_max: int = 1,
+          num_update_procs: int = 1, update_nnet_batch_size: int = 30000, greedy_update_step_max: int = 1,
           greedy_update_eps_max: int = 0.1, lr: float = 0.001, lr_d: float = 0.9999993, max_itrs: int = 1000000,
           batch_size: int = 1000, display: int = 100, debug: bool = False):
     """ Train a deep neural network heuristic (DNN) function with deep approximate value iteration (DAVI).
