@@ -152,7 +152,7 @@ class ReplayBuffer:
 
         self.targets[buff_idxs] = targets
 
-        self.curr_size += num_add
+        self.curr_size += num_below_max
 
     def sample(self, num: int) -> Tuple[List[np.ndarray], List[np.ndarray], np.array]:
         samp_idxs: np.array = self._sample_valid_idxs(num)
