@@ -124,9 +124,10 @@ class Greedy:
         return instances_unsolved
 
 
-def greedy_runner(env: Environment, states: List[State], goals: List[Goal], heur_fn_q: HeurFnQ, proc_id: int,
+def greedy_runner(env: Environment, heur_fn_q: HeurFnQ, proc_id: int,
                   max_solve_steps: int, results_queue):
     heuristic_fn = heur_fn_q.get_heuristic_fn(env)
+    states, goals = results_queue.get()
 
     # Solve with GBFS
     greedy = Greedy(env)
@@ -165,11 +166,12 @@ def greedy_test(states: List[State], goals: List[Goal], state_steps_l: List[int]
         end_idx: int = start_idx + num_states_proc
         states_proc = states[start_idx:end_idx]
         goals_proc = goals[start_idx:end_idx]
-        proc = ctx.Process(target=greedy_runner, args=(env, states_proc, goals_proc, heur_fn_q, proc_id,
-                                                       max_solve_steps, results_q))
+        proc = ctx.Process(target=greedy_runner, args=(env, heur_fn_q, proc_id, max_solve_steps, results_q))
         proc.daemon = True
         proc.start()
         procs.append(proc)
+
+        results_q.put((states_proc, goals_proc))
         start_idx = end_idx
 
     is_solved_l: List[List[bool]] = [[] for _ in heur_fn_qs]

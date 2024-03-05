@@ -92,7 +92,7 @@ def main():
     # initialize nnet
     print("")
     heuristic_fn = nnet_utils.get_heuristic_fn(nnet, device, env)
-    heuristic_fn(states_nnet, goals_nnet)
+    heuristic_fn(states_nnet, goals_nnet, is_nnet_format=True)
 
     # nnet heuristic
     start_time = time.time()
@@ -115,6 +115,14 @@ def main():
 
     queue1.put((states_nnet, goals_nnet))
     queue2.get()
+
+    start_time = time.time()
+    queue1.put((states, goals))
+    print("State/goals send time: %s" % (time.time() - start_time))
+
+    start_time = time.time()
+    queue2.get()
+    print("States/goals get time: %.2f" % (time.time() - start_time))
 
     start_time = time.time()
     queue1.put((states_nnet, goals_nnet))
