@@ -27,6 +27,10 @@ class HeurFnNNet(nn.Module):
     valid_nnet_types: Set[str] = {"V", "Q"}
 
     def __init__(self, nnet_type: str):
+        """
+        @param nnet_type:  "V" for value function for approximate value iteration and A* search.
+        "Q" for Q-network for Q-learning and Q* search.
+        """
         super().__init__()
         nnet_type = nnet_type.upper()
         assert nnet_type in self.valid_nnet_types, (f"Invalid nnet type: {nnet_type}. Valid nnet types are: "
@@ -37,6 +41,19 @@ class HeurFnNNet(nn.Module):
 class Environment(ABC):
     def __init__(self, env_name: str):
         self.env_name: Optional[str] = env_name
+
+    @abstractmethod
+    def get_start_states(self, num_states: int) -> List[State]:
+        pass
+
+    @abstractmethod
+    def get_state_actions(self, states: List[State]) -> List[List[Any]]:
+        """ Get actions applicable to each states
+
+        @param states: List of states
+        @return: Applicable ations
+        """
+        pass
 
     @abstractmethod
     def next_state(self, states: List[State], actions: List[Any]) -> Tuple[List[State], List[float]]:
@@ -59,15 +76,6 @@ class Environment(ABC):
         return self.next_state(states, actions_rand)
 
     @abstractmethod
-    def get_state_actions(self, states: List[State]) -> List[List[Any]]:
-        """ Get actions applicable to each states
-
-        @param states: List of states
-        @return: Applicable ations
-        """
-        pass
-
-    @abstractmethod
     def sample_goal(self, states: List[State]) -> List[Goal]:
         pass
 
@@ -80,10 +88,6 @@ class Environment(ABC):
         @return: Boolean numpy array where the element at index i corresponds to whether or not the
         state at index i is solved
         """
-        pass
-
-    @abstractmethod
-    def get_start_states(self, num_states: int) -> List[State]:
         pass
 
     def get_start_goal_pairs(self, num_steps_l: List[int],
@@ -209,7 +213,8 @@ class Environment(ABC):
 
     @abstractmethod
     def visualize(self, states: Union[List[State], List[Goal]]) -> np.ndarray:
-        """ Implement if visualizing states
+        """ Implement if visualizing states. If you are planning on visualizing states, you do not have to implement
+        this (raise NotImplementedError).
 
         :return:
         """
@@ -237,34 +242,6 @@ class Environment(ABC):
         return states_walk
 
 
-def get_preferred_model(states_start: List[State], goals_l: List[List[Model]],
-                        heuristic_fn) -> Tuple[List[Model], np.array]:
-    goals_pref: List[Model] = []
-
-    set_lens: List[int] = [len(x) for x in goals_l]
-    states_start_rep: List[List[State]] = [[] for _ in range(len(states_start))]
-    goals_rep: List[List[Model]] = [[] for _ in range(len(states_start))]
-    for set_len in range(1, max(set_lens) + 1):
-        len_idxs = [i for i in range(len(goals_l)) if len(goals_l[i]) >= set_len]
-
-        for len_idx in len_idxs:
-            states_start_rep[len_idx].append(states_start[len_idx])
-            goals_rep[len_idx].append(goals_l[len_idx][set_len - 1])
-
-    states_start_rep_flat, split_idxs = misc_utils.flatten(states_start_rep)
-    goals_rep_flat, _ = misc_utils.flatten(goals_rep)
-
-    ctgs_rep_flat = heuristic_fn(states_start_rep_flat, goals_rep_flat).min(axis=1)
-    ctgs_rep: List[List[float]] = misc_utils.unflatten(list(ctgs_rep_flat), split_idxs)
-    ctgs_pref_l: List[float] = []
-    for idx, ctg_rep in enumerate(ctgs_rep):
-        min_idx: int = int(np.argmin(ctg_rep))
-        ctgs_pref_l.append(ctg_rep[min_idx])
-        goals_pref.append(goals_rep[idx][min_idx])
-
-    return goals_pref, np.array(ctgs_pref_l)
-
-
 class EnvGrndAtoms(Environment):
     def __init__(self, env_name: str):
         super().__init__(env_name)
@@ -289,15 +266,6 @@ class EnvGrndAtoms(Environment):
 
     @abstractmethod
     def model_to_goal(self, models: List[Model]) -> List[Goal]:
-        pass
-
-    @abstractmethod
-    def start_state_fixed(self, states: List[State]) -> List[Model]:
-        """ Given the start state, what must also be true for the goal state (i.e. immovable walls)
-
-        :param states:
-        :return:
-        """
         pass
 
     def is_solved(self, states: List[State], goals: List[Goal]) -> List[bool]:
@@ -328,6 +296,14 @@ class EnvGrndAtoms(Environment):
         return self.model_to_goal(models_g)
 
     @abstractmethod
+    def get_bk(self) -> List[str]:
+        """ get background, each element in list is a line
+
+        :return:
+        """
+        pass
+
+    @abstractmethod
     def get_ground_atoms(self) -> List[Atom]:
         """ Get all possible ground atoms that can be used to make a state
 
@@ -345,9 +321,10 @@ class EnvGrndAtoms(Environment):
         pass
 
     @abstractmethod
-    def get_bk(self) -> List[str]:
-        """ get background, each element in list is a line
+    def start_state_fixed(self, states: List[State]) -> List[Model]:
+        """ Given the start state, what must also be true for the goal state (i.e. immovable walls)
 
+        :param states:
         :return:
         """
         pass
