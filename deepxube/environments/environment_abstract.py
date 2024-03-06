@@ -173,7 +173,8 @@ class Environment(ABC):
 
     @abstractmethod
     def get_q_nnet(self) -> HeurFnNNet:
-        """ Get the neural network model for Q-learning and Q* search
+        """ Get the neural network model for Q-learning and Q* search. Has not been implemented yet,
+        so do not have to implement (raise NotImplementedError).
 
         @return: neural network model
         """
@@ -181,7 +182,8 @@ class Environment(ABC):
 
     @abstractmethod
     def get_pddl_domain(self) -> List[str]:
-        """ Implement if using PDDL solvers, like fast-downward
+        """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using
+        traiditional planners (raise NotImplementedError).
 
         :return:
         """
@@ -189,7 +191,8 @@ class Environment(ABC):
 
     @abstractmethod
     def state_goal_to_pddl_inst(self, state: State, goal: Goal) -> List[str]:
-        """ Implement if using PDDL solvers, like fast-downward
+        """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using
+        traiditional planners (raise NotImplementedError).
 
         :return:
         """
@@ -197,7 +200,8 @@ class Environment(ABC):
 
     @abstractmethod
     def pddl_action_to_action(self, pddl_action: str) -> int:
-        """ Implement if using PDDL solvers, like fast-downward
+        """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using
+        traiditional planners (raise NotImplementedError).
 
         :return:
         """
