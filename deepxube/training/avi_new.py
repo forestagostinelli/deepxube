@@ -1,3 +1,4 @@
+import random
 from typing import List, Tuple
 from deepxube.utils import data_utils, nnet_utils, misc_utils
 from deepxube.utils.timing_utils import Times
@@ -33,6 +34,7 @@ class Status:
 
         for step in range(step_max + 1):
             self.state_t_steps_l.extend([step] * num_test_per_step)
+        random.shuffle(self.state_t_steps_l)
 
         self.states_start_t: List[State]
         self.goals_t: List[Goal]

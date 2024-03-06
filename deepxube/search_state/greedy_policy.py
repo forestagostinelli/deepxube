@@ -127,7 +127,7 @@ class Greedy:
 def greedy_runner(env: Environment, heur_fn_q: HeurFnQ, proc_id: int,
                   max_solve_steps: int, data_q, results_queue):
     heuristic_fn = heur_fn_q.get_heuristic_fn(env)
-    states, goals = data_q.get()
+    states, goals, inst_gen_steps = data_q.get()
 
     # Solve with GBFS
     greedy = Greedy(env)
@@ -141,15 +141,14 @@ def greedy_runner(env: Environment, heur_fn_q: HeurFnQ, proc_id: int,
     # Get state cost-to-go
     state_ctg_all: np.ndarray = heuristic_fn(states, goals)
 
-    results_queue.put((proc_id, is_solved_all, num_steps_all, state_ctg_all))
+    results_queue.put((proc_id, is_solved_all, num_steps_all, state_ctg_all, inst_gen_steps))
 
 
-def greedy_test(states: List[State], goals: List[Goal], state_steps_l: List[int], env: Environment,
+def greedy_test(states: List[State], goals: List[Goal], inst_gen_steps: List[int], env: Environment,
                 heur_fn_qs: List[HeurFnQ], max_solve_steps: Optional[int] = None) -> float:
     # initialize
-    state_back_steps: np.ndarray = np.array(state_steps_l)
     if max_solve_steps is None:
-        max_solve_steps = max(np.max(state_back_steps), 1)
+        max_solve_steps = max(max(inst_gen_steps), 1)
 
     ctx = get_context("spawn")
     data_q: ctx.Queue = ctx.Queue()
@@ -174,30 +173,34 @@ def greedy_test(states: List[State], goals: List[Goal], state_steps_l: List[int]
         # put data
         states_proc = states[start_idx:end_idx]
         goals_proc = goals[start_idx:end_idx]
-        data_q.put((states_proc, goals_proc))
+        inst_gen_steps_proc = inst_gen_steps[start_idx:end_idx]
+        data_q.put((states_proc, goals_proc, inst_gen_steps_proc))
         start_idx = end_idx
 
     is_solved_l: List[List[bool]] = [[] for _ in heur_fn_qs]
     num_steps_l: List[List[int]] = [[] for _ in heur_fn_qs]
     ctgs_l: List[List[float]] = [[] for _ in heur_fn_qs]
+    inst_gen_steps_l: List[List[int]] = [[] for _ in heur_fn_qs]
 
     for _ in heur_fn_qs:
-        proc_id, is_solved_i, num_steps_i, ctgs_i = results_q.get()
+        proc_id, is_solved_i, num_steps_i, ctgs_i, inst_gen_steps_i = results_q.get()
         is_solved_l[proc_id] = is_solved_i
         num_steps_l[proc_id] = num_steps_i
         ctgs_l[proc_id] = ctgs_i
+        inst_gen_steps_l[proc_id] = inst_gen_steps_i
     is_solved_all = np.hstack(is_solved_l)
     num_steps_all = np.hstack(num_steps_l)
     ctgs_all = np.hstack(ctgs_l)
+    inst_gen_steps = list(np.hstack(inst_gen_steps_l))
 
     for proc in procs:
         proc.join()
 
     per_solved_all = 100 * float(sum(is_solved_all)) / float(len(is_solved_all))
-    steps_show: List[int] = list(np.unique(np.linspace(0, max(state_back_steps), 30, dtype=int)))
+    steps_show: List[int] = list(np.unique(np.linspace(0, max(inst_gen_steps), 30, dtype=int)))
     for back_step_test in np.sort(np.unique(steps_show)):
         # Get states
-        step_idxs = np.where(state_back_steps == back_step_test)[0]
+        step_idxs = np.where(np.array(inst_gen_steps) == back_step_test)[0]
         if len(step_idxs) == 0:
             continue
 
