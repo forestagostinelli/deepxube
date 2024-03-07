@@ -1,3 +1,4 @@
+future/
 deepxube/environments/data/*
 *.DS_Store
 .idea/

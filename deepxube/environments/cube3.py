@@ -188,7 +188,6 @@ class Cube3(EnvGrndAtoms):
                 states_next_np_act_tmp, _ = self._move_np(states_next_np_act_tmp, atomic_action)
             states_next_np_act = states_next_np_act_tmp
 
-            # TODO assuming same transition cost
             tcs_act: List[float] = [1.0 for _ in range(states_np_act.shape[0])]
 
             states_next_np[action_idxs] = states_next_np_act
