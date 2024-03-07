@@ -1,4 +1,4 @@
-environments/data/*
+deepxube/environments/data/*
 *.DS_Store
 .idea/
 old/

@@ -10,7 +10,7 @@ setup(
     author_email='foresta@cse.sc.edu',
     license='MIT',
     packages=find_packages(),
-    install_requires=['torch>=2.0', 'numpy', 'matplotlib', 'clingo'],
+    install_requires=['torch>=2.0', 'numpy', 'matplotlib', 'clingo', 'wget', 'filelock'],
     include_package_data=True,
     package_data={
         "": ['*.pkl.tar.gz']

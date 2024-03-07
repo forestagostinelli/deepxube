@@ -17,6 +17,8 @@ import re
 
 import pathlib
 import tarfile
+import os
+import wget
 from filelock import FileLock
 
 
@@ -63,7 +65,7 @@ class SokobanState(State):
 
         return self.hash
 
-    def __eq__(self, other):
+    def __eq__(self, other: 'SokobanState'):
         agents_eq: bool = np.array_equal(self.agent, other.agent)
         boxes_eq: bool = np.array_equal(self.boxes, other.boxes)
         walls_eq: bool = np.array_equal(self.walls, other.walls)
@@ -83,7 +85,7 @@ class SokobanGoal(Goal):
 def load_states(file_name: str) -> List[SokobanState]:
     # states_np = pickle.load(open(file_name, "rb"))
     t_file = tarfile.open(file_name, "r:gz")
-    states_np = pickle.load(t_file.extractfile(t_file.getmembers()[0]))
+    states_np = pickle.load(t_file.extractfile(t_file.getmembers()[1]))
 
     states: List[SokobanState] = []
 
@@ -122,11 +124,11 @@ def _get_surfaces():
 
 
 def _get_train_states() -> List[SokobanState]:
-    parent_dir: str = str(pathlib.Path(__file__).parent.resolve())
-    lock = FileLock(f"{parent_dir}/data/sokoban/file.lock")
+    data_dir, data_file = get_data_dir_and_file_name()
+    lock = FileLock(f"{data_dir}/file.lock")
 
     with lock:
-        states_train: List[SokobanState] = load_states(f"{parent_dir}/data/sokoban/train.pkl.tar.gz")
+        states_train: List[SokobanState] = load_states(data_file)
 
     return states_train
 
@@ -139,6 +141,14 @@ def _np_to_model(agent: np.array, boxes: np.ndarray, walls: np.ndarray) -> Model
     grnd_atoms += [('wall', str(int(x)), str(int(y))) for x, y in zip(*np.where(walls))]
 
     return frozenset(grnd_atoms)
+
+
+def get_data_dir_and_file_name() -> Tuple[str, str]:
+    parent_dir: str = str(pathlib.Path(__file__).parent.resolve())
+    data_dir: str = f"{parent_dir}/data/sokoban/"
+    file_name: str = f"{data_dir}/sokoban.tar.gz"
+
+    return data_dir, file_name
 
 
 class Sokoban(EnvGrndAtoms):
@@ -155,6 +165,22 @@ class Sokoban(EnvGrndAtoms):
 
         self.states_train: Optional[List[SokobanState]] = None
         self._surfaces = None
+
+        # check if data needs to be downloaded
+        data_dir, file_name = get_data_dir_and_file_name()
+        data_download_link: str = "https://github.com/forestagostinelli/DeepXubeData/raw/main/sokoban.tar.gz"
+        if not os.path.exists(file_name):
+            valid_user_in: bool = False
+            while not valid_user_in:
+                user_in: str = input(f"Sokoban data needs to be downloaded from {data_download_link}. "
+                                     f"Download data (about 16MB)? (y/n):")
+                if user_in.upper() == "Y":
+                    valid_user_in = True
+                    if not os.path.exists(data_dir):
+                        os.makedirs(data_dir)
+                    wget.download(data_download_link, file_name, bar=None)
+                elif user_in.upper() == "N":
+                    valid_user_in = True
 
     def next_state(self, states: List[SokobanState], actions: List[int]) -> Tuple[List[SokobanState], List[float]]:
         agent = np.stack([state.agent for state in states], axis=0)

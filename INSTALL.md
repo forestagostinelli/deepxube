@@ -7,3 +7,5 @@ This code was tested on Python 3.10.
 - Deep reinforcement learning: torch>=2.0, numpy
 - Visualization: matplotlib
 - Logic: clingo
+- Data: wget
+- Parallel processing: filelock
