@@ -153,8 +153,7 @@ def heuristic_fn_runner(heuristic_fn_input_queue: Queue, heuristic_fn_output_que
         if proc_id is None:
             break
 
-        if all_zeros:  # TODO only works for fixed action space
-            # heuristics = np.zeros((states_nnet[0].shape[0], env.num_actions_max), dtype=np.float)
+        if all_zeros:
             heuristics = np.zeros(states_nnet[0].shape[0], dtype=float)
         else:
             heuristics = heuristic_fn(states_nnet, goals_nnet, is_nnet_format=True)

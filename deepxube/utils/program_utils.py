@@ -52,7 +52,6 @@ def replace_anon_vars(lit: Literal, all_lits: List[Literal]):
     return lit_ret
 
 
-# TODO handle case with no arguments
 def parse_clause(constr_str: str) -> Tuple[Clause, Dict[str, List[str]]]:
     head_str, body_str = constr_str.split(":-")
     head_lit = parse_literal(head_str)
@@ -84,11 +83,6 @@ def parse_clause(constr_str: str) -> Tuple[Clause, Dict[str, List[str]]]:
 
     clause: Clause = Clause(head_lit, tuple(body_lits))
     return clause, subs_forbid
-
-
-def get_num_literals(clause: Clause) -> int:
-    # TODO only good for one head, what if no head or multiple in head?
-    return 1 + len(clause.body)
 
 
 def copy_clause_with_new_head(clause: Clause, head_name_new: str) -> Clause:
