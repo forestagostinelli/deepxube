@@ -12,6 +12,8 @@ in any form: i.e. a state, a set of ground atoms in first-order logic, natural l
 
 DeepXube is a generalization of DeepCubeA ([code](https://github.com/forestagostinelli/DeepCubeA/),[paper](https://cse.sc.edu/~foresta/assets/files/SolvingTheRubiksCubeWithDeepReinforcementLearningAndSearch_Final.pdf)).
 
+For any issues, you can create a GitHub issue or contact Forest Agostinelli (foresta@cse.sc.edu).
+
 **Overview**:\
 <img src="./misc/images/overview.png" width="500">
 
@@ -44,8 +46,7 @@ See [ENVIRONMENT.md](ENVIRONMENT.md) for more details
 Once an environment has been implemented, a heuristic function can be trained to map states and goals to heuristic 
 values (estimates of the cost-to-go from a given start state to a given goal).
 
-See [TRAIN.md](TRAIN.md) for more details
-
+See [TRAIN.md](TRAIN.md) for more details.
 
 ## Heuristic Search
 

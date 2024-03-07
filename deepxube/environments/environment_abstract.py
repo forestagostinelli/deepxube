@@ -12,10 +12,18 @@ import time
 class State(ABC):
     @abstractmethod
     def __hash__(self):
+        """ For use in CLOSED dictionary for heuristic search
+        @return: hash value
+        """
         pass
 
     @abstractmethod
-    def __eq__(self, other):
+    def __eq__(self, other: 'State'):
+        """ for use in state reidentification during heuristic search
+
+        @param other: other state
+        @return: true if they are equal
+        """
         pass
 
 
@@ -44,6 +52,12 @@ class Environment(ABC):
 
     @abstractmethod
     def get_start_states(self, num_states: int) -> List[State]:
+        """ A method for generating start states. Should try to make this generate states that are as diverse as
+        possible so that the trained heuristic function generalizes well.
+
+        @param num_states: Number of states to get
+        @return: Generated states
+        """
         pass
 
     @abstractmethod
@@ -60,7 +74,7 @@ class Environment(ABC):
         """ Get the next state and transition cost given the current state and action
 
         @param states: List of states
-        @param actions: Actions to take
+        @param actions: List of actions to take
         @return: Next states, transition costs
         """
         pass
@@ -77,16 +91,22 @@ class Environment(ABC):
 
     @abstractmethod
     def sample_goal(self, states: List[State]) -> List[Goal]:
+        """ Given a state, return a goal that represents a set of goal states of which the given state is a member.
+        Does not have to always return the same goal.
+
+        @param states: List of states
+        @return: Goals
+        """
         pass
 
     @abstractmethod
     def is_solved(self, states: List[State], goals: List[Goal]) -> List[bool]:
-        """ Returns whether or not state is solved
+        """ Returns true if the state is a member of the set of goal states represented by the goal
 
         @param states: List of states
         @param goals: List of goals
-        @return: Boolean numpy array where the element at index i corresponds to whether or not the
-        state at index i is solved
+        @return: List of booleans where the element at index i corresponds to whether or not the
+        state at index i is a member of the set of goal states represented by the goal at index i
         """
         pass
 

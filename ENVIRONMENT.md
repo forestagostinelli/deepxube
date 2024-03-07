@@ -1,6 +1,4 @@
 # Environment
-
-**Outline**:
 - [Current Environments](#current-environments)
 - [Implementing Your Own Environment](#implementing-your-environment)
   - [State Class](#state-class) 
@@ -11,36 +9,32 @@
 - [Testing Your Environment](#testing-your-implementation)
 
 ## Current Environments
-- Rubik's cube `deepxube/environments/cube3`
-- Sliding tile puzzle `deepxube/environments/n_puzzle`
-- Sokoban `deepxube/environments/sokoban`
+- Rubik's cube `deepxube/environments/cube3.py`
+- Sliding tile puzzle `deepxube/environments/n_puzzle.py`
+- Sokoban `deepxube/environments/sokoban.py`
 
-## Implementing Your Environment
+## Implementing Your Own Environment
+The abstract environment file `deepxube/environments/environment_abstract.py` contains abstract classes for states, 
+goals, and environments.
 
 ### State Class
+`class State(ABC):`
+
+Represents a state.
 
 ### Goal Class
+`class Goal(ABC):`
+
+Represents a set of states that are considered goal states. In the simplest case, a goal could also just be a state. 
+However, goals can also be logic, natural language, a sketch, etc.
 
 ### Environment Class
 
 #### Base Class
-
-- Generating start states
-- Transition and transition cost function
-- Sampling goals from states
-- Goal test function
-- Neural network functions
-- PDDL functions
-- Visualization
+`Environment(ABC):`
 
 #### Environment with Answer Set Programming Integration Class
-
-- State/model conversion
-- Goal/model conversion
-- Background knowledge
-- Ground atoms
-- On model
-- Fixed ground atoms
+`EnvGrndAtoms(Environment):`
 
 
 ## Testing Your Implementation
