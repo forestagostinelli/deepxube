@@ -81,20 +81,23 @@ class Greedy:
             instance.add_to_traj(state, ctg_backup)
 
             # get next state
-            state_exp: List[State] = states_exp[idx]
-            ctg_next_p_tc: np.ndarray = ctg_next_p_tcs[idx]
+            if not is_solved[idx]:
+                state_exp: List[State] = states_exp[idx]
+                ctg_next_p_tc: np.ndarray = ctg_next_p_tcs[idx]
 
-            state_next: State = state_exp[int(np.argmin(ctg_next_p_tc))]
-            seen_state: bool = state_next in instance.seen_states
-            if (rand_vals[idx] < instance.eps) or (seen_state and rand_seen):
-                state_next: State = random.choice(state_exp)
-
-            instance.next_state(state_next)
+                state_next: State = state_exp[int(np.argmin(ctg_next_p_tc))]
+                seen_state: bool = state_next in instance.seen_states
+                if (rand_vals[idx] < instance.eps) or (seen_state and rand_seen):
+                    state_next: State = random.choice(state_exp)
+                instance.next_state(state_next)
         times.record_time("get_next", time.time() - start_time)
 
         # check which are solved
         start_time = time.time()
-        solved_idxs: List[int] = list(np.where(is_solved)[0])
+        states_next: List[State] = [instance.curr_state for instance in instances]
+        goals: List[Goal] = [instance.goal for instance in instances]
+        is_solved_next: List[bool] = self.env.is_solved(states_next, goals)
+        solved_idxs: List[int] = list(np.where(is_solved_next)[0])
         for solved_idx in solved_idxs:
             instances[solved_idx].is_solved = True
         times.record_time("record_solved", time.time() - start_time)

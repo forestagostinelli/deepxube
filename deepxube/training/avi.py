@@ -26,10 +26,9 @@ class Status:
     def __init__(self, env: Environment, step_max: int, num_test_per_step: int):
         self.itr: int = 0
         self.update_num: int = 0
-        self.per_solved_best: float = 0.0
 
+        # generate data
         self.state_t_steps_l: List[int] = []
-
         for step in range(step_max + 1):
             self.state_t_steps_l.extend([step] * num_test_per_step)
         random.shuffle(self.state_t_steps_l)
@@ -39,6 +38,15 @@ class Status:
         print(f"Generating {num_test_per_step} test states per step ({step_max} steps, "
               f"{format(len(self.state_t_steps_l), ',')} total test states)")
         self.states_start_t, self.goals_t = env.get_start_goal_pairs(self.state_t_steps_l)
+
+        # Initialize per_solved_best
+        print("Intializing per solved best")
+        heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(1, "", torch.device("cpu"), False, env.get_v_nnet(),
+                                                                  env, all_zeros=True)
+        per_solved: float = greedy_test(self.states_start_t, self.goals_t, self.state_t_steps_l, env,
+                                        heur_fn_qs, max_solve_steps=1)
+        print("Greedy policy solved: %.2f%%" % per_solved)
+        self.per_solved_best: float = per_solved
 
 
 def do_update(step_max: int, update_num: int, env: Environment, step_update_max: int, num_states: int, eps_max: float,
