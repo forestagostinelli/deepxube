@@ -55,20 +55,10 @@ to the goal.
 See [HEURSEARCH.md](HEURSEARCH.md) for more details.
 
 ## Specifying Goals with Answer Set Programming
+Coming soon.
 
 ## Examples
-Using the files in `scripts/`, here is a series of commands to train a heuristic function for the Rubik's cube 
-where the goal is a set of ground atoms. Answer set programming can then be used to specify goals at a higher level.
 
-**Training**:\
-`python scripts/train.py --env cube3 --step_max 30 --batch_size 10000 --itrs_per_update 5000 --greedy_step_update_max 30 --max_itrs 2000000 --num_update_procs 48 --nnet_dir models/cube3/`
-
-**Specify goals**:\
-Six crosses:\
-`python scripts/spec_goal.py --env cube3 --bk_add misc/bk_add/cube3.lp --heur models/cube3/current.pt --spec "goal :- cross6" --viz_start --viz_model`
-
-Canonical goal state:\
-`python scripts/spec_goal.py --env cube3 --bk_add misc/bk_add/cube3.lp --heur models/cube3/current.pt --spec "goal :- canon" --viz_start --viz_model`
 
 
 ## Unit tests

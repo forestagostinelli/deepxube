@@ -9,9 +9,10 @@
 - [Testing Your Environment](#testing-your-implementation)
 
 ## Current Environments
-- Rubik's cube `deepxube/environments/cube3.py`
-- Sliding tile puzzle `deepxube/environments/n_puzzle.py`
-- Sokoban `deepxube/environments/sokoban.py`
+Each environment is associated with a unique name to make it easy to construct with `deepxube.utils.env_utils`
+- Rubik's cube `deepxube/environments/cube3.py` (name: cube3) 
+- Sliding tile puzzle `deepxube/environments/n_puzzle.py` (name: puzzle15, puzzle24, etc.)
+- Sokoban `deepxube/environments/sokoban.py` (name: sokoban) 
   - Sokoban requires data be downloaded. It will ask you if you want to download the data the first time you intialize the class.
 You can do so by just testing the environment:\
 `python tests/test_env.py --env sokoban --num_states 100 --step_max 30`.
@@ -44,5 +45,7 @@ However, goals can also be logic, natural language, a sketch, etc.
 After implementing the state, goal, and environment objects, you can test the basic functionality with:
 ```
     from deepxube.tests.test_env import test_env
-    test_env(env, num_states, step_max)
+    
+    env: Environment = <construct_your_environment>
+    test_env(env, <num_states>, <step_max>)
 ```
