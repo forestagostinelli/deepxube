@@ -1,5 +1,4 @@
 from typing import List
-from argparse import ArgumentParser
 
 import torch
 import torch.nn as nn
@@ -7,7 +6,6 @@ from torch.multiprocessing import Queue, get_context
 
 from deepxube.environments.environment_abstract import Environment, State
 from deepxube.utils import nnet_utils
-from deepxube.utils import env_select
 import numpy as np
 
 import time
@@ -21,27 +19,12 @@ def data_runner(queue1: Queue, queue2: Queue):
         queue2.put(the)
 
 
-def main():
-    # parse arguments
-    parser: ArgumentParser = ArgumentParser()
-    parser.add_argument('--env', type=str, required=True, help="")
-    parser.add_argument('--num_states', type=int, default=100, help="")
-    parser.add_argument('--step_max', type=int, default=30, help="")
-
-    args = parser.parse_args()
-
+def test_env(env: Environment, num_states: int, step_max: int):
     torch.set_num_threads(1)
-
-    # get environment
-    start_time = time.time()
-    env: Environment = env_select.get_environment(args.env)
-
-    elapsed_time = time.time() - start_time
-    print(f"Initialized environment {env.env_name} in %s seconds" % elapsed_time)
 
     # generate start/goal states
     start_time = time.time()
-    states = env.get_start_states(args.num_states)
+    states = env.get_start_states(num_states)
 
     elapsed_time = time.time() - start_time
     states_per_sec = len(states) / elapsed_time
@@ -50,7 +33,7 @@ def main():
     # get data
     start_time = time.time()
     states: List[State]
-    states, goals = env.get_start_goal_pairs(list(np.random.randint(args.step_max, size=args.num_states)))
+    states, goals = env.get_start_goal_pairs(list(np.random.randint(step_max, size=num_states)))
 
     elapsed_time = time.time() - start_time
     states_per_sec = len(states) / elapsed_time
@@ -144,7 +127,3 @@ def main():
     queue1.put(None)
     proc.join()
     print("Process join time: %.2f" % (time.time() - start_time))
-
-
-if __name__ == "__main__":
-    main()

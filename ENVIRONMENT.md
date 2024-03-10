@@ -41,6 +41,8 @@ However, goals can also be logic, natural language, a sketch, etc.
 
 
 ## Testing Your Implementation
-After implementing the state, goal, and environment objects, you can test the basic functionality with `tests/test_env.py`.
-For example:\
-`python tests/test_env.py --env cube3 --num_states 100 --step_max 30`
+After implementing the state, goal, and environment objects, you can test the basic functionality with:
+```
+    from deepxube.tests.test_env import test_env
+    test_env(env, num_states, step_max)
+```

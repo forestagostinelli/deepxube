@@ -86,7 +86,7 @@ class Cube3State(State):
         self.hash = hash(self.colors.tostring())
         return self.hash
 
-    def __eq__(self, other):
+    def __eq__(self, other: 'Cube3State'):
         return np.array_equal(self.colors, other.colors)
 
 

@@ -49,6 +49,10 @@ values (estimates of the cost-to-go from a given start state to a given goal).
 See [TRAIN.md](TRAIN.md) for more details.
 
 ## Heuristic Search
+Given a trained heuristic function, a start state, and a goal, heuristic search is used to find a path from the start state 
+to the goal.
+
+See [HEURSEARCH.md](HEURSEARCH.md) for more details.
 
 ## Specifying Goals with Answer Set Programming
 

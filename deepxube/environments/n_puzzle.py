@@ -28,7 +28,7 @@ class NPuzzleState(State):
 
         return self.hash
 
-    def __eq__(self, other):
+    def __eq__(self, other: 'NPuzzleState'):
         return np.array_equal(self.tiles, other.tiles)
 
 
