@@ -168,7 +168,7 @@ class Sokoban(EnvGrndAtoms):
         # check if data needs to be downloaded
         data_dir = get_data_dir()
         data_download_link: str = "https://github.com/forestagostinelli/DeepXubeData/raw/main/sokoban.tar.gz"
-        if not os.path.exists(f"{data_dir}/sokoban"):
+        if not os.path.exists(f"{data_dir}/sokoban/"):
             valid_user_in: bool = False
             while not valid_user_in:
                 user_in: str = input(f"Sokoban data needs to be downloaded from {data_download_link}. "
@@ -176,7 +176,9 @@ class Sokoban(EnvGrndAtoms):
                 if user_in.upper() == "Y":
                     valid_user_in = True
                     print("Downloading compressed data")
-                    os.makedirs(data_dir)
+                    if not os.path.exists(data_dir):
+                        os.makedirs(data_dir)
+
                     tar_gz_file_name = f"{data_dir}/sokoban.tar.gz"
                     wget.download(data_download_link, tar_gz_file_name, bar=None)
                     tar_gz_file = tarfile.open(tar_gz_file_name)
