@@ -1,3 +1,4 @@
+dist/
 future/
 deepxube/environments/data/*
 *.DS_Store

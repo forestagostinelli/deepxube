@@ -82,10 +82,10 @@ class SokobanGoal(Goal):
         self.walls: np.ndarray = walls
 
 
-def load_states(file_name: str) -> List[SokobanState]:
-    # states_np = pickle.load(open(file_name, "rb"))
-    t_file = tarfile.open(file_name, "r:gz")
-    states_np = pickle.load(t_file.extractfile(t_file.getmembers()[1]))
+def load_states(data_dir: str) -> List[SokobanState]:
+    states_np = pickle.load(open(f"{data_dir}/sokoban/train.pkl", "rb"))
+    # t_file = tarfile.open(file_name, "r:gz")
+    # states_np = pickle.load(t_file.extractfile(t_file.getmembers()[1]))
 
     states: List[SokobanState] = []
 
@@ -103,10 +103,10 @@ def load_states(file_name: str) -> List[SokobanState]:
 
 def _get_surfaces():
     import imageio.v2 as imageio
-    parent_dir: str = str(pathlib.Path(__file__).parent.resolve())
-    img_dir = f"{parent_dir}/data/sokoban/"
+    data_dir = get_data_dir()
+    img_dir = f"{data_dir}/sokoban/"
 
-    lock = FileLock(f"{parent_dir}/data/sokoban/file.lock")
+    lock = FileLock(f"{data_dir}/file.lock")
     with lock:
         # Load images, representing the corresponding situation
         box = imageio.imread(f"{img_dir}/surface/box.png")
@@ -124,11 +124,11 @@ def _get_surfaces():
 
 
 def _get_train_states() -> List[SokobanState]:
-    data_dir, data_file = get_data_dir_and_file_name()
+    data_dir = get_data_dir()
     lock = FileLock(f"{data_dir}/file.lock")
 
     with lock:
-        states_train: List[SokobanState] = load_states(data_file)
+        states_train: List[SokobanState] = load_states(data_dir)
 
     return states_train
 
@@ -143,12 +143,11 @@ def _np_to_model(agent: np.array, boxes: np.ndarray, walls: np.ndarray) -> Model
     return frozenset(grnd_atoms)
 
 
-def get_data_dir_and_file_name() -> Tuple[str, str]:
+def get_data_dir() -> str:
     parent_dir: str = str(pathlib.Path(__file__).parent.resolve())
     data_dir: str = f"{parent_dir}/data/sokoban/"
-    file_name: str = f"{data_dir}/sokoban.tar.gz"
 
-    return data_dir, file_name
+    return data_dir
 
 
 class Sokoban(EnvGrndAtoms):
@@ -167,18 +166,24 @@ class Sokoban(EnvGrndAtoms):
         self._surfaces = None
 
         # check if data needs to be downloaded
-        data_dir, file_name = get_data_dir_and_file_name()
+        data_dir = get_data_dir()
         data_download_link: str = "https://github.com/forestagostinelli/DeepXubeData/raw/main/sokoban.tar.gz"
-        if not os.path.exists(file_name):
+        if not os.path.exists(data_dir):
             valid_user_in: bool = False
             while not valid_user_in:
                 user_in: str = input(f"Sokoban data needs to be downloaded from {data_download_link}. "
                                      f"Download data (about 16MB)? (y/n):")
                 if user_in.upper() == "Y":
                     valid_user_in = True
-                    if not os.path.exists(data_dir):
-                        os.makedirs(data_dir)
-                    wget.download(data_download_link, file_name, bar=None)
+                    print("Downloading compressed data")
+                    os.makedirs(data_dir)
+                    tar_gz_file_name = f"{data_dir}/sokoban.tar.gz"
+                    wget.download(data_download_link, tar_gz_file_name, bar=None)
+                    tar_gz_file = tarfile.open(tar_gz_file_name)
+                    print("Uncompressing data")
+                    tar_gz_file.extractall(data_dir)
+                    print("Deleting compressed data")
+                    os.remove(tar_gz_file_name)
                 elif user_in.upper() == "N":
                     valid_user_in = True
 
@@ -500,9 +505,14 @@ class Sokoban(EnvGrndAtoms):
             fixed_l.append(frozenset(fixed_atoms))
         return fixed_l
 
-    def get_ground_atoms(self) -> List[str]:
-        return ["{ agent(X,Y) : pos_x(X), pos_y(Y) } 1",
-                "{ box(X,Y) : pos_x(X), pos_y(Y) } %i" % self.num_boxes]
+    def get_ground_atoms(self) -> List[Atom]:
+        ground_atoms: List[Atom] = []
+        for pos_i in range(self.dim):
+            for pos_j in range(self.dim):
+                ground_atoms.append(("agent", f"{pos_i}", f"{pos_j}"))
+                ground_atoms.append(("box", f"{pos_i}", f"{pos_j}"))
+
+        return ground_atoms
 
     def on_model(self, m) -> Model:
         symbs: Set = set(str(x) for x in m.symbols(shown=True))
@@ -535,18 +545,17 @@ class Sokoban(EnvGrndAtoms):
                          "validpos2(X,Y,Xr,Yr) :- pos_x(X), pos_y(Y), pos_x(Xr), pos_y(Yr)."]
 
         bk.extend([
-            "\ndir(up).", "dir(down).", "dir(left).", "dir(right).",
+            "dir(up).", "dir(down).", "dir(left).", "dir(right).",
             "manhat(up).", "manhat(down).", "manhat(left).", "manhat(right).",
-            "\nadj(up,right).", "adj(up,left).", "adj(down,right).", "adj(down,left).", "adj(X,Y) :- adj(Y,X).",
+            "adj(up,right).", "adj(up,left).", "adj(down,right).", "adj(down,left).", "adj(X,Y) :- adj(Y,X).",
             "opp(up,down).", "opp(left,right).", "opp(X,Y) :- opp(Y,X).",
-            "%empty(X,Y) :- pos_x(X), pos_y(Y), not agent(X,Y), not box(X,Y), not wall(X,Y).",
 
-            "\nrel(X,Y,Xr,Y,up) :- validpos2(X,Y,Xr,Y), Xr=X+1.",
+            "rel(X,Y,Xr,Y,up) :- validpos2(X,Y,Xr,Y), Xr=X+1.",
             "rel(X,Y,Xr,Y,down) :- validpos2(X,Y,Xr,Y), Xr=X-1.",
             "rel(X,Y,X,Yr,left) :- validpos2(X,Y,X,Yr), Yr=Y-1.",
             "rel(X,Y,X,Yr,right) :- validpos2(X,Y,X,Yr), Yr=Y+1.",
 
-            "\nimmovable(X,Y) :- wall(X,Y).",
+            "immovable(X,Y) :- wall(X,Y).",
             "immovable(X,Y) :- box_stuck(X,Y).",
             "at_edge_d(X,Y,up) :- pos_max_x(X), pos_y(Y).",
             "at_edge_d(X,Y,down) :- pos_min_x(X), pos_y(Y).",
@@ -555,17 +564,16 @@ class Sokoban(EnvGrndAtoms):
             "immovable_edge_d(X,Y,D) :- rel(X,Y,Xr,Yr,D), immovable(Xr,Yr).",
             "immovable_edge_d(X,Y,D) :- at_edge_d(X,Y,D).",
 
-            "\nbox_stuck(X,Y) :- box(X,Y), manhat(D1), immovable_edge_d(X,Y,D1), adj(D1,D2), "
+            "box_stuck(X,Y) :- box(X,Y), manhat(D1), immovable_edge_d(X,Y,D1), adj(D1,D2), "
             "immovable_edge_d(X,Y,D2).",
 
-            "\nbox_of_boxes :- box(X,Y), box(X+1,Y), box(X,Y-1), box(X+1,Y-1).",
-            "\nagent_box_corners :- agent(X,Y), box(X+1,Y+1), box(X+1,Y-1), box(X-1,Y+1), box(X-1,Y-1).",
-
-            "\n% contraints",
             ":- box(X,Y), wall(X,Y).",
             ":- box(X,Y), agent(X,Y).",
             ":- wall(X,Y), agent(X,Y).",
         ])
+        bk.append("#defined agent/2")
+        bk.append("#defined box/2")
+        bk.append("#defined wall/2")
         """
         bk.extend([
             "adj(O1,O2) :- at(O1,X1,Y1), at(O2,X2,Y2), adj(X1,Y1,X2,Y2).",
