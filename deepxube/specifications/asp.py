@@ -63,15 +63,15 @@ class ASPSpec:
 
     def get_models(self, goal: List[Clause], on_model: Callable, minimal: bool = True,
                    num_models: int = 1, assumed_true: Optional[Model] = None,
-                   models_banned: Optional[List[Model]] = None, num_atoms_gt: Optional[int] = None) -> List[Model]:
+                   assumed_false: Optional[List[Model]] = None, num_atoms_gt: Optional[int] = None) -> List[Model]:
         """
 
         :param goal: Must have goal in the head.
         :param on_model: Callable that processes models
         :param minimal: if true, only samples minimal models
         :param num_models: number of models to sample
-        :param assumed_true: a model with atoms that are assumed to be true
-        :param models_banned: forbidden models (supersets of these models are also forbidden)
+        :param assumed_true: will only return stable models that are a superset (including equality) of given model
+        :param assumed_false: will not return a stable model that is a superset (including equality) of given models
         :param num_atoms_gt: Number of atoms in model found must be greater than given number
         :return:
         """
@@ -88,12 +88,12 @@ class ASPSpec:
         # get assumptions
         if assumed_true is None:
             assumed_true = frozenset()
-        if models_banned is None:
-            models_banned = []
+        if assumed_false is None:
+            assumed_false = []
         atoms_true: List[Atom] = [(self._add_goal(goal),)]
 
         assumptions: List[Tuple[Symbol, bool]] = self._make_assumptions(atoms_true + list(assumed_true), [],
-                                                                        models_banned)
+                                                                        assumed_false)
 
         # get models
         models: List[Model] = []
@@ -105,7 +105,8 @@ class ASPSpec:
             model_i: Model = random.choice(models_i)
 
             if minimal:
-                model_i = self.sample_minimal_model(goal, model_i)
+                model_i = self.sample_minimal_model(goal, model_i, assumed_true=assumed_true,
+                                                    assumed_false=assumed_false)
 
             models.append(model_i)
             assumptions_i: List[Tuple[Symbol, bool]] = self._make_assumptions([], [], [model_i])
@@ -113,17 +114,21 @@ class ASPSpec:
 
         return models
 
-    def check_model(self, goal: List[Clause], model: Model) -> bool:
+    def check_model(self, goal: List[Clause], model: Model, assumed_true: Optional[Model] = None,
+                    assumed_false: Optional[List[Model]] = None) -> bool:
         """
 
         :param goal: Logical or over clauses. Must have goal in the head.
-        :param model:
+        :param model: Model to check
+        :param assumed_true: will only return stable models that are a superset (including equality) of given model
+        :param assumed_false: will not return a stable model that is a superset (including equality) of given models
         :return:
         """
         atoms_true: List[Atom] = [(self._add_goal(goal),)]
 
         atoms_false: List[Atom] = [atom for atom in self.ground_atoms if atom not in model]
-        assumptions: List[Tuple[Symbol, bool]] = self._make_assumptions(atoms_true + list(model), atoms_false, [])
+        assumptions: List[Tuple[Symbol, bool]] = self._make_assumptions(atoms_true + list(assumed_true) + list(model),
+                                                                        atoms_false, assumed_false)
         models_ret: List = []
         self.ctl.solve(assumptions=assumptions, on_model=lambda x: models_ret.append(None))
 
@@ -185,15 +190,17 @@ class ASPSpec:
 
         return models_ret
 
-    def sample_minimal_model(self, goal: List[Clause], model: Model) -> Model:
+    def sample_minimal_model(self, goal: List[Clause], model: Model, assumed_true: Optional[Model] = None,
+                             assumed_false: Optional[List[Model]] = None) -> Model:
         atoms_l = list(model)
         random.shuffle(atoms_l)
         atoms_true: Set[Atom] = set(atoms_l)
         for atom in atoms_l:
             atoms_true.remove(atom)
             model_new: Model = frozenset(atoms_true)
-            if self.check_model(goal, model_new):
-                return self.sample_minimal_model(goal, model_new)
+            if self.check_model(goal, model_new, assumed_true=assumed_true, assumed_false=assumed_false):
+                return self.sample_minimal_model(goal, model_new, assumed_true=assumed_true,
+                                                 assumed_false=assumed_false)
 
             atoms_true.add(atom)
 
@@ -225,7 +232,7 @@ class ASPSpec:
         return goal_new_head_pred
 
     def _make_assumptions(self, atoms_true: List[Atom], atoms_false: List[Atom],
-                          models_banned: List[Model]) -> List[Tuple[Symbol, bool]]:
+                          models_assumed_false: List[Model]) -> List[Tuple[Symbol, bool]]:
         assumed_true: List[str] = []
         assumed_false: List[str] = []
 
@@ -234,7 +241,7 @@ class ASPSpec:
         for atom in atoms_false:
             assumed_false.append(atom_to_str(atom))
 
-        for model_banned in models_banned:
+        for model_banned in models_assumed_false:
             blits: List[Literal] = [Literal(atom[0], atom[1:], tuple(["in"] * len(atom[1:]))) for atom in model_banned]
             clause_banned: Clause = Clause(Literal("goal", tuple(), tuple()), tuple(blits))
             assumed_false.append(self._add_goal([clause_banned]))
