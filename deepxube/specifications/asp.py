@@ -124,6 +124,11 @@ class ASPSpec:
         :param assumed_false: will not return a stable model that is a superset (including equality) of given models
         :return:
         """
+        if assumed_true is None:
+            assumed_true = frozenset()
+        if assumed_false is None:
+            assumed_false = []
+
         atoms_true: List[Atom] = [(self._add_goal(goal),)]
 
         atoms_false: List[Atom] = [atom for atom in self.ground_atoms if atom not in model]
