@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from deepxube.environments.environment_abstract import Environment, State
-from deepxube.logic.program import Model
+from deepxube.logic.logic_objects import Model
 
 
 class Quaternion:

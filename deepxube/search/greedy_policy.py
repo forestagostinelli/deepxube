@@ -2,9 +2,9 @@ from typing import List, Tuple, Set, Callable, Optional
 from deepxube.environments.environment_abstract import Environment, State, Goal
 from deepxube.utils import misc_utils
 from deepxube.utils.timing_utils import Times
-from deepxube.utils.nnet_utils import HeurFnQ
+from deepxube.nnet.nnet_utils import HeurFnQ
 import numpy as np
-from deepxube.utils import search_utils
+from deepxube.search.search_utils import bellman
 from torch.multiprocessing import get_context
 import random
 import time
@@ -66,8 +66,7 @@ class Greedy:
         times.record_time("get_unsolved", time.time() - start_time)
 
         # bellman
-        ctg_backups, ctg_next_p_tcs, states_exp, is_solved = search_utils.bellman(states, goals, heuristic_fn, self.env,
-                                                                                  times)
+        ctg_backups, ctg_next_p_tcs, states_exp, is_solved = bellman(states, goals, heuristic_fn, self.env, times)
 
         # take action
         start_time = time.time()

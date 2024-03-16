@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Tuple, Union, Optional, Set, Any
 import numpy as np
 import torch.nn as nn
-from deepxube.logic.program import Atom, Model
+from deepxube.logic.logic_objects import Atom, Model
 from deepxube.utils import misc_utils
 from deepxube.utils.timing_utils import Times
 import random

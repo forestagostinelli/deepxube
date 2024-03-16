@@ -1,6 +1,5 @@
 import unittest
-from deepxube.logic.program import Literal, Clause
-from deepxube.utils.program_utils import parse_clause, parse_literal
+from deepxube.logic.logic_utils import parse_literal
 
 
 class TestStringMethods(unittest.TestCase):

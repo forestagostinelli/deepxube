@@ -1,10 +1,10 @@
 from typing import List, Tuple
 import numpy as np
 from deepxube.utils import misc_utils
-from deepxube.utils.nnet_utils import HeurFnQ
+from deepxube.nnet.nnet_utils import HeurFnQ
 from deepxube.utils.timing_utils import Times
 from deepxube.environments.environment_abstract import Environment, State, Goal
-from deepxube.search_state.greedy_policy import Greedy
+from deepxube.search.greedy_policy import Greedy
 from torch.multiprocessing import get_context
 import time
 

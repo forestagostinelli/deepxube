@@ -1,8 +1,9 @@
 from typing import List, cast
 from deepxube.environments.environment_abstract import EnvGrndAtoms
-from deepxube.specifications.asp import ASPSpec
-from deepxube.logic.program import Clause, Model
-from deepxube.utils import viz_utils, program_utils, env_select
+from deepxube.logic.asp import ASPSpec
+from deepxube.logic.logic_objects import Clause, Model
+from deepxube.utils import viz_utils, env_select
+from deepxube.logic.logic_utils import parse_clause
 import time
 import argparse
 
@@ -53,7 +54,7 @@ def main():
     print(spec_clauses_str)
     clauses: List[Clause] = []
     for clause_str in spec_clauses_str:
-        clause = program_utils.parse_clause(clause_str)[0]
+        clause = parse_clause(clause_str)[0]
         print(clause)
         clauses.append(clause)
     print(clauses)

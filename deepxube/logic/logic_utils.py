@@ -1,5 +1,5 @@
 from typing import List, Set, Tuple, Dict
-from deepxube.logic.program import Clause, Literal
+from deepxube.logic.logic_objects import Clause, Literal, Atom
 from deepxube.utils import misc_utils
 import re
 
@@ -91,3 +91,7 @@ def copy_clause_with_new_head(clause: Clause, head_name_new: str) -> Clause:
                                 positive=clause.head.positive), clause.body)
 
     return clause_new
+
+
+def atom_to_str(atom: Atom) -> str:
+    return f"{atom[0]}({','.join(atom[1:])})"

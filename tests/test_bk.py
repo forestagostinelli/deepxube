@@ -1,8 +1,9 @@
 from typing import List, cast, Optional
 from deepxube.environments.environment_abstract import EnvGrndAtoms
-from deepxube.specifications.asp import ASPSpec
-from deepxube.logic.program import Clause, Model
-from deepxube.utils import viz_utils, program_utils
+from deepxube.logic.asp import ASPSpec
+from deepxube.logic.logic_objects import Clause, Model
+from deepxube.utils import viz_utils
+from deepxube.logic import logic_utils
 from deepxube.utils import env_select
 import time
 import argparse

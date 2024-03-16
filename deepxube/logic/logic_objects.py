@@ -395,7 +395,3 @@ def theta_sub_replace(clause1: Clause, clause2: Clause, ignore_head: bool = Fals
 # first index is the predicate name and the remaining are the arguments
 Atom = Tuple[str, ...]
 Model = FrozenSet[Atom]
-
-
-def atom_to_str(atom: Atom) -> str:
-    return f"{atom[0]}({','.join(atom[1:])})"

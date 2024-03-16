@@ -10,9 +10,9 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import matplotlib.patches as patches
 
-from deepxube.utils.pytorch_models import ResnetModel, FullyConnectedModel
+from deepxube.nnet.pytorch_models import ResnetModel, FullyConnectedModel
 from .environment_abstract import EnvGrndAtoms, State, Goal, HeurFnNNet
-from deepxube.logic.program import Atom, Model
+from deepxube.logic.logic_objects import Atom, Model
 
 
 class NPuzzleState(State):

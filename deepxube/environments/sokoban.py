@@ -4,12 +4,12 @@ import torch
 from torch import Tensor, nn
 
 from deepxube.utils import misc_utils
-from deepxube.utils.pytorch_models import FullyConnectedModel, ResnetModel, Conv2dModel
+from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel, Conv2dModel
 
 import numpy as np
 import matplotlib.pyplot as plt
 from deepxube.environments.environment_abstract import EnvGrndAtoms, State, HeurFnNNet, Goal
-from deepxube.logic.program import Atom, Model
+from deepxube.logic.logic_objects import Atom, Model
 
 import pickle
 

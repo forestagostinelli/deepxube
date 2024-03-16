@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch.multiprocessing import Queue, get_context
 
 from deepxube.environments.environment_abstract import Environment, State
-from deepxube.utils import nnet_utils
+from deepxube.nnet import nnet_utils
 import numpy as np
 
 import time

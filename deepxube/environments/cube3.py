@@ -1,7 +1,7 @@
 from typing import List, Dict, Tuple, Union, Any, Set, cast
 from deepxube.utils import misc_utils
-from deepxube.utils.pytorch_models import FullyConnectedModel, ResnetModel
-from deepxube.logic.program import Atom, Model
+from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel
+from deepxube.logic.logic_objects import Atom, Model
 from deepxube.visualizers.cube3_viz_simple import InteractiveCube
 from .environment_abstract import EnvGrndAtoms, State, Goal, HeurFnNNet
 

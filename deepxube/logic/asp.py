@@ -1,13 +1,12 @@
 from typing import List, Set, Optional, Tuple, Dict, Callable
-from deepxube.logic.program import Clause, Literal, Atom, Model, atom_to_str
+from deepxube.logic.logic_objects import Clause, Literal, Atom, Model
+from deepxube.logic.logic_utils import copy_clause_with_new_head, atom_to_str
 
 import random
 import os
 import clingo
 from clingo import Control, parse_term, Symbol
 import re
-
-from deepxube.utils.program_utils import copy_clause_with_new_head
 
 
 def model_to_body(model: Model) -> str:

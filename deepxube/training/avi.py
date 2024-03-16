@@ -1,9 +1,10 @@
 from typing import List, Tuple
-from deepxube.utils import data_utils, nnet_utils
-from deepxube.utils.nnet_utils import HeurFnQ
+from deepxube.utils import data_utils
+from deepxube.nnet import nnet_utils
+from deepxube.nnet.nnet_utils import HeurFnQ
 from deepxube.environments.environment_abstract import State, Environment, Goal
 from deepxube.updaters.updater import Updater
-from deepxube.search_state.greedy_policy import greedy_test
+from deepxube.search.greedy_policy import greedy_test
 
 import torch
 from torch import Tensor

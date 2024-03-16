@@ -6,3 +6,4 @@
 * Fix Sokoban data downloading
 * Change Sokoban ground atoms to new format
 * Add assumed true/false to ASP sample_minimal_model
+* Refactor codebase
