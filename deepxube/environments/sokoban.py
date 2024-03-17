@@ -484,7 +484,7 @@ class Sokoban(EnvGrndAtoms):
 
     def pddl_action_to_action(self, pddl_action: str) -> int:
         str_to_act: Dict[str, int] = {"left": 0, "right": 1, "down": 2, "up": 3}
-        act_str: str = re.search(".*dir-(\S+).*", pddl_action).group(1)
+        act_str: str = re.search(r".*dir-(\S+).*", pddl_action).group(1)
         return str_to_act[act_str]
 
     def get_v_nnet(self) -> nn.Module:
@@ -522,17 +522,17 @@ class Sokoban(EnvGrndAtoms):
         for symb in symbs:
             symb = misc_utils.remove_all_whitespace(symb)
 
-            match = re.search("agent\((\S+),(\S+)\)", symb)
+            match = re.search(r"agent\((\S+),(\S+)\)", symb)
             if match is not None:
                 atom: Atom = ("agent", match.group(1), match.group(2))
                 atoms.append(atom)
 
-            match = re.search("box\((\S+),(\S+)\)", symb)
+            match = re.search(r"box\((\S+),(\S+)\)", symb)
             if match is not None:
                 atom: Atom = ("box", match.group(1), match.group(2))
                 atoms.append(atom)
 
-            match = re.search("wall\((\S+),(\S+)\)", symb)
+            match = re.search(r"wall\((\S+),(\S+)\)", symb)
             if match is not None:
                 atom: Atom = ("wall", match.group(1), match.group(2))
                 atoms.append(atom)

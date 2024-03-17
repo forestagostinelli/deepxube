@@ -6,7 +6,7 @@ import re
 
 def parse_literal(lit_str: str) -> Literal:
     # check for negation
-    not_match = re.match("\s*not\s+(.*)", lit_str)
+    not_match = re.match(r"\s*not\s+(.*)", lit_str)
     if not_match is None:
         positive: bool = True
     else:
@@ -15,7 +15,7 @@ def parse_literal(lit_str: str) -> Literal:
 
     # parse literal
     lit_str = misc_utils.remove_all_whitespace(lit_str)
-    match = re.match("([^(]+)(\((.*)\))?", lit_str)
+    match = re.match(r"([^(]+)(\((.*)\))?", lit_str)
     pred_name: str = match.group(1)
     if match.group(3) is not None:
         pred_args: Tuple[str, ...] = tuple([x.strip() for x in match.group(3).split(",")])
@@ -57,7 +57,7 @@ def parse_clause(constr_str: str) -> Tuple[Clause, Dict[str, List[str]]]:
     head_lit = parse_literal(head_str)
 
     # lits
-    body_lit_strs: Tuple[str, ...] = tuple(re.findall("[^,]+\([^)]+\)|^\s*[^,]+|[^,)]+\s*$", body_str))
+    body_lit_strs: Tuple[str, ...] = tuple(re.findall(r"[^,]+\([^)]+\)|^\s*[^,]+|[^,)]+\s*$", body_str))
     body_lits: List[Literal] = []
     for body_lit_str in body_lit_strs:
         body_lit = parse_literal(body_lit_str)
@@ -65,7 +65,7 @@ def parse_clause(constr_str: str) -> Tuple[Clause, Dict[str, List[str]]]:
 
     # subs forbid
     subs_forbid: Dict[str, List[str]] = dict()
-    sub_forbid_strs = re.findall("\s*([^,]+)\s*!\s*=\s*([^,]+)\s*", body_str)
+    sub_forbid_strs = re.findall(r"\s*([^,]+)\s*!\s*=\s*([^,]+)\s*", body_str)
     for v1, v2 in sub_forbid_strs:
         v1 = v1.strip()
         v2 = v2.strip()

@@ -46,7 +46,7 @@ def load_nnet(model_file: str, nnet: nn.Module, device: torch.device = None) -> 
     # remove module prefix
     new_state_dict = OrderedDict()
     for k, v in state_dict.items():
-        k = re.sub('^module\.', '', k)
+        k = re.sub(r'^module\.', '', k)
         new_state_dict[k] = v
 
     # set state dict

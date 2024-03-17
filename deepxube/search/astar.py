@@ -132,7 +132,6 @@ def expand_nodes(instances: List[Instance], popped_nodes_all: List[List[Node]], 
         parent_node: Node
         tcs_node: List[float]
         states_c: List[State]
-        str_reps_c: List[str]
         for parent_node, tcs_node, path_costs_c, states_c, is_solved_c in zip(parent_nodes, tcs_by_node,
                                                                               path_costs_c_by_node, states_c_by_node,
                                                                               is_solved_c_by_node):

@@ -2,7 +2,8 @@ from typing import List, cast
 from deepxube.environments.environment_abstract import EnvGrndAtoms
 from deepxube.logic.asp import ASPSpec
 from deepxube.logic.logic_objects import Clause, Model
-from deepxube.utils import viz_utils, env_select
+from deepxube.utils import viz_utils
+from deepxube.environments import env_utils
 from deepxube.logic.logic_utils import parse_clause
 import time
 import argparse
@@ -36,7 +37,7 @@ def main():
     # sample_args: SampleArgs = SampleArgs(args.num_samp, args.samp_astar_weight, args.samp_astar_batch_size,
     #                                     args.samp_max_astar_itr, args.samp_astar_v)
 
-    env: EnvGrndAtoms = cast(EnvGrndAtoms, env_select.get_environment(args.env))
+    env: EnvGrndAtoms = cast(EnvGrndAtoms, env_utils.get_environment(args.env))
     # viz_utils.visualize_examples(env, env.get_start_states(4))
 
     # add to bk

@@ -249,7 +249,7 @@ class NPuzzle(EnvGrndAtoms):
 
   (:action move-up
     :parameters (?omf ?px ?py ?by)
-    :precondition (and (up ?omf) 
+    :precondition (and (up ?omf)
         (tile ?omf) (position ?px) (position ?py) (position ?by)
         (dec ?by ?py) (blank ?px ?by) (at ?omf ?px ?py))
     :effect (and (not (blank ?px ?by)) (not (at ?omf ?px ?py))
@@ -344,7 +344,7 @@ class NPuzzle(EnvGrndAtoms):
                 for idx_x in range(tiles_goal_mat.shape[1]):
                     tile = tiles_goal_mat[idx_y, idx_x]
                     if tile == self.num_tiles:
-                        goal_lits_row.append(f"                                     ")
+                        goal_lits_row.append("                                     ")
                     elif tile == 0:
                         goal_lits_row.append(f"(blank x{idx_x + 1} y{idx_y + 1})")
                     else:
@@ -382,7 +382,7 @@ class NPuzzle(EnvGrndAtoms):
         for state_idx, state in enumerate(states):
             ax.clear()
 
-            if type(state) == NPuzzleState:
+            if isinstance(state, NPuzzleState):
                 state_np: np.array = cast(NPuzzleState, state).tiles
             else:
                 state_np: np.array = self._models_to_np([cast(Model, state)])[0]
@@ -426,7 +426,7 @@ class NPuzzle(EnvGrndAtoms):
         # get atoms
         atoms: List[Atom] = []
         for symb in symbs:
-            match = re.search(f"at_idx\((\S+),(\S+),(\S+)\)", symb)
+            match = re.search(r"at_idx\((\S+),(\S+),(\S+)\)", symb)
             if match is None:
                 continue
             atom: Atom = ("at_idx", match.group(1), match.group(2), match.group(3))

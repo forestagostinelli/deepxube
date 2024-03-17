@@ -6,7 +6,7 @@ import re
 def get_environment(env_name: str) -> Environment:
     env_name = env_name.lower()
     env: Environment
-    puzzle_n_regex = re.search("puzzle(\d+)", env_name)
+    puzzle_n_regex = re.search(r"puzzle(\d+)", env_name)
 
     if re.match('^cube3$', env_name):
         from deepxube.environments.cube3 import Cube3

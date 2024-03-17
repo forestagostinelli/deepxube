@@ -524,7 +524,7 @@ class Cube3(EnvGrndAtoms):
         # get atoms
         atoms: List[Atom] = []
         for symb in symbs:
-            match = re.search(f"^at_idx\((\S+),(\S+)\)$", symb)
+            match = re.search(r"^at_idx\((\S+),(\S+)\)$", symb)
             if match is None:
                 continue
             atom: Atom = ("at_idx", match.group(1), match.group(2))
@@ -583,7 +583,7 @@ class Cube3(EnvGrndAtoms):
         return inst_l
 
     def pddl_action_to_action(self, pddl_action: str) -> int:
-        match = re.match("^a(\d+).*", pddl_action)
+        match = re.match(r"^a(\d+).*", pddl_action)
         return int(match.group(1))
 
     def visualize(self, states: Union[List[Cube3State], List[Model]]) -> np.ndarray:
@@ -600,7 +600,7 @@ class Cube3(EnvGrndAtoms):
         states_img: np.ndarray = np.zeros((len(states), width, height, 6))
         for state_idx, state in enumerate(states):
             # create image
-            if type(state) == Cube3State:
+            if isinstance(state, Cube3State):
                 state: Cube3State = cast(Cube3State, state)
                 viz.new_state(state.colors)
             else:

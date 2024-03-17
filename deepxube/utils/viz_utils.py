@@ -1,4 +1,4 @@
-from typing import List, Tuple, Union
+from typing import List, Union
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -223,62 +223,6 @@ def visualize_examples(env: Environment, states: List[Union[State, Model]]):
 
             fig.canvas.draw()
             input("Enter anything: ")
-
-    plt.close()
-    plt.ioff()
-
-
-def visualize_examples_pair(env: Environment, state_pairs: List[Tuple[State, State]], num_viz: int):
-    """
-    example = pos_examples[0]
-    match = re.search("\S+\((state\(\S+\))\S+(state\(\S+\))\)", example)
-
-    state_start_str = match.group(1)
-    state_end_str = match.group(2)
-
-    state_start: State = env.predicate_to_state([state_start_str])[0]
-    state_end: State = env.predicate_to_state([state_end_str])[0]
-    """
-
-    samp_idxs = np.random.randint(0, len(state_pairs), size=num_viz)
-
-    states_start: List[State] = [state_pairs[idx][0] for idx in samp_idxs]
-    states_end: List[State] = [state_pairs[idx][1] for idx in samp_idxs]
-
-    states_start_np = env.visualize(states_start)
-    states_end_np = env.visualize(states_end)
-
-    plt.ion()
-    fig = plt.figure()
-
-    ax1 = fig.add_subplot(221)
-    ax2 = fig.add_subplot(222)
-    ax3 = fig.add_subplot(223)
-    ax4 = fig.add_subplot(224)
-
-    axs = [ax1, ax2, ax3, ax4]
-
-    for state_start_np, state_end_np in zip(states_start_np, states_end_np):
-        for ax in axs:
-            ax.cla()
-
-        ax1.imshow(state_start_np[:, :, :3])
-        ax1.set_title(f"start")
-        ax2.imshow(state_start_np[:, :, 3:])
-        ax2.set_title(f"start")
-
-        ax3.imshow(state_end_np[:, :, :3])
-        ax3.set_title(f"end")
-        ax4.imshow(state_end_np[:, :, 3:])
-        ax4.set_title(f"end")
-
-        for ax in axs:
-            ax.set_xticks([])
-            ax.set_yticks([])
-
-        fig.canvas.draw()
-
-        input("Enter anything: ")
 
     plt.close()
     plt.ioff()
