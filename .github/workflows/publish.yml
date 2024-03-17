@@ -57,7 +57,7 @@ jobs:
       url: https://test.pypi.org/p/deepxube
 
     permissions:
-      id-token: write  # IMPORTANT: mandatory for trusted publishing
+      id-token: write  # IMPORTANT: mandatory for trusted pub
 
     steps:
       - name: Download all the dists
