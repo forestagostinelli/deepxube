@@ -1,6 +1,7 @@
 .coverage*
 dist/
 future/
+.tox/
 deepxube/environments/data/*
 *.DS_Store
 .idea/
