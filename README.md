@@ -1,4 +1,5 @@
 # <img src="./misc/images/scrambledCube.png" width="50"> DeepXube <img src="./misc/images/solvedCube.png" width="50">
+![Tests](https://github.com/forestagostinelli/deepxube/actions/workflows/test.yml/badge.svg)
 
 --------------------------------------------------------------------------------
 
@@ -25,7 +26,6 @@ For any issues, you can create a GitHub issue or contact Forest Agostinelli (for
 - [Heuristic Search](#heuristic-search)
 - [Answer Set Programming Specification](#specifying-goals-with-answer-set-programming)
 - [Examples](#examples)
-- [Unit Tests](#unit-tests)
 
 
 
@@ -58,9 +58,3 @@ See [HEURSEARCH.md](HEURSEARCH.md) for more details.
 Coming soon.
 
 ## Examples
-
-
-
-## Unit tests
-To ensure basic functionality, you can run the following unittests on your system:\
-`python -m unittest tests/test_parse_clauses.py`

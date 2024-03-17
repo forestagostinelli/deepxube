@@ -4,7 +4,7 @@
 Using A* search to find paths between randomly generated states and goals
 ```
 from deepxube.environments.environment_abstract import Environment, State, Goal
-from deepxube.search_state.astar import AStar, Node, get_path
+from deepxube.search.astar import AStar, Node, get_path
 
 # get environment, states, and goals
 env: Environment = <construct_your_environment>

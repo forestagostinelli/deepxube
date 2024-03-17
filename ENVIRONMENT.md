@@ -14,8 +14,6 @@ Each environment is associated with a unique name to make it easy to construct w
 - Sliding tile puzzle `deepxube/environments/n_puzzle.py` (name: puzzle15, puzzle24, etc.)
 - Sokoban `deepxube/environments/sokoban.py` (name: sokoban) 
   - Sokoban requires data be downloaded. It will ask you if you want to download the data the first time you intialize the class.
-You can do so by just testing the environment:\
-`python tests/test_env.py --env sokoban --num_states 100 --step_max 30`.
 
 ## Implementing Your Own Environment
 The abstract environment file `deepxube/environments/environment_abstract.py` contains abstract classes for states, 

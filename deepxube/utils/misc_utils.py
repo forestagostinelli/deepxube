@@ -65,57 +65,6 @@ def random_subset(set_orig: Union[Set, frozenset], keep_prob: bool) -> Set:
     return rand_subset
 
 
-# Time profiling
-def init_times(time_names: List[str]) -> OrderedDict:
-    times: OrderedDict = OrderedDict()
-    for time_name in time_names:
-        times[time_name] = 0.0
-    return times
-
-
-def record_time(times: OrderedDict, time_name: str, start_time, on_gpu: bool = False):
-    """ Increments time if time_name is already in times. Synchronizes if on_gpu is true.
-
-    """
-    if on_gpu:
-        torch.cuda.synchronize()
-
-    time_elapsed = time.time() - start_time
-    record_time_elapsed(times, time_name, time_elapsed)
-
-
-def record_time_elapsed(times: OrderedDict, time_name: str, time_elapsed):
-    """ Increments time if time_name is already in times. Synchronizes if on_gpu is true.
-
-    """
-    if time_name in times.keys():
-        times[time_name] += time_elapsed
-    else:
-        times[time_name] = time_elapsed
-
-
-def add_times(times: OrderedDict, times_to_add: OrderedDict):
-    for key, value in times_to_add.items():
-        if key not in times:
-            times[key] = 0.0
-        times[key] += value
-
-
-def reset_times(times: OrderedDict):
-    for key in times.keys():
-        times[key] = 0.0
-
-
-def get_time_str(times: OrderedDict) -> str:
-    time_str_l: List[str] = []
-    for key, val in times.items():
-        time_str_i = "%s: %.2f" % (key, val)
-        time_str_l.append(time_str_i)
-    time_str: str = ", ".join(time_str_l)
-
-    return time_str
-
-
 def boltzmann(qvals: List[float], temp: float) -> List[float]:
     if len(qvals) == 1:
         return [1.0]
