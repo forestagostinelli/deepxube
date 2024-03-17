@@ -2,6 +2,7 @@
 dist/
 future/
 .tox/
+*.swp
 deepxube/environments/data/*
 *.DS_Store
 .idea/
