@@ -256,7 +256,7 @@ def train(env: Environment[Any, Any], step_max: int, nnet_dir: str, num_test_per
         sys.stdout = data_utils.Logger(output_save_loc, "a")  # type: ignore
 
     # Print basic info
-    print("HOST: %s" % os.uname()[1])
+    # print("HOST: %s" % os.uname()[1])
     print("CPU: %i" % num_update_procs)
     print("Batch size: %i" % batch_size)
     if 'SLURM_JOB_ID' in os.environ:
