@@ -8,7 +8,6 @@ deepxube/environments/data/*
 .idea/
 old/
 *\.egg-info/
-setup.sh
 bk.lp
 *_old\.*
 *_old\/*
