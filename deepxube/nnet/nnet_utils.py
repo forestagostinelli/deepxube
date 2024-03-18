@@ -1,6 +1,7 @@
-from typing import List, Tuple, Optional, Callable
-from deepxube.environments.environment_abstract import Environment, State, HeurFnNNet
+from typing import List, Tuple, Optional, Callable, Any, Union, cast
+from deepxube.environments.environment_abstract import Environment, State, Goal, HeurFnNNet
 import numpy as np
+from numpy.typing import NDArray
 import os
 import torch
 from torch import nn
@@ -8,10 +9,13 @@ from collections import OrderedDict
 import re
 from torch import Tensor
 from torch.multiprocessing import Queue, get_context
+from multiprocessing.process import BaseProcess
+
+HeurFN_T = Callable[[Union[List[State], List[NDArray[Any]]], Union[List[Goal], List[NDArray[Any]]]], NDArray[np.float_]]
 
 
 # training
-def to_pytorch_input(states_nnet: List[np.ndarray], device) -> List[Tensor]:
+def to_pytorch_input(states_nnet: List[NDArray[Any]], device) -> List[Tensor]:
     states_nnet_tensors = []
     for tensor_np in states_nnet:
         tensor = torch.tensor(tensor_np, device=device)
@@ -36,7 +40,7 @@ def get_device() -> Tuple[torch.device, List[int], bool]:
 
 
 # loading nnet
-def load_nnet(model_file: str, nnet: nn.Module, device: torch.device = None) -> nn.Module:
+def load_nnet(model_file: str, nnet: nn.Module, device: Optional[torch.device] = None) -> nn.Module:
     # get state dict
     if device is None:
         state_dict = torch.load(model_file)
@@ -58,17 +62,22 @@ def load_nnet(model_file: str, nnet: nn.Module, device: torch.device = None) -> 
 
 
 # heuristic
-def get_heuristic_fn(nnet: nn.Module, device: torch.device, env: Environment, clip_zero: bool = False,
-                     batch_size: Optional[int] = None, is_v: bool = False):
+def get_heuristic_fn(nnet: nn.Module, device: torch.device, env: Environment[Any, Any], clip_zero: bool = False,
+                     batch_size: Optional[int] = None, is_v: bool = False) -> HeurFN_T:
     nnet.eval()
 
-    def heuristic_fn(states: List, goals: List, is_nnet_format: bool = False) -> np.ndarray:
-        cost_to_go_l: List[np.ndarray] = []
+    def heuristic_fn(states: Union[List[State], List[NDArray[Any]]],
+                     goals: Union[List[Goal], List[NDArray[Any]]]) -> NDArray[np.float_]:
+        cost_to_go_l: List[NDArray[np.float_]] = []
 
-        if not is_nnet_format:
-            num_states: int = len(states)
+        num_states: int
+        is_nnet_format: bool
+        if isinstance(states[0], State):
+            num_states = len(states)
+            is_nnet_format = False
         else:
-            num_states: int = states[0].shape[0]
+            num_states = cast(List[NDArray[Any]], states)[0].shape[0]
+            is_nnet_format = True
 
         batch_size_inst: int = num_states
         if batch_size is not None:
@@ -81,25 +90,26 @@ def get_heuristic_fn(nnet: nn.Module, device: torch.device, env: Environment, cl
 
             # convert to nnet input
             if not is_nnet_format:
-                states_batch: List = states[start_idx:end_idx]
-                goals_batch: List = goals[start_idx:end_idx]
+                states_batch: List[State] = cast(List[State], states)[start_idx:end_idx]
+                goals_batch: List[Goal] = cast(List[Goal], goals)[start_idx:end_idx]
 
                 states_nnet_batch = env.states_to_nnet_input(states_batch)
                 goals_nnet_batch = env.goals_to_nnet_input(goals_batch)
             else:
-                states_nnet_batch = [x[start_idx:end_idx] for x in states]
-                goals_nnet_batch = [x[start_idx:end_idx] for x in goals]
+                states_nnet_batch = [x[start_idx:end_idx] for x in cast(List[NDArray[Any]], states)]
+                goals_nnet_batch = [x[start_idx:end_idx] for x in cast(List[NDArray[Any]], goals)]
 
             # get nnet output
             states_nnet_batch_tensors = to_pytorch_input(states_nnet_batch, device)
             goal_nnet_batch_tensors = to_pytorch_input(goals_nnet_batch, device)
 
-            cost_to_go_batch: np.ndarray = nnet(states_nnet_batch_tensors, goal_nnet_batch_tensors).cpu().data.numpy()
+            cost_to_go_batch: NDArray[np.float_] = nnet(states_nnet_batch_tensors,
+                                                        goal_nnet_batch_tensors).cpu().data.numpy()
             if is_v:
                 cost_to_go_batch = cost_to_go_batch[:, 0]
             cost_to_go_l.append(cost_to_go_batch)
 
-            start_idx: int = end_idx
+            start_idx = end_idx
 
         cost_to_go = np.concatenate(cost_to_go_l, axis=0)
         assert (cost_to_go.shape[0] == num_states)
@@ -120,9 +130,9 @@ def get_available_gpu_nums() -> List[int]:
     return gpu_nums
 
 
-def load_heuristic_fn(model_file: str, device: torch.device, on_gpu: bool, nnet: HeurFnNNet,
-                      env: Environment, clip_zero: bool = False, gpu_num: Optional[int] = None,
-                      batch_size: Optional[int] = None):
+def load_heuristic_fn(model_file: str, device: torch.device, on_gpu: bool, nnet: nn.Module,
+                      env: Environment[Any, Any], clip_zero: bool = False, gpu_num: Optional[int] = None,
+                      batch_size: Optional[int] = None) -> HeurFN_T:
     if (gpu_num is not None) and on_gpu:
         os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_num)
 
@@ -140,10 +150,10 @@ def load_heuristic_fn(model_file: str, device: torch.device, on_gpu: bool, nnet:
 
 
 # parallel training
-def heuristic_fn_runner(heuristic_fn_input_queue: Queue, heuristic_fn_output_queues, model_file: str,
-                        device, on_gpu: bool, gpu_num: int, nnet: HeurFnNNet, env: Environment, all_zeros: bool,
-                        clip_zero: bool, batch_size: Optional[int]):
-    heuristic_fn = None
+def heuristic_fn_runner(heuristic_fn_input_queue: Queue[Any], heuristic_fn_output_queues: List[Queue[Any]],
+                        model_file: str, device, on_gpu: bool, gpu_num: int, nnet: HeurFnNNet,
+                        env: Environment[Any, Any], all_zeros: bool, clip_zero: bool, batch_size: Optional[int]):
+    heuristic_fn: Optional[HeurFN_T] = None
     if not all_zeros:
         heuristic_fn = load_heuristic_fn(model_file, device, on_gpu, nnet, env, gpu_num=gpu_num,
                                          clip_zero=clip_zero, batch_size=batch_size)
@@ -156,7 +166,7 @@ def heuristic_fn_runner(heuristic_fn_input_queue: Queue, heuristic_fn_output_que
         if all_zeros:
             heuristics = np.zeros(states_nnet[0].shape[0], dtype=float)
         else:
-            heuristics = heuristic_fn(states_nnet, goals_nnet, is_nnet_format=True)
+            heuristics = cast(HeurFN_T, heuristic_fn)(states_nnet, goals_nnet)
 
         heuristic_fn_output_queues[proc_id].put(heuristics)
 
@@ -169,16 +179,15 @@ class HeurFnQ:
         self.heur_fn_o_q = heur_fn_o_q
         self.proc_id: int = proc_id
 
-    def get_heuristic_fn(self, env: Environment) -> Callable:
-        def heuristic_fn(states, goals):
+    def get_heuristic_fn(self, env: Environment[Any, Any]) -> HeurFN_T:
+        def heuristic_fn(states: Union[List[State], List[NDArray[Any]]], goals: Union[List[Goal], List[NDArray[Any]]]):
             if isinstance(states[0], State):
-                states_nnet = env.states_to_nnet_input(states)
-                goals_nnet = env.goals_to_nnet_input(goals)
+                states_nnet = env.states_to_nnet_input(cast(List[State], states))
+                goals_nnet = env.goals_to_nnet_input(cast(List[Goal], goals))
+                self.heur_fn_i_q.put((self.proc_id, states_nnet, goals_nnet))
             else:
-                states_nnet = states
-                goals_nnet = goals
+                self.heur_fn_i_q.put((self.proc_id, states, goals))
 
-            self.heur_fn_i_q.put((self.proc_id, states_nnet, goals_nnet))
             heuristics = self.heur_fn_o_q.get()
 
             return heuristics
@@ -186,15 +195,16 @@ class HeurFnQ:
         return heuristic_fn
 
 
-def start_heur_fn_runners(num_procs: int, model_file: str, device, on_gpu: bool, nnet: HeurFnNNet, env: Environment,
-                          all_zeros: bool = False, clip_zero: bool = False, batch_size: Optional[int] = None):
+def start_heur_fn_runners(num_procs: int, model_file: str, device, on_gpu: bool, nnet: HeurFnNNet,
+                          env: Environment[Any, Any], all_zeros: bool = False, clip_zero: bool = False,
+                          batch_size: Optional[int] = None) -> Tuple[List[HeurFnQ], List[BaseProcess]]:
     ctx = get_context("spawn")
 
-    heur_fn_i_q: ctx.Queue = ctx.Queue()
-    heur_fn_o_qs: List[ctx.Queue] = []
+    heur_fn_i_q: Queue[Any] = ctx.Queue()
+    heur_fn_o_qs: List[Queue[Any]] = []
     heur_fn_qs: List[HeurFnQ] = []
     for proc_id in range(num_procs):
-        heur_fn_o_q: ctx.Queue = ctx.Queue(1)
+        heur_fn_o_q: Queue[Any] = ctx.Queue(1)
         heur_fn_o_qs.append(heur_fn_o_q)
         heur_fn_qs.append(HeurFnQ(heur_fn_i_q, heur_fn_o_q, proc_id))
 
@@ -204,7 +214,7 @@ def start_heur_fn_runners(num_procs: int, model_file: str, device, on_gpu: bool,
     else:
         gpu_nums = [-1]
 
-    heur_procs: List[ctx.Process] = []
+    heur_procs: List[BaseProcess] = []
     for gpu_num in gpu_nums:
         heur_fn_proc = ctx.Process(target=heuristic_fn_runner,
                                    args=(heur_fn_i_q, heur_fn_o_qs, model_file, device, on_gpu, gpu_num, nnet,

@@ -1,4 +1,4 @@
-from typing import List, Set, Optional, Tuple, Dict, Callable
+from typing import List, Set, Optional, Tuple, Dict, Callable, Any
 from deepxube.logic.logic_objects import Clause, Literal, Atom, Model
 from deepxube.logic.logic_utils import copy_clause_with_new_head, atom_to_str
 
@@ -13,7 +13,7 @@ def model_to_body(model: Model) -> str:
     return ','.join([atom_to_str(atom) for atom in model])
 
 
-def on_model_var_vals(m) -> frozenset:
+def on_model_var_vals(m) -> frozenset[str]:
     return frozenset(str(x) for x in m.symbols(shown=True))
 
 
@@ -60,7 +60,7 @@ class ASPSpec:
             self.ctl.add('base', [], f"{add_line}\n")
         self.ctl.ground([("base", [])])
 
-    def get_models(self, goal: List[Clause], on_model: Callable, minimal: bool = True,
+    def get_models(self, goal: List[Clause], on_model: Callable[[Any], Model], minimal: bool = True,
                    num_models: int = 1, assumed_true: Optional[Model] = None,
                    assumed_false: Optional[List[Model]] = None, num_atoms_gt: Optional[int] = None) -> List[Model]:
         """
@@ -133,7 +133,7 @@ class ASPSpec:
         atoms_false: List[Atom] = [atom for atom in self.ground_atoms if atom not in model]
         assumptions: List[Tuple[Symbol, bool]] = self._make_assumptions(atoms_true + list(assumed_true) + list(model),
                                                                         atoms_false, assumed_false)
-        models_ret: List = []
+        models_ret: List[None] = []
         self.ctl.solve(assumptions=assumptions, on_model=lambda x: models_ret.append(None))
 
         return len(models_ret) > 0
@@ -147,7 +147,7 @@ class ASPSpec:
         """
         atoms_true: List[Atom] = [(self._add_goal(goal1),), (self._add_goal(goal2),)]
         assumptions: List[Tuple[Symbol, bool]] = self._make_assumptions(atoms_true, [], [])
-        models_ret: List = []
+        models_ret: List[None] = []
         self.ctl.solve(assumptions=assumptions, on_model=lambda x: models_ret.append(None))
 
         return len(models_ret) > 0
@@ -179,20 +179,10 @@ class ASPSpec:
         atom1: Atom = (self._add_goal(goal1),)
         atom2: Atom = (self._add_goal(goal2),)
         assumptions: List[Tuple[Symbol, bool]] = self._make_assumptions([atom2], [atom1], [])
-        models_ret: List = []
+        models_ret: List[None] = []
         self.ctl.solve(assumptions=assumptions, on_model=lambda x: models_ret.append(None))
 
         return len(models_ret) == 0
-
-    def check_get_vars(self, goal: Clause, model: Model) -> List[Model]:
-        atoms_true: List[Atom] = [(self._add_goal([goal]),)]
-        atoms_false: List[Atom] = [atom for atom in self.ground_atoms if atom not in model]
-        assumptions: List[Tuple[Symbol, bool]] = self._make_assumptions(atoms_true + list(model), atoms_false, [])
-
-        models_ret: List[Model] = []
-        self.ctl.solve(assumptions=assumptions, on_model=lambda x: models_ret.append(on_model_var_vals(x)))
-
-        return models_ret
 
     def sample_minimal_model(self, goal: List[Clause], model: Model, assumed_true: Optional[Model] = None,
                              assumed_false: Optional[List[Model]] = None) -> Model:
@@ -220,8 +210,8 @@ class ASPSpec:
         assert all([len(x.head.arguments) == 0 for x in goal]), "head should not have any arguments"
 
         goal_clauses_set: frozenset[Clause] = frozenset(goal)
-        goal_new_head_pred: Optional[str] = self.goals_added.get(goal_clauses_set)
-        if goal_new_head_pred is None:
+        goal_new_head_pred_get: Optional[str] = self.goals_added.get(goal_clauses_set)
+        if goal_new_head_pred_get is None:
             goal_num: int = len(self.goals_added)
             goal_new_head_pred: str = f"goal{goal_num}"
 
@@ -233,7 +223,9 @@ class ASPSpec:
 
             self.goals_added[goal_clauses_set] = goal_new_head_pred
 
-        return goal_new_head_pred
+            return goal_new_head_pred
+        else:
+            return goal_new_head_pred_get
 
     def _make_assumptions(self, atoms_true: List[Atom], atoms_false: List[Atom],
                           models_assumed_false: List[Model]) -> List[Tuple[Symbol, bool]]:

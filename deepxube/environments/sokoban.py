@@ -1,4 +1,4 @@
-from typing import Tuple, List, Set, Union, cast, Dict, Optional
+from typing import Tuple, List, Set, Union, cast, Dict, Optional, Any
 
 import torch
 from torch import Tensor, nn
@@ -7,6 +7,7 @@ from deepxube.utils import misc_utils
 from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel, Conv2dModel
 
 import numpy as np
+from numpy.typing import NDArray
 import matplotlib.pyplot as plt
 from deepxube.environments.environment_abstract import EnvGrndAtoms, State, HeurFnNNet, Goal
 from deepxube.logic.logic_objects import Atom, Model
@@ -18,7 +19,7 @@ import re
 import pathlib
 import tarfile
 import os
-import wget
+import wget  # type: ignore
 from filelock import FileLock
 
 
@@ -46,40 +47,45 @@ class NNet(HeurFnNNet):
 
 
 class SokobanState(State):
-    __slots__ = ['agent', 'walls', 'boxes', 'hash']
+    __slots__ = ['agent', 'walls', 'boxes', 'computed_hash', 'hash']
 
-    def __init__(self, agent: np.array, boxes: np.ndarray, walls: np.ndarray):
-        self.agent: np.array = agent
-        self.boxes: np.ndarray = boxes
-        self.walls: np.ndarray = walls
+    def __init__(self, agent: NDArray[np.int_], boxes: NDArray[np.uint8], walls: NDArray[np.uint8]):
+        self.agent: NDArray[np.int_] = agent
+        self.boxes: NDArray[np.uint8] = boxes
+        self.walls: NDArray[np.uint8] = walls
 
-        self.hash = None
+        self.computed_hash: bool = False
+        self.hash: Optional[int] = None
 
     def __hash__(self):
-        if self.hash is None:
+        if not self.computed_hash:
             boxes_flat = self.boxes.flatten()
             walls_flat = self.walls.flatten()
-            state = np.concatenate((self.agent, boxes_flat, walls_flat), axis=0)
+            state: NDArray[np.int_] = np.concatenate((self.agent, boxes_flat.astype(int),
+                                                      walls_flat.astype(int)), axis=0)
 
             self.hash = hash(state.tobytes())
+            self.computed_hash = True
 
         return self.hash
 
-    def __eq__(self, other: 'SokobanState'):
-        agents_eq: bool = np.array_equal(self.agent, other.agent)
-        boxes_eq: bool = np.array_equal(self.boxes, other.boxes)
-        walls_eq: bool = np.array_equal(self.walls, other.walls)
+    def __eq__(self, other: object):
+        if isinstance(other, SokobanState):
+            agents_eq: bool = np.array_equal(self.agent, other.agent)
+            boxes_eq: bool = np.array_equal(self.boxes, other.boxes)
+            walls_eq: bool = np.array_equal(self.walls, other.walls)
 
-        return agents_eq and boxes_eq and walls_eq
+            return agents_eq and boxes_eq and walls_eq
+        return NotImplemented
 
 
 class SokobanGoal(Goal):
     __slots__ = ['agent', 'walls', 'boxes']
 
-    def __init__(self, agent: np.array, boxes: np.ndarray, walls: np.ndarray):
-        self.agent: np.array = agent
-        self.boxes: np.ndarray = boxes
-        self.walls: np.ndarray = walls
+    def __init__(self, agent: NDArray[np.int_], boxes: NDArray[np.uint8], walls: NDArray[np.uint8]):
+        self.agent: NDArray[np.int_] = agent
+        self.boxes: NDArray[np.uint8] = boxes
+        self.walls: NDArray[np.uint8] = walls
 
 
 def load_states(data_dir: str) -> List[SokobanState]:
@@ -101,7 +107,7 @@ def load_states(data_dir: str) -> List[SokobanState]:
     return states
 
 
-def _get_surfaces():
+def _get_surfaces() -> List[Any]:
     import imageio.v2 as imageio
     data_dir = get_data_dir()
     img_dir = f"{data_dir}/sokoban/"
@@ -133,7 +139,7 @@ def _get_train_states() -> List[SokobanState]:
     return states_train
 
 
-def _np_to_model(agent: np.array, boxes: np.ndarray, walls: np.ndarray) -> Model:
+def _np_to_model(agent: NDArray[np.int_], boxes: NDArray[np.uint8], walls: NDArray[np.uint8]) -> Model:
     grnd_atoms: List[Atom] = []
     if agent.shape[0] > 0:
         grnd_atoms += [('agent', str(int(agent[0])), str(int(agent[1])))]
@@ -150,7 +156,7 @@ def get_data_dir() -> str:
     return data_dir
 
 
-class Sokoban(EnvGrndAtoms):
+class Sokoban(EnvGrndAtoms[SokobanState, SokobanGoal]):
 
     def __init__(self, env_name: str):
         super().__init__(env_name)
@@ -163,7 +169,7 @@ class Sokoban(EnvGrndAtoms):
         self.img_dim: int = 160
 
         self.states_train: Optional[List[SokobanState]] = None
-        self._surfaces = None
+        self._surfaces: Optional[List[Any]] = None
 
         # check if data needs to be downloaded
         data_dir = get_data_dir()
@@ -236,7 +242,7 @@ class Sokoban(EnvGrndAtoms):
             state_next: SokobanState = SokobanState(agent_next[idx], boxes_next[idx], walls_next[idx])
             states_next.append(state_next)
 
-        transition_costs: List[int] = [1 for _ in range(len(states))]
+        transition_costs: List[float] = [1.0 for _ in range(len(states))]
 
         return states_next, transition_costs
 
@@ -244,8 +250,8 @@ class Sokoban(EnvGrndAtoms):
         return [list(range(self.num_actions)) for _ in range(len(states))]
 
     def is_solved(self, states: List[SokobanState], goals: List[SokobanGoal]) -> List[bool]:
-        states_np: np.ndarray = self.states_to_nnet_input(states)[0].reshape((len(states), -1))
-        goals_np: np.ndarray = self.goals_to_nnet_input(goals)[0].reshape((len(goals), -1))
+        states_np: NDArray[np.uint8] = self.states_to_nnet_input(states)[0].reshape((len(states), -1))
+        goals_np: NDArray[np.uint8] = self.goals_to_nnet_input(goals)[0].reshape((len(goals), -1))
         is_solved_np = np.all(np.logical_or(states_np == goals_np, goals_np == 0), axis=1)
         return list(is_solved_np)
 
@@ -261,13 +267,13 @@ class Sokoban(EnvGrndAtoms):
         scrambs: List[int] = list(range(step_range[0], step_range[1] + 1))
 
         # Scrambles
-        step_nums: np.array = np.random.choice(scrambs, num_states)
-        step_nums_curr: np.array = np.zeros(num_states)
+        step_nums: NDArray[np.int_] = np.random.choice(scrambs, num_states)
+        step_nums_curr: NDArray[np.int_] = np.zeros(num_states, dtype=int)
 
         # Go backward from goal state
-        steps_lt = step_nums_curr < step_nums
+        steps_lt: NDArray[np.bool_] = step_nums_curr < step_nums
         while np.any(steps_lt):
-            idxs: np.ndarray = np.where(steps_lt)[0]
+            idxs: NDArray[np.int_] = np.where(steps_lt)[0]
 
             states_to_move: List[SokobanState] = [states[idx] for idx in idxs]
             actions = list(np.random.randint(0, self.num_actions, size=len(states_to_move)))
@@ -282,7 +288,7 @@ class Sokoban(EnvGrndAtoms):
 
         return states
 
-    def states_to_nnet_input(self, states: List[SokobanState]) -> List[np.ndarray]:
+    def states_to_nnet_input(self, states: List[SokobanState]) -> List[NDArray[np.uint8]]:
         """
         states_real: np.ndarray = np.zeros((len(states), self.img_dim, self.img_dim, 3))
         for state_idx, state in enumerate(states):
@@ -291,7 +297,7 @@ class Sokoban(EnvGrndAtoms):
         states_rep = [states_real.transpose([0, 3, 1, 2])]
         """
 
-        states_rep_np: np.ndarray = np.zeros((len(states), 3, self.dim, self.dim), dtype=np.uint8)
+        states_rep_np: NDArray[np.uint8] = np.zeros((len(states), 3, self.dim, self.dim), dtype=np.uint8)
         for idx, state in enumerate(states):
             states_rep_np[idx, 0, state.agent[0], state.agent[1]] = 1
             states_rep_np[idx, 1, :, :] = state.boxes
@@ -300,8 +306,8 @@ class Sokoban(EnvGrndAtoms):
 
         return states_rep
 
-    def goals_to_nnet_input(self, goals: List[SokobanGoal]) -> List[np.ndarray]:
-        states_rep_np: np.ndarray = np.zeros((len(goals), 3, self.dim, self.dim), dtype=np.uint8)
+    def goals_to_nnet_input(self, goals: List[SokobanGoal]) -> List[NDArray[np.uint8]]:
+        states_rep_np: NDArray[np.uint8] = np.zeros((len(goals), 3, self.dim, self.dim), dtype=np.uint8)
         for idx, goal in enumerate(goals):
             if goal.agent.shape[0] > 0:
                 states_rep_np[idx, 0, goal.agent[0], goal.agent[1]] = 1
@@ -322,7 +328,7 @@ class Sokoban(EnvGrndAtoms):
 
         return models_s
 
-    def model_to_state(self, models: List[Model]) -> List[State]:
+    def model_to_state(self, models: List[Model]) -> List[SokobanState]:
         raise NotImplementedError
 
     def goal_to_model(self, goals: List[SokobanGoal]) -> List[Model]:
@@ -337,7 +343,7 @@ class Sokoban(EnvGrndAtoms):
         return models_s
 
     def model_to_goal(self, models: List[Model]) -> List[SokobanGoal]:
-        models_np = self._models_to_np(models)
+        models_np: NDArray[np.uint8] = self._models_to_np(models)
         goals: List[SokobanGoal] = []
         for i in range(len(models)):
             agent_idxs = np.concatenate(np.where(models_np[i, 0]))
@@ -449,7 +455,7 @@ class Sokoban(EnvGrndAtoms):
                 if states_np_any[idx1, idx2] == 0:
                     inst_l.append(f"(clear pos-{idx1}-{idx2})")
 
-        goal_boxes_np: np.ndarray = self._models_to_np([model])[0][1]
+        goal_boxes_np: NDArray[np.uint8] = self._models_to_np([model])[0][1]
         for idx1 in range(self.dim):
             for idx2 in range(self.dim):
                 if goal_boxes_np[idx1, idx2] == 1:
@@ -484,14 +490,16 @@ class Sokoban(EnvGrndAtoms):
 
     def pddl_action_to_action(self, pddl_action: str) -> int:
         str_to_act: Dict[str, int] = {"left": 0, "right": 1, "down": 2, "up": 3}
-        act_str: str = re.search(r".*dir-(\S+).*", pddl_action).group(1)
+        re_res = re.search(r".*dir-(\S+).*", pddl_action)
+        assert re_res is not None
+        act_str: str = re_res.group(1)
         return str_to_act[act_str]
 
-    def get_v_nnet(self) -> nn.Module:
+    def get_v_nnet(self) -> HeurFnNNet:
         nnet = NNet(5000, 1000, 4, 1, True, "V")
         return nnet
 
-    def get_q_nnet(self) -> nn.Module:
+    def get_q_nnet(self) -> HeurFnNNet:
         nnet = NNet(5000, 1000, 4, 4, True, "Q")
         return nnet
 
@@ -517,24 +525,25 @@ class Sokoban(EnvGrndAtoms):
         return ground_atoms
 
     def on_model(self, m) -> Model:
-        symbs: Set = set(str(x) for x in m.symbols(shown=True))
+        symbs: Set[str] = set(str(x) for x in m.symbols(shown=True))
         atoms: List[Atom] = []
         for symb in symbs:
             symb = misc_utils.remove_all_whitespace(symb)
 
             match = re.search(r"agent\((\S+),(\S+)\)", symb)
+            atom: Atom
             if match is not None:
-                atom: Atom = ("agent", match.group(1), match.group(2))
+                atom = ("agent", match.group(1), match.group(2))
                 atoms.append(atom)
 
             match = re.search(r"box\((\S+),(\S+)\)", symb)
             if match is not None:
-                atom: Atom = ("box", match.group(1), match.group(2))
+                atom = ("box", match.group(1), match.group(2))
                 atoms.append(atom)
 
             match = re.search(r"wall\((\S+),(\S+)\)", symb)
             if match is not None:
-                atom: Atom = ("wall", match.group(1), match.group(2))
+                atom = ("wall", match.group(1), match.group(2))
                 atoms.append(atom)
 
         model: Model = frozenset(atoms)
@@ -585,15 +594,15 @@ class Sokoban(EnvGrndAtoms):
 
         return bk
 
-    def get_render_array(self, state: Union[SokobanState, Model]) -> np.ndarray:
-        state_rendered = np.ones((self.dim, self.dim), dtype=int)
+    def get_render_array(self, state: Union[SokobanState, SokobanGoal]) -> NDArray[np.int_]:
+        state_rendered: NDArray[np.int_] = np.ones((self.dim, self.dim), dtype=int)
         if type(state) is SokobanState:
             state_rendered -= state.walls
             state_rendered[state.agent[0], state.agent[1]] = 2
             state_rendered += state.boxes * 2
         else:
-            state: Model = cast(Model, state)
-            model_np = self._models_to_np([state])[0]
+            model: Model = self.goal_to_model([cast(SokobanGoal, state)])[0]
+            model_np: NDArray[np.uint8] = self._models_to_np([model])[0]
             state_rendered -= model_np[2]
             state_rendered = state_rendered * (1 - model_np[0]) + 2 * model_np[0]
             state_rendered += model_np[1] * 2
@@ -612,18 +621,19 @@ class Sokoban(EnvGrndAtoms):
 
         return state_rendered
 
-    def visualize(self, states: Union[List[SokobanState], List[Model]]) -> np.ndarray:
-        states_img: np.ndarray = np.zeros((len(states), self.img_dim, self.img_dim, 3))
+    def visualize(self, states: Union[List[SokobanState], List[SokobanGoal]]) -> NDArray[np.float_]:
+        states_img: NDArray[np.float_] = np.zeros((len(states), self.img_dim, self.img_dim, 3))
 
         import cv2
         if self._surfaces is None:
             self._surfaces = _get_surfaces()
 
-        for state_idx, state in enumerate(states):
-            room = self.get_render_array(state)
+        state: Union[SokobanState, SokobanGoal]
+        for state_idx, state in enumerate(states):  # type: ignore
+            room: NDArray[np.int_] = self.get_render_array(state)
 
             # Assemble the new rgb_room, with all loaded images
-            room_rgb = np.zeros(shape=(room.shape[0] * 16, room.shape[1] * 16, 3), dtype=np.uint8)
+            room_rgb: NDArray[np.uint8] = np.zeros(shape=(room.shape[0] * 16, room.shape[1] * 16, 3), dtype=np.uint8)
             for i in range(room.shape[0]):
                 x_i = i * 16
 
@@ -633,14 +643,14 @@ class Sokoban(EnvGrndAtoms):
 
                     room_rgb[x_i:(x_i + 16), y_j:(y_j + 16), :] = self._surfaces[surfaces_id]
 
-            room_rgb = room_rgb / 255
+            room_rgb = (room_rgb / 255).astype(np.uint8)
 
             states_img[state_idx] = cv2.resize(room_rgb, (self.img_dim, self.img_dim))
 
         return states_img
 
-    def _models_to_np(self, models: List[Model]) -> np.ndarray:
-        goals_rep: np.ndarray = np.zeros((len(models), 3, self.dim, self.dim), np.uint8)
+    def _models_to_np(self, models: List[Model]) -> NDArray[np.uint8]:
+        goals_rep: NDArray[np.uint8] = np.zeros((len(models), 3, self.dim, self.dim), np.uint8)
         for idx, model in enumerate(models):
             agent_idx = np.array([atom[1:] for atom in model if atom[0] == "agent"]).astype(int)
             box_idxs = np.array([atom[1:] for atom in model if atom[0] == "box"]).astype(int)
@@ -655,11 +665,11 @@ class Sokoban(EnvGrndAtoms):
 
         return goals_rep
 
-    def _get_next_idx(self, curr_idxs: np.ndarray, actions: List[int]) -> np.ndarray:
-        actions_np: np.array = np.array(actions)
-        next_idxs: np.ndarray = curr_idxs.copy()
+    def _get_next_idx(self, curr_idxs: NDArray[np.int_], actions: List[int]) -> NDArray[np.int_]:
+        actions_np: NDArray[np.int_] = np.array(actions)
+        next_idxs: NDArray[np.int_] = curr_idxs.copy()
 
-        action_idxs = np.where(actions_np == 0)[0]
+        action_idxs: NDArray[np.int_] = np.where(actions_np == 0)[0]
         next_idxs[action_idxs, 0] = next_idxs[action_idxs, 0] - 1
 
         action_idxs = np.where(actions_np == 1)[0]
@@ -683,7 +693,7 @@ class Sokoban(EnvGrndAtoms):
         return self.__dict__
 
 
-class InteractiveEnv(plt.Axes):
+class InteractiveEnv(plt.Axes):  # type: ignore
     def __init__(self, env, fig):
         self.env: Sokoban = env
 
@@ -701,13 +711,13 @@ class InteractiveEnv(plt.Axes):
 
     def _get_instance(self):
         states, goals = self.env.get_start_goal_pairs([1000])
-        self.state: SokobanState = cast(SokobanState, states[0])
-        self.state_goal: Model = self.env.goal_to_model([cast(SokobanGoal, goals[0])])[0]
+        self.state: SokobanState = states[0]
+        self.goal: SokobanGoal = goals[0]
 
     def _update_plot(self):
         self.clear()
         rendered_im = self.env.visualize([self.state])[0]
-        rendered_im_goal = self.env.visualize([self.state_goal])[0]
+        rendered_im_goal = self.env.visualize([self.goal])[0]
 
         self.imshow(np.concatenate((rendered_im, rendered_im_goal), axis=1))
         self.figure.canvas.draw()
@@ -726,14 +736,14 @@ class InteractiveEnv(plt.Axes):
 
             self.state = self.env.next_state([self.state], [action])[0][0]
             self._update_plot()
-            if self.env.is_solved([self.state], [self.env.model_to_goal([self.state_goal])[0]])[0]:
+            if self.env.is_solved([self.state], [self.goal])[0]:
                 print("SOLVED!")
         elif event.key.upper() in 'R':
             self._get_instance()
             self._update_plot()
         elif event.key.upper() in 'P':
             for i in range(1000):
-                self.state = cast(SokobanState, self.env.next_state_rand([self.state])[0][0])
+                self.state = self.env.next_state_rand([self.state])[0][0]
             self._update_plot()
 
 

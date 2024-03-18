@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Any
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
 from deepxube.nnet.nnet_utils import HeurFnQ
@@ -16,6 +16,7 @@ import os
 import pickle
 
 import numpy as np
+from numpy.typing import NDArray
 import time
 
 import sys
@@ -24,7 +25,7 @@ import random
 
 
 class Status:
-    def __init__(self, env: Environment, step_max: int, num_test_per_step: int):
+    def __init__(self, env: Environment[Any, Any], step_max: int, num_test_per_step: int):
         self.itr: int = 0
         self.update_num: int = 0
 
@@ -50,9 +51,9 @@ class Status:
         self.per_solved_best: float = per_solved
 
 
-def do_update(step_max: int, update_num: int, env: Environment, step_update_max: int, num_states: int, eps_max: float,
-              heur_fn_qs: List[HeurFnQ],
-              update_batch_size: int) -> Tuple[List[np.ndarray], List[np.ndarray], np.ndarray]:
+def do_update(step_max: int, update_num: int, env: Environment[Any, Any], step_update_max: int, num_states: int,
+              eps_max: float, heur_fn_qs: List[HeurFnQ],
+              update_batch_size: int) -> Tuple[List[NDArray[Any]], List[NDArray[Any]], NDArray[np.float_]]:
     update_steps: int = int(min(update_num + 1, step_update_max))
     # num_states: int = int(np.ceil(num_states / update_steps))
 
@@ -70,9 +71,9 @@ def do_update(step_max: int, update_num: int, env: Environment, step_update_max:
     updater: Updater = Updater(env, num_states, step_max, step_probs, heur_fn_qs, update_steps,
                                "greedy", update_batch_size=update_batch_size, eps_max=eps_max)
 
-    states_update_nnet: List[np.ndarray]
-    states_update_goal_nnet: List[np.ndarray]
-    ctgs: np.ndarray
+    states_update_nnet: List[NDArray[Any]]
+    states_update_goal_nnet: List[NDArray[Any]]
+    ctgs: NDArray[np.float_]
     states_update_nnet, states_update_goal_nnet, ctgs, is_solved = updater.update()
 
     # Print stats
@@ -87,7 +88,7 @@ def do_update(step_max: int, update_num: int, env: Environment, step_update_max:
     return states_update_nnet, states_update_goal_nnet, ctgs
 
 
-def load_data(model_dir: str, nnet_file: str, env: Environment, num_test_per_step: int,
+def load_data(model_dir: str, nnet_file: str, env: Environment[Any, Any], num_test_per_step: int,
               step_max: int) -> Tuple[nn.Module, Status]:
     status_file: str = "%s/status.pkl" % model_dir
     if os.path.isfile(nnet_file):
@@ -95,19 +96,20 @@ def load_data(model_dir: str, nnet_file: str, env: Environment, num_test_per_ste
     else:
         nnet = env.get_v_nnet()
 
+    status: Status
     if os.path.isfile(status_file):
-        status: Status = pickle.load(open("%s/status.pkl" % model_dir, "rb"))
+        status = pickle.load(open("%s/status.pkl" % model_dir, "rb"))
         print(f"Loaded with itr: {status.itr}, update_num: {status.update_num}, "
               f"per_solved_best: {status.per_solved_best}")
     else:
-        status: Status = Status(env, step_max, num_test_per_step)
+        status = Status(env, step_max, num_test_per_step)
         pickle.dump(status, open(status_file, "wb"), protocol=-1)
 
     return nnet, status
 
 
-def make_batches(states_nnet: List[np.ndarray], states_goal_nnet: List[np.ndarray], ctgs: np.ndarray,
-                 batch_size: int) -> List[Tuple[List[np.ndarray], List[np.ndarray], np.ndarray]]:
+def make_batches(states_nnet: List[NDArray[Any]], states_goal_nnet: List[NDArray[Any]], ctgs: NDArray[np.float_],
+                 batch_size: int) -> List[Tuple[List[NDArray[Any]], List[NDArray[Any]], NDArray[np.float_]]]:
     num_examples = ctgs.shape[0]
     rand_idxs = np.random.choice(num_examples, num_examples, replace=False)
     ctgs = ctgs.astype(np.float32)
@@ -130,8 +132,8 @@ def make_batches(states_nnet: List[np.ndarray], states_goal_nnet: List[np.ndarra
     return batches
 
 
-def train_nnet(nnet: nn.Module, states_nnet: List[np.ndarray], models_g_nnet: List[np.ndarray], ctgs: np.ndarray,
-               device: torch.device, batch_size: int, num_itrs: int, train_itr: int,
+def train_nnet(nnet: nn.Module, states_nnet: List[NDArray[Any]], models_g_nnet: List[NDArray[Any]],
+               ctgs: NDArray[np.float_], device: torch.device, batch_size: int, num_itrs: int, train_itr: int,
                lr: float, lr_d: float, display_itrs: int) -> float:
     # optimization
     criterion = nn.MSELoss()
@@ -141,7 +143,7 @@ def train_nnet(nnet: nn.Module, states_nnet: List[np.ndarray], models_g_nnet: Li
     start_time = time.time()
 
     # train network
-    batches: List[Tuple[List, List, np.ndarray]] = make_batches(states_nnet, models_g_nnet, ctgs, batch_size)
+    batches = make_batches(states_nnet, models_g_nnet, ctgs, batch_size)
 
     nnet.train()
     max_itrs: int = train_itr + num_itrs
@@ -196,11 +198,11 @@ def train_nnet(nnet: nn.Module, states_nnet: List[np.ndarray], models_g_nnet: Li
     return last_loss
 
 
-def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int = 30, itrs_per_update: int = 5000,
-          epochs_per_update: int = 1, num_update_procs: int = 1, update_batch_size: int = 10000,
-          update_nnet_batch_size: int = 10000, greedy_update_step_max: int = 1, greedy_update_eps_max: int = 0.1,
-          lr: float = 0.001, lr_d: float = 0.9999993, max_itrs: int = 1000000, batch_size: int = 1000,
-          display: int = 100, debug: bool = False):
+def train(env: Environment[Any, Any], step_max: int, nnet_dir: str, num_test_per_step: int = 30,
+          itrs_per_update: int = 5000, epochs_per_update: int = 1, num_update_procs: int = 1,
+          update_batch_size: int = 10000, update_nnet_batch_size: int = 10000, greedy_update_step_max: int = 1,
+          greedy_update_eps_max: float = 0.1, lr: float = 0.001, lr_d: float = 0.9999993, max_itrs: int = 1000000,
+          batch_size: int = 1000, display: int = 100, debug: bool = False):
     """ Train a deep neural network heuristic (DNN) function with deep approximate value iteration (DAVI).
     A target DNN is maintained for computing the updated heuristic values. When the greedy policy improves on a fixed
     test set, the target DNN is updated to be the current DNN. The number of steps taken for testing the greedy policy
@@ -251,7 +253,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int
         os.makedirs(nnet_dir)
 
     if not debug:
-        sys.stdout = data_utils.Logger(output_save_loc, "a")
+        sys.stdout = data_utils.Logger(output_save_loc, "a")  # type: ignore
 
     # Print basic info
     print("HOST: %s" % os.uname()[1])
@@ -285,8 +287,6 @@ def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int
         states_per_update: int = itrs_per_update * batch_size
         num_update_states: int = int(states_per_update)
 
-        states_nnet: List[np.ndarray]
-        ctgs: np.ndarray
         states_nnet, models_g_nnet, ctgs = do_update(step_max, status.update_num, env, greedy_update_step_max,
                                                      num_update_states, greedy_update_eps_max, heur_fn_qs,
                                                      update_batch_size)
@@ -324,12 +324,13 @@ def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int
         # clear cuda memory
         torch.cuda.empty_cache()
 
+        update_nnet: bool
         if per_solved > status.per_solved_best:
             print("Updating target network")
             status.per_solved_best = per_solved
-            update_nnet: bool = True
+            update_nnet = True
         else:
-            update_nnet: bool = False
+            update_nnet = False
 
         print("Last loss was %f" % last_loss)
         if update_nnet:

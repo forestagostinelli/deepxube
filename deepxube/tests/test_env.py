@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Any
 
 import torch
 import torch.nn as nn
@@ -7,6 +7,7 @@ from torch.multiprocessing import Queue, get_context
 from deepxube.environments.environment_abstract import Environment, State
 from deepxube.nnet import nnet_utils
 import numpy as np
+from numpy.typing import NDArray
 
 import time
 
@@ -19,12 +20,12 @@ def data_runner(queue1: Queue, queue2: Queue):
         queue2.put(the)
 
 
-def test_env(env: Environment, num_states: int, step_max: int):
+def test_env(env: Environment[Any, Any], num_states: int, step_max: int):
     torch.set_num_threads(1)
 
     # generate start/goal states
     start_time = time.time()
-    states = env.get_start_states(num_states)
+    states: List[State] = env.get_start_states(num_states)
 
     elapsed_time = time.time() - start_time
     states_per_sec = len(states) / elapsed_time
@@ -32,7 +33,6 @@ def test_env(env: Environment, num_states: int, step_max: int):
 
     # get data
     start_time = time.time()
-    states: List[State]
     states, goals = env.get_start_goal_pairs(list(np.random.randint(step_max, size=num_states)))
 
     elapsed_time = time.time() - start_time
@@ -48,7 +48,7 @@ def test_env(env: Environment, num_states: int, step_max: int):
 
     # nnet format
     start_time = time.time()
-    states_nnet = env.states_to_nnet_input(states)
+    states_nnet: List[NDArray[Any]] = env.states_to_nnet_input(states)
     elapsed_time = time.time() - start_time
     states_per_sec = len(states) / elapsed_time
     print("Converted %i states to nnet format in "
@@ -75,11 +75,11 @@ def test_env(env: Environment, num_states: int, step_max: int):
     # initialize nnet
     print("")
     heuristic_fn = nnet_utils.get_heuristic_fn(nnet, device, env)
-    heuristic_fn(states_nnet, goals_nnet, is_nnet_format=True)
+    heuristic_fn(states_nnet, goals_nnet)
 
     # nnet heuristic
     start_time = time.time()
-    heuristic_fn(states_nnet, goals_nnet, is_nnet_format=True)
+    heuristic_fn(states_nnet, goals_nnet)
 
     nnet_time = time.time() - start_time
     states_per_sec = len(states) / nnet_time
@@ -89,8 +89,8 @@ def test_env(env: Environment, num_states: int, step_max: int):
     print("")
     start_time = time.time()
     ctx = get_context("spawn")
-    queue1: ctx.Queue = ctx.Queue()
-    queue2: ctx.Queue = ctx.Queue()
+    queue1: Queue = ctx.Queue()
+    queue2: Queue = ctx.Queue()
     proc = ctx.Process(target=data_runner, args=(queue1, queue2))
     proc.daemon = True
     proc.start()

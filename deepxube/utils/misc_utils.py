@@ -2,6 +2,7 @@ from typing import List, Tuple, Any, Union, Set
 import numpy as np
 import math
 import re
+from numpy.typing import NDArray
 
 
 def flatten(data: List[List[Any]]) -> Tuple[List[Any], List[int]]:
@@ -13,17 +14,16 @@ def flatten(data: List[List[Any]]) -> Tuple[List[Any], List[int]]:
     return data_flat, split_idxs
 
 
-def unflatten(data: Union[List[Any], np.array], split_idxs: List[int]) -> List[List[Any]]:
+def unflatten(data: Union[List[Any], NDArray[Any]], split_idxs: List[int]) -> List[List[Any]]:
     data_split: List[List[Any]] = []
 
     start_idx: int = 0
     end_idx: int
     for end_idx in split_idxs:
-        data_split.append(data[start_idx:end_idx])
-
+        data_split.append(list(data[start_idx:end_idx]))
         start_idx = end_idx
 
-    data_split.append(data[start_idx:])
+    data_split.append(list(data[start_idx:]))
 
     return data_split
 
@@ -37,16 +37,6 @@ def split_evenly(num_total: int, num_splits: int) -> List[int]:
     return num_per
 
 
-def cum_min(data: List) -> List:
-    data_cum_min: List = []
-    prev_min = float('inf')
-    for data_i in data:
-        prev_min = min(prev_min, data_i)
-        data_cum_min.append(prev_min)
-
-    return data_cum_min
-
-
 def remove_all_whitespace(val: str) -> str:
     pattern = re.compile(r'\s+')
     val = re.sub(pattern, '', val)
@@ -54,10 +44,10 @@ def remove_all_whitespace(val: str) -> str:
     return val
 
 
-def random_subset(set_orig: Union[Set, frozenset], keep_prob: bool) -> Set:
-    rand_vals: np.array = np.random.rand(len(set_orig))
-    keep_arr: np.array = np.array(rand_vals < keep_prob)
-    rand_subset: Set = set(elem for elem, keep_i in zip(set_orig, keep_arr) if keep_i)
+def random_subset(set_orig: Union[Set[Any], frozenset[Any]], keep_prob: bool) -> Set[Any]:
+    rand_vals: NDArray[Any] = np.random.rand(len(set_orig))
+    keep_arr: NDArray[np.bool_] = np.array(rand_vals < keep_prob)
+    rand_subset: Set[Any] = set(elem for elem, keep_i in zip(set_orig, keep_arr) if keep_i)
 
     return rand_subset
 
@@ -66,8 +56,8 @@ def boltzmann(qvals: List[float], temp: float) -> List[float]:
     if len(qvals) == 1:
         return [1.0]
     else:
-        qvals_np: np.array = np.array(qvals)
-        exp_vals_np: np.array = np.exp((1.0 / temp) * (-(qvals_np - np.max(qvals_np))))
-        probs_np: np.array = exp_vals_np / np.sum(exp_vals_np)
+        qvals_np: NDArray[np.float_] = np.array(qvals)
+        exp_vals_np: NDArray[np.float_] = np.exp((1.0 / temp) * (-(qvals_np - np.max(qvals_np))))
+        probs_np: NDArray[np.float_] = exp_vals_np / np.sum(exp_vals_np)
 
     return list(probs_np)

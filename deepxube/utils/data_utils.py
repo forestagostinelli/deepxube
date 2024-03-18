@@ -1,12 +1,6 @@
-# Set GPU
-from typing import List, Tuple, Any
-
-import numpy as np
-import pickle
+from typing import List, Any
 
 import sys
-
-from random import choice
 
 from multiprocessing import Queue
 import queue
@@ -30,7 +24,7 @@ class Logger(object):
         pass
 
 
-def get_nowait_noerr(q: Queue) -> Any:
+def get_nowait_noerr(q: Queue[Any]) -> Any:
     try:
         q_ret: Any = q.get_nowait()
         return q_ret
@@ -38,7 +32,7 @@ def get_nowait_noerr(q: Queue) -> Any:
         return None
 
 
-def get_while_not_empty(q: Queue) -> List[Any]:
+def get_while_not_empty(q: Queue[Any]) -> List[Any]:
     q_rets: List[Any] = []
 
     while not q.empty():
@@ -51,38 +45,12 @@ def get_while_not_empty(q: Queue) -> List[Any]:
     return q_rets
 
 
-def get_in_order(q: Queue, num: int) -> List[Any]:
+def get_in_order(q: Queue[Any], num: int) -> List[Any]:
     ret_vals: List[Any] = [None for _ in range(num)]
     for _ in range(num):
         idx, val = q.get()
         ret_vals[idx] = val
     return ret_vals
-
-
-def load_states_from_files(num_states: int, data_files: List[str],
-                           load_outputs: bool = False) -> Tuple[List, np.ndarray]:
-    states = []
-    outputs_l = []
-    while len(states) < num_states:
-        data_file = choice(data_files)
-        data = pickle.load(open(data_file, "rb"))
-
-        rand_idxs = np.random.choice(len(data['states']), len(data['states']), replace=False)
-        num_samps: int = min(num_states - len(states), len(data['states']))
-
-        for idx in range(num_samps):
-            rand_idx = rand_idxs[idx]
-            states.append(data['states'][rand_idx])
-
-        if load_outputs:
-            for idx in range(num_samps):
-                rand_idx = rand_idxs[idx]
-                outputs_l.append(data['outputs'][rand_idx])
-
-    outputs = np.array(outputs_l)
-    outputs = np.expand_dims(outputs, 1)
-
-    return states, outputs
 
 
 def copy_dir_files(src_dir: str, dest_dir: str):

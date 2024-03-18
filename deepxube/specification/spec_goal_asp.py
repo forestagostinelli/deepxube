@@ -9,7 +9,7 @@ from deepxube.utils.timing_utils import Times
 import time
 
 
-def get_bk(env: EnvGrndAtoms, bk_add_file_name: Optional[str]) -> List[str]:
+def get_bk(env: EnvGrndAtoms[Any, Any], bk_add_file_name: Optional[str]) -> List[str]:
     bk_init: List[str] = env.get_bk()
     bk_init.append("")
 
@@ -21,20 +21,21 @@ def get_bk(env: EnvGrndAtoms, bk_add_file_name: Optional[str]) -> List[str]:
     return bk_init
 
 
-def search_for_goal(env: EnvGrndAtoms, state_start: State, models: List[Model], batch_size: int,
+def search_for_goal(env: EnvGrndAtoms[Any, Any], state_start: State, models: List[Model], batch_size: int,
                     weight: float, max_search_itrs: int, heur_fn: HeurFnNNet, search_verbose: bool,
                     viz_model: bool) -> List[Optional[Node]]:
+    goals: List[Goal] = env.model_to_goal(models)
+
     # Check for None
     if len(models) == 0:
         return []
 
     # visualize
     if viz_model:
-        print("Sampled model visualization")
-        viz_utils.visualize_examples(env, models)
+        print("Sampled goal visualization")
+        viz_utils.visualize_examples(env, goals)
 
     # Initialize
-    goals: List[Goal] = env.model_to_goal(models)
     astar = AStar(env)
     astar.add_instances([state_start] * len(goals), goals, [weight] * len(goals), heur_fn)
 
@@ -47,7 +48,7 @@ def search_for_goal(env: EnvGrndAtoms, state_start: State, models: List[Model], 
     return [x.goal_node for x in astar.instances]
 
 
-def get_next_model(asp: ASPSpec, spec_clauses: List[Clause], env: EnvGrndAtoms, models_banned: List[Model],
+def get_next_model(asp: ASPSpec, spec_clauses: List[Clause], env: EnvGrndAtoms[Any, Any], models_banned: List[Model],
                    num_models: int, assumed_true: Optional[Model] = None,
                    num_atoms_gt: Optional[int] = None) -> List[Model]:
     if num_atoms_gt is not None:
@@ -64,7 +65,7 @@ def get_next_model(asp: ASPSpec, spec_clauses: List[Clause], env: EnvGrndAtoms, 
     return models
 
 
-def path_to_spec_goal(env: EnvGrndAtoms, state_start: State, spec_clauses: List[Clause], heur_fn: HeurFnNNet,
+def path_to_spec_goal(env: EnvGrndAtoms[Any, Any], state_start: State, spec_clauses: List[Clause], heur_fn: HeurFnNNet,
                       model_batch_size: int, search_batch_size: int, weight: float, max_search_itrs: int,
                       bk_add: Optional[str] = None, models_banned: Optional[List[Model]] = None,
                       times: Optional[Times] = None, spec_verbose: bool = False, search_verbose: bool = False,
@@ -94,9 +95,9 @@ def path_to_spec_goal(env: EnvGrndAtoms, state_start: State, spec_clauses: List[
         times = Times(time_names=["ASP init", "Model samp", "Search", "Check", "Model superset"])
 
     if models_banned is None:
-        models_banned: List[Model] = []
+        models_banned = []
     else:
-        models_banned: List[Model] = models_banned.copy()
+        models_banned = models_banned.copy()
 
     # Initialize ASP
     start_time = time.time()
@@ -126,17 +127,17 @@ def path_to_spec_goal(env: EnvGrndAtoms, state_start: State, spec_clauses: List[
         models_banned += [model for model, goal_node in zip(models, goal_nodes) if goal_node is None]
 
         models = [model for model, goal_node in zip(models, goal_nodes) if goal_node is not None]
-        goal_nodes = [goal_node for goal_node in goal_nodes if goal_node is not None]
+        goal_nodes_found: List[Node] = [goal_node for goal_node in goal_nodes if goal_node is not None]
         if spec_verbose:
-            print(f"Found a path to {len(goal_nodes)} models")
+            print(f"Found a path to {len(goal_nodes_found)} models")
         times.record_time("Search", time.time() - start_time)
 
         if len(models) == 0:
             continue
 
         # check for goal states
-        models_terminal: List[Model] = env.state_to_model([goal_node.state for goal_node in goal_nodes])
-        for goal_node, model_terminal in zip(goal_nodes, models_terminal):
+        models_terminal: List[Model] = env.state_to_model([goal_node.state for goal_node in goal_nodes_found])
+        for goal_node, model_terminal in zip(goal_nodes_found, models_terminal):
             start_time = time.time()
             is_model = asp.check_model(spec_clauses, model_terminal)
             times.record_time("Check", time.time() - start_time)

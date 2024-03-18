@@ -1,10 +1,12 @@
-from typing import List, Tuple, Dict, Callable, Optional
+from typing import List, Tuple, Dict, Callable, Optional, cast, Any
 from deepxube.environments.environment_abstract import Environment, State, Goal
+from deepxube.nnet.nnet_utils import HeurFN_T
 import numpy as np
 from heapq import heappush, heappop
 
 from deepxube.utils import misc_utils
 import time
+from numpy.typing import NDArray
 
 
 class Node:
@@ -44,7 +46,7 @@ class Instance:
 
     def push_to_open(self, nodes: List[Node]):
         for node in nodes:
-            heappush(self.open_set, (node.cost, self.heappush_count, node))
+            heappush(self.open_set, (cast(float, node.cost), self.heappush_count, node))
             self.heappush_count += 1
 
     def pop_from_open(self, num_nodes: int) -> List[Node]:
@@ -53,10 +55,11 @@ class Instance:
         popped_nodes = [heappop(self.open_set)[2] for _ in range(num_to_pop)]
 
         for node in popped_nodes:
-            if node.is_solved and ((self.goal_node is None) or (node.cost < self.goal_node.cost)):
+            if node.is_solved and ((self.goal_node is None) or
+                                   (cast(float, node.cost) < cast(float, self.goal_node.cost))):
                 self.goal_node = node
 
-        if (self.goal_node is not None) and (self.goal_node.cost <= popped_nodes[0].cost):
+        if (self.goal_node is not None) and (cast(float, self.goal_node.cost) <= cast(float, popped_nodes[0].cost)):
             self.finished = True
         self.popped_nodes.extend(popped_nodes)
 
@@ -77,7 +80,7 @@ class Instance:
         return nodes_not_in_closed
 
 
-def expand_nodes(instances: List[Instance], popped_nodes_all: List[List[Node]], env: Environment):
+def expand_nodes(instances: List[Instance], popped_nodes_all: List[List[Node]], env: Environment[Any, Any]):
     # Get children of all nodes at once (for speed)
     popped_nodes_flat: List[Node]
     split_idxs: List[int]
@@ -89,7 +92,7 @@ def expand_nodes(instances: List[Instance], popped_nodes_all: List[List[Node]], 
     states: List[State] = [x.state for x in popped_nodes_flat]
 
     states_c_by_node: List[List[State]]
-    tcs_np: List[np.ndarray]
+    tcs_np: List[NDArray[np.float_]]
     states_c_by_node, tcs_np = env.expand(states)
 
     tcs_by_node: List[List[float]] = [list(x) for x in tcs_np]
@@ -123,15 +126,14 @@ def expand_nodes(instances: List[Instance], popped_nodes_all: List[List[Node]], 
     for inst_idx, instance in enumerate(instances):
         nodes_c_by_inst.append([])
         parent_nodes: List[Node] = popped_nodes_all[inst_idx]
-        tcs_by_node: List[List[float]] = tcs_by_inst_node[inst_idx]
-        path_costs_c_by_node: List[List[float]] = patch_costs_c_by_inst_node[inst_idx]
-        states_c_by_node: List[List[State]] = states_c_by_inst_node[inst_idx]
+        tcs_by_node = tcs_by_inst_node[inst_idx]
+        path_costs_c_by_node = patch_costs_c_by_inst_node[inst_idx]
+        states_c_by_node = states_c_by_inst_node[inst_idx]
 
-        is_solved_c_by_node: List[List[bool]] = is_solved_c_by_inst_node[inst_idx]
+        is_solved_c_by_node = is_solved_c_by_inst_node[inst_idx]
 
         parent_node: Node
         tcs_node: List[float]
-        states_c: List[State]
         for parent_node, tcs_node, path_costs_c, states_c, is_solved_c in zip(parent_nodes, tcs_by_node,
                                                                               path_costs_c_by_node, states_c_by_node,
                                                                               is_solved_c_by_node):
@@ -163,11 +165,8 @@ def add_to_open(instances: List[Instance], nodes: List[List[Node]]) -> None:
         instance.push_to_open(nodes_inst)
 
 
-def add_heuristic_and_cost(nodes: List[Node], heuristic_fn: Callable,
-                           weights: List[float]) -> Tuple[np.ndarray, np.ndarray]:
-    # flatten nodes
-    nodes: List[Node]
-
+def add_heuristic_and_cost(nodes: List[Node], heuristic_fn: HeurFN_T,
+                           weights: List[float]) -> Tuple[NDArray[np.float_], NDArray[np.float_]]:
     if len(nodes) == 0:
         return np.zeros(0), np.zeros(0)
 
@@ -175,10 +174,10 @@ def add_heuristic_and_cost(nodes: List[Node], heuristic_fn: Callable,
     states: List[State] = [node.state for node in nodes]
     goals: List[Goal] = [node.goal for node in nodes]
     heuristics = heuristic_fn(states, goals)
-    path_costs: np.ndarray = np.array([node.path_cost for node in nodes])
-    is_solved: np.ndarray = np.array([node.is_solved for node in nodes])
+    path_costs: NDArray[np.float_] = np.array([node.path_cost for node in nodes])
+    is_solved: NDArray[np.bool_] = np.array([node.is_solved for node in nodes])
 
-    costs: np.ndarray = np.array(weights) * path_costs + heuristics * np.logical_not(is_solved)
+    costs: NDArray[np.float_] = np.array(weights) * path_costs + heuristics * np.logical_not(is_solved)
 
     # add cost to node
     for node, heuristic, cost in zip(nodes, heuristics, costs):
@@ -190,19 +189,19 @@ def add_heuristic_and_cost(nodes: List[Node], heuristic_fn: Callable,
 
 class AStar:
 
-    def __init__(self, env: Environment):
+    def __init__(self, env: Environment[Any, Any]):
         """ Initialize AStar search
 
         :param env: Environment
         """
-        self.env: Environment = env
+        self.env: Environment[Any, Any] = env
         self.step_num: int = 0
 
         self.timings: Dict[str, float] = {"pop": 0.0, "expand": 0.0, "check": 0.0, "heur": 0.0,
                                           "add": 0.0, "itr": 0.0}
         self.instances: List[Instance] = []
 
-    def add_instances(self, states: List[State], goals: List[Goal], weights: List[float], heuristic_fn: Callable):
+    def add_instances(self, states: List[State], goals: List[Goal], weights: List[float], heuristic_fn: HeurFN_T):
         """ Add instances
 
         :param states: start states
@@ -215,7 +214,7 @@ class AStar:
         assert len(goals) == len(weights), "Number of weights given should be the same as number of instances"
         # compute starting costs
         root_nodes: List[Node] = []
-        is_solved_states: np.ndarray = np.array(self.env.is_solved(states, goals))
+        is_solved_states: NDArray[np.bool_] = np.array(self.env.is_solved(states, goals))
         for state, goal, is_solved in zip(states, goals, is_solved_states):
             root_node: Node = Node(state, goal, 0.0, is_solved, None, None)
             root_nodes.append(root_node)
@@ -226,7 +225,7 @@ class AStar:
         for root_node, weight in zip(root_nodes, weights):
             self.instances.append(Instance(root_node, weight))
 
-    def step(self, heuristic_fn: Callable, batch_size: int, verbose: bool = False):
+    def step(self, heuristic_fn: HeurFN_T, batch_size: int, verbose: bool = False):
         """ Take a step of A* search
 
         :param heuristic_fn: heuristic function
@@ -270,9 +269,9 @@ class AStar:
         # Print to screen
         if verbose:
             if heuristics.shape[0] > 0:
-                min_heur = np.min(heuristics)
+                min_heur = float(np.min(heuristics))
                 min_heur_pc = float(path_costs[np.argmin(heuristics)])
-                max_heur = np.max(heuristics)
+                max_heur = float(np.max(heuristics))
                 max_heur_pc = float(path_costs[np.argmax(heuristics)])
 
                 print("Itr: %i, Added to OPEN - Min/Max Heur(PathCost): "
@@ -327,7 +326,7 @@ def get_path(node: Node) -> Tuple[List[State], List[int], float]:
     while parent_node.parent is not None:
         path.append(parent_node.state)
 
-        moves.append(parent_node.parent_move)
+        moves.append(cast(int, parent_node.parent_move))
         parent_node = parent_node.parent
 
     path.append(parent_node.state)

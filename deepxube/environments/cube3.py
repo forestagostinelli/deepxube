@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple, Union, Any, Set, cast
+from typing import List, Dict, Tuple, Union, Any, Set, Optional
 from deepxube.utils import misc_utils
 from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel
 from deepxube.logic.logic_objects import Atom, Model
@@ -16,6 +16,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import matplotlib.pyplot as plt
 from itertools import permutations
 import re
+from numpy.typing import NDArray
 
 
 class Cube3ProcessStates(nn.Module):
@@ -76,26 +77,31 @@ class Cube3NNet(HeurFnNNet):
 
 
 class Cube3State(State):
-    __slots__ = ['colors', 'hash']
+    __slots__ = ['colors', 'computed_hash', 'hash']
 
-    def __init__(self, colors: np.array):
-        self.colors: np.array = colors
-        self.hash = None
+    def __init__(self, colors: NDArray[np.uint8]):
+        self.colors: NDArray[np.uint8] = colors
+        self.computed_hash: bool = False
+        self.hash: Optional[int] = None
 
     def __hash__(self):
-        self.hash = hash(self.colors.tostring())
+        if not self.computed_hash:
+            self.hash = hash(self.colors.tobytes())
+            self.computed_hash = True
         return self.hash
 
-    def __eq__(self, other: 'Cube3State'):
-        return np.array_equal(self.colors, other.colors)
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Cube3State):
+            return np.array_equal(self.colors, other.colors)
+        return NotImplemented
 
 
 class Cube3Goal(Goal):
-    def __init__(self, colors: np.array):
-        self.colors: np.array = colors
+    def __init__(self, colors: NDArray[np.uint8]):
+        self.colors: NDArray[np.uint8] = colors
 
 
-def _get_adj() -> Dict[int, np.ndarray]:
+def _get_adj() -> Dict[int, NDArray[np.int_]]:
     # WHITE:0, YELLOW:1, BLUE:2, GREEN:3, ORANGE: 4, RED: 5
     return {0: np.array([2, 5, 3, 4]),
             1: np.array([2, 4, 3, 5]),
@@ -108,28 +114,25 @@ def _get_adj() -> Dict[int, np.ndarray]:
 
 def _cubelet_to_type(cubelet: List[int]) -> str:
     if len(cubelet) == 1:
-        cbl_type: str = "center_cbl"
+        return "center_cbl"
     elif len(cubelet) == 2:
-        cbl_type: str = "edge_cbl"
+        return "edge_cbl"
     elif len(cubelet) == 3:
-        cbl_type: str = "corner_cbl"
+        return "corner_cbl"
     else:
         raise ValueError("Unknown cubelet type")
 
-    return cbl_type
 
-
-def _colors_to_model(colors: np.array) -> Model:
+def _colors_to_model(colors: NDArray[np.uint8]) -> Model:
     grnd_atoms: List[Atom] = [('at_idx', x, f"{i}") for i, x in enumerate(colors) if x != 'k']
     return frozenset(grnd_atoms)
 
 
-class Cube3(EnvGrndAtoms):
+class Cube3(EnvGrndAtoms[Cube3State, Cube3Goal]):
     atomic_actions: List[str] = ["%s%i" % (f, n) for f in ['U', 'D', 'L', 'R', 'B', 'F'] for n in [-1, 1]]
 
     def __init__(self, env_name: str):
         super().__init__(env_name)
-        self.dtype = np.uint8
         self.cube_len: int = 3
         self.colors: List[str] = ['white', 'yellow', 'orange', 'red', 'blue', 'green']
         self.colors_grnd_obj: List[str] = ['w', 'y', 'o', 'r', 'b', 'g']
@@ -160,24 +163,24 @@ class Cube3(EnvGrndAtoms):
         self.num_stickers: int = 6 * (self.cube_len ** 2)
 
         # solved state
-        self.goal_colors: np.array = np.arange(0, self.num_stickers, 1, dtype=self.dtype) // (self.cube_len ** 2)
-        self.goal_colors = self.goal_colors.astype(self.dtype)
+        self.goal_colors: NDArray[np.uint8] = (np.arange(0, self.num_stickers, 1,
+                                                         dtype=np.uint8) // (self.cube_len ** 2)).astype(np.uint8)
 
         # get idxs changed for moves
-        self.rotate_idxs_new: Dict[str, np.ndarray]
-        self.rotate_idxs_old: Dict[str, np.ndarray]
+        self.rotate_idxs_new: Dict[str, NDArray[np.int_]]
+        self.rotate_idxs_old: Dict[str, NDArray[np.int_]]
 
-        self.adj_faces: Dict[int, np.ndarray] = _get_adj()
+        self.adj_faces: Dict[int, NDArray[np.int_]] = _get_adj()
 
         self.rotate_idxs_new, self.rotate_idxs_old = self._compute_rotation_idxs(self.cube_len, self.atomic_actions)
 
-        self.int_to_color: np.array = np.concatenate((np.array(self.colors_grnd_obj), ['k']))
+        self.int_to_color: NDArray[np.str_] = np.concatenate((np.array(self.colors_grnd_obj), ['k']))  # type: ignore
 
     def next_state(self, states: List[Cube3State], actions_l: List[int]) -> Tuple[List[Cube3State], List[float]]:
         states_np = np.stack([x.colors for x in states], axis=0)
 
-        states_next_np = np.zeros(states_np.shape, dtype=self.dtype)
-        tcs_np: np.array = np.zeros(len(states))
+        states_next_np = np.zeros(states_np.shape, dtype=np.uint8)
+        tcs_np: NDArray[np.float_] = np.zeros(len(states))
         actions = np.array(actions_l)
         for action in np.unique(actions):
             action_idxs = actions == action
@@ -207,17 +210,17 @@ class Cube3(EnvGrndAtoms):
         is_solved_np = np.all(np.logical_or(states_np == goals_np, goals_np == 6), axis=1)
         return list(is_solved_np)
 
-    def states_to_nnet_input(self, states: List[Cube3State]) -> List[np.ndarray]:
+    def states_to_nnet_input(self, states: List[Cube3State]) -> List[NDArray[np.uint8]]:
         # states
-        states_np = np.stack([state.colors for state in states], axis=0).astype(self.dtype)
+        states_np: NDArray[np.uint8] = np.stack([state.colors for state in states], axis=0).astype(np.uint8)
         return [states_np]
 
-    def goals_to_nnet_input(self, goals: List[Cube3Goal]) -> List[np.ndarray]:
-        goals_np = np.stack([x.colors for x in goals], axis=0)
+    def goals_to_nnet_input(self, goals: List[Cube3Goal]) -> List[NDArray[np.uint8]]:
+        goals_np: NDArray[np.uint8] = np.stack([x.colors for x in goals], axis=0)
         return [goals_np]
 
     def state_to_model(self, states: List[Cube3State]) -> List[Model]:
-        states_np = np.stack([x.colors for x in states], axis=0).astype(self.dtype)
+        states_np = np.stack([x.colors for x in states], axis=0).astype(np.uint8)
         colors_l = self.int_to_color[states_np]
         models: List[Model] = [_colors_to_model(x) for x in colors_l]
 
@@ -229,7 +232,7 @@ class Cube3(EnvGrndAtoms):
         return [Cube3State(x) for x in self._models_to_np(states_m)]
 
     def goal_to_model(self, goals: List[Cube3Goal]) -> List[Model]:
-        goals_np = np.stack([x.colors for x in goals], axis=0).astype(self.dtype)
+        goals_np = np.stack([x.colors for x in goals], axis=0).astype(np.uint8)
         colors_l = self.int_to_color[goals_np]
         models: List[Model] = [_colors_to_model(x) for x in colors_l]
 
@@ -259,19 +262,19 @@ class Cube3(EnvGrndAtoms):
         num_atomic_moves: int = len(self.atomic_actions)
 
         # Get numpy goal states
-        goal_np: np.ndarray = np.expand_dims(self.goal_colors.copy(), 0)
-        states_np: np.ndarray = np.repeat(goal_np, num_states, axis=0)
+        goal_np: NDArray[np.uint8] = np.expand_dims(self.goal_colors.copy(), 0)
+        states_np: NDArray[np.uint8] = np.repeat(goal_np, num_states, axis=0)
 
         # Scrambles
-        scramble_nums: np.array = np.random.choice(scrambs, num_states)
-        num_back_moves: np.array = np.zeros(num_states)
+        scramble_nums: NDArray[np.int_] = np.random.choice(scrambs, num_states)
+        num_back_moves: NDArray[np.int_] = np.zeros(num_states, dtype=int)
 
         # Go backward from goal state
         moves_lt = num_back_moves < scramble_nums
         while np.any(moves_lt):
-            idxs: np.ndarray = np.where(moves_lt)[0]
+            idxs: NDArray[np.int_] = np.where(moves_lt)[0]
             subset_size: int = int(max(len(idxs) / num_atomic_moves, 1))
-            idxs: np.ndarray = np.random.choice(idxs, subset_size)
+            idxs = np.random.choice(idxs, subset_size)
 
             move: int = randrange(num_atomic_moves)
             states_np[idxs], _ = self._move_np(states_np[idxs], move)
@@ -283,7 +286,7 @@ class Cube3(EnvGrndAtoms):
 
         return states
 
-    def start_state_fixed(self, states: List[State]) -> List[Model]:
+    def start_state_fixed(self, states: List[Cube3State]) -> List[Model]:
         return [frozenset() for _ in states]
 
     def get_bk(self) -> List[str]:
@@ -309,18 +312,15 @@ class Cube3(EnvGrndAtoms):
 
         center_cbls = [x for x in self.cbls_all if len(x) == 1]
         for cbl_l in center_cbls:
-            cbl_name: str = self._cubelet_to_name(cbl_l)
-            bk.append(f"center_cbl({cbl_name})")
+            bk.append(f"center_cbl({self._cubelet_to_name(cbl_l)})")
 
         edge_cbls = [x for x in self.cbls_all if len(x) == 2]
         for cbl_l in edge_cbls:
-            cbl_name: str = self._cubelet_to_name(cbl_l)
-            bk.append(f"edge_cbl({cbl_name})")
+            bk.append(f"edge_cbl({self._cubelet_to_name(cbl_l)})")
 
         corner_cbls = [x for x in self.cbls_all if len(x) == 3]
         for cbl_l in corner_cbls:
-            cbl_name: str = self._cubelet_to_name(cbl_l)
-            bk.append(f"corner_cbl({cbl_name})")
+            bk.append(f"corner_cbl({self._cubelet_to_name(cbl_l)})")
 
         if len(center_cbls) > 0:
             bk.append("cubelet(Cbl) :- center_cbl(Cbl)")
@@ -382,8 +382,8 @@ class Cube3(EnvGrndAtoms):
                 bk.append(f"face_rel({center}_f, {center_cl}_f, {centers_cl[idx_next]}_f, cl)")
 
         for center_op in clockwise.keys():
-            center: str = opposite[center_op]
-            centers_cl: List[str] = clockwise[center_op]
+            center = opposite[center_op]
+            centers_cl = clockwise[center_op]
             for idx, center_cl in enumerate(centers_cl):
                 idx_next = (idx - 1) % len(centers_cl)
                 bk.append(f"face_rel({center}_f, {center_cl}_f, {centers_cl[idx_next]}_f, cl)")
@@ -404,12 +404,11 @@ class Cube3(EnvGrndAtoms):
             for cbl_idxs2 in self.cbls_all:
                 if _cubelet_to_type(cbl_idxs) != _cubelet_to_type(cbl_idxs2):
                     continue
-                cbl_name: str = self._cubelet_to_name(cbl_idxs2)
                 color_obj_perms = permutations(self._cubelet_to_colors_obj(cbl_idxs2))
-                for color_objs in color_obj_perms:
-                    at_idx_str: str = ", ".join([f"at_idx({col}, {idx})" for col, idx in zip(color_objs, cbl_idxs)])
-                    for col, face_name in zip(color_objs, face_names):
-                        bk.append(f"onface({cbl_name}, {col}, {face_name}) :- {at_idx_str}")
+                for color_objs_p in color_obj_perms:
+                    at_idx_str: str = ", ".join([f"at_idx({col}, {idx})" for col, idx in zip(color_objs_p, cbl_idxs)])
+                    for col, face_name in zip(color_objs_p, face_names):
+                        bk.append(f"onface({self._cubelet_to_name(cbl_idxs2)}, {col}, {face_name}) :- {at_idx_str}")
 
         bk.append("stk_f_dir(Cbl, StkCol, FTo, Dir) :- edge_cbl(Cbl), face_rel(FRef, FFrom, FTo, Dir), "
                   "onface(Cbl, StkCol, FFrom), onface(Cbl, _, FRef)")
@@ -518,7 +517,7 @@ class Cube3(EnvGrndAtoms):
         return ground_atoms
 
     def on_model(self, m) -> Model:
-        symbs_set: Set = set(str(x) for x in m.symbols(shown=True))
+        symbs_set: Set[str] = set(str(x) for x in m.symbols(shown=True))
         symbs: List[str] = [misc_utils.remove_all_whitespace(symb) for symb in symbs_set]
 
         # get atoms
@@ -584,9 +583,10 @@ class Cube3(EnvGrndAtoms):
 
     def pddl_action_to_action(self, pddl_action: str) -> int:
         match = re.match(r"^a(\d+).*", pddl_action)
+        assert match is not None
         return int(match.group(1))
 
-    def visualize(self, states: Union[List[Cube3State], List[Model]]) -> np.ndarray:
+    def visualize(self, states: Union[List[Cube3State], List[Cube3Goal]]) -> NDArray[np.float_]:
         # initialize
         fig = plt.figure(figsize=(.64, .64))
         viz = InteractiveCube(3, self.get_start_states(1)[0].colors)
@@ -597,15 +597,16 @@ class Cube3(EnvGrndAtoms):
         width = int(width)
         height = int(height)
 
-        states_img: np.ndarray = np.zeros((len(states), width, height, 6))
+        states_img: NDArray[np.float_] = np.zeros((len(states), width, height, 6))
         for state_idx, state in enumerate(states):
             # create image
             if isinstance(state, Cube3State):
-                state: Cube3State = cast(Cube3State, state)
                 viz.new_state(state.colors)
+            elif isinstance(state, Cube3Goal):
+                model: Model = self.goal_to_model([state])[0]
+                viz.new_state(self._models_to_np([model])[0])
             else:
-                state: Model = cast(Model, state)
-                viz.new_state(self._models_to_np([state])[0])
+                raise ValueError(f"Unknown input type {type(state)}")
 
             viz.set_rot(0)
             canvas.draw()
@@ -621,8 +622,8 @@ class Cube3(EnvGrndAtoms):
 
         return states_img
 
-    def _models_to_np(self, models: List[Model]) -> np.ndarray:
-        models_np = np.ones((len(models), self.num_stickers), dtype=self.dtype) * 6
+    def _models_to_np(self, models: List[Model]) -> NDArray[np.uint8]:
+        models_np: NDArray[np.uint8] = (np.ones((len(models), self.num_stickers), dtype=np.uint8) * 6).astype(np.uint8)
         for idx, model in enumerate(models):
             for grnd_atom in model:
                 models_np[idx, int(grnd_atom[2])] = self.color_to_int[grnd_atom[1]]
@@ -640,8 +641,8 @@ class Cube3(EnvGrndAtoms):
         face_idxs = np.floor(np.sort(cubelet) // (self.cube_len ** 2)).astype(int)
         return [self.colors_grnd_obj[idx] for idx in face_idxs]
 
-    def _move_np(self, states_np: np.ndarray, action: int) -> Tuple[np.ndarray, List[float]]:
-        states_next_np: np.ndarray = states_np.copy()
+    def _move_np(self, states_np: NDArray[np.uint8], action: int) -> Tuple[NDArray[np.uint8], List[float]]:
+        states_next_np: NDArray[np.uint8] = states_np.copy()
 
         actions = [action]
 
@@ -654,9 +655,9 @@ class Cube3(EnvGrndAtoms):
         return states_next_np, transition_costs
 
     def _compute_rotation_idxs(self, cube_len: int,
-                               moves: List[str]) -> Tuple[Dict[str, np.ndarray], Dict[str, np.ndarray]]:
-        rotate_idxs_new: Dict[str, np.ndarray] = dict()
-        rotate_idxs_old: Dict[str, np.ndarray] = dict()
+                               moves: List[str]) -> Tuple[Dict[str, NDArray[np.int_]], Dict[str, NDArray[np.int_]]]:
+        rotate_idxs_new: Dict[str, NDArray[np.int_]] = dict()
+        rotate_idxs_old: Dict[str, NDArray[np.int_]] = dict()
 
         for move in moves:
             f: str = move[0]
@@ -706,10 +707,10 @@ class Cube3(EnvGrndAtoms):
                 idxs_old = [[idx1, idx2] for idx1 in np.array([cubes_idxs[cubes_from[i]][0]]).flatten() for idx2 in
                             np.array([cubes_idxs[cubes_from[i]][1]]).flatten()]
                 for idxNew, idxOld in zip(idxs_new, idxs_old):
-                    flat_idx_new = np.ravel_multi_index((face, idxNew[0], idxNew[1]), colors_new.shape)
-                    flat_idx_old = np.ravel_multi_index((face, idxOld[0], idxOld[1]), colors.shape)
-                    rotate_idxs_new[move] = np.concatenate((rotate_idxs_new[move], [flat_idx_new]))
-                    rotate_idxs_old[move] = np.concatenate((rotate_idxs_old[move], [flat_idx_old]))
+                    flat_idx_new: int = int(np.ravel_multi_index((face, idxNew[0], idxNew[1]), colors_new.shape))
+                    flat_idx_old: int = int(np.ravel_multi_index((face, idxOld[0], idxOld[1]), colors.shape))
+                    rotate_idxs_new[move] = np.concatenate((rotate_idxs_new[move], [flat_idx_new]))  # type: ignore
+                    rotate_idxs_old[move] = np.concatenate((rotate_idxs_old[move], [flat_idx_old]))  # type: ignore
 
             # Rotate adjacent faces
             face_idxs = adj_idxs[face]
@@ -721,9 +722,9 @@ class Cube3(EnvGrndAtoms):
                 idxs_old = [[idx1, idx2] for idx1 in np.array([face_idxs[face_from][0]]).flatten() for idx2 in
                             np.array([face_idxs[face_from][1]]).flatten()]
                 for idxNew, idxOld in zip(idxs_new, idxs_old):
-                    flat_idx_new = np.ravel_multi_index((face_to, idxNew[0], idxNew[1]), colors_new.shape)
-                    flat_idx_old = np.ravel_multi_index((face_from, idxOld[0], idxOld[1]), colors.shape)
-                    rotate_idxs_new[move] = np.concatenate((rotate_idxs_new[move], [flat_idx_new]))
-                    rotate_idxs_old[move] = np.concatenate((rotate_idxs_old[move], [flat_idx_old]))
+                    flat_idx_new = int(np.ravel_multi_index((face_to, idxNew[0], idxNew[1]), colors_new.shape))
+                    flat_idx_old = int(np.ravel_multi_index((face_from, idxOld[0], idxOld[1]), colors.shape))
+                    rotate_idxs_new[move] = np.concatenate((rotate_idxs_new[move], [flat_idx_new]))  # type: ignore
+                    rotate_idxs_old[move] = np.concatenate((rotate_idxs_old[move], [flat_idx_old]))  # type: ignore
 
         return rotate_idxs_new, rotate_idxs_old

@@ -7,20 +7,23 @@ import re
 def parse_literal(lit_str: str) -> Literal:
     # check for negation
     not_match = re.match(r"\s*not\s+(.*)", lit_str)
+    positive: bool
     if not_match is None:
-        positive: bool = True
+        positive = True
     else:
-        positive: bool = False
+        positive = False
         lit_str = not_match.group(1).strip()
 
     # parse literal
     lit_str = misc_utils.remove_all_whitespace(lit_str)
     match = re.match(r"([^(]+)(\((.*)\))?", lit_str)
+    assert match is not None
     pred_name: str = match.group(1)
+    pred_args: Tuple[str, ...]
     if match.group(3) is not None:
-        pred_args: Tuple[str, ...] = tuple([x.strip() for x in match.group(3).split(",")])
+        pred_args = tuple([x.strip() for x in match.group(3).split(",")])
     else:
-        pred_args: Tuple[str, ...] = tuple()
+        pred_args = tuple()
 
     # TODO, better way to handle directions?
     directions = ["in"] * len(pred_args)

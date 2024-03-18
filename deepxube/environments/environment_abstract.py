@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Union, Optional, Set, Any
+from typing import List, Tuple, Union, Optional, Set, Any, TypeVar, Generic
 import numpy as np
 import torch.nn as nn
 from deepxube.logic.logic_objects import Atom, Model
@@ -7,6 +7,7 @@ from deepxube.utils import misc_utils
 from deepxube.utils.timing_utils import Times
 import random
 import time
+from numpy.typing import NDArray
 
 
 class State(ABC):
@@ -18,7 +19,7 @@ class State(ABC):
         pass
 
     @abstractmethod
-    def __eq__(self, other: 'State'):
+    def __eq__(self, other: object):
         """ for use in state reidentification during heuristic search
 
         @param other: other state
@@ -46,12 +47,16 @@ class HeurFnNNet(nn.Module):
         self.nnet_type = nnet_type
 
 
-class Environment(ABC):
+S = TypeVar('S', bound=State)
+G = TypeVar('G', bound=Goal)
+
+
+class Environment(ABC, Generic[S, G]):
     def __init__(self, env_name: str):
         self.env_name: Optional[str] = env_name
 
     @abstractmethod
-    def get_start_states(self, num_states: int) -> List[State]:
+    def get_start_states(self, num_states: int) -> List[S]:
         """ A method for generating start states. Should try to make this generate states that are as diverse as
         possible so that the trained heuristic function generalizes well.
 
@@ -61,7 +66,7 @@ class Environment(ABC):
         pass
 
     @abstractmethod
-    def get_state_actions(self, states: List[State]) -> List[List[Any]]:
+    def get_state_actions(self, states: List[S]) -> List[List[Any]]:
         """ Get actions applicable to each states
 
         @param states: List of states
@@ -70,7 +75,7 @@ class Environment(ABC):
         pass
 
     @abstractmethod
-    def next_state(self, states: List[State], actions: List[Any]) -> Tuple[List[State], List[float]]:
+    def next_state(self, states: List[S], actions: List[Any]) -> Tuple[List[S], List[float]]:
         """ Get the next state and transition cost given the current state and action
 
         @param states: List of states
@@ -79,7 +84,7 @@ class Environment(ABC):
         """
         pass
 
-    def next_state_rand(self, states: List[State]) -> Tuple[List[State], List[float]]:
+    def next_state_rand(self, states: List[S]) -> Tuple[List[S], List[float]]:
         """ Get random next state and transition cost given the current state
 
         @param states: List of states
@@ -90,7 +95,7 @@ class Environment(ABC):
         return self.next_state(states, actions_rand)
 
     @abstractmethod
-    def sample_goal(self, states: List[State]) -> List[Goal]:
+    def sample_goal(self, states: List[S]) -> List[G]:
         """ Given a state, return a goal that represents a set of goal states of which the given state is a member.
         Does not have to always return the same goal.
 
@@ -100,7 +105,7 @@ class Environment(ABC):
         pass
 
     @abstractmethod
-    def is_solved(self, states: List[State], goals: List[Goal]) -> List[bool]:
+    def is_solved(self, states: List[S], goals: List[G]) -> List[bool]:
         """ Returns true if the state is a member of the set of goal states represented by the goal
 
         @param states: List of states
@@ -111,47 +116,47 @@ class Environment(ABC):
         pass
 
     def get_start_goal_pairs(self, num_steps_l: List[int],
-                             times: Optional[Times] = None) -> Tuple[List[State], List[Goal]]:
+                             times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
         # Initialize
         if times is None:
             times = Times()
 
         # Start states
         start_time = time.time()
-        states_start: List[State] = self.get_start_states(len(num_steps_l))
+        states_start: List[S] = self.get_start_states(len(num_steps_l))
         times.record_time("get_start_states", time.time() - start_time)
 
         # random walk
         start_time = time.time()
-        states_goal: List[State] = self._random_walk(states_start, num_steps_l)
+        states_goal: List[S] = self._random_walk(states_start, num_steps_l)
         times.record_time("random_walk", time.time() - start_time)
 
         # state to goal
         start_time = time.time()
-        goals: List[Goal] = self.sample_goal(states_goal)
+        goals: List[G] = self.sample_goal(states_goal)
         times.record_time("sample_goal", time.time() - start_time)
 
         return states_start, goals
 
-    def expand(self, states: List[State]) -> Tuple[List[List[State]], List[List[float]]]:
+    def expand(self, states: List[S]) -> Tuple[List[List[S]], List[List[float]]]:
         """ Generate all children for the state
         @param states: List of states
         @return: Children of each state, Transition costs for each state
         """
         # TODO further validate
         # initialize
-        states_exp_l: List[List[State]] = [[] for _ in range(len(states))]
+        states_exp_l: List[List[S]] = [[] for _ in range(len(states))]
         tcs_l: List[List[float]] = [[] for _ in range(len(states))]
         state_actions: List[List[Any]] = self.get_state_actions(states)
 
-        num_actions_tot: np.array = np.array([len(x) for x in state_actions])
-        num_actions_taken: np.array = np.zeros(len(states))
-        actions_lt = num_actions_taken < num_actions_tot
+        num_actions_tot: NDArray[np.int_] = np.array([len(x) for x in state_actions])
+        num_actions_taken: NDArray[np.int_] = np.zeros(len(states), dtype=int)
+        actions_lt: NDArray[np.bool_] = num_actions_taken < num_actions_tot
 
         # for each move, get next states, transition costs, and if solved
         while np.any(actions_lt):
-            idxs: np.ndarray = np.where(actions_lt)[0]
-            states_idxs: List[State] = [states[idx] for idx in idxs]
+            idxs: NDArray[np.int_] = np.where(actions_lt)[0]
+            states_idxs: List[S] = [states[idx] for idx in idxs]
             actions_idxs: List[Any] = [state_actions[idx].pop(0) for idx in idxs]
 
             # next state
@@ -168,7 +173,7 @@ class Environment(ABC):
         return states_exp_l, tcs_l
 
     @abstractmethod
-    def states_to_nnet_input(self, states: List[State]) -> List[np.ndarray]:
+    def states_to_nnet_input(self, states: List[S]) -> List[NDArray[Any]]:
         """ State to numpy arrays to be fed to the neural network
 
         @param states: List of states
@@ -178,7 +183,7 @@ class Environment(ABC):
         pass
 
     @abstractmethod
-    def goals_to_nnet_input(self, goals: List[Goal]) -> List[np.ndarray]:
+    def goals_to_nnet_input(self, goals: List[G]) -> List[NDArray[Any]]:
         """ Goals to numpy arrays to be fed to the neural network
 
         @param goals: List of goals
@@ -214,7 +219,7 @@ class Environment(ABC):
         pass
 
     @abstractmethod
-    def state_goal_to_pddl_inst(self, state: State, goal: Goal) -> List[str]:
+    def state_goal_to_pddl_inst(self, state: S, goal: G) -> List[str]:
         """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using
         traiditional planners (raise NotImplementedError).
 
@@ -232,7 +237,7 @@ class Environment(ABC):
         pass
 
     @abstractmethod
-    def visualize(self, states: Union[List[State], List[Goal]]) -> np.ndarray:
+    def visualize(self, states: Union[List[S], List[G]]) -> NDArray[np.float_]:
         """ Implement if visualizing states. If you are planning on visualizing states, you do not have to implement
         this (raise NotImplementedError).
 
@@ -240,14 +245,14 @@ class Environment(ABC):
         """
         pass
 
-    def _random_walk(self, states: List[State], num_steps_l: List[int]) -> List[State]:
-        states_walk: List[State] = [state for state in states]
+    def _random_walk(self, states: List[S], num_steps_l: List[int]) -> List[S]:
+        states_walk: List[S] = [state for state in states]
 
-        num_steps: np.array = np.array(num_steps_l)
-        num_moves_curr: np.array = np.zeros(len(states))
-        moves_lt = num_moves_curr < num_steps
+        num_steps: NDArray[np.int_] = np.array(num_steps_l)
+        num_moves_curr: NDArray[np.int_] = np.zeros(len(states), dtype=int)
+        moves_lt: NDArray[np.bool_] = num_moves_curr < num_steps
         while np.any(moves_lt):
-            idxs: np.ndarray = np.where(moves_lt)[0]
+            idxs: NDArray[np.int_] = np.where(moves_lt)[0]
             states_to_move = [states_walk[idx] for idx in idxs]
 
             states_moved, _ = self.next_state_rand(states_to_move)
@@ -262,17 +267,17 @@ class Environment(ABC):
         return states_walk
 
 
-class EnvGrndAtoms(Environment):
+class EnvGrndAtoms(Environment[S, G]):
     def __init__(self, env_name: str):
         super().__init__(env_name)
         self.env_name: Optional[str] = env_name
 
     @abstractmethod
-    def state_to_model(self, states: List[State]) -> List[Model]:
+    def state_to_model(self, states: List[S]) -> List[Model]:
         pass
 
     @abstractmethod
-    def model_to_state(self, models: List[Model]) -> List[State]:
+    def model_to_state(self, models: List[Model]) -> List[S]:
         """ Assumes model is a fully specified state
 
         :param models:
@@ -281,14 +286,14 @@ class EnvGrndAtoms(Environment):
         pass
 
     @abstractmethod
-    def goal_to_model(self, goals: List[Goal]) -> List[Model]:
+    def goal_to_model(self, goals: List[G]) -> List[Model]:
         pass
 
     @abstractmethod
-    def model_to_goal(self, models: List[Model]) -> List[Goal]:
+    def model_to_goal(self, models: List[Model]) -> List[G]:
         pass
 
-    def is_solved(self, states: List[State], goals: List[Goal]) -> List[bool]:
+    def is_solved(self, states: List[S], goals: List[G]) -> List[bool]:
         """ Returns whether or not state is solved
 
         @param states: List of states
@@ -304,13 +309,13 @@ class EnvGrndAtoms(Environment):
 
         return is_solved_l
 
-    def sample_goal(self, states: List[State]) -> List[Goal]:
+    def sample_goal(self, states: List[S]) -> List[G]:
         models_g: List[Model] = []
 
         models_s: List[Model] = self.state_to_model(states)
-        keep_probs: np.array = np.random.rand(len(states))
+        keep_probs: NDArray[np.float_] = np.random.rand(len(states))
         for model_s, keep_prob in zip(models_s, keep_probs):
-            rand_subset: Set = misc_utils.random_subset(model_s, keep_prob)
+            rand_subset: Set[Atom] = misc_utils.random_subset(model_s, keep_prob)
             models_g.append(frozenset(rand_subset))
 
         return self.model_to_goal(models_g)
@@ -341,7 +346,7 @@ class EnvGrndAtoms(Environment):
         pass
 
     @abstractmethod
-    def start_state_fixed(self, states: List[State]) -> List[Model]:
+    def start_state_fixed(self, states: List[S]) -> List[Model]:
         """ Given the start state, what must also be true for the goal state (i.e. immovable walls)
 
         :param states:

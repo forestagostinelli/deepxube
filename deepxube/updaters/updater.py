@@ -1,15 +1,17 @@
-from typing import List, Tuple
+from typing import List, Tuple, Any
 import numpy as np
+from numpy.typing import NDArray
 from deepxube.utils import misc_utils
 from deepxube.nnet.nnet_utils import HeurFnQ
 from deepxube.utils.timing_utils import Times
 from deepxube.environments.environment_abstract import Environment, State, Goal
 from deepxube.search.greedy_policy import Greedy
-from torch.multiprocessing import get_context
+from torch.multiprocessing import get_context, Queue
+from multiprocessing.process import BaseProcess
 import time
 
 
-def greedy_update(states: List[State], goals: List[Goal], env: Environment, num_steps: int, heuristic_fn,
+def greedy_update(states: List[State], goals: List[Goal], env: Environment[Any, Any], num_steps: int, heuristic_fn,
                   eps_max: float, times: Times):
     eps: List[float] = list(np.random.rand(len(states)) * eps_max)
 
@@ -23,7 +25,7 @@ def greedy_update(states: List[State], goals: List[Goal], env: Environment, num_
     trajs_flat: List[Tuple[State, float]]
     trajs_flat, _ = misc_utils.flatten(trajs)
 
-    states_update: List = []
+    states_update: List[State] = []
     cost_to_go_update_l: List[float] = []
     for traj in trajs_flat:
         states_update.append(traj[0])
@@ -35,13 +37,13 @@ def greedy_update(states: List[State], goals: List[Goal], env: Environment, num_
 
     cost_to_go_update = np.array(cost_to_go_update_l)
 
-    is_solved: np.ndarray = np.array([instance.is_solved for instance in greedy.instances])
+    is_solved: NDArray[np.bool_] = np.array([instance.is_solved for instance in greedy.instances])
 
     return states_update, goals_update, cost_to_go_update, is_solved
 
 
 def update_runner(num_states: int, step_max: int, step_probs: List[float], update_batch_size: int, heur_fn_q: HeurFnQ,
-                  env: Environment, result_queue, solve_steps: int, update_method: str, eps_max: float):
+                  env: Environment[Any, Any], result_queue, solve_steps: int, update_method: str, eps_max: float):
     heuristic_fn = heur_fn_q.get_heuristic_fn(env)
     states_per_inst: float = solve_steps
     num_states_curr: int = 0
@@ -54,7 +56,7 @@ def update_runner(num_states: int, step_max: int, step_probs: List[float], updat
             num_inst_i = int(np.ceil((num_states - num_states_curr) / states_per_inst))
         else:
             num_inst_i = update_batch_size
-        num_steps_l: np.array = np.random.choice(step_max + 1, size=num_inst_i, p=step_probs)
+        num_steps_l: NDArray[np.int_] = np.random.choice(step_max + 1, size=num_inst_i, p=step_probs)
 
         times_states: Times = Times()
         states, states_goal_set = env.get_start_goal_pairs(list(num_steps_l), times=times_states)
@@ -70,7 +72,7 @@ def update_runner(num_states: int, step_max: int, step_probs: List[float], updat
             raise ValueError("Unknown update method %s" % update_method)
 
         states_per_inst_l.append(len(states_update) / len(states))
-        states_per_inst = np.mean(states_per_inst_l)
+        states_per_inst = float(np.mean(states_per_inst_l))
 
         leftover: int = (len(states_update) + num_states_curr) - num_states
         if leftover > 0:
@@ -97,7 +99,7 @@ def update_runner(num_states: int, step_max: int, step_probs: List[float], updat
 
 
 class Updater:
-    def __init__(self, env: Environment, num_states: int, back_max: int, step_probs: List[float],
+    def __init__(self, env: Environment[Any, Any], num_states: int, back_max: int, step_probs: List[float],
                  heur_fn_qs: List[HeurFnQ], solve_steps: int, update_method: str, update_batch_size: int = 1000,
                  eps_max: float = 0.0):
         super().__init__()
@@ -105,14 +107,14 @@ class Updater:
         num_procs = len(heur_fn_qs)
 
         # initialize queues
-        self.result_queue: ctx.Queue = ctx.Queue()
+        self.result_queue: Queue[Any] = ctx.Queue()
 
         # num states per process
         self.num_states: int = num_states
         num_states_per_proc: List[int] = misc_utils.split_evenly(num_states, num_procs)
 
         # initialize processes
-        self.procs: List[ctx.Process] = []
+        self.procs: List[BaseProcess] = []
         for proc_id, heur_fn_q in enumerate(heur_fn_qs):
             num_states_proc: int = num_states_per_proc[proc_id]
             if num_states_proc == 0:
@@ -128,26 +130,26 @@ class Updater:
             self.procs.append(proc)
 
     def update(self):
-        states_update_nnet: List[np.ndarray]
-        states_update_goal_nnet: List[np.ndarray]
-        cost_to_go_update: np.ndarray
-        is_solved: np.ndarray
+        states_update_nnet: List[NDArray[Any]]
+        states_update_goal_nnet: List[NDArray[Any]]
+        cost_to_go_update: NDArray[np.float_]
+        is_solved: NDArray[np.bool_]
         states_update_nnet, states_update_goal_nnet, cost_to_go_update, is_solved = self._update()
 
         output_update = np.expand_dims(cost_to_go_update, 1)
 
         return states_update_nnet, states_update_goal_nnet, output_update, is_solved
 
-    def _update(self) -> Tuple[List[np.ndarray], List[np.ndarray], np.ndarray, np.ndarray]:
+    def _update(self) -> Tuple[List[NDArray[Any]], List[NDArray[Any]], NDArray[np.float_], NDArray[np.bool_]]:
         # process results
-        states_update_nnet_l: List[List[np.ndarray]] = []
-        states_update_goal_nnet_l: List[List[np.ndarray]] = []
-        cost_to_go_update_l: List = []
-        is_solved_l: List = []
+        states_update_nnet_l: List[List[NDArray[Any]]] = []
+        states_update_goal_nnet_l: List[List[NDArray[Any]]] = []
+        cost_to_go_update_l: List[NDArray[np.float_]] = []
+        is_solved_l: List[NDArray[np.bool_]] = []
 
         none_count: int = 0
         result_count: int = 0
-        display_counts: np.array = np.linspace(1, self.num_states, 10, dtype=int)
+        display_counts: NDArray[np.int_] = np.linspace(1, self.num_states, 10, dtype=int)
 
         start_time = time.time()
         times: Times = Times()
@@ -163,8 +165,8 @@ class Updater:
                 continue
             result_count += 1
 
-            states_nnet_q: List[np.ndarray]
-            states_goal_nnet_q: List[np.ndarray]
+            states_nnet_q: List[NDArray[Any]]
+            states_goal_nnet_q: List[NDArray[Any]]
             states_nnet_q, states_goal_nnet_q, cost_to_go_q, is_solved_q, times_q = result
 
             states_update_nnet_l.append(states_nnet_q)
@@ -182,18 +184,18 @@ class Updater:
                 print(times.get_time_str())
                 display_counts = display_counts[num_states_curr < display_counts]
 
-        states_update_nnet: List[np.ndarray] = []
+        states_update_nnet: List[NDArray[Any]] = []
         for np_idx in range(len(states_update_nnet_l[0])):
-            states_nnet_idx: np.ndarray = np.concatenate([x[np_idx] for x in states_update_nnet_l], axis=0)
+            states_nnet_idx: NDArray[Any] = np.concatenate([x[np_idx] for x in states_update_nnet_l], axis=0)
             states_update_nnet.append(states_nnet_idx)
 
-        states_update_goal_nnet: List[np.ndarray] = []
+        states_update_goal_nnet: List[NDArray[Any]] = []
         for np_idx in range(len(states_update_goal_nnet_l[0])):
-            states_goal_nnet_idx: np.ndarray = np.concatenate([x[np_idx] for x in states_update_goal_nnet_l], axis=0)
+            states_goal_nnet_idx: NDArray[Any] = np.concatenate([x[np_idx] for x in states_update_goal_nnet_l], axis=0)
             states_update_goal_nnet.append(states_goal_nnet_idx)
 
-        cost_to_go_update: np.ndarray = np.concatenate(cost_to_go_update_l, axis=0)
-        is_solved: np.ndarray = np.concatenate(is_solved_l, axis=0)
+        cost_to_go_update: NDArray[np.float_] = np.concatenate(cost_to_go_update_l, axis=0)
+        is_solved: NDArray[np.bool_] = np.concatenate(is_solved_l, axis=0)
 
         for proc in self.procs:
             proc.join()

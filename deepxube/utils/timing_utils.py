@@ -2,29 +2,29 @@ from typing import List, Dict, Optional
 from collections import OrderedDict
 
 
-def add_times(times: OrderedDict, times_to_add: OrderedDict):
+def add_times(times: OrderedDict[str, float], times_to_add: OrderedDict[str, float]):
     for key, value in times_to_add.items():
         if key not in times:
             times[key] = 0.0
         times[key] += value
 
 
-def add_counts(counts: OrderedDict, counts_to_add: OrderedDict):
+def add_counts(counts: OrderedDict[str, int], counts_to_add: OrderedDict[str, int]):
     for key, value in counts_to_add.items():
         if key not in counts:
             counts[key] = 0
         counts[key] += value
 
 
-def init_times(time_names: List[str]) -> OrderedDict:
-    times: OrderedDict = OrderedDict()
+def init_times(time_names: List[str]) -> OrderedDict[str, float]:
+    times: OrderedDict[str, float] = OrderedDict()
     for time_name in time_names:
         times[time_name] = 0.0
     return times
 
 
-def init_counts(time_names: List[str]) -> OrderedDict:
-    counts: OrderedDict = OrderedDict()
+def init_counts(time_names: List[str]) -> OrderedDict[str, int]:
+    counts: OrderedDict[str, int] = OrderedDict()
     for time_name in time_names:
         counts[time_name] = 0
     return counts
@@ -36,8 +36,8 @@ class Times:
         if time_names is None:
             time_names = []
 
-        self.times: OrderedDict = init_times(time_names)
-        self.counts: OrderedDict = init_counts(time_names)
+        self.times: OrderedDict[str, float] = init_times(time_names)
+        self.counts: OrderedDict[str, int] = init_counts(time_names)
 
         self.sub_times: Dict[str, Times] = dict()
         self.sub_counts: Dict[str, int] = dict()

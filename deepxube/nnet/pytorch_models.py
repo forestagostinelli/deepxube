@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -21,15 +21,17 @@ class SPLASH(nn.Module):
 
         self.output_bias: Parameter = Parameter(torch.zeros(1), requires_grad=True)
 
+        self.coeffs_right: Parameter
+        self.coeffs_left: Parameter
         if init == "RELU":
-            self.coeffs_right: Parameter = Parameter(torch.cat((torch.ones(1), torch.zeros(self.num_each_side - 1))),
-                                                     requires_grad=True)
-            self.coeffs_left: Parameter = Parameter(torch.zeros(self.num_each_side), requires_grad=True)
+            self.coeffs_right = Parameter(torch.cat((torch.ones(1), torch.zeros(self.num_each_side - 1))),
+                                          requires_grad=True)
+            self.coeffs_left = Parameter(torch.zeros(self.num_each_side), requires_grad=True)
         elif init == "LINEAR":
-            self.coeffs_right: Parameter = Parameter(torch.cat((torch.ones(1), torch.zeros(self.num_each_side - 1))),
-                                                     requires_grad=True)
-            self.coeffs_left: Parameter = Parameter(torch.cat((-torch.ones(1), torch.zeros(self.num_each_side - 1))),
-                                                    requires_grad=True)
+            self.coeffs_right = Parameter(torch.cat((torch.ones(1), torch.zeros(self.num_each_side - 1))),
+                                          requires_grad=True)
+            self.coeffs_left = Parameter(torch.cat((-torch.ones(1), torch.zeros(self.num_each_side - 1))),
+                                         requires_grad=True)
         else:
             raise ValueError("Unknown init %s" % init)
 
@@ -62,21 +64,19 @@ class LinearAct(nn.Module):
 def get_act_fn(act: str):
     act = act.upper()
     if act == "RELU":
-        act_fn = nn.ReLU()
+        return nn.ReLU()
     elif act == "ELU":
-        act_fn = nn.ELU()
+        return nn.ELU()
     elif act == "SIGMOID":
-        act_fn = nn.Sigmoid()
+        return nn.Sigmoid()
     elif act == "TANH":
-        act_fn = nn.Tanh()
+        return nn.Tanh()
     elif act == "SPLASH":
-        act_fn = SPLASH()
+        return SPLASH()
     elif act == "LINEAR":
-        act_fn = LinearAct()
+        return LinearAct()
     else:
         raise ValueError("Un-defined activation type %s" % act)
-
-    return act_fn
 
 
 class ResnetModel(nn.Module):
@@ -122,7 +122,7 @@ class FullyConnectedModel(nn.Module):
         super().__init__()
         if weight_norms is None:
             weight_norms = [False] * len(layer_dims)
-        self.layers: nn.ModuleList[nn.ModuleList] = nn.ModuleList()
+        self.layers: nn.ModuleList = nn.ModuleList()
 
         # layers
         for layer_dim, batch_norm, act, weight_norm in zip(layer_dims, layer_batch_norms, layer_acts, weight_norms):
@@ -164,7 +164,7 @@ class Conv2dModel(nn.Module):
                  transpose: bool = False, weight_norms: Optional[List[bool]] = None,
                  dropouts: Optional[List[float]] = None):
         super().__init__()
-        self.layers: nn.ModuleList[nn.ModuleList] = nn.ModuleList()
+        self.layers: nn.ModuleList = nn.ModuleList()
         if strides is None:
             strides = [1] * len(channel_sizes)
 
@@ -182,6 +182,7 @@ class Conv2dModel(nn.Module):
             module_list = nn.ModuleList()
 
             # linear
+            conv_layer: Union[nn.Conv2d, nn.ConvTranspose2d]
             if transpose:
                 conv_layer = nn.ConvTranspose2d(chan_in, chan_out, kernel_size, padding=padding, stride=stride)
             else:

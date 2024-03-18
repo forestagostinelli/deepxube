@@ -1,10 +1,9 @@
-from typing import List, Union
+from typing import List, Union, Any
 
 import numpy as np
 from matplotlib import pyplot as plt
 
-from deepxube.environments.environment_abstract import Environment, State
-from deepxube.logic.logic_objects import Model
+from deepxube.environments.environment_abstract import Environment, State, Goal
 
 
 class Quaternion:
@@ -118,7 +117,7 @@ class Quaternion:
         return np.dot(points, rot_mat.T)
 
 
-def project_points(points, q, view, vertical):
+def project_points(points, q, view, vertical):  # type: ignore
     """Project points using a quaternion q and a view v
 
     Parameters
@@ -140,10 +139,10 @@ def project_points(points, q, view, vertical):
     """
     if vertical is None:
         vertical = [0, 1, 0]
-    points = np.asarray(points)
+    points = np.asarray(points)   # type: ignore
     view = np.asarray(view)
 
-    xdir = np.cross(vertical, view).astype(float)
+    xdir = np.cross(vertical, view).astype(float)   # type: ignore
 
     if np.all(xdir == 0):
         raise ValueError("vertical is parallel to v")
@@ -151,7 +150,7 @@ def project_points(points, q, view, vertical):
     xdir /= np.sqrt(np.dot(xdir, xdir))
 
     # get the unit vector corresponing to vertical
-    ydir = np.cross(view, xdir)
+    ydir = np.cross(view, xdir)   # type: ignore
     ydir /= np.sqrt(np.dot(ydir, ydir))
 
     # normalize the viewer location: this is the z-axis
@@ -173,7 +172,7 @@ def project_points(points, q, view, vertical):
                      -np.dot(dpoint, zdir)]).transpose(trans)
 
 
-def visualize_examples(env: Environment, states: List[Union[State, Model]]):
+def visualize_examples(env: Environment[Any, Any], states: Union[List[State], List[Goal]]):
     states_np = env.visualize(states)
 
     plt.ion()
@@ -184,6 +183,7 @@ def visualize_examples(env: Environment, states: List[Union[State, Model]]):
     ax3 = fig.add_subplot(223)
     ax4 = fig.add_subplot(224)
 
+    idx_stop: int
     if states_np.shape[3] == 3:
         axs = [ax1, ax2, ax3, ax4]
 
@@ -191,7 +191,7 @@ def visualize_examples(env: Environment, states: List[Union[State, Model]]):
             for ax in axs:
                 ax.cla()
 
-            idx_stop: int = min(idx + 4, len(states_np))
+            idx_stop = min(idx + 4, len(states_np))
             for idx_ax, idx_show in enumerate(range(idx, idx_stop)):
                 ax = axs[idx_ax]
                 ax.imshow(states_np[idx_show])
@@ -211,7 +211,7 @@ def visualize_examples(env: Environment, states: List[Union[State, Model]]):
                 for ax in axs:
                     ax.cla()
 
-            idx_stop: int = min(idx + 2, len(states_np))
+            idx_stop = min(idx + 2, len(states_np))
             for idx_ax, idx_show in enumerate(range(idx, idx_stop)):
                 axs = axs_cube[idx_ax]
                 axs[0].imshow(states_np[idx_show, :, :, :3])

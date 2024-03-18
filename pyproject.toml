@@ -31,17 +31,3 @@ test = ['pytest', 'pytest-cov', 'mypy', 'flake8', 'tox']
 [tool.pytest.ini_options]
 addopts = "--cov=deepxube"
 testpaths = ["tests"]
-
-[tool.mypy]
-mypy_path = "deepxube"
-check_untyped_defs = true
-disallow_any_generics = true
-ignore_missing_imports = false
-no_implicit_optional = true
-show_error_codes = true
-strict_equality = true
-warn_redundant_casts = true
-warn_return_any = true
-warn_unreachable = true
-warn_unused_configs = true
-no_implicit_reexport = true

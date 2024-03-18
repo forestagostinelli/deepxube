@@ -20,7 +20,7 @@ class Literal:
         for arg, direction in zip(self.arguments, self.directions):
             self.in_out.add((arg, direction))
 
-    def to_code(self):
+    def to_code(self) -> str:
         prefix: str = ""
         if not self.positive:
             prefix = "not "
@@ -296,20 +296,20 @@ def theta_sub_lits(lits1: List[Literal], lits2_dict: Dict[str, List[Literal]], n
         else:
             idxs_not_subbed.append(i)
 
-    lits2: List[Literal] = [x for x in lits2 if not prune_lit(lit1, x, idxs_vars_req)]
+    lits2 = [x for x in lits2 if not prune_lit(lit1, x, idxs_vars_req)]
     if len(lits2) == 0:
         if negate:
             return theta_sub_lits(lits1[1:], lits2_dict, negate_l[1:], subs_prev, subs_forbid)
         else:
             return None
 
+    subs_rec: Optional[Dict[str, str]]
     if len(idxs_not_subbed) == 0:
         # succeeded somewhere and no substitutions needed
         if negate:
             return None
         else:
-            subs_rec: Optional[Dict[str, str]] = theta_sub_lits(lits1[1:], lits2_dict, negate_l[1:], subs_prev,
-                                                                subs_forbid)
+            subs_rec = theta_sub_lits(lits1[1:], lits2_dict, negate_l[1:], subs_prev, subs_forbid)
             if subs_rec is not None:
                 return subs_rec
     else:
@@ -320,8 +320,7 @@ def theta_sub_lits(lits1: List[Literal], lits2_dict: Dict[str, List[Literal]], n
                 if negate:
                     return None
                 else:
-                    subs_rec: Optional[Dict[str, str]] = theta_sub_lits(lits1[1:], lits2_dict, negate_l[1:], subs,
-                                                                        subs_forbid)
+                    subs_rec = theta_sub_lits(lits1[1:], lits2_dict, negate_l[1:], subs, subs_forbid)
                     if subs_rec is not None:
                         return subs_rec
 
@@ -346,10 +345,11 @@ def theta_sub_args(args1: Tuple[str, ...], args2: Tuple[str, ...], idxs_not_subb
         else:
             # check if neq constraint not violated
             args_other: Optional[List[str]] = subs_forbid.get(arg1, [])
-            for arg_other in args_other:
-                arg_other_sub: Optional[str] = subs.get(arg_other)
-                if (arg_other_sub is not None) and (arg_other_sub == arg2):
-                    return None
+            if args_other is not None:
+                for arg_other in args_other:
+                    arg_other_sub: Optional[str] = subs.get(arg_other)
+                    if (arg_other_sub is not None) and (arg_other_sub == arg2):
+                        return None
 
             is_var: bool = arg1[0].isupper() and arg1[0].isalpha()
             if is_var:
