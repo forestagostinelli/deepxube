@@ -152,8 +152,8 @@ def greedy_test(states: List[State], goals: List[Goal], inst_gen_steps: List[int
         max_solve_steps = max(max(inst_gen_steps), 1)
 
     ctx = get_context("spawn")
-    data_q: Queue[Tuple[List[State], List[Goal], List[int]]] = ctx.Queue()
-    results_q: Queue[Any] = ctx.Queue()
+    data_q: Queue = ctx.Queue()
+    results_q: Queue = ctx.Queue()
     procs: List[BaseProcess] = []
     num_states_per_proc: List[int] = misc_utils.split_evenly(len(states), len(heur_fn_qs))
     start_idx: int = 0

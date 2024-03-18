@@ -150,7 +150,7 @@ def load_heuristic_fn(model_file: str, device: torch.device, on_gpu: bool, nnet:
 
 
 # parallel training
-def heuristic_fn_runner(heuristic_fn_input_queue: Queue[Any], heuristic_fn_output_queues: List[Queue[Any]],
+def heuristic_fn_runner(heuristic_fn_input_queue: Queue, heuristic_fn_output_queues: List[Queue],
                         model_file: str, device, on_gpu: bool, gpu_num: int, nnet: HeurFnNNet,
                         env: Environment[Any, Any], all_zeros: bool, clip_zero: bool, batch_size: Optional[int]):
     heuristic_fn: Optional[HeurFN_T] = None
@@ -200,11 +200,11 @@ def start_heur_fn_runners(num_procs: int, model_file: str, device, on_gpu: bool,
                           batch_size: Optional[int] = None) -> Tuple[List[HeurFnQ], List[BaseProcess]]:
     ctx = get_context("spawn")
 
-    heur_fn_i_q: Queue[Any] = ctx.Queue()
-    heur_fn_o_qs: List[Queue[Any]] = []
+    heur_fn_i_q: Queue = ctx.Queue()
+    heur_fn_o_qs: List[Queue] = []
     heur_fn_qs: List[HeurFnQ] = []
     for proc_id in range(num_procs):
-        heur_fn_o_q: Queue[Any] = ctx.Queue(1)
+        heur_fn_o_q: Queue = ctx.Queue(1)
         heur_fn_o_qs.append(heur_fn_o_q)
         heur_fn_qs.append(HeurFnQ(heur_fn_i_q, heur_fn_o_q, proc_id))
 

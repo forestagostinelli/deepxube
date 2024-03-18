@@ -24,7 +24,7 @@ class Logger(object):
         pass
 
 
-def get_nowait_noerr(q: Queue[Any]) -> Any:
+def get_nowait_noerr(q: Queue) -> Any:
     try:
         q_ret: Any = q.get_nowait()
         return q_ret
@@ -32,7 +32,7 @@ def get_nowait_noerr(q: Queue[Any]) -> Any:
         return None
 
 
-def get_while_not_empty(q: Queue[Any]) -> List[Any]:
+def get_while_not_empty(q: Queue) -> List[Any]:
     q_rets: List[Any] = []
 
     while not q.empty():
@@ -45,7 +45,7 @@ def get_while_not_empty(q: Queue[Any]) -> List[Any]:
     return q_rets
 
 
-def get_in_order(q: Queue[Any], num: int) -> List[Any]:
+def get_in_order(q: Queue, num: int) -> List[Any]:
     ret_vals: List[Any] = [None for _ in range(num)]
     for _ in range(num):
         idx, val = q.get()

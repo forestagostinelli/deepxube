@@ -107,7 +107,7 @@ class Updater:
         num_procs = len(heur_fn_qs)
 
         # initialize queues
-        self.result_queue: Queue[Any] = ctx.Queue()
+        self.result_queue: Queue = ctx.Queue()
 
         # num states per process
         self.num_states: int = num_states

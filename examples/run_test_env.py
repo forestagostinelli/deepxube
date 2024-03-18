@@ -1,3 +1,4 @@
+from typing import Any
 from deepxube.tests.test_env import test_env
 from deepxube.environments.environment_abstract import Environment
 from deepxube.environments.env_utils import get_environment
@@ -11,7 +12,7 @@ def main():
     parser.add_argument('--step_max', type=int, required=True, help="")
     args = parser.parse_args()
 
-    env: Environment = get_environment(args.env)
+    env: Environment[Any, Any] = get_environment(args.env)
     test_env(env, args.num_states, args.step_max)
 
 

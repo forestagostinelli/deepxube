@@ -1,6 +1,7 @@
 from typing import Optional, List, Tuple, Any
 from deepxube.search.astar import AStar, Node, get_path
-from deepxube.environments.environment_abstract import EnvGrndAtoms, State, HeurFnNNet, Goal
+from deepxube.environments.environment_abstract import EnvGrndAtoms, State, Goal
+from deepxube.nnet.nnet_utils import HeurFN_T
 from deepxube.logic.logic_objects import Literal, Clause, Model
 from deepxube.logic.logic_utils import atom_to_str
 from deepxube.logic.asp import ASPSpec
@@ -22,7 +23,7 @@ def get_bk(env: EnvGrndAtoms[Any, Any], bk_add_file_name: Optional[str]) -> List
 
 
 def search_for_goal(env: EnvGrndAtoms[Any, Any], state_start: State, models: List[Model], batch_size: int,
-                    weight: float, max_search_itrs: int, heur_fn: HeurFnNNet, search_verbose: bool,
+                    weight: float, max_search_itrs: int, heur_fn: HeurFN_T, search_verbose: bool,
                     viz_model: bool) -> List[Optional[Node]]:
     goals: List[Goal] = env.model_to_goal(models)
 
@@ -65,7 +66,7 @@ def get_next_model(asp: ASPSpec, spec_clauses: List[Clause], env: EnvGrndAtoms[A
     return models
 
 
-def path_to_spec_goal(env: EnvGrndAtoms[Any, Any], state_start: State, spec_clauses: List[Clause], heur_fn: HeurFnNNet,
+def path_to_spec_goal(env: EnvGrndAtoms[Any, Any], state_start: State, spec_clauses: List[Clause], heur_fn: HeurFN_T,
                       model_batch_size: int, search_batch_size: int, weight: float, max_search_itrs: int,
                       bk_add: Optional[str] = None, models_banned: Optional[List[Model]] = None,
                       times: Optional[Times] = None, spec_verbose: bool = False, search_verbose: bool = False,

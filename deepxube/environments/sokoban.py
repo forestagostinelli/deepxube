@@ -643,9 +643,7 @@ class Sokoban(EnvGrndAtoms[SokobanState, SokobanGoal]):
 
                     room_rgb[x_i:(x_i + 16), y_j:(y_j + 16), :] = self._surfaces[surfaces_id]
 
-            room_rgb = (room_rgb / 255).astype(np.uint8)
-
-            states_img[state_idx] = cv2.resize(room_rgb, (self.img_dim, self.img_dim))
+            states_img[state_idx] = cv2.resize(room_rgb / 255, (self.img_dim, self.img_dim))
 
         return states_img
 

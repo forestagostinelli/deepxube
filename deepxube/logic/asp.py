@@ -42,7 +42,7 @@ class ASPSpec:
             grnd_atom_counts.append(f"grnd_atom_count_num({grnd_atom_idx})")
             grnd_atom_counts.append(f"grnd_atom_present({grnd_atom_idx}) :- {grnd_atom_str}")
 
-        count_model_grnd_atoms_str: str = "count_model_grnd_atoms(N) :- N = #count{{ V: grnd_atom_present(V) }}"
+        count_model_grnd_atoms_str: str = "count_model_grnd_atoms(N) :- N = #count{ V: grnd_atom_present(V) }"
         count_model_grnd_atoms_gt_str: str = ("count_model_grnd_atoms_gt(N) :- grnd_atom_count_num(N), "
                                               "count_model_grnd_atoms(M), M > N")
 
