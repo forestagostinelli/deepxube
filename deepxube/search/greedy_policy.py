@@ -50,7 +50,7 @@ class Greedy:
             self.instances.append(instance)
 
     def step(self, heuristic_fn: HeurFN_T, times: Optional[Times] = None,
-             rand_seen: bool = False) -> Tuple[List[State], List[Goal], NDArray[float]]:
+             rand_seen: bool = False) -> Tuple[List[State], List[Goal], NDArray[np.float_]]:
         if times is None:
             times = Times()
 

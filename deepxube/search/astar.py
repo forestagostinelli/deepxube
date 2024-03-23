@@ -92,7 +92,7 @@ def expand_nodes(instances: List[Instance], popped_nodes_all: List[List[Node]], 
     states: List[State] = [x.state for x in popped_nodes_flat]
 
     states_c_by_node: List[List[State]]
-    tcs_np: List[NDArray[np.float_]]
+    tcs_np: List[List[float]]
     states_c_by_node, tcs_np = env.expand(states)
 
     tcs_by_node: List[List[float]] = [list(x) for x in tcs_np]

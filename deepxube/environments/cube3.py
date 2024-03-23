@@ -77,17 +77,15 @@ class Cube3NNet(HeurFnNNet):
 
 
 class Cube3State(State):
-    __slots__ = ['colors', 'computed_hash', 'hash']
+    __slots__ = ['colors', 'hash']
 
     def __init__(self, colors: NDArray[np.uint8]):
         self.colors: NDArray[np.uint8] = colors
-        self.computed_hash: bool = False
         self.hash: Optional[int] = None
 
     def __hash__(self):
-        if not self.computed_hash:
+        if self.hash is None:
             self.hash = hash(self.colors.tobytes())
-            self.computed_hash = True
         return self.hash
 
     def __eq__(self, other: object) -> bool:

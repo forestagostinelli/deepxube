@@ -20,17 +20,15 @@ int_t = Union[np.uint8, np.int_]
 
 
 class NPuzzleState(State):
-    __slots__ = ['tiles', 'computed_hash', 'hash']
+    __slots__ = ['tiles', 'hash']
 
     def __init__(self, tiles: NDArray[int_t]):
         self.tiles: NDArray[int_t] = tiles
-        self.computed_hash: bool = False
         self.hash: Optional[int] = None
 
     def __hash__(self):
-        if not self.computed_hash:
+        if self.hash is None:
             self.hash = hash(self.tiles.tobytes())
-            self.computed_hash = True
         return self.hash
 
     def __eq__(self, other: object):
@@ -413,7 +411,12 @@ class NPuzzle(EnvGrndAtoms[NPuzzleState, NPuzzleGoal]):
                                                edgecolor='k', facecolor=color))
 
                 if square != 0:
-                    ax.text(0.5 * (left + right), 0.5 * (bottom + top), str(square), horizontalalignment='center',
+                    sqr_txt: str
+                    if square == (self.dim ** 2):
+                        sqr_txt = "-"
+                    else:
+                        sqr_txt = str(square)
+                    ax.text(0.5 * (left + right), 0.5 * (bottom + top), sqr_txt, horizontalalignment='center',
                             verticalalignment='center', fontsize=6, color='black', transform=ax.transAxes)
 
             canvas.draw()
@@ -427,7 +430,7 @@ class NPuzzle(EnvGrndAtoms[NPuzzleState, NPuzzleGoal]):
         for tile_num in range(self.num_tiles):
             for idx_x in range(self.dim):
                 for idx_y in range(self.dim):
-                    ground_atoms.append(("at_idx", f"{tile_num}", f"{idx_x}", f"{idx_y}"))
+                    ground_atoms.append(("at_idx", f"t{tile_num}", f"r{idx_x}", f"c{idx_y}"))
 
         return ground_atoms
 
@@ -438,7 +441,7 @@ class NPuzzle(EnvGrndAtoms[NPuzzleState, NPuzzleGoal]):
         # get atoms
         atoms: List[Atom] = []
         for symb in symbs:
-            match = re.search(r"at_idx\((\S+),(\S+),(\S+)\)", symb)
+            match = re.search(r"^at_idx\((\S+),(\S+),(\S+)\)$", symb)
             if match is None:
                 continue
             atom: Atom = ("at_idx", match.group(1), match.group(2), match.group(3))
@@ -448,7 +451,36 @@ class NPuzzle(EnvGrndAtoms[NPuzzleState, NPuzzleGoal]):
         return model
 
     def get_bk(self) -> List[str]:
-        raise NotImplementedError
+        bk: List[str] = ["%tiles and blanks"]
+
+        for tile_num in range(1, self.num_tiles):
+            bk.append(f"tile(t{tile_num})")
+        bk.append("blank(t0)")
+        bk.append("t_or_b(X) :- tile(X)")
+        bk.append("t_or_b(X) :- blank(X)")
+
+        bk.append("")
+        bk.append("%rows and columns")
+        for idx in range(self.dim):
+            bk.append(f"row(r{idx})")
+        for idx in range(self.dim):
+            bk.append(f"col(c{idx})")
+        bk.append("at_row(X, R) :- t_or_b(X), row(R), at_idx(X, R, _)")
+        bk.append("at_col(X, C) :- t_or_b(X), col(C), at_idx(X, _, C)")
+
+        bk.append("")
+        bk.append("% classical negation")
+        bk.append("-at_idx(X, R, C) :- t_or_b(X), t_or_b(X2), at_idx(X2, R, C), not X=X2")
+
+        bk.append("")
+        bk.append("% constraints")
+        bk.append("% location cannot have multiple tiles")
+        bk.append(":- row(R), col(C), #count{X: at_idx(X, R, C)} > 1")
+
+        bk.append("% tile or blank cannot be in more than one place at a time")
+        bk.append(":- t_or_b(X), #count{R, C: at_idx(X, R, C)} > 1")
+
+        return bk
 
     def _is_solvable(self, states_np: NDArray[int_t]) -> NDArray[np.bool_]:
         num_inversions: NDArray[np.int_] = self._get_num_inversions(states_np)
@@ -481,7 +513,7 @@ class NPuzzle(EnvGrndAtoms[NPuzzleState, NPuzzleGoal]):
             for idx_y in range(tiles_sqr.shape[1]):
                 val = tiles_sqr[idx_x, idx_y]
                 if val != self.num_tiles:
-                    grnd_atoms.append(('at_idx', f"{tiles_sqr[idx_x, idx_y]}", str(idx_x), str(idx_y)))
+                    grnd_atoms.append(('at_idx', f"t{tiles_sqr[idx_x, idx_y]}", f"r{str(idx_x)}", f"c{str(idx_y)}"))
 
         return frozenset(grnd_atoms)
 
@@ -489,7 +521,7 @@ class NPuzzle(EnvGrndAtoms[NPuzzleState, NPuzzleGoal]):
         models_np: NDArray[int_t] = (np.ones((len(models), self.dim, self.dim)) * self.num_tiles).astype(self.dtype)
         for idx, model in enumerate(models):
             for grnd_atom in model:
-                models_np[idx, int(grnd_atom[2]), int(grnd_atom[3])] = int(grnd_atom[1])
+                models_np[idx, int(grnd_atom[2][1:]), int(grnd_atom[3][1:])] = int(grnd_atom[1][1:])
 
         return models_np.reshape((len(models), -1))
 

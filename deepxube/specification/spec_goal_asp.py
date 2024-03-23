@@ -2,9 +2,9 @@ from typing import Optional, List, Tuple, Any
 from deepxube.search.astar import AStar, Node, get_path
 from deepxube.environments.environment_abstract import EnvGrndAtoms, State, Goal
 from deepxube.nnet.nnet_utils import HeurFN_T
-from deepxube.logic.logic_objects import Literal, Clause, Model
+from deepxube.logic.logic_objects import Literal, Clause, Model, Atom
 from deepxube.logic.logic_utils import atom_to_str
-from deepxube.logic.asp import ASPSpec
+from deepxube.logic.asp import Solver, Spec
 from deepxube.utils import viz_utils, misc_utils
 from deepxube.utils.timing_utils import Times
 import time
@@ -49,7 +49,7 @@ def search_for_goal(env: EnvGrndAtoms[Any, Any], state_start: State, models: Lis
     return [x.goal_node for x in astar.instances]
 
 
-def get_next_model(asp: ASPSpec, spec_clauses: List[Clause], env: EnvGrndAtoms[Any, Any], models_banned: List[Model],
+def get_next_model(asp: Solver, spec_clauses: List[Clause], env: EnvGrndAtoms[Any, Any], models_banned: List[Model],
                    num_models: int, assumed_true: Optional[Model] = None,
                    num_atoms_gt: Optional[int] = None) -> List[Model]:
     if num_atoms_gt is not None:
@@ -60,8 +60,11 @@ def get_next_model(asp: ASPSpec, spec_clauses: List[Clause], env: EnvGrndAtoms[A
             spec_clauses_new.append(clause_new)
         spec_clauses = spec_clauses_new
 
-    models: List[Model] = asp.get_models(spec_clauses, env.on_model, minimal=True, num_models=num_models,
-                                         assumed_true=assumed_true, assumed_false=models_banned)
+    atoms_true: List[Atom] = []
+    if assumed_true is not None:
+        atoms_true = list(assumed_true)
+    spec: Spec = Spec(goal_true=spec_clauses, atoms_true=atoms_true, models_banned=models_banned)
+    models: List[Model] = asp.get_models(spec, env.on_model, num_models, True)
 
     return models
 
@@ -105,13 +108,13 @@ def path_to_spec_goal(env: EnvGrndAtoms[Any, Any], state_start: State, spec_clau
     model_fixed: Model = env.start_state_fixed([state_start])[0]
     bk: List[str] = get_bk(env, bk_add)
     bk += [atom_to_str(x) for x in model_fixed]
-    asp: ASPSpec = ASPSpec(env.get_ground_atoms(), bk)
+    asp: Solver = Solver(env.get_ground_atoms(), bk)
     times.record_time("ASP init", time.time() - start_time)
 
     # Sample initial models
     start_time = time.time()
-    models: List[Model] = asp.get_models(spec_clauses, env.on_model, minimal=True, num_models=model_batch_size,
-                                         assumed_true=model_fixed, assumed_false=models_banned)
+    spec: Spec = Spec(goal_true=spec_clauses, atoms_true=list(model_fixed), models_banned=models_banned)
+    models: List[Model] = asp.get_models(spec, env.on_model, model_batch_size, True)
     times.record_time("Model samp", time.time() - start_time)
 
     num_models_init: int = len(models)
@@ -140,7 +143,7 @@ def path_to_spec_goal(env: EnvGrndAtoms[Any, Any], state_start: State, spec_clau
         models_terminal: List[Model] = env.state_to_model([goal_node.state for goal_node in goal_nodes_found])
         for goal_node, model_terminal in zip(goal_nodes_found, models_terminal):
             start_time = time.time()
-            is_model = asp.check_model(spec_clauses, model_terminal)
+            is_model = asp.check_model(Spec(goal_true=spec_clauses), model_terminal)
             times.record_time("Check", time.time() - start_time)
             if is_model:
                 if spec_verbose:
@@ -154,8 +157,9 @@ def path_to_spec_goal(env: EnvGrndAtoms[Any, Any], state_start: State, spec_clau
         samp_per_model: List[int] = misc_utils.split_evenly(model_batch_size, len(models))
         models_superset: List[Model] = []
         for num_samp_i, model in zip(samp_per_model, models):
-            models_superset += asp.get_models(spec_clauses, env.on_model, minimal=True, num_models=num_samp_i,
-                                              assumed_true=model, assumed_false=models_banned, num_atoms_gt=len(model))
+            spec_sup: Spec = Spec(goal_true=spec_clauses, atoms_true=list(model), models_banned=models_banned,
+                                  num_atoms_gt=len(model))
+            models_superset += asp.get_models(spec_sup, env.on_model, num_samp_i, True)
 
         num_models_superset += len(models_superset)
         models = models_superset

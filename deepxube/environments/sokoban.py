@@ -47,25 +47,23 @@ class NNet(HeurFnNNet):
 
 
 class SokobanState(State):
-    __slots__ = ['agent', 'walls', 'boxes', 'computed_hash', 'hash']
+    __slots__ = ['agent', 'walls', 'boxes', 'hash']
 
     def __init__(self, agent: NDArray[np.int_], boxes: NDArray[np.uint8], walls: NDArray[np.uint8]):
         self.agent: NDArray[np.int_] = agent
         self.boxes: NDArray[np.uint8] = boxes
         self.walls: NDArray[np.uint8] = walls
 
-        self.computed_hash: bool = False
         self.hash: Optional[int] = None
 
     def __hash__(self):
-        if not self.computed_hash:
+        if self.hash is None:
             boxes_flat = self.boxes.flatten()
             walls_flat = self.walls.flatten()
             state: NDArray[np.int_] = np.concatenate((self.agent, boxes_flat.astype(int),
                                                       walls_flat.astype(int)), axis=0)
 
             self.hash = hash(state.tobytes())
-            self.computed_hash = True
 
         return self.hash
 

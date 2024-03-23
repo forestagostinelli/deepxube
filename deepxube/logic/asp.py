@@ -28,7 +28,57 @@ def parse_clingo_line(line: str) -> str:
     return line
 
 
-class ASPSpec:
+class Spec:
+    def __init__(self, goal_true: Optional[List[Clause]] = None, goal_false: Optional[List[Clause]] = None,
+                 atoms_true: Optional[List[Atom]] = None, atoms_false: Optional[List[Atom]] = None,
+                 models_banned: Optional[List[Model]] = None, num_atoms_gt: Optional[int] = None):
+        """
+        :param goal_true: Must be true. Clauses must have goal in the head.
+        :param goal_false: Must be false. Clauses must have goal in the head.
+        :param atoms_true: will only return stable models that are a superset (including equality) of given atoms
+        :param atoms_false: will not return stable models that contain given atoms
+        :param models_banned: will not return a stable model that is a superset (including equality) of given models
+        :param num_atoms_gt: Number of atoms in model found must be greater than given number
+        """
+
+        self.goal_true: List[Clause] = []
+        self.goal_false: List[Clause] = []
+        self.atoms_true: List[Atom] = []
+        self.atoms_false: List[Atom] = []
+        self.models_banned: List[Model] = []
+        if goal_true is not None:
+            self.goal_true = goal_true.copy()
+        if goal_false is not None:
+            self.goal_false = goal_false.copy()
+        if atoms_true is not None:
+            self.atoms_true = atoms_true.copy()
+        if atoms_false is not None:
+            self.atoms_false = atoms_false.copy()
+        if models_banned is not None:
+            self.models_banned = models_banned.copy()
+
+        if num_atoms_gt is not None:
+            # add num_atoms_gt to goal
+            lit_count_gt: Literal = Literal("count_model_grnd_atoms_gt", (str(num_atoms_gt),), ("in",))
+            if len(self.goal_true) > 0:
+                goal_true_new = []
+                for clause in self.goal_true:
+                    clause_new = Clause(clause.head, clause.body + (lit_count_gt,))
+                    goal_true_new.append(clause_new)
+                self.goal_true = goal_true_new
+            else:
+                clause_new = Clause(Literal("goal", tuple(), tuple()), (lit_count_gt,))
+                self.goal_true = [clause_new]
+
+    def add(self, spec_add: 'Spec') -> 'Spec':
+        return Spec(goal_true=self.goal_true + spec_add.goal_true,
+                    goal_false=self.goal_false + spec_add.goal_false,
+                    atoms_true=self.atoms_true + spec_add.atoms_true,
+                    atoms_false=self.atoms_false + spec_add.atoms_false,
+                    models_banned=self.models_banned + spec_add.models_banned)
+
+
+class Solver:
     def __init__(self, ground_atoms: List[Atom], bk: List[str]):
         self.bk: List[str] = bk
         self.goals_added: Dict[frozenset[Clause], str] = dict()
@@ -60,39 +110,16 @@ class ASPSpec:
             self.ctl.add('base', [], f"{add_line}\n")
         self.ctl.ground([("base", [])])
 
-    def get_models(self, goal: List[Clause], on_model: Callable[[Any], Model], minimal: bool = True,
-                   num_models: int = 1, assumed_true: Optional[Model] = None,
-                   assumed_false: Optional[List[Model]] = None, num_atoms_gt: Optional[int] = None) -> List[Model]:
+    def get_models(self, spec: Spec, on_model: Callable[[Any], Model], num_models: int, minimal: bool) -> List[Model]:
         """
 
-        :param goal: Must have goal in the head.
+        :param spec: Specification
         :param on_model: Callable that processes models
-        :param minimal: if true, only samples minimal models
         :param num_models: number of models to sample
-        :param assumed_true: will only return stable models that are a superset (including equality) of given model
-        :param assumed_false: will not return a stable model that is a superset (including equality) of given models
-        :param num_atoms_gt: Number of atoms in model found must be greater than given number
+        :param minimal: if true, only samples minimal models
         :return:
         """
-
-        # add constraint if there is min number of atoms
-        if num_atoms_gt is not None:
-            goal_new = []
-            lit_count_gt: Literal = Literal("count_model_grnd_atoms_gt", (str(num_atoms_gt),), ("in",))
-            for clause in goal:
-                clause_new = Clause(clause.head, clause.body + (lit_count_gt,))
-                goal_new.append(clause_new)
-            goal = goal_new
-
-        # get assumptions
-        if assumed_true is None:
-            assumed_true = frozenset()
-        if assumed_false is None:
-            assumed_false = []
-        atoms_true: List[Atom] = [(self._add_goal(goal),)]
-
-        assumptions: List[Tuple[Symbol, bool]] = self._make_assumptions(atoms_true + list(assumed_true), [],
-                                                                        assumed_false)
+        assumptions: List[Tuple[Symbol, bool]] = self._make_assumptions(spec)
 
         # get models
         models: List[Model] = []
@@ -104,97 +131,41 @@ class ASPSpec:
             model_i: Model = random.choice(models_i)
 
             if minimal:
-                model_i = self.sample_minimal_model(goal, model_i, assumed_true=assumed_true,
-                                                    assumed_false=assumed_false)
+                model_i = self.sample_minimal_model(spec, model_i)
 
             models.append(model_i)
-            assumptions_i: List[Tuple[Symbol, bool]] = self._make_assumptions([], [], [model_i])
+            assumptions_i: List[Tuple[Symbol, bool]] = self._make_assumptions(Spec(models_banned=[model_i]))
             assumptions.extend(assumptions_i)
 
         return models
 
-    def check_model(self, goal: List[Clause], model: Model, assumed_true: Optional[Model] = None,
-                    assumed_false: Optional[List[Model]] = None) -> bool:
+    def check_model(self, spec: Spec, model: Model) -> bool:
         """
 
-        :param goal: Logical or over clauses. Must have goal in the head.
+        :param spec: Specification
         :param model: Model to check
-        :param assumed_true: will only return stable models that are a superset (including equality) of given model
-        :param assumed_false: will not return a stable model that is a superset (including equality) of given models
         :return:
         """
-        if assumed_true is None:
-            assumed_true = frozenset()
-        if assumed_false is None:
-            assumed_false = []
-
-        atoms_true: List[Atom] = [(self._add_goal(goal),)]
-
         atoms_false: List[Atom] = [atom for atom in self.ground_atoms if atom not in model]
-        assumptions: List[Tuple[Symbol, bool]] = self._make_assumptions(atoms_true + list(assumed_true) + list(model),
-                                                                        atoms_false, assumed_false)
+        spec_check: Spec = Spec(atoms_true=list(model), atoms_false=atoms_false)
+
+        assumptions: List[Tuple[Symbol, bool]] = self._make_assumptions(spec)
+        assumptions += self._make_assumptions(spec_check)
         models_ret: List[None] = []
+
         self.ctl.solve(assumptions=assumptions, on_model=lambda x: models_ret.append(None))
 
         return len(models_ret) > 0
 
-    def intersects(self, goal1: List[Clause], goal2: List[Clause]) -> bool:
-        """
-
-        :param goal1
-        :param goal2
-        :return:
-        """
-        atoms_true: List[Atom] = [(self._add_goal(goal1),), (self._add_goal(goal2),)]
-        assumptions: List[Tuple[Symbol, bool]] = self._make_assumptions(atoms_true, [], [])
-        models_ret: List[None] = []
-        self.ctl.solve(assumptions=assumptions, on_model=lambda x: models_ret.append(None))
-
-        return len(models_ret) > 0
-
-    def is_equal(self, goal1: List[Clause], goal2: List[Clause]) -> bool:
-        """
-        :param goal1
-        :param goal2
-        :return: True if both are supersets of one another.
-        Otherwise, returns False.
-        """
-
-        if not self.is_superset(goal1, goal2):
-            return False
-
-        if not self.is_superset(goal2, goal1):
-            return False
-
-        return True
-
-    def is_superset(self, goal1: List[Clause], goal2: List[Clause]) -> bool:
-        """
-        :param goal1
-        :param goal2
-        :return: True if the set of stable models of goal1 is a superset of the stable models of goal2.
-        Otherwise, returns False.
-        """
-
-        atom1: Atom = (self._add_goal(goal1),)
-        atom2: Atom = (self._add_goal(goal2),)
-        assumptions: List[Tuple[Symbol, bool]] = self._make_assumptions([atom2], [atom1], [])
-        models_ret: List[None] = []
-        self.ctl.solve(assumptions=assumptions, on_model=lambda x: models_ret.append(None))
-
-        return len(models_ret) == 0
-
-    def sample_minimal_model(self, goal: List[Clause], model: Model, assumed_true: Optional[Model] = None,
-                             assumed_false: Optional[List[Model]] = None) -> Model:
+    def sample_minimal_model(self, spec: Spec, model: Model) -> Model:
         atoms_l = list(model)
         random.shuffle(atoms_l)
         atoms_true: Set[Atom] = set(atoms_l)
         for atom in atoms_l:
             atoms_true.remove(atom)
             model_new: Model = frozenset(atoms_true)
-            if self.check_model(goal, model_new, assumed_true=assumed_true, assumed_false=assumed_false):
-                return self.sample_minimal_model(goal, model_new, assumed_true=assumed_true,
-                                                 assumed_false=assumed_false)
+            if self.check_model(spec, model_new):
+                return self.sample_minimal_model(spec, model_new)
 
             atoms_true.add(atom)
 
@@ -227,20 +198,28 @@ class ASPSpec:
         else:
             return goal_new_head_pred_get
 
-    def _make_assumptions(self, atoms_true: List[Atom], atoms_false: List[Atom],
-                          models_assumed_false: List[Model]) -> List[Tuple[Symbol, bool]]:
+    def _make_assumptions(self, spec: Spec) -> List[Tuple[Symbol, bool]]:
+        atoms_true: List[Atom] = []
+        atoms_false: List[Atom] = []
+        if len(spec.goal_true) > 0:
+            atoms_true.append((self._add_goal(spec.goal_true),))
+        if len(spec.goal_false) > 0:
+            atoms_false.append((self._add_goal(spec.goal_false),))
+
+        atoms_true += spec.atoms_true
+        atoms_false += spec.atoms_false
+        for model_banned in spec.models_banned:
+            blits: List[Literal] = [Literal(atom[0], atom[1:], tuple(["in"] * len(atom[1:]))) for atom in
+                                    model_banned]
+            clause_banned: Clause = Clause(Literal("goal", tuple(), tuple()), tuple(blits))
+            atoms_false.append((self._add_goal([clause_banned]),))
+
         assumed_true: List[str] = []
         assumed_false: List[str] = []
-
         for atom in atoms_true:
             assumed_true.append(atom_to_str(atom))
         for atom in atoms_false:
             assumed_false.append(atom_to_str(atom))
-
-        for model_banned in models_assumed_false:
-            blits: List[Literal] = [Literal(atom[0], atom[1:], tuple(["in"] * len(atom[1:]))) for atom in model_banned]
-            clause_banned: Clause = Clause(Literal("goal", tuple(), tuple()), tuple(blits))
-            assumed_false.append(self._add_goal([clause_banned]))
 
         assumptions: List[Tuple[Symbol, bool]] = []
         for lit in assumed_true:
