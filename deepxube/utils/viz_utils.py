@@ -224,5 +224,5 @@ def visualize_examples(env: Environment[Any, Any], states: Union[List[State], Li
             fig.canvas.draw()
             input("Enter anything: ")
 
-    plt.close()
     plt.ioff()
+    plt.close(fig)

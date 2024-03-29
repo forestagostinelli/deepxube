@@ -423,6 +423,7 @@ class NPuzzle(EnvGrndAtoms[NPuzzleState, NPuzzleGoal]):
             states_img[state_idx] = np.frombuffer(canvas.tostring_rgb(),
                                                   dtype='uint8').reshape((width, height, 3)) / 255
 
+        plt.close(fig)
         return states_img
 
     def get_ground_atoms(self) -> List[Atom]:
@@ -459,6 +460,10 @@ class NPuzzle(EnvGrndAtoms[NPuzzleState, NPuzzleGoal]):
         bk.append("t_or_b(X) :- tile(X)")
         bk.append("t_or_b(X) :- blank(X)")
 
+        for tile_num in range(0, self.num_tiles):
+            bk.append(f"val(t{tile_num}, {tile_num})")
+        bk.append(f"num(0..{sum(range(self.num_tiles + 1))})")
+
         bk.append("")
         bk.append("%rows and columns")
         for idx in range(self.dim):
@@ -467,10 +472,14 @@ class NPuzzle(EnvGrndAtoms[NPuzzleState, NPuzzleGoal]):
             bk.append(f"col(c{idx})")
         bk.append("at_row(X, R) :- t_or_b(X), row(R), at_idx(X, R, _)")
         bk.append("at_col(X, C) :- t_or_b(X), col(C), at_idx(X, _, C)")
+        bk.append(f"num_row({self.dim})")
+        bk.append(f"num_col({self.dim})")
 
         bk.append("")
         bk.append("% classical negation")
         bk.append("-at_idx(X, R, C) :- t_or_b(X), t_or_b(X2), at_idx(X2, R, C), not X=X2")
+        bk.append("-at_idx(X, R, C) :- row(R), col(C), row(R2), at_idx(X, R2, _), not R=R2")
+        bk.append("-at_idx(X, R, C) :- row(R), col(C), row(C2), at_idx(X, _, C2), not C=C2")
 
         bk.append("")
         bk.append("% constraints")

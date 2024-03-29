@@ -108,6 +108,7 @@ def expand_nodes(instances: List[Instance], popped_nodes_all: List[List[Node]], 
     is_solved_c_by_node: List[List[bool]] = misc_utils.unflatten(is_solved_c, split_idxs_c)
 
     # Update path costs for all states at once (for speed)
+    # TODO, fix for variable action spaces
     parent_path_costs = np.expand_dims(np.array([node.path_cost for node in popped_nodes_flat]), 1)
     path_costs_c: List[float] = (parent_path_costs + np.array(tcs_by_node)).flatten().tolist()
 

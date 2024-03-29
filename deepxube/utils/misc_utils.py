@@ -52,12 +52,12 @@ def random_subset(set_orig: Union[Set[Any], frozenset[Any]], keep_prob: bool) ->
     return rand_subset
 
 
-def boltzmann(qvals: List[float], temp: float) -> List[float]:
-    if len(qvals) == 1:
+def boltzmann(vals: List[float], temp: float) -> List[float]:
+    if len(vals) == 1:
         return [1.0]
     else:
-        qvals_np: NDArray[np.float_] = np.array(qvals)
-        exp_vals_np: NDArray[np.float_] = np.exp((1.0 / temp) * (-(qvals_np - np.max(qvals_np))))
+        vals_np: NDArray[np.float_] = np.array(vals)
+        exp_vals_np: NDArray[np.float_] = np.exp((1.0 / temp) * (vals_np - np.max(vals_np)))
         probs_np: NDArray[np.float_] = exp_vals_np / np.sum(exp_vals_np)
 
-    return list(probs_np)
+        return list(probs_np)

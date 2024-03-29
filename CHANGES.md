@@ -5,6 +5,7 @@
 * n-puzzle background knowledge
 * hash refactor
 * type hint fixes
+* Fixed boltzmann overflow
 
 ## 0.1.1
 * Add opencv-python and imageio for visualizing Sokoban states
