@@ -123,7 +123,7 @@ class Solver:
 
         # get models
         models: List[Model] = []
-        for _ in range(num_models):
+        for model_itr in range(num_models):
             models_i: List[Model] = []
             self.ctl.solve(assumptions=assumptions, on_model=lambda x: models_i.append(on_model(x)))
             if len(models_i) == 0:
@@ -134,8 +134,10 @@ class Solver:
                 model_i = self.sample_minimal_model(spec, model_i)
 
             models.append(model_i)
-            assumptions_i: List[Tuple[Symbol, bool]] = self._make_assumptions(Spec(models_banned=[model_i]))
-            assumptions.extend(assumptions_i)
+
+            if model_itr < (num_models - 1):
+                assumptions_i: List[Tuple[Symbol, bool]] = self._make_assumptions(Spec(models_banned=[model_i]))
+                assumptions.extend(assumptions_i)
 
         return models
 
