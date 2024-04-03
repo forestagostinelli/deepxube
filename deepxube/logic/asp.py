@@ -1,4 +1,4 @@
-from typing import List, Set, Optional, Tuple, Dict, Callable, Any
+from typing import List, Optional, Set, Tuple, Dict, Callable, Any
 from deepxube.logic.logic_objects import Clause, Literal, Atom, Model
 from deepxube.logic.logic_utils import copy_clause_with_new_head, atom_to_str
 
@@ -95,20 +95,28 @@ class Solver:
         count_model_grnd_atoms_str: str = "count_model_grnd_atoms(N) :- N = #count{ V: grnd_atom_present(V) }"
         count_model_grnd_atoms_gt_str: str = ("count_model_grnd_atoms_gt(N) :- grnd_atom_count_num(N), "
                                               "count_model_grnd_atoms(M), M > N")
+        minimize_grnd_atoms_str = "#minimize {N: count_model_grnd_atoms(N)}"
 
         # clingo control
         seed = int.from_bytes(os.urandom(4), 'big')
-        arguments = ["--models=1", "--opt-mode=ignore", "--heuristic=Domain", "--dom-mod=5,16", "--rand-prob=1",
-                     f"--seed={seed}"]
-        self.ctl: Control = clingo.Control(arguments=arguments)
+        arguments_rand = ["--models=1", "--opt-mode=ignore", "--heuristic=Domain", "--dom-mod=5,16", "--rand-prob=1",
+                          f"--seed={seed}"]
+        arguments_min = ["--models=1", "--opt-mode=optN", "--heuristic=Domain", "--dom-mod=5,16"]
+        self.ctl_rand: Control = clingo.Control(arguments=arguments_rand)
+        self.ctl_min: Control = clingo.Control(arguments=arguments_min)
 
         for add_line in bk + grnd_atom_counts + [model_grnd_atoms_str, count_model_grnd_atoms_str,
                                                  count_model_grnd_atoms_gt_str]:
             add_line = parse_clingo_line(add_line)
             if len(add_line) == 0:
                 continue
-            self.ctl.add('base', [], f"{add_line}\n")
-        self.ctl.ground([("base", [])])
+            self.ctl_rand.add('base', [], f"{add_line}\n")
+            self.ctl_min.add('base', [], f"{add_line}\n")
+        add_line = parse_clingo_line(minimize_grnd_atoms_str)
+        self.ctl_min.add('base', [], f"{add_line}\n")
+
+        self.ctl_rand.ground([("base", [])])
+        self.ctl_min.ground([("base", [])])
 
     def get_models(self, spec: Spec, on_model: Callable[[Any], Model], num_models: int, minimal: bool) -> List[Model]:
         """
@@ -125,13 +133,14 @@ class Solver:
         models: List[Model] = []
         for model_itr in range(num_models):
             models_i: List[Model] = []
-            self.ctl.solve(assumptions=assumptions, on_model=lambda x: models_i.append(on_model(x)))
+            self.ctl_rand.solve(assumptions=assumptions, on_model=lambda x: models_i.append(on_model(x)))
             if len(models_i) == 0:
                 break
             model_i: Model = random.choice(models_i)
 
             if minimal:
-                model_i = self.sample_minimal_model(spec, model_i)
+                model_i = self.sample_minimal_model(spec, model_i, on_model)
+                # assert model_i == self.sample_minimal_model_old(spec, model_i)
 
             models.append(model_i)
 
@@ -155,11 +164,20 @@ class Solver:
         assumptions += self._make_assumptions(spec_check)
         models_ret: List[None] = []
 
-        self.ctl.solve(assumptions=assumptions, on_model=lambda x: models_ret.append(None))
+        self.ctl_rand.solve(assumptions=assumptions, on_model=lambda x: models_ret.append(None))
 
         return len(models_ret) > 0
 
-    def sample_minimal_model(self, spec: Spec, model: Model) -> Model:
+    def sample_minimal_model(self, spec: Spec, model: Model, on_model) -> Model:
+        models_min: List[Model] = []
+        atoms_false: List[Atom] = [atom for atom in self.ground_atoms if atom not in model]
+        spec_min: Spec = Spec(atoms_false=atoms_false)
+        assumptions: List[Tuple[Symbol, bool]] = self._make_assumptions(spec.add(spec_min))
+        self.ctl_min.solve(assumptions=assumptions, on_model=lambda x: models_min.append(on_model(x)))
+
+        return random.choice(models_min)
+
+    def sample_minimal_model_old(self, spec: Spec, model: Model):
         atoms_l = list(model)
         random.shuffle(atoms_l)
         atoms_true: Set[Atom] = set(atoms_l)
@@ -167,10 +185,9 @@ class Solver:
             atoms_true.remove(atom)
             model_new: Model = frozenset(atoms_true)
             if self.check_model(spec, model_new):
-                return self.sample_minimal_model(spec, model_new)
+                return self.sample_minimal_model_old(spec, model_new)
 
             atoms_true.add(atom)
-
         return frozenset(atoms_true)
 
     def _add_goal(self, goal: List[Clause]) -> str:
@@ -191,8 +208,10 @@ class Solver:
             prg_blk: str = goal_new_head_pred
             for goal_clause in goal:
                 goal_clause_new_head: Clause = copy_clause_with_new_head(goal_clause, goal_new_head_pred)
-                self.ctl.add(prg_blk, [], f"{goal_clause_new_head.to_code()}.\n")
-            self.ctl.ground([(prg_blk, [])])
+                self.ctl_rand.add(prg_blk, [], f"{goal_clause_new_head.to_code()}.\n")
+                self.ctl_min.add(prg_blk, [], f"{goal_clause_new_head.to_code()}.\n")
+            self.ctl_rand.ground([(prg_blk, [])])
+            self.ctl_min.ground([(prg_blk, [])])
 
             self.goals_added[goal_clauses_set] = goal_new_head_pred
 
