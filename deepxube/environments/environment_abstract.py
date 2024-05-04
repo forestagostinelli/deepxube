@@ -96,11 +96,12 @@ class Environment(ABC, Generic[S, G]):
         return self.next_state(states, actions_rand)
 
     @abstractmethod
-    def sample_goal(self, states: List[S]) -> List[G]:
+    def sample_goal(self, states_start: List[S], states_goal: List[S]) -> List[G]:
         """ Given a state, return a goal that represents a set of goal states of which the given state is a member.
         Does not have to always return the same goal.
 
-        @param states: List of states
+        @param states_start: List of start states
+        @param states_goal List of states from which goals will be sampled
         @return: Goals
         """
         pass
@@ -134,7 +135,7 @@ class Environment(ABC, Generic[S, G]):
 
         # state to goal
         start_time = time.time()
-        goals: List[G] = self.sample_goal(states_goal)
+        goals: List[G] = self.sample_goal(states_start, states_goal)
         times.record_time("sample_goal", time.time() - start_time)
 
         return states_start, goals
@@ -302,11 +303,11 @@ class EnvGrndAtoms(Environment[S, G]):
 
         return is_solved_l
 
-    def sample_goal(self, states: List[S]) -> List[G]:
+    def sample_goal(self, states_start: List[S], states_goal: List[S]) -> List[G]:
         models_g: List[Model] = []
 
-        models_s: List[Model] = self.state_to_model(states)
-        keep_probs: NDArray[np.float_] = np.random.rand(len(states))
+        models_s: List[Model] = self.state_to_model(states_goal)
+        keep_probs: NDArray[np.float_] = np.random.rand(len(states_goal))
         for model_s, keep_prob in zip(models_s, keep_probs):
             rand_subset: Set[Atom] = misc_utils.random_subset(model_s, keep_prob)
             models_g.append(frozenset(rand_subset))

@@ -7,6 +7,7 @@
 * type hint fixes
 * Fixed boltzmann overflow
 * State and goal to nnet rep is one function
+* Add start state to sample_goal for more robust goal sampling
 
 ## 0.1.1
 * Add opencv-python and imageio for visualizing Sokoban states

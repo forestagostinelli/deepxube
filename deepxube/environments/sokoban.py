@@ -287,7 +287,7 @@ class Sokoban(EnvGrndAtoms[SokobanState, SokobanGoal]):
 
         return states
 
-    def states_goals_to_nnet_input(self, states: List[SokobanState], 
+    def states_goals_to_nnet_input(self, states: List[SokobanState],
                                    goals: List[SokobanGoal]) -> List[NDArray[np.uint8]]:
         """
         states_real: np.ndarray = np.zeros((len(states), self.img_dim, self.img_dim, 3))

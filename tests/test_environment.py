@@ -38,7 +38,8 @@ def test_states_goals_to_nnet_input(env_name: str):
     env: Environment[Any, Any] = get_environment(env_name)
     for num_states in [1, 5, 10]:
         states: List[State] = env.get_start_states(num_states)
-        goals: List[Goal] = env.sample_goal(states)
+        states_goal: List[State] = env.next_state_rand(states)[0]
+        goals: List[Goal] = env.sample_goal(states, states_goal)
         goals_nnet: List[NDArray[Any]] = env.states_goals_to_nnet_input(states, goals)
         assert all(x.shape[0] == num_states for x in goals_nnet)
 
