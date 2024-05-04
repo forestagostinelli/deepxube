@@ -84,14 +84,10 @@ def update_runner(num_states: int, step_max: int, step_probs: List[float], updat
             cost_to_go_update = cost_to_go_update[keep_idxs]
 
         start_time = time.time()
-        states_update_nnet = env.states_to_nnet_input(states_update)
-        times.record_time("states_to_nnet", time.time() - start_time)
+        states_goals_update_nnet = env.states_goals_to_nnet_input(states_update, goals_update)
+        times.record_time("states_goals_to_nnet", time.time() - start_time)
 
-        start_time = time.time()
-        goals_update_nnet = env.goals_to_nnet_input(goals_update)
-        times.record_time("goals_to_nnet", time.time() - start_time)
-
-        result_queue.put((states_update_nnet, goals_update_nnet, cost_to_go_update, is_solved, times))
+        result_queue.put((states_goals_update_nnet, cost_to_go_update, is_solved, times))
 
         num_states_curr += len(states_update)
 
@@ -129,21 +125,19 @@ class Updater:
             proc.start()
             self.procs.append(proc)
 
-    def update(self):
-        states_update_nnet: List[NDArray[Any]]
-        states_update_goal_nnet: List[NDArray[Any]]
+    def update(self) -> Tuple[List[NDArray[Any]], NDArray[np.float_], NDArray[np.bool_]]:
+        states_goals_update_nnet: List[NDArray[Any]]
         cost_to_go_update: NDArray[np.float_]
         is_solved: NDArray[np.bool_]
-        states_update_nnet, states_update_goal_nnet, cost_to_go_update, is_solved = self._update()
+        states_goals_update_nnet, cost_to_go_update, is_solved = self._update()
 
         output_update = np.expand_dims(cost_to_go_update, 1)
 
-        return states_update_nnet, states_update_goal_nnet, output_update, is_solved
+        return states_goals_update_nnet, output_update, is_solved
 
-    def _update(self) -> Tuple[List[NDArray[Any]], List[NDArray[Any]], NDArray[np.float_], NDArray[np.bool_]]:
+    def _update(self) -> Tuple[List[NDArray[Any]], NDArray[np.float_], NDArray[np.bool_]]:
         # process results
-        states_update_nnet_l: List[List[NDArray[Any]]] = []
-        states_update_goal_nnet_l: List[List[NDArray[Any]]] = []
+        states_goals_update_nnet_l: List[List[NDArray[Any]]] = []
         cost_to_go_update_l: List[NDArray[np.float_]] = []
         is_solved_l: List[NDArray[np.bool_]] = []
 
@@ -165,12 +159,10 @@ class Updater:
                 continue
             result_count += 1
 
-            states_nnet_q: List[NDArray[Any]]
-            states_goal_nnet_q: List[NDArray[Any]]
-            states_nnet_q, states_goal_nnet_q, cost_to_go_q, is_solved_q, times_q = result
+            states_goals_nnet_q: List[NDArray[Any]]
+            states_goals_nnet_q, cost_to_go_q, is_solved_q, times_q = result
 
-            states_update_nnet_l.append(states_nnet_q)
-            states_update_goal_nnet_l.append(states_goal_nnet_q)
+            states_goals_update_nnet_l.append(states_goals_nnet_q)
 
             cost_to_go_update_l.append(cost_to_go_q)
             is_solved_l.append(is_solved_q)
@@ -184,15 +176,11 @@ class Updater:
                 print(times.get_time_str())
                 display_counts = display_counts[num_states_curr < display_counts]
 
-        states_update_nnet: List[NDArray[Any]] = []
-        for np_idx in range(len(states_update_nnet_l[0])):
-            states_nnet_idx: NDArray[Any] = np.concatenate([x[np_idx] for x in states_update_nnet_l], axis=0)
-            states_update_nnet.append(states_nnet_idx)
-
-        states_update_goal_nnet: List[NDArray[Any]] = []
-        for np_idx in range(len(states_update_goal_nnet_l[0])):
-            states_goal_nnet_idx: NDArray[Any] = np.concatenate([x[np_idx] for x in states_update_goal_nnet_l], axis=0)
-            states_update_goal_nnet.append(states_goal_nnet_idx)
+        states_goals_update_nnet: List[NDArray[Any]] = []
+        for np_idx in range(len(states_goals_update_nnet_l[0])):
+            states_goals_nnet_idx: NDArray[Any] = np.concatenate([x[np_idx] for x in states_goals_update_nnet_l],
+                                                                 axis=0)
+            states_goals_update_nnet.append(states_goals_nnet_idx)
 
         cost_to_go_update: NDArray[np.float_] = np.concatenate(cost_to_go_update_l, axis=0)
         is_solved: NDArray[np.bool_] = np.concatenate(is_solved_l, axis=0)
@@ -200,4 +188,4 @@ class Updater:
         for proc in self.procs:
             proc.join()
 
-        return states_update_nnet, states_update_goal_nnet, cost_to_go_update, is_solved
+        return states_goals_update_nnet, cost_to_go_update, is_solved

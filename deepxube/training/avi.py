@@ -42,7 +42,7 @@ class Status:
         self.states_start_t, self.goals_t = env.get_start_goal_pairs(self.state_t_steps_l)
 
         # Initialize per_solved_best
-        print("Intializing per solved best")
+        print("Initializing per solved best")
         heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(1, "", torch.device("cpu"), False, env.get_v_nnet(),
                                                                   env, all_zeros=True)
         per_solved: float = greedy_test(self.states_start_t, self.goals_t, self.state_t_steps_l, env,
@@ -53,7 +53,7 @@ class Status:
 
 def do_update(step_max: int, update_num: int, env: Environment[Any, Any], step_update_max: int, num_states: int,
               eps_max: float, heur_fn_qs: List[HeurFnQ],
-              update_batch_size: int) -> Tuple[List[NDArray[Any]], List[NDArray[Any]], NDArray[np.float_]]:
+              update_batch_size: int) -> Tuple[List[NDArray[Any]], NDArray[np.float_]]:
     update_steps: int = int(min(update_num + 1, step_update_max))
     # num_states: int = int(np.ceil(num_states / update_steps))
 
@@ -71,10 +71,9 @@ def do_update(step_max: int, update_num: int, env: Environment[Any, Any], step_u
     updater: Updater = Updater(env, num_states, step_max, step_probs, heur_fn_qs, update_steps,
                                "greedy", update_batch_size=update_batch_size, eps_max=eps_max)
 
-    states_update_nnet: List[NDArray[Any]]
-    states_update_goal_nnet: List[NDArray[Any]]
+    nnet_rep: List[NDArray[Any]]
     ctgs: NDArray[np.float_]
-    states_update_nnet, states_update_goal_nnet, ctgs, is_solved = updater.update()
+    nnet_rep, ctgs, is_solved = updater.update()
 
     # Print stats
     # per_solved = 100.0 * np.mean(is_solved)
@@ -85,7 +84,7 @@ def do_update(step_max: int, update_num: int, env: Environment[Any, Any], step_u
     max_ctg = ctgs[:, 0].max()
     print("Cost-to-go (mean/min/max): %.2f/%.2f/%.2f" % (mean_ctg, min_ctg, max_ctg))
 
-    return states_update_nnet, states_update_goal_nnet, ctgs
+    return nnet_rep, ctgs
 
 
 def load_data(model_dir: str, nnet_file: str, env: Environment[Any, Any], num_test_per_step: int,
@@ -108,8 +107,8 @@ def load_data(model_dir: str, nnet_file: str, env: Environment[Any, Any], num_te
     return nnet, status
 
 
-def make_batches(states_nnet: List[NDArray[Any]], states_goal_nnet: List[NDArray[Any]], ctgs: NDArray[np.float_],
-                 batch_size: int) -> List[Tuple[List[NDArray[Any]], List[NDArray[Any]], NDArray[np.float_]]]:
+def make_batches(nnet_rep: List[NDArray[Any]], ctgs: NDArray[np.float_],
+                 batch_size: int) -> List[Tuple[List[NDArray[Any]], NDArray[np.float_]]]:
     num_examples = ctgs.shape[0]
     rand_idxs = np.random.choice(num_examples, num_examples, replace=False)
     ctgs = ctgs.astype(np.float32)
@@ -121,20 +120,18 @@ def make_batches(states_nnet: List[NDArray[Any]], states_goal_nnet: List[NDArray
 
         idxs = rand_idxs[start_idx:end_idx]
 
-        inputs_batch = [x[idxs] for x in states_nnet]
-        inputs_goal_batch = [x[idxs] for x in states_goal_nnet]
+        inputs_batch = [x[idxs] for x in nnet_rep]
         ctgs_batch = ctgs[idxs]
 
-        batches.append((inputs_batch, inputs_goal_batch, ctgs_batch))
+        batches.append((inputs_batch, ctgs_batch))
 
         start_idx = end_idx
 
     return batches
 
 
-def train_nnet(nnet: nn.Module, states_nnet: List[NDArray[Any]], models_g_nnet: List[NDArray[Any]],
-               ctgs: NDArray[np.float_], device: torch.device, batch_size: int, num_itrs: int, train_itr: int,
-               lr: float, lr_d: float, display_itrs: int) -> float:
+def train_nnet(nnet: nn.Module, nnet_rep: List[NDArray[Any]], ctgs: NDArray[np.float_], device: torch.device,
+               batch_size: int, num_itrs: int, train_itr: int, lr: float, lr_d: float, display_itrs: int) -> float:
     # optimization
     criterion = nn.MSELoss()
     optimizer: Optimizer = optim.Adam(nnet.parameters(), lr=lr)
@@ -143,7 +140,7 @@ def train_nnet(nnet: nn.Module, states_nnet: List[NDArray[Any]], models_g_nnet: 
     start_time = time.time()
 
     # train network
-    batches = make_batches(states_nnet, models_g_nnet, ctgs, batch_size)
+    batches = make_batches(nnet_rep, ctgs, batch_size)
 
     nnet.train()
     max_itrs: int = train_itr + num_itrs
@@ -158,16 +155,15 @@ def train_nnet(nnet: nn.Module, states_nnet: List[NDArray[Any]], models_g_nnet: 
             param_group['lr'] = lr_itr
 
         # get data
-        inputs_batch, inputs_goal_batch, ctgs_batch_np = batches[batch_idx]
+        inputs_batch_np, ctgs_batch_np = batches[batch_idx]
         ctgs_batch_np = ctgs_batch_np.astype(np.float32)
 
         # send data to device
-        states_batch: List[Tensor] = nnet_utils.to_pytorch_input(inputs_batch, device)
-        models_g_batch: List[Tensor] = nnet_utils.to_pytorch_input(inputs_goal_batch, device)
+        inputs_batch: List[Tensor] = nnet_utils.to_pytorch_input(inputs_batch_np, device)
         ctgs_batch: Tensor = torch.tensor(ctgs_batch_np, device=device)[:, 0]
 
         # forward
-        ctgs_nnet: Tensor = nnet(states_batch, models_g_batch)
+        ctgs_nnet: Tensor = nnet(inputs_batch)
 
         # loss
         loss = criterion(ctgs_nnet[:, 0], ctgs_batch)
@@ -287,16 +283,15 @@ def train(env: Environment[Any, Any], step_max: int, nnet_dir: str, num_test_per
         states_per_update: int = itrs_per_update * batch_size
         num_update_states: int = int(states_per_update)
 
-        states_nnet, models_g_nnet, ctgs = do_update(step_max, status.update_num, env, greedy_update_step_max,
-                                                     num_update_states, greedy_update_eps_max, heur_fn_qs,
-                                                     update_batch_size)
+        nnet_rep, ctgs = do_update(step_max, status.update_num, env, greedy_update_step_max, num_update_states,
+                                   greedy_update_eps_max, heur_fn_qs, update_batch_size)
 
         nnet_utils.stop_heuristic_fn_runners(heur_procs, heur_fn_qs)
 
         # train nnet
         num_train_itrs: int = epochs_per_update * np.ceil(ctgs.shape[0] / batch_size)
         print("Training model for update number %i for %i iterations" % (status.update_num, num_train_itrs))
-        last_loss = train_nnet(nnet, states_nnet, models_g_nnet, ctgs, device, batch_size, num_train_itrs,
+        last_loss = train_nnet(nnet, nnet_rep, ctgs, device, batch_size, num_train_itrs,
                                status.itr, lr, lr_d, display)
         status.itr += num_train_itrs
 

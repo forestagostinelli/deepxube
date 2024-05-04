@@ -34,21 +34,12 @@ def test_get_start_goal_pairs(env_name: str):
 
 
 @pytest.mark.parametrize("env_name", env_names)
-def test_state_to_nnet_input(env_name: str):
-    env: Environment[Any, Any] = get_environment(env_name)
-    for num_states in [1, 5, 10]:
-        states: List[State] = env.get_start_states(num_states)
-        states_nnet: List[NDArray[Any]] = env.states_to_nnet_input(states)
-        assert all(x.shape[0] == num_states for x in states_nnet)
-
-
-@pytest.mark.parametrize("env_name", env_names)
-def test_goal_to_nnet_input(env_name: str):
+def test_states_goals_to_nnet_input(env_name: str):
     env: Environment[Any, Any] = get_environment(env_name)
     for num_states in [1, 5, 10]:
         states: List[State] = env.get_start_states(num_states)
         goals: List[Goal] = env.sample_goal(states)
-        goals_nnet: List[NDArray[Any]] = env.goals_to_nnet_input(goals)
+        goals_nnet: List[NDArray[Any]] = env.states_goals_to_nnet_input(states, goals)
         assert all(x.shape[0] == num_states for x in goals_nnet)
 
 

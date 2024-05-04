@@ -190,14 +190,11 @@ class NPuzzle(EnvGrndAtoms[NPuzzleState, NPuzzleGoal]):
         is_solved_np = np.all(np.logical_or(states_np == goals_np, goals_np == self.num_tiles), axis=1)
         return list(is_solved_np)
 
-    def states_to_nnet_input(self, states: List[NPuzzleState]) -> List[NDArray[int_t]]:
+    def states_goals_to_nnet_input(self, states: List[NPuzzleState], goals: List[NPuzzleGoal]) -> List[NDArray[int_t]]:
         states_np: NDArray[int_t] = np.stack([x.tiles for x in states], axis=0)
+        goals_np: NDArray[int_t] = np.stack([x.tiles for x in goals], axis=0)
 
-        return [states_np.astype(self.dtype)]
-
-    def goals_to_nnet_input(self, goals: List[NPuzzleGoal]) -> List[NDArray[int_t]]:
-        goals_np = np.stack([x.tiles for x in goals], axis=0)
-        return [goals_np]
+        return [states_np.astype(self.dtype), goals_np]
 
     def state_to_model(self, states: List[NPuzzleState]) -> List[Model]:
         states_np: NDArray[int_t] = np.stack([state.tiles for state in states], axis=0).astype(self.dtype)
@@ -379,7 +376,11 @@ class NPuzzle(EnvGrndAtoms[NPuzzleState, NPuzzleGoal]):
         raise ValueError(f"Unknown action {pddl_action}")
 
     def visualize(self, states: Union[List[NPuzzleState], List[NPuzzleGoal]]) -> NDArray[np.float_]:
-        fig, ax = plt.subplots(figsize=(.64, .64))
+        fig = plt.figure(figsize=(.64, .64))
+        ax = fig.add_axes((0, 0, 1., 1.))
+        # fig = plt.figure(figsize=(.64, .64))
+        # ax = fig.gca()
+        # fig.add_axes(ax)
         canvas = FigureCanvas(fig)
         width, height = fig.get_size_inches() * fig.get_dpi()
         width = int(width)

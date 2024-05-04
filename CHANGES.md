@@ -6,6 +6,7 @@
 * hash refactor
 * type hint fixes
 * Fixed boltzmann overflow
+* State and goal to nnet rep is one function
 
 ## 0.1.1
 * Add opencv-python and imageio for visualizing Sokoban states

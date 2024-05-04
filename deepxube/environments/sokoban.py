@@ -37,9 +37,9 @@ class NNet(HeurFnNNet):
         self.first_fc = FullyConnectedModel(1600, [h1_dim, resnet_dim], [batch_norm] * 2, ["RELU"] * 2)
         self.resnet = ResnetModel(resnet_dim, num_resnet_blocks, out_dim, batch_norm, layer_act="RELU")
 
-    def forward(self, states_l: List[Tensor], goals_l: List[Tensor]):
+    def forward(self, states_goals_l: List[Tensor]):
         # img_nnet_out: Tensor = self.img_nnet(states_l[0])
-        x = self.conv_to_flat(torch.cat((states_l[0], goals_l[0]), dim=1).float())
+        x = self.conv_to_flat(torch.cat((states_goals_l[0], states_goals_l[1]), dim=1).float())
         x = self.first_fc(x)
         x = self.resnet(x)
 
@@ -248,8 +248,9 @@ class Sokoban(EnvGrndAtoms[SokobanState, SokobanGoal]):
         return [list(range(self.num_actions)) for _ in range(len(states))]
 
     def is_solved(self, states: List[SokobanState], goals: List[SokobanGoal]) -> List[bool]:
-        states_np: NDArray[np.uint8] = self.states_to_nnet_input(states)[0].reshape((len(states), -1))
-        goals_np: NDArray[np.uint8] = self.goals_to_nnet_input(goals)[0].reshape((len(goals), -1))
+        nnet_rep: List[NDArray[np.uint8]] = self.states_goals_to_nnet_input(states, goals)
+        states_np: NDArray[np.uint8] = nnet_rep[0].reshape((len(states), -1))
+        goals_np: NDArray[np.uint8] = nnet_rep[1].reshape((len(goals), -1))
         is_solved_np = np.all(np.logical_or(states_np == goals_np, goals_np == 0), axis=1)
         return list(is_solved_np)
 
@@ -286,7 +287,8 @@ class Sokoban(EnvGrndAtoms[SokobanState, SokobanGoal]):
 
         return states
 
-    def states_to_nnet_input(self, states: List[SokobanState]) -> List[NDArray[np.uint8]]:
+    def states_goals_to_nnet_input(self, states: List[SokobanState], 
+                                   goals: List[SokobanGoal]) -> List[NDArray[np.uint8]]:
         """
         states_real: np.ndarray = np.zeros((len(states), self.img_dim, self.img_dim, 3))
         for state_idx, state in enumerate(states):
@@ -295,25 +297,9 @@ class Sokoban(EnvGrndAtoms[SokobanState, SokobanGoal]):
         states_rep = [states_real.transpose([0, 3, 1, 2])]
         """
 
-        states_rep_np: NDArray[np.uint8] = np.zeros((len(states), 3, self.dim, self.dim), dtype=np.uint8)
-        for idx, state in enumerate(states):
-            states_rep_np[idx, 0, state.agent[0], state.agent[1]] = 1
-            states_rep_np[idx, 1, :, :] = state.boxes
-            states_rep_np[idx, 2, :, :] = state.walls
-        states_rep = [states_rep_np]
+        nnet_rep: List[NDArray[np.uint8]] = [self._states_to_np(states), self._goals_to_np(goals)]
 
-        return states_rep
-
-    def goals_to_nnet_input(self, goals: List[SokobanGoal]) -> List[NDArray[np.uint8]]:
-        states_rep_np: NDArray[np.uint8] = np.zeros((len(goals), 3, self.dim, self.dim), dtype=np.uint8)
-        for idx, goal in enumerate(goals):
-            if goal.agent.shape[0] > 0:
-                states_rep_np[idx, 0, goal.agent[0], goal.agent[1]] = 1
-            states_rep_np[idx, 1, :, :] = goal.boxes
-            states_rep_np[idx, 2, :, :] = goal.walls
-        states_rep = [states_rep_np]
-
-        return states_rep
+        return nnet_rep
 
     def state_to_model(self, states: List[SokobanState]) -> List[Model]:
         agents_np = np.stack([state.agent for state in states], axis=0)
@@ -446,7 +432,7 @@ class Sokoban(EnvGrndAtoms[SokobanState, SokobanGoal]):
         for box_idx, (idx1, idx2) in enumerate(zip(list(idxs1), list(idxs2))):
             inst_l.append(f"(at stone-{box_idx} pos-{idx1}-{idx2})")
 
-        states_np = self.states_to_nnet_input([state])[0][0]
+        states_np = self.states_goals_to_nnet_input([state], [goal])[0][0]
         states_np_any = states_np.any(axis=0)
         for idx1 in range(self.dim):
             for idx2 in range(self.dim):
@@ -681,6 +667,25 @@ class Sokoban(EnvGrndAtoms[SokobanState, SokobanGoal]):
         next_idxs = np.minimum(next_idxs, self.dim - 1)
 
         return next_idxs
+
+    def _states_to_np(self, states: List[SokobanState]) -> NDArray[np.uint8]:
+        np_rep: NDArray[np.uint8] = np.zeros((len(states), 3, self.dim, self.dim), dtype=np.uint8)
+        for idx, state_goal in enumerate(states):
+            np_rep[idx, 0, state_goal.agent[0], state_goal.agent[1]] = 1
+            np_rep[idx, 1, :, :] = state_goal.boxes
+            np_rep[idx, 2, :, :] = state_goal.walls
+
+        return np_rep
+
+    def _goals_to_np(self, goals: List[SokobanGoal]) -> NDArray[np.uint8]:
+        np_rep: NDArray[np.uint8] = np.zeros((len(goals), 3, self.dim, self.dim), dtype=np.uint8)
+        for idx, state_goal in enumerate(goals):
+            if state_goal.agent.shape[0] > 0:
+                np_rep[idx, 0, state_goal.agent[0], state_goal.agent[1]] = 1
+            np_rep[idx, 1, :, :] = state_goal.boxes
+            np_rep[idx, 2, :, :] = state_goal.walls
+
+        return np_rep
 
     def __getstate__(self):
         self.states_train = None

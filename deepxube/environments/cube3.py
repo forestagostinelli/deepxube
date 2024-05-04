@@ -67,9 +67,9 @@ class Cube3NNet(HeurFnNNet):
         input_dim: int = state_dim * one_hot_depth * 2
         self.heur = Cube3FCResnet(input_dim, h1_dim, resnet_dim, num_res_blocks, out_dim, batch_norm, weight_norm)
 
-    def forward(self, states_l: List[Tensor], goals_l: List[Tensor]):
-        states_proc = self.state_proc(states_l[0])
-        goals_proc = self.state_proc(goals_l[0])
+    def forward(self, states_goals_l: List[Tensor]):
+        states_proc = self.state_proc(states_goals_l[0])
+        goals_proc = self.state_proc(states_goals_l[1])
 
         x: Tensor = self.heur(torch.cat((states_proc, goals_proc), dim=1))
 
@@ -208,14 +208,11 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Goal]):
         is_solved_np = np.all(np.logical_or(states_np == goals_np, goals_np == 6), axis=1)
         return list(is_solved_np)
 
-    def states_to_nnet_input(self, states: List[Cube3State]) -> List[NDArray[np.uint8]]:
+    def states_goals_to_nnet_input(self, states: List[Cube3State], goals: List[Cube3Goal]) -> List[NDArray[np.uint8]]:
         # states
         states_np: NDArray[np.uint8] = np.stack([state.colors for state in states], axis=0).astype(np.uint8)
-        return [states_np]
-
-    def goals_to_nnet_input(self, goals: List[Cube3Goal]) -> List[NDArray[np.uint8]]:
-        goals_np: NDArray[np.uint8] = np.stack([x.colors for x in goals], axis=0)
-        return [goals_np]
+        goals_np: NDArray[np.uint8] = np.stack([goal.colors for goal in goals], axis=0)
+        return [states_np, goals_np]
 
     def state_to_model(self, states: List[Cube3State]) -> List[Model]:
         states_np = np.stack([x.colors for x in states], axis=0).astype(np.uint8)

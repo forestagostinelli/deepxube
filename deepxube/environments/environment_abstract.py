@@ -51,6 +51,7 @@ S = TypeVar('S', bound=State)
 G = TypeVar('G', bound=Goal)
 
 
+# TODO add action type to generic
 class Environment(ABC, Generic[S, G]):
     def __init__(self, env_name: str):
         self.env_name: Optional[str] = env_name
@@ -138,8 +139,9 @@ class Environment(ABC, Generic[S, G]):
 
         return states_start, goals
 
+    # TODO add actions to output
     def expand(self, states: List[S]) -> Tuple[List[List[S]], List[List[float]]]:
-        """ Generate all children for the state
+        """ Generate all children for the state, assumes there is at least one child state
         @param states: List of states
         @return: Children of each state, Transition costs for each state
         """
@@ -173,22 +175,13 @@ class Environment(ABC, Generic[S, G]):
         return states_exp_l, tcs_l
 
     @abstractmethod
-    def states_to_nnet_input(self, states: List[S]) -> List[NDArray[Any]]:
-        """ State to numpy arrays to be fed to the neural network
+    def states_goals_to_nnet_input(self, states: List[S], goals: List[G]) -> List[NDArray[Any]]:
+        """ States and goals to numpy arrays to be fed to the neural network
 
         @param states: List of states
-        @return: List of numpy arrays. Each index along the first dimension of each array corresponds to the
-        index of a state.
-        """
-        pass
-
-    @abstractmethod
-    def goals_to_nnet_input(self, goals: List[G]) -> List[NDArray[Any]]:
-        """ Goals to numpy arrays to be fed to the neural network
-
         @param goals: List of goals
         @return: List of numpy arrays. Each index along the first dimension of each array corresponds to the
-        index of a models.
+        index of a state.
         """
         pass
 
