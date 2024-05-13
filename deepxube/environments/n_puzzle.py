@@ -87,9 +87,9 @@ class NNet(HeurFnNNet):
         input_dim: int = state_dim * one_hot_depth * 2
         self.heur = FCResnet(input_dim, h1_dim, resnet_dim, num_res_blocks, out_dim, batch_norm, weight_norm)
 
-    def forward(self, states_l: List[Tensor], goals_l: List[Tensor]):
-        states_proc = self.state_proc(states_l[0])
-        goals_proc = self.state_proc(goals_l[0])
+    def forward(self, states_goals_l: List[Tensor]):
+        states_proc = self.state_proc(states_goals_l[0])
+        goals_proc = self.state_proc(states_goals_l[1])
 
         x: Tensor = self.heur(torch.cat((states_proc, goals_proc), dim=1))
 
