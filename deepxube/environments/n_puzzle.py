@@ -143,7 +143,7 @@ class NPuzzle(EnvGrndAtoms[NPState, NPAction, NPGoal]):
         z_idxs: NDArray[np.int_]
         _, z_idxs = np.where(states_next_np == 0)
 
-        tcs_np: NDArray[np.float_] = np.zeros(len(states))
+        tcs_np: NDArray[np.float64] = np.zeros(len(states))
         for action in set(actions):
             action_idxs: NDArray[np.int_] = np.array([idx for idx in range(len(actions)) if actions[idx] == action])
             states_np_act = states_np[action_idxs]
@@ -167,7 +167,7 @@ class NPuzzle(EnvGrndAtoms[NPState, NPAction, NPGoal]):
         states_exp: List[List[NPState]] = [[] for _ in range(len(states))]
         actions_exp_l: List[List[NPAction]] = [[] for _ in range(len(states))]
 
-        tc: NDArray[np.float_] = np.empty([num_states, self.num_actions])
+        tc: NDArray[np.float64] = np.empty([num_states, self.num_actions])
 
         # numpy states
         states_np: NDArray[int_t] = np.stack([state.tiles for state in states])
@@ -389,7 +389,7 @@ class NPuzzle(EnvGrndAtoms[NPState, NPAction, NPGoal]):
 
         raise ValueError(f"Unknown action {pddl_action}")
 
-    def visualize(self, states: Union[List[NPState], List[NPGoal]]) -> NDArray[np.float_]:
+    def visualize(self, states: Union[List[NPState], List[NPGoal]]) -> NDArray[np.float64]:
         fig = plt.figure(figsize=(.64, .64))
         ax = fig.add_axes((0, 0, 1., 1.))
         # fig = plt.figure(figsize=(.64, .64))
@@ -399,7 +399,7 @@ class NPuzzle(EnvGrndAtoms[NPState, NPAction, NPGoal]):
         width, height = fig.get_size_inches() * fig.get_dpi()
         width = int(width)
         height = int(height)
-        states_img: NDArray[np.float_] = np.zeros((len(states), width, height, 3))
+        states_img: NDArray[np.float64] = np.zeros((len(states), width, height, 3))
         for state_idx, state in enumerate(states):
             ax.clear()
 

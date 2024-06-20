@@ -125,9 +125,9 @@ class Updater:
             proc.start()
             self.procs.append(proc)
 
-    def update(self) -> Tuple[List[NDArray[Any]], NDArray[np.float_], NDArray[np.bool_]]:
+    def update(self) -> Tuple[List[NDArray[Any]], NDArray[np.float64], NDArray[np.bool_]]:
         states_goals_update_nnet: List[NDArray[Any]]
-        cost_to_go_update: NDArray[np.float_]
+        cost_to_go_update: NDArray[np.float64]
         is_solved: NDArray[np.bool_]
         states_goals_update_nnet, cost_to_go_update, is_solved = self._update()
 
@@ -135,10 +135,10 @@ class Updater:
 
         return states_goals_update_nnet, output_update, is_solved
 
-    def _update(self) -> Tuple[List[NDArray[Any]], NDArray[np.float_], NDArray[np.bool_]]:
+    def _update(self) -> Tuple[List[NDArray[Any]], NDArray[np.float64], NDArray[np.bool_]]:
         # process results
         states_goals_update_nnet_l: List[List[NDArray[Any]]] = []
-        cost_to_go_update_l: List[NDArray[np.float_]] = []
+        cost_to_go_update_l: List[NDArray[np.float64]] = []
         is_solved_l: List[NDArray[np.bool_]] = []
 
         none_count: int = 0
@@ -182,7 +182,7 @@ class Updater:
                                                                  axis=0)
             states_goals_update_nnet.append(states_goals_nnet_idx)
 
-        cost_to_go_update: NDArray[np.float_] = np.concatenate(cost_to_go_update_l, axis=0)
+        cost_to_go_update: NDArray[np.float64] = np.concatenate(cost_to_go_update_l, axis=0)
         is_solved: NDArray[np.bool_] = np.concatenate(is_solved_l, axis=0)
 
         for proc in self.procs:

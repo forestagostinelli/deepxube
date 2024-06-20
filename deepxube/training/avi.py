@@ -53,7 +53,7 @@ class Status:
 
 def do_update(step_max: int, update_num: int, env: Environment, step_update_max: int, num_states: int,
               eps_max: float, heur_fn_qs: List[HeurFnQ],
-              update_batch_size: int) -> Tuple[List[NDArray[Any]], NDArray[np.float_]]:
+              update_batch_size: int) -> Tuple[List[NDArray[Any]], NDArray[np.float64]]:
     update_steps: int = int(min(update_num + 1, step_update_max))
     # num_states: int = int(np.ceil(num_states / update_steps))
 
@@ -72,7 +72,7 @@ def do_update(step_max: int, update_num: int, env: Environment, step_update_max:
                                "greedy", update_batch_size=update_batch_size, eps_max=eps_max)
 
     nnet_rep: List[NDArray[Any]]
-    ctgs: NDArray[np.float_]
+    ctgs: NDArray[np.float64]
     nnet_rep, ctgs, is_solved = updater.update()
 
     # Print stats
@@ -107,8 +107,8 @@ def load_data(model_dir: str, nnet_file: str, env: Environment, num_test_per_ste
     return nnet, status
 
 
-def make_batches(nnet_rep: List[NDArray[Any]], ctgs: NDArray[np.float_],
-                 batch_size: int) -> List[Tuple[List[NDArray[Any]], NDArray[np.float_]]]:
+def make_batches(nnet_rep: List[NDArray[Any]], ctgs: NDArray[np.float64],
+                 batch_size: int) -> List[Tuple[List[NDArray[Any]], NDArray[np.float64]]]:
     num_examples = ctgs.shape[0]
     rand_idxs = np.random.choice(num_examples, num_examples, replace=False)
     ctgs = ctgs.astype(np.float32)
@@ -130,7 +130,7 @@ def make_batches(nnet_rep: List[NDArray[Any]], ctgs: NDArray[np.float_],
     return batches
 
 
-def train_nnet(nnet: nn.Module, nnet_rep: List[NDArray[Any]], ctgs: NDArray[np.float_], device: torch.device,
+def train_nnet(nnet: nn.Module, nnet_rep: List[NDArray[Any]], ctgs: NDArray[np.float64], device: torch.device,
                batch_size: int, num_itrs: int, train_itr: int, lr: float, lr_d: float, display_itrs: int) -> float:
     # optimization
     criterion = nn.MSELoss()

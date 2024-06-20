@@ -611,8 +611,8 @@ class Sokoban(EnvGrndAtoms[SokobanState, SkAction, SokobanGoal]):
 
         return state_rendered
 
-    def visualize(self, states: Union[List[SokobanState], List[SokobanGoal]]) -> NDArray[np.float_]:
-        states_img: NDArray[np.float_] = np.zeros((len(states), self.img_dim, self.img_dim, 3))
+    def visualize(self, states: Union[List[SokobanState], List[SokobanGoal]]) -> NDArray[np.float64]:
+        states_img: NDArray[np.float64] = np.zeros((len(states), self.img_dim, self.img_dim, 3))
 
         from PIL import Image
         if self._surfaces is None:

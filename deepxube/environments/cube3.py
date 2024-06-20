@@ -190,7 +190,7 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal]):
         states_np = np.stack([x.colors for x in states], axis=0)
 
         states_next_np = np.zeros(states_np.shape, dtype=np.uint8)
-        tcs_np: NDArray[np.float_] = np.zeros(len(states))
+        tcs_np: NDArray[np.float64] = np.zeros(len(states))
         for action in set(actions):
             action_idxs: NDArray[np.int_] = np.array([idx for idx in range(len(actions)) if actions[idx] == action])
             states_np_act = states_np[action_idxs]
@@ -589,7 +589,7 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal]):
         assert match is not None
         return int(match.group(1))
 
-    def visualize(self, states: Union[List[Cube3State], List[Cube3Goal]]) -> NDArray[np.float_]:
+    def visualize(self, states: Union[List[Cube3State], List[Cube3Goal]]) -> NDArray[np.float64]:
         # initialize
         fig = plt.figure(figsize=(.64, .64))
         viz = InteractiveCube(3, self.get_start_states(1)[0].colors)
@@ -600,7 +600,7 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal]):
         width = int(width)
         height = int(height)
 
-        states_img: NDArray[np.float_] = np.zeros((len(states), width, height, 6))
+        states_img: NDArray[np.float64] = np.zeros((len(states), width, height, 6))
         for state_idx, state in enumerate(states):
             # create image
             if isinstance(state, Cube3State):

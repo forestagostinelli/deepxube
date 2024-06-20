@@ -11,7 +11,7 @@ from torch import Tensor
 from torch.multiprocessing import Queue, get_context
 from multiprocessing.process import BaseProcess
 
-HeurFN_T = Callable[[Union[List[State], List[NDArray[Any]]], Optional[List[Goal]]], NDArray[np.float_]]
+HeurFN_T = Callable[[Union[List[State], List[NDArray[Any]]], Optional[List[Goal]]], NDArray[np.float64]]
 
 
 # training
@@ -67,8 +67,8 @@ def get_heuristic_fn(nnet: nn.Module, device: torch.device, env: Environment, cl
     nnet.eval()
 
     def heuristic_fn(states: Union[List[State], List[NDArray[Any]]],
-                     goals: Optional[List[Goal]]) -> NDArray[np.float_]:
-        cost_to_go_l: List[NDArray[np.float_]] = []
+                     goals: Optional[List[Goal]]) -> NDArray[np.float64]:
+        cost_to_go_l: List[NDArray[np.float64]] = []
 
         num_states: int
         is_nnet_format: bool
@@ -100,7 +100,7 @@ def get_heuristic_fn(nnet: nn.Module, device: torch.device, env: Environment, cl
             # get nnet output
             states_goals_nnet_batch_tensors = to_pytorch_input(states_goals_nnet_batch, device)
 
-            cost_to_go_batch: NDArray[np.float_] = nnet(states_goals_nnet_batch_tensors).cpu().data.numpy()
+            cost_to_go_batch: NDArray[np.float64] = nnet(states_goals_nnet_batch_tensors).cpu().data.numpy()
             if is_v:
                 cost_to_go_batch = cost_to_go_batch[:, 0]
             cost_to_go_l.append(cost_to_go_batch)

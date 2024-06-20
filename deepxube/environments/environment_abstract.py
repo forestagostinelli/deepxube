@@ -236,7 +236,7 @@ class Environment(ABC, Generic[S, A, G]):
         pass
 
     @abstractmethod
-    def visualize(self, states: Union[List[S], List[G]]) -> NDArray[np.float_]:
+    def visualize(self, states: Union[List[S], List[G]]) -> NDArray[np.float64]:
         """ Implement if visualizing states. If you are planning on visualizing states, you do not have to implement
         this (raise NotImplementedError).
 
@@ -311,7 +311,7 @@ class EnvGrndAtoms(Environment[S, A, G]):
         models_g: List[Model] = []
 
         models_s: List[Model] = self.state_to_model(states_goal)
-        keep_probs: NDArray[np.float_] = np.random.rand(len(states_goal))
+        keep_probs: NDArray[np.float64] = np.random.rand(len(states_goal))
         for model_s, keep_prob in zip(models_s, keep_probs):
             rand_subset: Set[Atom] = misc_utils.random_subset(model_s, keep_prob)
             models_g.append(frozenset(rand_subset))

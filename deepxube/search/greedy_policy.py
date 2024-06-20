@@ -49,7 +49,7 @@ class Greedy:
             self.instances.append(instance)
 
     def step(self, heuristic_fn: HeurFN_T, times: Optional[Times] = None,
-             rand_seen: bool = False) -> Tuple[List[State], List[Goal], NDArray[np.float_]]:
+             rand_seen: bool = False) -> Tuple[List[State], List[Goal], NDArray[np.float64]]:
         if times is None:
             times = Times()
 
@@ -80,7 +80,7 @@ class Greedy:
             # get next state
             if not is_solved[idx]:
                 state_exp: List[State] = states_exp[idx]
-                ctg_next_p_tc: NDArray[np.float_] = ctg_next_p_tcs[idx]
+                ctg_next_p_tc: NDArray[np.float64] = ctg_next_p_tcs[idx]
 
                 state_next: State = state_exp[int(np.argmin(ctg_next_p_tc))]
                 seen_state: bool = state_next in instance.seen_states
@@ -139,7 +139,7 @@ def greedy_runner(env: Environment, heur_fn_q: HeurFnQ, proc_id: int,
     num_steps_all: NDArray[np.int_] = np.array([instance.step_num for instance in greedy.instances])
 
     # Get state cost-to-go
-    state_ctg_all: NDArray[np.float_] = heuristic_fn(states, goals)
+    state_ctg_all: NDArray[np.float64] = heuristic_fn(states, goals)
 
     results_queue.put((proc_id, is_solved_all, num_steps_all, state_ctg_all, inst_gen_steps))
 
@@ -206,7 +206,7 @@ def greedy_test(states: List[State], goals: List[Goal], inst_gen_steps: List[int
 
         is_solved: NDArray[np.bool_] = is_solved_all[step_idxs]
         num_steps: NDArray[np.int_] = num_steps_all[step_idxs]
-        ctgs: NDArray[np.float_] = ctgs_all[step_idxs]
+        ctgs: NDArray[np.float64] = ctgs_all[step_idxs]
 
         # Get stats
         per_solved = 100 * float(sum(is_solved)) / float(len(is_solved))

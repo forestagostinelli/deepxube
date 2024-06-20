@@ -56,8 +56,8 @@ def boltzmann(vals: List[float], temp: float) -> List[float]:
     if len(vals) == 1:
         return [1.0]
     else:
-        vals_np: NDArray[np.float_] = np.array(vals)
-        exp_vals_np: NDArray[np.float_] = np.exp((1.0 / temp) * (vals_np - np.max(vals_np)))
-        probs_np: NDArray[np.float_] = exp_vals_np / np.sum(exp_vals_np)
+        vals_np: NDArray[np.float64] = np.array(vals)
+        exp_vals_np: NDArray[np.float64] = np.exp((1.0 / temp) * (vals_np - np.max(vals_np)))
+        probs_np: NDArray[np.float64] = exp_vals_np / np.sum(exp_vals_np)
 
         return list(probs_np)

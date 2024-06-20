@@ -17,7 +17,7 @@ def is_valid_soln(state: State, goal: Goal, soln: List[Action], env: Environment
 
 def bellman(states: List[State], goals: List[Goal], heuristic_fn,
             env: Environment,
-            times: Optional[Times] = None) -> Tuple[NDArray[np.float_], List[NDArray[np.float_]], List[List[State]],
+            times: Optional[Times] = None) -> Tuple[NDArray[np.float64], List[NDArray[np.float64]], List[List[State]],
                                                     List[bool]]:
     if times is None:
         times = Times()
@@ -35,7 +35,7 @@ def bellman(states: List[State], goals: List[Goal], heuristic_fn,
     for goal, state_exp in zip(goals, states_exp):
         goals_flat.extend([goal] * len(state_exp))
 
-    ctg_next_flat: NDArray[np.float_] = heuristic_fn(states_exp_flat, goals_flat)
+    ctg_next_flat: NDArray[np.float64] = heuristic_fn(states_exp_flat, goals_flat)
     times.record_time("heur", time.time() - start_time)
 
     # is solved
@@ -45,11 +45,11 @@ def bellman(states: List[State], goals: List[Goal], heuristic_fn,
 
     # backup
     start_time = time.time()
-    tcs_flat: NDArray[np.float_] = np.hstack(tcs_l)
-    ctg_next_p_tc_flat: NDArray[np.float_] = tcs_flat + ctg_next_flat
-    ctg_next_p_tc_l: List[NDArray[np.float_]] = np.split(ctg_next_p_tc_flat, split_idxs)
+    tcs_flat: NDArray[np.float64] = np.hstack(tcs_l)
+    ctg_next_p_tc_flat: NDArray[np.float64] = tcs_flat + ctg_next_flat
+    ctg_next_p_tc_l: List[NDArray[np.float64]] = np.split(ctg_next_p_tc_flat, split_idxs)
 
-    ctg_backup: NDArray[np.float_] = np.array([np.min(x) for x in ctg_next_p_tc_l]) * np.logical_not(is_solved)
+    ctg_backup: NDArray[np.float64] = np.array([np.min(x) for x in ctg_next_p_tc_l]) * np.logical_not(is_solved)
     times.record_time("backup", time.time() - start_time)
 
     return ctg_backup, ctg_next_p_tc_l, states_exp, is_solved

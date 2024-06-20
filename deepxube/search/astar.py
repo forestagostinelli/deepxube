@@ -172,7 +172,7 @@ def add_to_open(instances: List[Instance], nodes: List[List[Node]]) -> None:
 
 
 def add_heuristic_and_cost(nodes: List[Node], heuristic_fn: HeurFN_T,
-                           weights: List[float]) -> Tuple[NDArray[np.float_], NDArray[np.float_]]:
+                           weights: List[float]) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
     if len(nodes) == 0:
         return np.zeros(0), np.zeros(0)
 
@@ -180,10 +180,10 @@ def add_heuristic_and_cost(nodes: List[Node], heuristic_fn: HeurFN_T,
     states: List[State] = [node.state for node in nodes]
     goals: List[Goal] = [node.goal for node in nodes]
     heuristics = heuristic_fn(states, goals)
-    path_costs: NDArray[np.float_] = np.array([node.path_cost for node in nodes])
+    path_costs: NDArray[np.float64] = np.array([node.path_cost for node in nodes])
     is_solved: NDArray[np.bool_] = np.array([node.is_solved for node in nodes])
 
-    costs: NDArray[np.float_] = np.array(weights) * path_costs + heuristics * np.logical_not(is_solved)
+    costs: NDArray[np.float64] = np.array(weights) * path_costs + heuristics * np.logical_not(is_solved)
 
     # add cost to node
     for node, heuristic, cost in zip(nodes, heuristics, costs):
