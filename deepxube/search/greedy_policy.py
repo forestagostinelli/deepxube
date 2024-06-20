@@ -1,4 +1,4 @@
-from typing import List, Tuple, Set, Callable, Optional, Any
+from typing import List, Tuple, Set, Callable, Optional
 from deepxube.environments.environment_abstract import Environment, State, Goal
 from deepxube.utils import misc_utils
 from deepxube.utils.timing_utils import Times
@@ -7,7 +7,6 @@ import numpy as np
 from numpy.typing import NDArray
 from deepxube.search.search_utils import bellman
 from torch.multiprocessing import get_context, Queue
-from multiprocessing.process import BaseProcess
 import random
 import time
 
@@ -34,8 +33,8 @@ class Instance:
 
 
 class Greedy:
-    def __init__(self, env: Environment[Any, Any]):
-        self.env: Environment[Any, Any] = env
+    def __init__(self, env: Environment):
+        self.env: Environment = env
         self.instances: List[Instance] = []
 
     def add_instances(self, states: List[State], goals: List[Goal], eps_l: Optional[List[float]]):
@@ -125,7 +124,7 @@ class Greedy:
         return instances_unsolved
 
 
-def greedy_runner(env: Environment[Any, Any], heur_fn_q: HeurFnQ, proc_id: int,
+def greedy_runner(env: Environment, heur_fn_q: HeurFnQ, proc_id: int,
                   max_solve_steps: int, data_q, results_queue):
     heuristic_fn = heur_fn_q.get_heuristic_fn(env)
     states, goals, inst_gen_steps = data_q.get()
@@ -145,7 +144,7 @@ def greedy_runner(env: Environment[Any, Any], heur_fn_q: HeurFnQ, proc_id: int,
     results_queue.put((proc_id, is_solved_all, num_steps_all, state_ctg_all, inst_gen_steps))
 
 
-def greedy_test(states: List[State], goals: List[Goal], inst_gen_steps: List[int], env: Environment[Any, Any],
+def greedy_test(states: List[State], goals: List[Goal], inst_gen_steps: List[int], env: Environment,
                 heur_fn_qs: List[HeurFnQ], max_solve_steps: Optional[int] = None) -> float:
     # initialize
     if max_solve_steps is None:
@@ -154,7 +153,7 @@ def greedy_test(states: List[State], goals: List[Goal], inst_gen_steps: List[int
     ctx = get_context("spawn")
     data_q: Queue = ctx.Queue()
     results_q: Queue = ctx.Queue()
-    procs: List[BaseProcess] = []
+    procs: List = []
     num_states_per_proc: List[int] = misc_utils.split_evenly(len(states), len(heur_fn_qs))
     start_idx: int = 0
     for proc_id, heur_fn_q in enumerate(heur_fn_qs):

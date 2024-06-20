@@ -28,6 +28,10 @@ class State(ABC):
         pass
 
 
+class Action(ABC):
+    pass
+
+
 class Goal(ABC):
     pass
 
@@ -48,11 +52,11 @@ class HeurFnNNet(nn.Module):
 
 
 S = TypeVar('S', bound=State)
+A = TypeVar('A', bound=Action)
 G = TypeVar('G', bound=Goal)
 
 
-# TODO add action type to generic
-class Environment(ABC, Generic[S, G]):
+class Environment(ABC, Generic[S, A, G]):
     def __init__(self, env_name: str):
         self.env_name: Optional[str] = env_name
 
@@ -67,7 +71,7 @@ class Environment(ABC, Generic[S, G]):
         pass
 
     @abstractmethod
-    def get_state_actions(self, states: List[S]) -> List[List[Any]]:
+    def get_state_actions(self, states: List[S]) -> List[List[A]]:
         """ Get actions applicable to each states
 
         @param states: List of states
@@ -76,7 +80,7 @@ class Environment(ABC, Generic[S, G]):
         pass
 
     @abstractmethod
-    def next_state(self, states: List[S], actions: List[Any]) -> Tuple[List[S], List[float]]:
+    def next_state(self, states: List[S], actions: List[A]) -> Tuple[List[S], List[float]]:
         """ Get the next state and transition cost given the current state and action
 
         @param states: List of states
@@ -91,8 +95,8 @@ class Environment(ABC, Generic[S, G]):
         @param states: List of states
         @return: Next states, transition costs
         """
-        state_actions: List[List[int]] = self.get_state_actions(states)
-        actions_rand: List[int] = [random.choice(x) for x in state_actions]
+        state_actions: List[List[A]] = self.get_state_actions(states)
+        actions_rand: List[A] = [random.choice(x) for x in state_actions]
         return self.next_state(states, actions_rand)
 
     @abstractmethod
@@ -140,17 +144,17 @@ class Environment(ABC, Generic[S, G]):
 
         return states_start, goals
 
-    # TODO add actions to output
-    def expand(self, states: List[S]) -> Tuple[List[List[S]], List[List[float]]]:
+    def expand(self, states: List[S]) -> Tuple[List[List[S]], List[List[A]], List[List[float]]]:
         """ Generate all children for the state, assumes there is at least one child state
         @param states: List of states
-        @return: Children of each state, Transition costs for each state
+        @return: Children of each state, actions, transition costs for each state
         """
         # TODO further validate
         # initialize
         states_exp_l: List[List[S]] = [[] for _ in range(len(states))]
+        actions_exp_l: List[List[A]] = [[] for _ in range(len(states))]
         tcs_l: List[List[float]] = [[] for _ in range(len(states))]
-        state_actions: List[List[Any]] = self.get_state_actions(states)
+        state_actions: List[List[A]] = self.get_state_actions(states)
 
         num_actions_tot: NDArray[np.int_] = np.array([len(x) for x in state_actions])
         num_actions_taken: NDArray[np.int_] = np.zeros(len(states), dtype=int)
@@ -160,7 +164,7 @@ class Environment(ABC, Generic[S, G]):
         while np.any(actions_lt):
             idxs: NDArray[np.int_] = np.where(actions_lt)[0]
             states_idxs: List[S] = [states[idx] for idx in idxs]
-            actions_idxs: List[Any] = [state_actions[idx].pop(0) for idx in idxs]
+            actions_idxs: List[A] = [state_actions[idx].pop(0) for idx in idxs]
 
             # next state
             states_next, tcs_move = self.next_state(states_idxs, actions_idxs)
@@ -168,12 +172,13 @@ class Environment(ABC, Generic[S, G]):
             # transition cost
             for exp_idx, idx in enumerate(idxs):
                 states_exp_l[idx].append(states_next[exp_idx])
+                actions_exp_l[idx].append(actions_idxs[exp_idx])
                 tcs_l[idx].append(tcs_move[exp_idx])
 
             num_actions_taken[idxs] = num_actions_taken[idxs] + 1
             actions_lt[idxs] = num_actions_taken[idxs] < num_actions_tot[idxs]
 
-        return states_exp_l, tcs_l
+        return states_exp_l, actions_exp_l, tcs_l
 
     @abstractmethod
     def states_goals_to_nnet_input(self, states: List[S], goals: List[G]) -> List[NDArray[Any]]:
@@ -261,10 +266,9 @@ class Environment(ABC, Generic[S, G]):
         return states_walk
 
 
-class EnvGrndAtoms(Environment[S, G]):
+class EnvGrndAtoms(Environment[S, A, G]):
     def __init__(self, env_name: str):
         super().__init__(env_name)
-        self.env_name: Optional[str] = env_name
 
     @abstractmethod
     def state_to_model(self, states: List[S]) -> List[Model]:

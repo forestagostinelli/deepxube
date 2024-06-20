@@ -21,7 +21,7 @@ def data_runner(queue1: Queue, queue2: Queue):
         queue2.put(the)
 
 
-def test_env(env: Environment[Any, Any], num_states: int, step_max: int):
+def test_env(env: Environment, num_states: int, step_max: int):
     torch.set_num_threads(1)
 
     # generate start/goal states
@@ -51,7 +51,7 @@ def test_env(env: Environment[Any, Any], num_states: int, step_max: int):
 
     # expand
     start_time = time.time()
-    states_exp, tcs = env.expand(states)
+    states_exp, _, tcs = env.expand(states)
     ave_next_states: float = float(np.mean([len(x) for x in states_exp]))
     ave_tc: float = float(np.mean(flatten(tcs)[0]))
 

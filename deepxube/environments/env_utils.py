@@ -1,10 +1,9 @@
-from typing import Any
 from deepxube.environments.environment_abstract import Environment
 import math
 import re
 
 
-def get_environment(env_name: str) -> Environment[Any, Any]:
+def get_environment(env_name: str) -> Environment:
     env_name = env_name.lower()
     puzzle_n_regex = re.search(r"puzzle(\d+)", env_name)
 

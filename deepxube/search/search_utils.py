@@ -1,23 +1,22 @@
-from typing import List, Tuple, Optional, Any
+from typing import List, Tuple, Optional
 import numpy as np
 from numpy.typing import NDArray
-from deepxube.environments.environment_abstract import Environment, State, Goal
+from deepxube.environments.environment_abstract import Environment, State, Action, Goal
 from deepxube.utils import misc_utils
 from deepxube.utils.timing_utils import Times
 import time
 
 
-def is_valid_soln(state: State, goal: Goal, soln: List[int], env: Environment[Any, Any]) -> bool:
+def is_valid_soln(state: State, goal: Goal, soln: List[Action], env: Environment) -> bool:
     state_soln: State = state
-    move: int
-    for move in soln:
-        state_soln = env.next_state([state_soln], [move])[0][0]
+    for action in soln:
+        state_soln = env.next_state([state_soln], [action])[0][0]
 
     return env.is_solved([state_soln], [goal])[0]
 
 
 def bellman(states: List[State], goals: List[Goal], heuristic_fn,
-            env: Environment[Any, Any],
+            env: Environment,
             times: Optional[Times] = None) -> Tuple[NDArray[np.float_], List[NDArray[np.float_]], List[List[State]],
                                                     List[bool]]:
     if times is None:
@@ -25,7 +24,7 @@ def bellman(states: List[State], goals: List[Goal], heuristic_fn,
 
     # expand states
     start_time = time.time()
-    states_exp, tcs_l = env.expand(states)
+    states_exp, _, tcs_l = env.expand(states)
     times.record_time("expand", time.time() - start_time)
 
     # get cost-to-go of expanded states
@@ -54,29 +53,3 @@ def bellman(states: List[State], goals: List[Goal], heuristic_fn,
     times.record_time("backup", time.time() - start_time)
 
     return ctg_backup, ctg_next_p_tc_l, states_exp, is_solved
-
-
-def q_step(states: List[State], goals: List[Goal], heuristic_fn,
-           env: Environment[Any, Any]) -> Tuple[NDArray[np.float_], NDArray[np.float_]]:
-    # ctgs for each action
-    ctg_acts = heuristic_fn(states, goals)
-
-    # get actions
-    actions: List[int] = list(np.argmin(ctg_acts, axis=1))
-
-    # take action
-    states_next: List[State]
-    tcs: List[float]
-    states_next, tcs = env.next_state(states, actions)
-
-    # min cost-to-go for next state
-    ctg_acts_next = heuristic_fn(states_next, goals)
-    ctg_acts_next_max = ctg_acts_next.min(axis=1)
-
-    # backup cost-to-go
-    ctg_backups = np.array(tcs) + ctg_acts_next_max
-
-    is_solved = env.is_solved(states, goals)
-    ctg_backups = ctg_backups * np.logical_not(is_solved)
-
-    return ctg_backups, ctg_acts

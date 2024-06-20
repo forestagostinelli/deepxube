@@ -11,7 +11,7 @@ from multiprocessing.process import BaseProcess
 import time
 
 
-def greedy_update(states: List[State], goals: List[Goal], env: Environment[Any, Any], num_steps: int, heuristic_fn,
+def greedy_update(states: List[State], goals: List[Goal], env: Environment, num_steps: int, heuristic_fn,
                   eps_max: float, times: Times):
     eps: List[float] = list(np.random.rand(len(states)) * eps_max)
 
@@ -43,7 +43,7 @@ def greedy_update(states: List[State], goals: List[Goal], env: Environment[Any, 
 
 
 def update_runner(num_states: int, step_max: int, step_probs: List[float], update_batch_size: int, heur_fn_q: HeurFnQ,
-                  env: Environment[Any, Any], result_queue, solve_steps: int, update_method: str, eps_max: float):
+                  env: Environment, result_queue, solve_steps: int, update_method: str, eps_max: float):
     heuristic_fn = heur_fn_q.get_heuristic_fn(env)
     states_per_inst: float = solve_steps
     num_states_curr: int = 0
@@ -95,7 +95,7 @@ def update_runner(num_states: int, step_max: int, step_probs: List[float], updat
 
 
 class Updater:
-    def __init__(self, env: Environment[Any, Any], num_states: int, back_max: int, step_probs: List[float],
+    def __init__(self, env: Environment, num_states: int, back_max: int, step_probs: List[float],
                  heur_fn_qs: List[HeurFnQ], solve_steps: int, update_method: str, update_batch_size: int = 1000,
                  eps_max: float = 0.0):
         super().__init__()

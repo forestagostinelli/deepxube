@@ -1,5 +1,5 @@
-from typing import List, Tuple, Dict, Callable, Optional, cast, Any
-from deepxube.environments.environment_abstract import Environment, State, Goal
+from typing import List, Tuple, Dict, Callable, Optional, cast
+from deepxube.environments.environment_abstract import Environment, State, Action, Goal
 from deepxube.nnet.nnet_utils import HeurFN_T
 import numpy as np
 from heapq import heappush, heappop
@@ -10,17 +10,17 @@ from numpy.typing import NDArray
 
 
 class Node:
-    __slots__ = ['state', 'goal', 'path_cost', 'heuristic', 'cost', 'is_solved', 'parent_move', 'parent']
+    __slots__ = ['state', 'goal', 'path_cost', 'heuristic', 'cost', 'is_solved', 'parent_action', 'parent']
 
     def __init__(self, state: State, goal: Goal, path_cost: float, is_solved: bool,
-                 parent_move: Optional[int], parent):
+                 parent_action: Optional[Action], parent):
         self.state: State = state
         self.goal: Goal = goal
         self.path_cost: float = path_cost
         self.heuristic: Optional[float] = None
         self.cost: Optional[float] = None
         self.is_solved: bool = is_solved
-        self.parent_move: Optional[int] = parent_move
+        self.parent_action: Optional[Action] = parent_action
         self.parent: Optional[Node] = parent
 
 
@@ -80,7 +80,7 @@ class Instance:
         return nodes_not_in_closed
 
 
-def expand_nodes(instances: List[Instance], popped_nodes_all: List[List[Node]], env: Environment[Any, Any]):
+def expand_nodes(instances: List[Instance], popped_nodes_all: List[List[Node]], env: Environment):
     # Get children of all nodes at once (for speed)
     popped_nodes_flat: List[Node]
     split_idxs: List[int]
@@ -93,7 +93,7 @@ def expand_nodes(instances: List[Instance], popped_nodes_all: List[List[Node]], 
 
     states_c_by_node: List[List[State]]
     tcs_np: List[List[float]]
-    states_c_by_node, tcs_np = env.expand(states)
+    states_c_by_node, actions_c_by_node, tcs_np = env.expand(states)
 
     tcs_by_node: List[List[float]] = [list(x) for x in tcs_np]
     goals_c_by_node: List[List[Goal]] = [[node.goal] * len(states_c) for node, states_c in
@@ -119,6 +119,7 @@ def expand_nodes(instances: List[Instance], popped_nodes_all: List[List[Node]], 
     patch_costs_c_by_inst_node: List[List[List[float]]] = misc_utils.unflatten(path_costs_c_by_node,
                                                                                split_idxs)
     states_c_by_inst_node: List[List[List[State]]] = misc_utils.unflatten(states_c_by_node, split_idxs)
+    actions_c_by_inst_node: List[List[List[Action]]] = misc_utils.unflatten(actions_c_by_node, split_idxs)
     is_solved_c_by_inst_node: List[List[List[bool]]] = misc_utils.unflatten(is_solved_c_by_node, split_idxs)
 
     # Get child nodes
@@ -130,20 +131,24 @@ def expand_nodes(instances: List[Instance], popped_nodes_all: List[List[Node]], 
         tcs_by_node = tcs_by_inst_node[inst_idx]
         path_costs_c_by_node = patch_costs_c_by_inst_node[inst_idx]
         states_c_by_node = states_c_by_inst_node[inst_idx]
+        actions_c_by_node = actions_c_by_inst_node[inst_idx]
 
         is_solved_c_by_node = is_solved_c_by_inst_node[inst_idx]
 
         parent_node: Node
         tcs_node: List[float]
-        for parent_node, tcs_node, path_costs_c, states_c, is_solved_c in zip(parent_nodes, tcs_by_node,
-                                                                              path_costs_c_by_node, states_c_by_node,
-                                                                              is_solved_c_by_node):
+        for parent_node, tcs_node, path_costs_c, states_c, actions_c, is_solved_c in (zip(parent_nodes, tcs_by_node,
+                                                                                          path_costs_c_by_node,
+                                                                                          states_c_by_node,
+                                                                                          actions_c_by_node,
+                                                                                          is_solved_c_by_node)):
             state: State
             goal: Goal = parent_node.goal
             for move_idx, state in enumerate(states_c):
                 path_cost: float = path_costs_c[move_idx]
                 is_solved: bool = is_solved_c[move_idx]
-                node_c: Node = Node(state, goal, path_cost, is_solved, move_idx, parent_node)
+                action: Action = actions_c[move_idx]
+                node_c: Node = Node(state, goal, path_cost, is_solved, action, parent_node)
 
                 nodes_c_by_inst[inst_idx].append(node_c)
 
@@ -190,12 +195,12 @@ def add_heuristic_and_cost(nodes: List[Node], heuristic_fn: HeurFN_T,
 
 class AStar:
 
-    def __init__(self, env: Environment[Any, Any]):
+    def __init__(self, env: Environment):
         """ Initialize AStar search
 
         :param env: Environment
         """
-        self.env: Environment[Any, Any] = env
+        self.env: Environment = env
         self.step_num: int = 0
 
         self.timings: Dict[str, float] = {"pop": 0.0, "expand": 0.0, "check": 0.0, "heur": 0.0,
@@ -314,25 +319,26 @@ class AStar:
         return instances_remove
 
 
-def get_path(node: Node) -> Tuple[List[State], List[int], float]:
+def get_path(node: Node) -> Tuple[List[State], List[Action], float]:
     """ Gets path from a the start state to the goal state associated with the input node
 
     :param node: goal node
     :return: List of states along path, List of actions in path, path cost
     """
     path: List[State] = []
-    moves: List[int] = []
+    actions: List[Action] = []
 
     parent_node: Node = node
     while parent_node.parent is not None:
         path.append(parent_node.state)
 
-        moves.append(cast(int, parent_node.parent_move))
+        assert parent_node.parent_action is not None, "parent_action should not be None"
+        actions.append(parent_node.parent_action)
         parent_node = parent_node.parent
 
     path.append(parent_node.state)
 
     path = path[::-1]
-    moves = moves[::-1]
+    actions = actions[::-1]
 
-    return path, moves, node.path_cost
+    return path, actions, node.path_cost

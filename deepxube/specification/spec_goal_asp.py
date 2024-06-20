@@ -10,7 +10,7 @@ from deepxube.utils.timing_utils import Times
 import time
 
 
-def get_bk(env: EnvGrndAtoms[Any, Any], bk_add_file_name: Optional[str]) -> List[str]:
+def get_bk(env: EnvGrndAtoms, bk_add_file_name: Optional[str]) -> List[str]:
     bk_init: List[str] = env.get_bk()
     bk_init.append("")
 
@@ -22,7 +22,7 @@ def get_bk(env: EnvGrndAtoms[Any, Any], bk_add_file_name: Optional[str]) -> List
     return bk_init
 
 
-def search_for_goal(env: EnvGrndAtoms[Any, Any], state_start: State, models: List[Model], batch_size: int,
+def search_for_goal(env: EnvGrndAtoms, state_start: State, models: List[Model], batch_size: int,
                     weight: float, max_search_itrs: int, heur_fn: HeurFN_T, search_verbose: bool,
                     viz_model: bool) -> List[Optional[Node]]:
     goals: List[Goal] = env.model_to_goal(models)
@@ -49,7 +49,7 @@ def search_for_goal(env: EnvGrndAtoms[Any, Any], state_start: State, models: Lis
     return [x.goal_node for x in astar.instances]
 
 
-def get_next_model(asp: Solver, spec_clauses: List[Clause], env: EnvGrndAtoms[Any, Any], models_banned: List[Model],
+def get_next_model(asp: Solver, spec_clauses: List[Clause], env: EnvGrndAtoms, models_banned: List[Model],
                    num_models: int, assumed_true: Optional[Model] = None,
                    num_atoms_gt: Optional[int] = None) -> List[Model]:
     if num_atoms_gt is not None:
@@ -69,7 +69,7 @@ def get_next_model(asp: Solver, spec_clauses: List[Clause], env: EnvGrndAtoms[An
     return models
 
 
-def path_to_spec_goal(env: EnvGrndAtoms[Any, Any], state_start: State, spec_clauses: List[Clause], heur_fn: HeurFN_T,
+def path_to_spec_goal(env: EnvGrndAtoms, state_start: State, spec_clauses: List[Clause], heur_fn: HeurFN_T,
                       model_batch_size: int, search_batch_size: int, weight: float, max_search_itrs: int,
                       bk_add: Optional[str] = None, models_banned: Optional[List[Model]] = None,
                       times: Optional[Times] = None, spec_verbose: bool = False, search_verbose: bool = False,

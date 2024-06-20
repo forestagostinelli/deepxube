@@ -4,14 +4,16 @@
 # Adapted from cube code written by David Hogg
 #   https://github.com/davidwhogg/MagicCube
 
+from typing import List, Optional
 import numpy as np
+from numpy.typing import NDArray
 
 import matplotlib.pyplot as plt
 
 from deepxube.utils.viz_utils import Quaternion, project_points
 
 
-class InteractiveCube(plt.Axes):
+class InteractiveCube(plt.Axes):  # type: ignore
     # Define some attributes
     base_face = np.array([[1, 1, 1],
                           [1, -1, 1],
@@ -33,9 +35,9 @@ class InteractiveCube(plt.Axes):
     base_face_centroid = np.array([[0, 0, 1]])
     base_sticker_centroid = np.array([[0, 0, 1 + stickerthickness]])
 
-    def __init__(self, n, colors: np.array, view=(0, 0, 10),
+    def __init__(self, n, colors: NDArray, view=(0, 0, 10),
                  fig=None, **kwargs):
-        self.colors: np.array = colors
+        self.colors: NDArray = colors
 
         # Define rotation angles and axes for the six sides of the cube
         x, y, z = np.eye(3)
@@ -43,16 +45,16 @@ class InteractiveCube(plt.Axes):
         self.rots += [Quaternion.from_v_theta(y, theta) for theta in (np.pi / 2, -np.pi / 2, np.pi, 2 * np.pi)]
 
         rect = [0, 0.16, 1, 0.84]
-        self._move_list = []
+        self._move_list: List = []
 
         self.N = n
-        self._prevStates = []
+        self._prevStates: List = []
 
         self._view = view
         self._start_rot = Quaternion.from_v_theta((1, -1, 0), -np.pi / 6)
 
-        self._grey_stickers = []
-        self._black_stickers = []
+        self._grey_stickers: List = []
+        self._black_stickers: List = []
 
         if fig is None:
             fig = plt.gcf()
@@ -69,8 +71,8 @@ class InteractiveCube(plt.Axes):
                            xticks=kwargs.get('xticks', []),
                            yticks=kwargs.get('yticks', [])))
         super(InteractiveCube, self).__init__(fig, rect, **kwargs)
-        self.xaxis.set_major_formatter(plt.NullFormatter())
-        self.yaxis.set_major_formatter(plt.NullFormatter())
+        self.xaxis.set_major_formatter(plt.NullFormatter())  # type: ignore
+        self.yaxis.set_major_formatter(plt.NullFormatter())  # type: ignore
 
         self._start_xlim = kwargs['xlim']
         self._start_ylim = kwargs['ylim']
@@ -86,8 +88,8 @@ class InteractiveCube(plt.Axes):
         self._ax_LR_alt = (0, 0, 1)
 
         self._current_rot = self._start_rot  # current rotation state
-        self._face_polys = None
-        self._sticker_polys = None
+        self._face_polys: Optional[List] = None
+        self._sticker_polys: Optional[List] = None
 
         self.plastic_color = 'black'
 
@@ -186,16 +188,15 @@ class InteractiveCube(plt.Axes):
             self._sticker_polys = []
 
             for i in range(len(colors)):
-                fp = plt.Polygon(faces[i], facecolor=plastic_color,
-                                 zorder=face_zorders[i])
-                sp = plt.Polygon(stickers[i], facecolor=colors[i],
-                                 zorder=sticker_zorders[i])
+                fp = plt.Polygon(faces[i], facecolor=plastic_color, zorder=face_zorders[i])  # type: ignore
+                sp = plt.Polygon(stickers[i], facecolor=colors[i], zorder=sticker_zorders[i])  # type: ignore
 
                 self._face_polys.append(fp)
                 self._sticker_polys.append(sp)
                 self.add_patch(fp)
                 self.add_patch(sp)
         else:
+            assert self._sticker_polys is not None
             # subsequent call: update the polygon objects
             for i in range(len(colors)):
                 self._face_polys[i].set_xy(faces[i])
@@ -208,6 +209,6 @@ class InteractiveCube(plt.Axes):
 
         self.figure.canvas.draw()
 
-    def new_state(self, colors: np.array):
+    def new_state(self, colors: NDArray):
         self.colors = colors
         self._draw_cube()

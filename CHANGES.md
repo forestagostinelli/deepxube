@@ -1,6 +1,8 @@
 # Changes
 
 ## 0.1.2
+* Add Action generic to Environment
+* swap opencv-python dependency for pillow 
 * ASP Spec/Solver
 * n-puzzle background knowledge
 * hash refactor

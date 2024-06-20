@@ -62,7 +62,7 @@ def load_nnet(model_file: str, nnet: nn.Module, device: Optional[torch.device] =
 
 
 # heuristic
-def get_heuristic_fn(nnet: nn.Module, device: torch.device, env: Environment[Any, Any], clip_zero: bool = False,
+def get_heuristic_fn(nnet: nn.Module, device: torch.device, env: Environment, clip_zero: bool = False,
                      batch_size: Optional[int] = None, is_v: bool = False) -> HeurFN_T:
     nnet.eval()
 
@@ -127,7 +127,7 @@ def get_available_gpu_nums() -> List[int]:
 
 
 def load_heuristic_fn(model_file: str, device: torch.device, on_gpu: bool, nnet: nn.Module,
-                      env: Environment[Any, Any], clip_zero: bool = False, gpu_num: Optional[int] = None,
+                      env: Environment, clip_zero: bool = False, gpu_num: Optional[int] = None,
                       batch_size: Optional[int] = None) -> HeurFN_T:
     if (gpu_num is not None) and on_gpu:
         os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_num)
@@ -148,7 +148,7 @@ def load_heuristic_fn(model_file: str, device: torch.device, on_gpu: bool, nnet:
 # parallel training
 def heuristic_fn_runner(heuristic_fn_input_queue: Queue, heuristic_fn_output_queues: List[Queue],
                         model_file: str, device, on_gpu: bool, gpu_num: int, nnet: HeurFnNNet,
-                        env: Environment[Any, Any], all_zeros: bool, clip_zero: bool, batch_size: Optional[int]):
+                        env: Environment, all_zeros: bool, clip_zero: bool, batch_size: Optional[int]):
     heuristic_fn: Optional[HeurFN_T] = None
     if not all_zeros:
         heuristic_fn = load_heuristic_fn(model_file, device, on_gpu, nnet, env, gpu_num=gpu_num,
@@ -175,8 +175,9 @@ class HeurFnQ:
         self.heur_fn_o_q = heur_fn_o_q
         self.proc_id: int = proc_id
 
-    def get_heuristic_fn(self, env: Environment[Any, Any]) -> HeurFN_T:
-        def heuristic_fn(states: Union[List[State], NDArray[Any]], goals: Optional[List[Goal]]):
+    def get_heuristic_fn(self, env: Environment) -> HeurFN_T:
+        def heuristic_fn(states: Any, goals: Optional[List[Goal]]):
+            # states: Union[List[State], NDArray[Any]]
             if goals is not None:
                 states_goals_nnet = env.states_goals_to_nnet_input(states, goals)
             else:
@@ -191,7 +192,7 @@ class HeurFnQ:
 
 
 def start_heur_fn_runners(num_procs: int, model_file: str, device, on_gpu: bool, nnet: HeurFnNNet,
-                          env: Environment[Any, Any], all_zeros: bool = False, clip_zero: bool = False,
+                          env: Environment, all_zeros: bool = False, clip_zero: bool = False,
                           batch_size: Optional[int] = None) -> Tuple[List[HeurFnQ], List[BaseProcess]]:
     ctx = get_context("spawn")
 

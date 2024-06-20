@@ -217,35 +217,3 @@ class Conv2dModel(nn.Module):
                 x = module(x)
 
         return x
-
-
-class ResnetConv2dModel(nn.Module):
-    def _forward_unimplemented(self, *input_val: Any) -> None:
-        pass
-
-    def __init__(self, resnet_channels: int, kernel_size: int, padding: int, num_resnet_blocks: int, batch_norm: bool,
-                 act: str):
-        super().__init__()
-        self.blocks = nn.ModuleList()
-        self.block_act_fns = nn.ModuleList()
-
-        # resnet blocks
-        for block_num in range(num_resnet_blocks):
-            block_net = Conv2dModel(resnet_channels, [resnet_channels] * 2, [kernel_size] * 2, [padding] * 2,
-                                    [batch_norm] * 2, [act, "LINEAR"])
-            module_list: nn.ModuleList = nn.ModuleList([block_net])
-
-            self.blocks.append(module_list)
-            self.block_act_fns.append(get_act_fn(act))
-
-    def forward(self, x):
-        # resnet blocks
-        module_list: nn.ModuleList
-        for module_list, act_fn in zip(self.blocks, self.block_act_fns):
-            res_inp = x
-            for module in module_list:
-                x = module(x)
-
-            x = act_fn(x + res_inp)
-
-        return x

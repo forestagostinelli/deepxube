@@ -5,7 +5,7 @@ This code was tested on Python 3.10.
 
 ### Packages
 - Deep reinforcement learning: torch>=2.0, numpy
-- Visualization: matplotlib, opencv-python, imageio
+- Visualization: matplotlib, pillow, types-Pillow, imageio
 - Logic: clingo
 - Data: wget
 - Parallel processing: filelock

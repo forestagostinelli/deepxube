@@ -1,4 +1,4 @@
-from typing import List, Union, Any
+from typing import List, Union
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -172,7 +172,7 @@ def project_points(points, q, view, vertical):  # type: ignore
                      -np.dot(dpoint, zdir)]).transpose(trans)
 
 
-def visualize_examples(env: Environment[Any, Any], states: Union[List[State], List[Goal]]):
+def visualize_examples(env: Environment, states: Union[List[State], List[Goal]]):
     states_np = env.visualize(states)
 
     plt.ion()

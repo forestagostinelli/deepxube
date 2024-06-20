@@ -9,7 +9,7 @@ from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel, Conv2
 import numpy as np
 from numpy.typing import NDArray
 import matplotlib.pyplot as plt
-from deepxube.environments.environment_abstract import EnvGrndAtoms, State, HeurFnNNet, Goal
+from deepxube.environments.environment_abstract import EnvGrndAtoms, State, Action, HeurFnNNet, Goal
 from deepxube.logic.logic_objects import Atom, Model
 
 import pickle
@@ -86,6 +86,11 @@ class SokobanGoal(Goal):
         self.walls: NDArray[np.uint8] = walls
 
 
+class SkAction(Action):
+    def __init__(self, action: int):
+        self.action = action
+
+
 def load_states(data_dir: str) -> List[SokobanState]:
     states_np = pickle.load(open(f"{data_dir}/sokoban/train.pkl", "rb"))
     # t_file = tarfile.open(file_name, "r:gz")
@@ -154,7 +159,7 @@ def get_data_dir() -> str:
     return data_dir
 
 
-class Sokoban(EnvGrndAtoms[SokobanState, SokobanGoal]):
+class Sokoban(EnvGrndAtoms[SokobanState, SkAction, SokobanGoal]):
 
     def __init__(self, env_name: str):
         super().__init__(env_name)
@@ -193,7 +198,7 @@ class Sokoban(EnvGrndAtoms[SokobanState, SokobanGoal]):
                 elif user_in.upper() == "N":
                     valid_user_in = True
 
-    def next_state(self, states: List[SokobanState], actions: List[int]) -> Tuple[List[SokobanState], List[float]]:
+    def next_state(self, states: List[SokobanState], actions: List[SkAction]) -> Tuple[List[SokobanState], List[float]]:
         agent = np.stack([state.agent for state in states], axis=0)
         boxes = np.stack([state.boxes for state in states], axis=0)
         walls_next = np.stack([state.walls for state in states], axis=0)
@@ -244,8 +249,8 @@ class Sokoban(EnvGrndAtoms[SokobanState, SokobanGoal]):
 
         return states_next, transition_costs
 
-    def get_state_actions(self, states: List[SokobanState]) -> List[List[int]]:
-        return [list(range(self.num_actions)) for _ in range(len(states))]
+    def get_state_actions(self, states: List[SokobanState]) -> List[List[SkAction]]:
+        return [[SkAction(x) for x in range(self.num_actions)] for _ in range(len(states))]
 
     def is_solved(self, states: List[SokobanState], goals: List[SokobanGoal]) -> List[bool]:
         nnet_rep: List[NDArray[np.uint8]] = self.states_goals_to_nnet_input(states, goals)
@@ -275,7 +280,8 @@ class Sokoban(EnvGrndAtoms[SokobanState, SokobanGoal]):
             idxs: NDArray[np.int_] = np.where(steps_lt)[0]
 
             states_to_move: List[SokobanState] = [states[idx] for idx in idxs]
-            actions = list(np.random.randint(0, self.num_actions, size=len(states_to_move)))
+            actions: List[SkAction] = [SkAction(act) for act in
+                                       np.random.randint(0, self.num_actions, size=len(states_to_move))]
 
             states_moved, _ = self.next_state(states_to_move, actions)
 
@@ -456,7 +462,7 @@ class Sokoban(EnvGrndAtoms[SokobanState, SokobanGoal]):
             for idx1 in range(self.dim):
                 for idx2 in range(self.dim):
                     curr_idxs = np.array([[idx1, idx2]])
-                    next_idxs = self._get_next_idx(curr_idxs, [action])[0]
+                    next_idxs = self._get_next_idx(curr_idxs, [SkAction(action)])[0]
                     if np.all(curr_idxs[0] == next_idxs):
                         continue
                     inst_l.append(f"(move-dir pos-{idx1}-{idx2} pos-{next_idxs[0]}-{next_idxs[1]} dir-{act_name})")
@@ -608,7 +614,7 @@ class Sokoban(EnvGrndAtoms[SokobanState, SokobanGoal]):
     def visualize(self, states: Union[List[SokobanState], List[SokobanGoal]]) -> NDArray[np.float_]:
         states_img: NDArray[np.float_] = np.zeros((len(states), self.img_dim, self.img_dim, 3))
 
-        import cv2
+        from PIL import Image
         if self._surfaces is None:
             self._surfaces = _get_surfaces()
 
@@ -627,7 +633,10 @@ class Sokoban(EnvGrndAtoms[SokobanState, SokobanGoal]):
 
                     room_rgb[x_i:(x_i + 16), y_j:(y_j + 16), :] = self._surfaces[surfaces_id]
 
-            states_img[state_idx] = cv2.resize(room_rgb / 255, (self.img_dim, self.img_dim))
+            img = Image.fromarray(room_rgb, 'RGB')
+            img = img.resize((self.img_dim, self.img_dim))
+            states_img[state_idx] = np.array(img) / 255
+            # states_img[state_idx] = cv2.resize(room_rgb / 255, (self.img_dim, self.img_dim))
 
         return states_img
 
@@ -647,8 +656,8 @@ class Sokoban(EnvGrndAtoms[SokobanState, SokobanGoal]):
 
         return goals_rep
 
-    def _get_next_idx(self, curr_idxs: NDArray[np.int_], actions: List[int]) -> NDArray[np.int_]:
-        actions_np: NDArray[np.int_] = np.array(actions)
+    def _get_next_idx(self, curr_idxs: NDArray[np.int_], actions: List[SkAction]) -> NDArray[np.int_]:
+        actions_np: NDArray[np.int_] = np.array([action.action for action in actions])
         next_idxs: NDArray[np.int_] = curr_idxs.copy()
 
         action_idxs: NDArray[np.int_] = np.where(actions_np == 0)[0]
@@ -735,7 +744,7 @@ class InteractiveEnv(plt.Axes):  # type: ignore
             if event.key.upper() == 'D':
                 action = 3
 
-            self.state = self.env.next_state([self.state], [action])[0][0]
+            self.state = self.env.next_state([self.state], [SkAction(action)])[0][0]
             self._update_plot()
             if self.env.is_solved([self.state], [self.goal])[0]:
                 print("SOLVED!")

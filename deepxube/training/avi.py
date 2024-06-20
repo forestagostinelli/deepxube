@@ -25,7 +25,7 @@ import random
 
 
 class Status:
-    def __init__(self, env: Environment[Any, Any], step_max: int, num_test_per_step: int):
+    def __init__(self, env: Environment, step_max: int, num_test_per_step: int):
         self.itr: int = 0
         self.update_num: int = 0
 
@@ -51,7 +51,7 @@ class Status:
         self.per_solved_best: float = per_solved
 
 
-def do_update(step_max: int, update_num: int, env: Environment[Any, Any], step_update_max: int, num_states: int,
+def do_update(step_max: int, update_num: int, env: Environment, step_update_max: int, num_states: int,
               eps_max: float, heur_fn_qs: List[HeurFnQ],
               update_batch_size: int) -> Tuple[List[NDArray[Any]], NDArray[np.float_]]:
     update_steps: int = int(min(update_num + 1, step_update_max))
@@ -87,7 +87,7 @@ def do_update(step_max: int, update_num: int, env: Environment[Any, Any], step_u
     return nnet_rep, ctgs
 
 
-def load_data(model_dir: str, nnet_file: str, env: Environment[Any, Any], num_test_per_step: int,
+def load_data(model_dir: str, nnet_file: str, env: Environment, num_test_per_step: int,
               step_max: int) -> Tuple[nn.Module, Status]:
     status_file: str = "%s/status.pkl" % model_dir
     if os.path.isfile(nnet_file):
@@ -194,7 +194,7 @@ def train_nnet(nnet: nn.Module, nnet_rep: List[NDArray[Any]], ctgs: NDArray[np.f
     return last_loss
 
 
-def train(env: Environment[Any, Any], step_max: int, nnet_dir: str, num_test_per_step: int = 30,
+def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int = 30,
           itrs_per_update: int = 5000, epochs_per_update: int = 1, num_update_procs: int = 1,
           update_batch_size: int = 10000, update_nnet_batch_size: int = 10000, greedy_update_step_max: int = 1,
           greedy_update_eps_max: float = 0.1, lr: float = 0.001, lr_d: float = 0.9999993, max_itrs: int = 1000000,

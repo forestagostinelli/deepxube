@@ -3,7 +3,7 @@ from deepxube.utils import misc_utils
 from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel
 from deepxube.logic.logic_objects import Atom, Model
 from deepxube.visualizers.cube3_viz_simple import InteractiveCube
-from .environment_abstract import EnvGrndAtoms, State, Goal, HeurFnNNet
+from .environment_abstract import EnvGrndAtoms, State, Action, Goal, HeurFnNNet
 
 import numpy as np
 import torch
@@ -99,6 +99,19 @@ class Cube3Goal(Goal):
         self.colors: NDArray[np.uint8] = colors
 
 
+class Cube3Action(Action):
+    def __init__(self, action: int):
+        self.action = action
+
+    def __hash__(self):
+        return self.action
+
+    def __eq__(self, other: object):
+        if isinstance(other, Cube3Action):
+            return self.action == other.action
+        return NotImplemented
+
+
 def _get_adj() -> Dict[int, NDArray[np.int_]]:
     # WHITE:0, YELLOW:1, BLUE:2, GREEN:3, ORANGE: 4, RED: 5
     return {0: np.array([2, 5, 3, 4]),
@@ -126,7 +139,7 @@ def _colors_to_model(colors: NDArray[np.uint8]) -> Model:
     return frozenset(grnd_atoms)
 
 
-class Cube3(EnvGrndAtoms[Cube3State, Cube3Goal]):
+class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal]):
     atomic_actions: List[str] = ["%s%i" % (f, n) for f in ['U', 'D', 'L', 'R', 'B', 'F'] for n in [-1, 1]]
 
     def __init__(self, env_name: str):
@@ -152,12 +165,11 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Goal]):
         self.cbls_all = self.cbs_m_idxs_l + self.cbs_e_idxs_l + self.cbs_c_idxs_l
 
         # all actions
-        self.action_combs: List[List[int]] = [[x] for x in range(len(self.atomic_actions))]
         # for i in range(0, len(self.atomic_actions), 2):
         #    self.action_combs.append([i, i])
 
         # self.action_combs = action_combs
-        self.num_actions = len(self.action_combs)
+        self.num_actions = len(self.atomic_actions)
         self.num_stickers: int = 6 * (self.cube_len ** 2)
 
         # solved state
@@ -174,20 +186,16 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Goal]):
 
         self.int_to_color: NDArray[np.str_] = np.concatenate((np.array(self.colors_grnd_obj), ['k']))  # type: ignore
 
-    def next_state(self, states: List[Cube3State], actions_l: List[int]) -> Tuple[List[Cube3State], List[float]]:
+    def next_state(self, states: List[Cube3State], actions: List[Cube3Action]) -> Tuple[List[Cube3State], List[float]]:
         states_np = np.stack([x.colors for x in states], axis=0)
 
         states_next_np = np.zeros(states_np.shape, dtype=np.uint8)
         tcs_np: NDArray[np.float_] = np.zeros(len(states))
-        actions = np.array(actions_l)
-        for action in np.unique(actions):
-            action_idxs = actions == action
-            states_np_act = states_np[actions == action]
+        for action in set(actions):
+            action_idxs: NDArray[np.int_] = np.array([idx for idx in range(len(actions)) if actions[idx] == action])
+            states_np_act = states_np[action_idxs]
 
-            states_next_np_act_tmp = states_np_act
-            for atomic_action in self.action_combs[action]:
-                states_next_np_act_tmp, _ = self._move_np(states_next_np_act_tmp, atomic_action)
-            states_next_np_act = states_next_np_act_tmp
+            states_next_np_act = self._move_np(states_np_act, action.action)
 
             tcs_act: List[float] = [1.0 for _ in range(states_np_act.shape[0])]
 
@@ -199,8 +207,8 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Goal]):
 
         return states_next, transition_costs
 
-    def get_state_actions(self, states: List[Cube3State]) -> List[List[int]]:
-        return [list(range(self.num_actions)) for _ in range(len(states))]
+    def get_state_actions(self, states: List[Cube3State]) -> List[List[Cube3Action]]:
+        return [[Cube3Action(x) for x in range(self.num_actions)] for _ in range(len(states))]
 
     def is_solved(self, states: List[Cube3State], goals: List[Cube3Goal]) -> List[bool]:
         states_np = np.stack([x.colors for x in states], axis=0)
@@ -272,7 +280,7 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Goal]):
             idxs = np.random.choice(idxs, subset_size)
 
             move: int = randrange(num_atomic_moves)
-            states_np[idxs], _ = self._move_np(states_np[idxs], move)
+            states_np[idxs] = self._move_np(states_np[idxs], move)
 
             num_back_moves[idxs] = num_back_moves[idxs] + 1
             moves_lt[idxs] = num_back_moves[idxs] < scramble_nums[idxs]
@@ -636,7 +644,7 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Goal]):
         face_idxs = np.floor(np.sort(cubelet) // (self.cube_len ** 2)).astype(int)
         return [self.colors_grnd_obj[idx] for idx in face_idxs]
 
-    def _move_np(self, states_np: NDArray[np.uint8], action: int) -> Tuple[NDArray[np.uint8], List[float]]:
+    def _move_np(self, states_np: NDArray[np.uint8], action: int) -> NDArray[np.uint8]:
         states_next_np: NDArray[np.uint8] = states_np.copy()
 
         actions = [action]
@@ -645,9 +653,7 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Goal]):
             action_str: str = self.atomic_actions[action_part]
             states_next_np[:, self.rotate_idxs_new[action_str]] = states_next_np[:, self.rotate_idxs_old[action_str]]
 
-        transition_costs: List[float] = [1.0 for _ in range(states_np.shape[0])]
-
-        return states_next_np, transition_costs
+        return states_next_np
 
     def _compute_rotation_idxs(self, cube_len: int,
                                moves: List[str]) -> Tuple[Dict[str, NDArray[np.int_]], Dict[str, NDArray[np.int_]]]:
