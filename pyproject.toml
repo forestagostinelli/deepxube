@@ -22,8 +22,13 @@ Repository = "https://github.com/forestagostinelli/DeepXube/"
 [tool.setuptools.dynamic]
 version = {attr = "deepxube.__version__"}
 
-[tool.setuptools]
-packages = ['deepxube']
+# [tool.setuptools]
+# packages = ['deepxube']
+
+[tool.setuptools.packages.find]
+# where = ["deepxube"]
+include = ["deepxube*"]  # alternatively: `exclude = ["additional*"]`
+namespaces = false
 
 [project.optional-dependencies]
 test = ['pytest', 'pytest-cov', 'mypy', 'flake8', 'tox']
