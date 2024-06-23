@@ -22,6 +22,7 @@ Repository = "https://github.com/forestagostinelli/DeepXube/"
 [tool.setuptools.dynamic]
 version = {attr = "deepxube.__version__"}
 
+
 # [tool.setuptools]
 # packages = ['deepxube']
 
