@@ -96,12 +96,12 @@ class Times:
 
         return time_tot
 
-    def get_time_str(self, prefix: str = "") -> str:
-        time_str_l: List[str] = ["%s: %f" % (key, val) for key, val in self.times.items()]
-        sub_time_str_l: List[str] = ["->%s: %f" % (key, sub_time.get_total_time())
+    def get_time_str(self, prefix: str = "", decplace: int = 2) -> str:
+        time_str_l: List[str] = [f"{key}: {val:.{decplace}f}" for key, val in self.times.items()]
+        sub_time_str_l: List[str] = [f"->{key}: {sub_time.get_total_time():.{decplace}f}"
                                      for key, sub_time in self.sub_times.items()]
 
-        time_str: str = ", ".join(time_str_l + sub_time_str_l + ["Tot: %f" % self.get_total_time()])
+        time_str: str = ", ".join(time_str_l + sub_time_str_l + [f"Tot: {self.get_total_time():.{decplace}f}"])
 
         prefix_new: str = f"\t{prefix}"
         for key, sub_time in self.sub_times.items():

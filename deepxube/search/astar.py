@@ -10,7 +10,8 @@ from numpy.typing import NDArray
 
 
 class Node:
-    __slots__ = ['state', 'goal', 'path_cost', 'heuristic', 'cost', 'is_solved', 'parent_action', 'parent']
+    __slots__ = ['state', 'goal', 'path_cost', 'heuristic', 'cost', 'is_solved', 'parent_action', 'parent', 'children',
+                 'tcs']
 
     def __init__(self, state: State, goal: Goal, path_cost: float, is_solved: bool,
                  parent_action: Optional[Action], parent):
@@ -22,6 +23,27 @@ class Node:
         self.is_solved: bool = is_solved
         self.parent_action: Optional[Action] = parent_action
         self.parent: Optional[Node] = parent
+        self.children: Optional[List[Node]] = None
+        self.tcs: Optional[List[float]] = None
+
+    def bellman_backup(self) -> float:
+        bellman_backup: float
+        if self.is_solved:
+            bellman_backup = 0.0
+        else:
+            assert self.children is not None
+            assert self.heuristic is not None
+            if len(self.children) == 0:
+                bellman_backup = self.heuristic  # TODO, better way to handle this?
+            else:
+                assert self.tcs is not None
+
+                bellman_backup = np.inf
+                for node_c, tc in zip(self.children, self.tcs):
+                    assert node_c.heuristic is not None
+                    bellman_backup = min(bellman_backup, tc + node_c.heuristic)
+
+        return bellman_backup
 
 
 OpenSetElem = Tuple[float, int, Node]
@@ -144,13 +166,17 @@ def expand_nodes(instances: List[Instance], popped_nodes_all: List[List[Node]], 
                                                                                           is_solved_c_by_node)):
             state: State
             goal: Goal = parent_node.goal
+            nodes_children: List[Node] = []
             for move_idx, state in enumerate(states_c):
                 path_cost: float = path_costs_c[move_idx]
                 is_solved: bool = is_solved_c[move_idx]
                 action: Action = actions_c[move_idx]
                 node_c: Node = Node(state, goal, path_cost, is_solved, action, parent_node)
 
-                nodes_c_by_inst[inst_idx].append(node_c)
+                nodes_children.append(node_c)
+            nodes_c_by_inst[inst_idx].extend(nodes_children)
+            parent_node.children = nodes_children
+            parent_node.tcs = tcs_node
 
         instance.num_nodes_generated += len(nodes_c_by_inst[inst_idx])
 

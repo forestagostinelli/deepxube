@@ -1,6 +1,11 @@
 # Changes
 
-## 0.1.2
+## 0.1.6
+* Add child nodes to nodes during A* search
+* Bellman backup for A* nodes
+* get_time_str takes argument for number of decimal places
+
+## 0.1.5
 * Add Action generic to Environment
 * swap opencv-python dependency for pillow 
 * ASP Spec/Solver
