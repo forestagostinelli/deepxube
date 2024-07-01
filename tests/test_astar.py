@@ -6,6 +6,8 @@ from deepxube.environments.env_utils import get_environment
 from deepxube.nnet.nnet_utils import get_heuristic_fn, get_device, HeurFN_T
 from deepxube.search.search_utils import is_valid_soln
 
+import numpy as np
+
 env_names: List[str] = ["cube3", "puzzle15"]
 num_steps_l_l: List[List[int]] = [[0], [1], [2], [0, 1, 2]]
 batch_sizes: List[int] = [1, 10]
@@ -41,3 +43,5 @@ def test_search(env_name: str, num_steps_l: List[int], batch_size: int):
 
         for node in instance.popped_nodes:
             assert node.bellman_backup() is not None
+
+        assert instance.root_node.tree_backup() < np.inf

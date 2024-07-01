@@ -11,7 +11,7 @@ from numpy.typing import NDArray
 
 class Node:
     __slots__ = ['state', 'goal', 'path_cost', 'heuristic', 'cost', 'is_solved', 'parent_action', 'parent', 'children',
-                 'tcs']
+                 'tcs', 'tree_backup_val']
 
     def __init__(self, state: State, goal: Goal, path_cost: float, is_solved: bool,
                  parent_action: Optional[Action], parent):
@@ -25,25 +25,42 @@ class Node:
         self.parent: Optional[Node] = parent
         self.children: Optional[List[Node]] = None
         self.tcs: Optional[List[float]] = None
+        self.tree_backup_val: float = np.inf
 
     def bellman_backup(self) -> float:
-        bellman_backup: float
+        bellman_backup_val: float
         if self.is_solved:
-            bellman_backup = 0.0
+            bellman_backup_val = 0.0
         else:
             assert self.children is not None
             assert self.heuristic is not None
             if len(self.children) == 0:
-                bellman_backup = self.heuristic  # TODO, better way to handle this?
+                bellman_backup_val = self.heuristic
             else:
                 assert self.tcs is not None
 
-                bellman_backup = np.inf
+                bellman_backup_val = np.inf
                 for node_c, tc in zip(self.children, self.tcs):
                     assert node_c.heuristic is not None
-                    bellman_backup = min(bellman_backup, tc + node_c.heuristic)
+                    bellman_backup_val = min(bellman_backup_val, tc + node_c.heuristic)
 
-        return bellman_backup
+        return bellman_backup_val
+
+    def tree_backup(self) -> float:
+        if self.is_solved:
+            self.tree_backup_val = 0.0
+        else:
+            assert self.heuristic is not None
+            if (self.children is None) or (len(self.children) == 0):
+                self.tree_backup_val = self.heuristic
+            else:
+                assert self.children is not None
+                assert self.tcs is not None
+                self.tree_backup_val = np.inf
+                for node_c, tc in zip(self.children, self.tcs):
+                    self.tree_backup_val = min(self.tree_backup_val, tc + node_c.tree_backup())
+
+        return self.tree_backup_val
 
 
 OpenSetElem = Tuple[float, int, Node]

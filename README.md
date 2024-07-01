@@ -58,3 +58,4 @@ See [HEURSEARCH.md](HEURSEARCH.md) for more details.
 Coming soon.
 
 ## Examples
+- Specifying Goals to Deep Neural Networks with Answer Set Programming ([paper](https://ojs.aaai.org/index.php/ICAPS/article/view/31454/33614), [slides](https://cse.sc.edu/~foresta/assets/files/GoalSpec.pdf), [code](https://github.com/forestagostinelli/SpecGoal)).

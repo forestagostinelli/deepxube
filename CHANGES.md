@@ -3,6 +3,7 @@
 ## 0.1.6
 * Add child nodes to nodes during A* search
 * Bellman backup for A* nodes
+* Tree backup for A* nodes
 * get_time_str takes argument for number of decimal places
 
 ## 0.1.5
