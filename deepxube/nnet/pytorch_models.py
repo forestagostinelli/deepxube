@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.parameter import Parameter
 from torch import Tensor
+from torch.nn.utils import parametrizations
 import numpy as np
 
 
@@ -130,7 +131,7 @@ class FullyConnectedModel(nn.Module):
 
             # linear
             if weight_norm:
-                module_list.append(nn.utils.weight_norm(nn.Linear(input_dim, layer_dim)))
+                module_list.append(parametrizations.weight_norm(nn.Linear(input_dim, layer_dim)))
             else:
                 module_list.append(nn.Linear(input_dim, layer_dim))
 
@@ -189,7 +190,7 @@ class Conv2dModel(nn.Module):
                 conv_layer = nn.Conv2d(chan_in, chan_out, kernel_size, padding=padding, stride=stride)
 
             if weight_norm:
-                conv_layer = nn.utils.weight_norm(conv_layer)
+                conv_layer = parametrizations.weight_norm(conv_layer)
 
             module_list.append(conv_layer)
 

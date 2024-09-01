@@ -6,6 +6,8 @@ from multiprocessing import Queue
 import queue
 import os
 import shutil
+import numpy as np
+from numpy.typing import NDArray
 
 
 class Logger(object):
@@ -59,3 +61,28 @@ def copy_dir_files(src_dir: str, dest_dir: str):
         full_file_name: str = os.path.join(src_dir, file_name)
         if os.path.isfile(full_file_name):
             shutil.copy(full_file_name, dest_dir)
+
+
+def sel_l(data_l: List[NDArray], idxs: NDArray) -> List[NDArray]:
+    data_l_sel: List[NDArray] = []
+    for np_idx in range(len(data_l)):
+        data_l_sel.append(data_l[np_idx][idxs])
+
+    return data_l_sel
+
+
+def combine_l_l(l_l: List[List[NDArray]], comb: str) -> List[NDArray]:
+    l_l_comb: List[NDArray] = []
+    for np_idx in range(len(l_l[0])):
+        l_l_idx: List[NDArray] = [x[np_idx] for x in l_l]
+
+        if comb == "concat":
+            l_l_idx_comb: NDArray = np.concatenate(l_l_idx, axis=0)
+        elif comb == "stack":
+            l_l_idx_comb: NDArray = np.stack(l_l_idx, axis=0)
+        else:
+            raise ValueError(f"Unknown comb method {comb}")
+
+        l_l_comb.append(l_l_idx_comb)
+
+    return l_l_comb
