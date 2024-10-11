@@ -89,6 +89,8 @@ class ProcessStates(nn.Module):
         super().__init__()
         self.state_dim: int = state_dim
         self.one_hot_depth: int = one_hot_depth
+        print("dlog one_hot_depth:",one_hot_depth)
+        print("dlog state_dim: ", state_dim)
 
     def forward(self, states_nnet: Tensor):
         x = states_nnet
@@ -226,14 +228,14 @@ class Dlog(EnvGrndAtoms[DlogState, DlogAction, DlogGoal]):
     
     def get_v_nnet(self) -> HeurFnNNet:
         # not sure what the appropriate state_dim is
-        nnet = NNet(self.state_dim, self.state_dim + 1, 5000, 1000, 4, 1, True, False, "V")
+        nnet = NNet(self.state_dim, 256, 5000, 1000, 4, 1, True, False, "V")
         return nnet
 
     def get_q_nnet(self) -> HeurFnNNet:
         # not sure what the appropriate state dim is
         # note: this line in n_puzzle.py has "V" for the network type but maybe it is an error? 
         #       It is changed to "Q" here to match what is in cube3.py 
-        nnet = NNet(self.state_dim, self.state_dim + 1, 5000, 1000, 4, self.num_actions, True, False, "Q")
+        nnet = NNet(self.state_dim, 256, 5000, 1000, 4, self.num_actions, True, False, "Q")
         return nnet
     
     def get_start_states(self, num_states: int) -> List[DlogState]:
