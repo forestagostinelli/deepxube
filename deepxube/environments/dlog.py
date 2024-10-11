@@ -251,6 +251,10 @@ class Dlog(EnvGrndAtoms[DlogState, DlogAction, DlogGoal]):
             states.append(DlogState(P_bytes_np))
 
         return states
+    
+    def sample_goal(self, states_start: List[DlogState], states_goal: List[DlogState]) -> List[DlogGoal]:
+        print("TODO: sample_goal needs to be implemented next!")
+        raise NotImplementedError
 
     def start_state_fixed(self, states: List[DlogState]) -> List[Model]:
         return [frozenset() for _ in states]
