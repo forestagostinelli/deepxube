@@ -250,6 +250,8 @@ class Dlog(EnvGrndAtoms[DlogState, DlogAction, DlogGoal]):
             P_bytes_np = np.fromiter(curve.encode_point(P), dtype=np.uint8)
             states.append(DlogState(P_bytes_np))
 
+        return states
+
     def start_state_fixed(self, states: List[DlogState]) -> List[Model]:
         return [frozenset() for _ in states]
     
@@ -300,7 +302,7 @@ class Dlog(EnvGrndAtoms[DlogState, DlogAction, DlogGoal]):
         return np.fromiter(curve.encode_point(self.inv2modn * P),dtype=np.uint8)
 
     def _move_np(self, point_np: NDArray[np.uint8], action: int) -> NDArray[np.uint8]:
-        match (self.atomic_actions(action)):
+        match (self.atomic_actions[action]):
             case "addG":
                 return self._addG_np(point_np)
             case "subG":
