@@ -253,8 +253,13 @@ class Dlog(EnvGrndAtoms[DlogState, DlogAction, DlogGoal]):
         return states
     
     def sample_goal(self, states_start: List[DlogState], states_goal: List[DlogState]) -> List[DlogGoal]:
-        print("TODO: sample_goal needs to be implemented next!")
-        raise NotImplementedError
+        # FIXME: the below just returns the given states as goals
+        goals: List[DlogGoal] = []
+        for s in states_goal:
+            goals.append(DlogGoal(s.point))
+        return goals
+
+        
 
     def start_state_fixed(self, states: List[DlogState]) -> List[Model]:
         return [frozenset() for _ in states]
