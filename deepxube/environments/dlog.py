@@ -82,6 +82,19 @@ class DlogAction(Action):
             return self.action == other.action
         return NotImplemented
 
+class AddG(DlogAction):
+    def __init__(self):
+        super().__init__(0)
+class SubG(DlogAction):
+    def __init__(self):
+        super().__init__(2)
+class DoubleP(DlogAction):
+    def __init__(self):
+        super().__init__(1)
+class HalveP(DlogAction):
+    def __init__(self):
+        super().__init__(3)
+
     
 # verbatem from n_puzzle.py
 class ProcessStates(nn.Module):
@@ -155,21 +168,18 @@ class Dlog(EnvGrndAtoms[DlogState, DlogAction, DlogGoal]):
     # we will start with that?
     state_dim: int = 65
 
-    # a numpy representation of the byte 0x04 which is used when encoding/decoding points
-    byte0x04_np: NDArray[np.uint8] = np.frombuffer(bytes.fromhex("04"), dtype=np.uint8)
-
     # sometimes we need to utilize the multiplicative inverse of two mod n
     # for secp256k1, the value is 57896044618658097711785492504343953926418782139537452191302581570759080747169
     inv2modn: int = pow(2,-1,curve.order)
+
+    # Solved state
+    goal_point_np: NDArray[np.uint8] = np.fromiter(curve.encode_point(G),dtype=np.uint8)
 
     def __init__(self, env_name):
         super().__init__(env_name)
 
         # we are going to be representing things essentially as byte arrays
         self.dtype: type = np.uint8
-
-        # Solved state
-        self.goal_point: NDArray[np.uint8] = np.fromiter(curve.encode_point(G),dtype=np.uint8)
 
     def next_state(self, states: List[DlogState], actions: List[DlogAction]) -> Tuple[List[DlogState], List[float]]:
         # initialize
@@ -195,15 +205,36 @@ class Dlog(EnvGrndAtoms[DlogState, DlogAction, DlogGoal]):
         return states_next, transition_costs
     
     def get_state_actions(self, states: List[DlogState]) -> List[List[DlogAction]]:
-        return [[DlogAction(x) for x in range(self.num_actions)] for _ in range(len(states))]
+        # we need to avoid the point at infinity, so if P == G, we disallow
+        # the action SubG
+        actions: List[List[DlogAction]] = []
+        for s in states:
+            if self._is_G(s):
+                actions.append([AddG(), HalveP(), DoubleP()])
+            else:
+                actions.append([AddG(), SubG(), DoubleP(), HalveP()])
+
+        return actions
     
+    def _is_G(self, state: DlogState) -> bool:
+        return np.all(self.goal_point_np == state.point)
+
     def is_solved(self, states: List[DlogState], goals: List[DlogGoal]) -> List[bool]:
         # note: this function might not actually need to be implemented? looks like there
         # is an implementation of it already in environment_abstract.py
+        fin_list: List[bool] = []
+        for state,goal in list(zip(states,goals)):
+            P = curve.decode_point(state.point.tobytes())
+            Q = curve.decode_point(goal.point.tobytes())
+            fin_list.append(P == Q)
+        return fin_list
+        """
+        # old implementation
         states_np = np.stack([x.point for x in states], axis=0)
         goals_np = np.stack([x.point for x in goals], axis=0)
         is_solved_np = np.all(states_np == goals_np, axis=1)
         return list(is_solved_np)
+        """
     
     def states_goals_to_nnet_input(self, states: List[DlogState], goals: List[DlogGoal]) -> List[NDArray[np.uint8]]:
         states_np: NDArray[np.uint8] = np.stack([state.point for state in states], axis=0).astype(np.uint8)
@@ -258,13 +289,14 @@ class Dlog(EnvGrndAtoms[DlogState, DlogAction, DlogGoal]):
         # FIXME: the below just returns the given states as goals
         goals: List[DlogGoal] = []
         for s in states_goal:
+            P : Point = curve.decode_point(s.point.tobytes())
             goals.append(DlogGoal(s.point))
         return goals
 
         
 
     def start_state_fixed(self, states: List[DlogState]) -> List[Model]:
-        return [frozenset() for _ in states]
+        raise NotImplementedError
     
     def get_pddl_domain(self) -> List[str]:
         raise NotImplementedError
