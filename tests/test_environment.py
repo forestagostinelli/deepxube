@@ -6,8 +6,7 @@ from deepxube.nnet.nnet_utils import get_heuristic_fn, get_device
 import numpy as np
 from numpy.typing import NDArray
 
-env_names: List[str] = ["cube3", "puzzle8", "puzzle15", "puzzle24"]
-
+env_names: List[str] = ["cube3", "puzzle8", "puzzle15", "puzzle24", "dlog"]
 
 @pytest.mark.parametrize("env_name", env_names)
 def test_get_start_states(env_name: str):

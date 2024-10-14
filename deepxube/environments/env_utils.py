@@ -17,5 +17,8 @@ def get_environment(env_name: str) -> Environment:
     elif env_name == 'sokoban':
         from deepxube.environments.sokoban import Sokoban
         return Sokoban(env_name)
+    elif env_name == 'dlog':
+        from deepxube.environments.dlog import Dlog
+        return Dlog(env_name)
     else:
         raise ValueError('No known environment %s' % env_name)
