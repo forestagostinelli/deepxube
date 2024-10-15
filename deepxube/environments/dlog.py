@@ -182,37 +182,30 @@ class Dlog(EnvGrndAtoms[DlogState, DlogAction, DlogGoal]):
         self.dtype: type = np.uint8
 
     def next_state(self, states: List[DlogState], actions: List[DlogAction]) -> Tuple[List[DlogState], List[float]]:
-        # initialize
-        states_np: NDArray[np.uint8] = np.stack([s.point for s in states], axis=0)
-        
-        states_next_np = np.zeros(states_np.shape, dtype=np.uint8)
-
-        tcs_np: NDArray[np.float64] = np.zeros(len(states))
-        for action in set(actions):
-            action_idxs: NDArray[np.int_] = np.array([idx for idx in range(len(actions)) if actions[idx] == action])
-            states_np_act = states_np[action_idxs]
-
-            states_next_np_act = self._move_np(states_np_act, action.action)
-
-            tcs_act: List[float] = [1.0 for _ in range(states_np_act.shape[0])]
-
-            states_next_np[action_idxs] = states_next_np_act
-            tcs_np[action_idxs] = np.array(tcs_act)
-
-        states_next: List[DlogState] = [DlogState(x) for x in list(states_next_np)]
-        transition_costs = list(tcs_np)
-
+        states_next : List[DlogState] = []
+        transition_costs : List[float] = []
+        for s,a in zip(states, actions):
+            match a:
+                case SubG():
+                    states_next.append(DlogState(point = self._subG_np(s.point)))
+                    transition_costs.append(1.0)
+                case HalveP():
+                    states_next.append(DlogState(point = self._halveP_np(s.point)))
+                    transition_costs.append(1.0)
+                case _:
+                    raise NotImplementedError
+                
         return states_next, transition_costs
-    
+
     def get_state_actions(self, states: List[DlogState]) -> List[List[DlogAction]]:
         # we need to avoid the point at infinity, so if P == G, we disallow
         # the action SubG
         actions: List[List[DlogAction]] = []
         for s in states:
             if self._is_G(s):
-                actions.append([AddG(), HalveP(), DoubleP()])
+                actions.append([HalveP()])
             else:
-                actions.append([AddG(), SubG(), DoubleP(), HalveP()])
+                actions.append([SubG(), HalveP()])
 
         return actions
     
@@ -221,7 +214,9 @@ class Dlog(EnvGrndAtoms[DlogState, DlogAction, DlogGoal]):
 
     def is_solved(self, states: List[DlogState], goals: List[DlogGoal]) -> List[bool]:
         # note: this function might not actually need to be implemented? looks like there
-        # is an implementation of it already in environment_abstract.py
+        # is an implementation of it already in environment_abstract.py but the implementation
+        # depends on a bunch of methods to/from `Model` which have not been implemented here,
+        # so we provide an implementation here instead which does not rely on those.
         fin_list: List[bool] = []
         for state,goal in list(zip(states,goals)):
             P = curve.decode_point(state.point.tobytes())
@@ -288,9 +283,26 @@ class Dlog(EnvGrndAtoms[DlogState, DlogAction, DlogGoal]):
     def sample_goal(self, states_start: List[DlogState], states_goal: List[DlogState]) -> List[DlogGoal]:
         # FIXME: the below just returns the given states as goals
         goals: List[DlogGoal] = []
-        for s in states_goal:
-            P : Point = curve.decode_point(s.point.tobytes())
-            goals.append(DlogGoal(s.point))
+        for s,g in zip(states_start, states_goal):
+            """
+            P : Point = curve.decode_point(g.point.tobytes())
+            Q : Point = curve.decode_point(s.point.tobytes())
+            addg = (Q+G)
+            subg = (Q-G)
+            halved = self.inv2modn*Q
+            doubled = (2*Q)
+            print("start point Q: ", Q.x, ":", Q.y)
+            print("goal point P: ", P.x, ":", P.y)
+            print("Q - G : ", subg.x, ":" , subg.y)
+            print("Q / 2 : ", halved.x, ":", halved.y)
+            print("Q + G : ", addg.x, ":", addg.y)
+            print("Q * 2 : ", doubled.x, ":", doubled.y)
+            print("P + G : ", (P+G).x)
+            print("P * 2 : ", (2*P).x)
+            print("P - G : ", (P-G).x)
+            print("P / 2 : ", (self.inv2modn*P).x)
+            """
+            goals.append(DlogGoal(g.point))
         return goals
 
         
