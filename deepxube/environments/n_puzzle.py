@@ -235,7 +235,7 @@ class NPuzzle(EnvGrndAtoms[NPState, NPAction, NPGoal]):
         return nnet
 
     def get_q_nnet(self) -> HeurFnNNet:
-        nnet = NNet(self.num_tiles, self.num_tiles + 1, 5000, 1000, 4, self.num_actions, True, False, "V")
+        nnet = NNet(self.num_tiles, self.num_tiles + 1, 5000, 1000, 4, self.num_actions, True, False, "Q")
         return nnet
 
     def get_start_states(self, num_states: int) -> List[NPState]:
