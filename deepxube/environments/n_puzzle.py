@@ -377,15 +377,15 @@ class NPuzzle(EnvGrndAtoms[NPState, NPAction, NPGoal]):
 
         return inst_l
 
-    def pddl_action_to_action(self, pddl_action: str) -> int:
+    def pddl_action_to_action(self, pddl_action: str) -> Action:
         if re.match("^move-up", pddl_action):
-            return 1
+            return NPAction(1)
         elif re.match("^move-down", pddl_action):
-            return 0
+            return NPAction(0)
         elif re.match("^move-left", pddl_action):
-            return 3
+            return NPAction(3)
         elif re.match("^move-right", pddl_action):
-            return 2
+            return NPAction(2)
 
         raise ValueError(f"Unknown action {pddl_action}")
 

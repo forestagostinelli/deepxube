@@ -28,10 +28,12 @@ class State(ABC):
         pass
 
 
+# TODO make hash and eq method for action required
 class Action(ABC):
     pass
 
 
+# TODO make hash and eq method for goal required
 class Goal(ABC):
     pass
 
@@ -227,7 +229,7 @@ class Environment(ABC, Generic[S, A, G]):
         pass
 
     @abstractmethod
-    def pddl_action_to_action(self, pddl_action: str) -> int:
+    def pddl_action_to_action(self, pddl_action: str) -> Action:
         """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using
         traiditional planners (raise NotImplementedError).
 

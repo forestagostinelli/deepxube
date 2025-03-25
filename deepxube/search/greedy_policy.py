@@ -45,6 +45,7 @@ class Greedy:
         assert len(goals) == len(eps_l), "Number of epsilon given should be the same as number of instances"
 
         for state, goal, eps_inst in zip(states, goals, eps_l):
+            # TODO, what about initial solve check?
             instance: Instance = Instance(state, goal, eps_inst)
             self.instances.append(instance)
 

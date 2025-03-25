@@ -183,6 +183,7 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal]):
         self.adj_faces: Dict[int, NDArray[np.int_]] = _get_adj()
 
         self.rotate_idxs_new, self.rotate_idxs_old = self._compute_rotation_idxs(self.cube_len, self.atomic_actions)
+        self.actions: List[Cube3Action] = [Cube3Action(x) for x in range(self.num_actions)]
 
         self.int_to_color: NDArray[np.str_] = np.concatenate((np.array(self.colors_grnd_obj), ['k']))  # type: ignore
 
@@ -208,7 +209,7 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal]):
         return states_next, transition_costs
 
     def get_state_actions(self, states: List[Cube3State]) -> List[List[Cube3Action]]:
-        return [[Cube3Action(x) for x in range(self.num_actions)] for _ in range(len(states))]
+        return [self.actions.copy() for _ in range(len(states))]
 
     def is_solved(self, states: List[Cube3State], goals: List[Cube3Goal]) -> List[bool]:
         states_np = np.stack([x.colors for x in states], axis=0)
@@ -584,10 +585,10 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal]):
         inst_l.append(")")
         return inst_l
 
-    def pddl_action_to_action(self, pddl_action: str) -> int:
+    def pddl_action_to_action(self, pddl_action: str) -> Cube3Action:
         match = re.match(r"^a(\d+).*", pddl_action)
         assert match is not None
-        return int(match.group(1))
+        return self.actions[int(match.group(1))]
 
     def visualize(self, states: Union[List[Cube3State], List[Cube3Goal]]) -> NDArray[np.float64]:
         # initialize
