@@ -76,10 +76,11 @@ def combine_l_l(l_l: List[List[NDArray]], comb: str) -> List[NDArray]:
     for np_idx in range(len(l_l[0])):
         l_l_idx: List[NDArray] = [x[np_idx] for x in l_l]
 
+        l_l_idx_comb: NDArray
         if comb == "concat":
-            l_l_idx_comb: NDArray = np.concatenate(l_l_idx, axis=0)
+            l_l_idx_comb = np.concatenate(l_l_idx, axis=0)
         elif comb == "stack":
-            l_l_idx_comb: NDArray = np.stack(l_l_idx, axis=0)
+            l_l_idx_comb = np.stack(l_l_idx, axis=0)
         else:
             raise ValueError(f"Unknown comb method {comb}")
 

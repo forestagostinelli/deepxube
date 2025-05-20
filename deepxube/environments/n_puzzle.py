@@ -435,8 +435,8 @@ class NPuzzle(EnvGrndAtoms[NPState, NPAction, NPGoal]):
                             verticalalignment='center', fontsize=6, color='black', transform=ax.transAxes)
 
             canvas.draw()
-            states_img[state_idx] = np.frombuffer(canvas.tostring_rgb(),
-                                                  dtype='uint8').reshape((width, height, 3)) / 255
+            states_img_i = np.frombuffer(canvas.tostring_argb(), dtype='uint8').reshape((width, height, 4)) / 255
+            states_img[state_idx] = states_img_i[:, :, 1:]
 
         plt.close(fig)
         return states_img

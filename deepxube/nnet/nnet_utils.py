@@ -126,7 +126,7 @@ def get_available_gpu_nums() -> List[int]:
     return gpu_nums
 
 
-def load_heuristic_fn(model_file: str, device: torch.device, on_gpu: bool, nnet: nn.Module,
+def load_heuristic_fn(model_file: str, device: torch.device, on_gpu: bool, nnet: HeurFnNNet,
                       env: Environment, clip_zero: bool = False, gpu_num: Optional[int] = None,
                       batch_size: Optional[int] = None) -> HeurFN_T:
     if (gpu_num is not None) and on_gpu:
