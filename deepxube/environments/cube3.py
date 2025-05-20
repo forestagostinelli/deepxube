@@ -614,11 +614,13 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal]):
 
             viz.set_rot(0)
             canvas.draw()
-            image1 = np.frombuffer(canvas.tostring_rgb(), dtype='uint8').reshape((width, height, 3)) / 255
+            image1 = np.frombuffer(canvas.tostring_argb(), dtype='uint8').reshape((width, height, 4)) / 255
+            image1 = image1[:, :, 1:]
 
             viz.set_rot(1)
             canvas.draw()
-            image2 = np.frombuffer(canvas.tostring_rgb(), dtype='uint8').reshape((width, height, 3)) / 255
+            image2 = np.frombuffer(canvas.tostring_argb(), dtype='uint8').reshape((width, height, 4)) / 255
+            image2 = image2[:, :, 1:]
 
             states_img[state_idx] = np.concatenate((image1, image2), axis=2)
 
