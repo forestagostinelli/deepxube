@@ -8,6 +8,7 @@ from torch import nn
 from collections import OrderedDict
 import re
 from torch import Tensor
+from torch.nn import DataParallel
 from torch.multiprocessing import Queue, get_context
 from multiprocessing.process import BaseProcess
 
@@ -40,7 +41,7 @@ def get_device() -> Tuple[torch.device, List[int], bool]:
 
 
 # loading nnet
-def load_nnet(model_file: str, nnet: nn.Module, device: Optional[torch.device] = None) -> nn.Module:
+def load_nnet(model_file: str, nnet: HeurFnNNet, device: Optional[torch.device] = None) -> HeurFnNNet:
     # get state dict
     if device is None:
         state_dict = torch.load(model_file, weights_only=True)
@@ -137,10 +138,14 @@ def load_heuristic_fn(model_file: str, device: torch.device, on_gpu: bool, nnet:
     nnet = load_nnet(model_file, nnet, device=device)
     nnet.eval()
     nnet.to(device)
-    if on_gpu:
-        nnet = nn.DataParallel(nnet)
 
-    heuristic_fn = get_heuristic_fn(nnet, device, env, clip_zero=clip_zero, batch_size=batch_size, is_v=is_v)
+    nnet_heur: Union[HeurFnNNet, DataParallel[HeurFnNNet]]
+    if on_gpu:
+        nnet_heur = nn.DataParallel(nnet)
+    else:
+        nnet_heur = nnet
+
+    heuristic_fn = get_heuristic_fn(nnet_heur, device, env, clip_zero=clip_zero, batch_size=batch_size, is_v=is_v)
 
     return heuristic_fn
 
