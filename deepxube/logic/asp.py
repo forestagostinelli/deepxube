@@ -1,6 +1,7 @@
 from typing import List, Optional, Set, Tuple, Dict, Callable, Any
 from deepxube.logic.logic_objects import Clause, Literal, Atom, Model
 from deepxube.logic.logic_utils import copy_clause_with_new_head, atom_to_str
+from clingo.solving import SolveHandle
 
 import random
 import os
@@ -150,11 +151,12 @@ class Solver:
 
         return models
 
-    def check_model(self, spec: Spec, model: Model) -> bool:
+    def check_model(self, spec: Spec, model: Model, timeout: Optional[float] = None) -> bool:
         """
 
         :param spec: Specification
         :param model: Model to check
+        :param timeout: Timeout only for solving, not for grounding
         :return:
         """
         atoms_false: List[Atom] = [atom for atom in self.ground_atoms if atom not in model]
@@ -164,7 +166,10 @@ class Solver:
         assumptions += self._make_assumptions(spec_check)
         models_ret: List[None] = []
 
-        self.ctl_rand.solve(assumptions=assumptions, on_model=lambda x: models_ret.append(None))
+        solve_handle: SolveHandle = self.ctl_rand.solve(assumptions=assumptions,
+                                                        on_model=lambda x: models_ret.append(None), async_=True)
+        solve_handle.wait(timeout=timeout)
+        solve_handle.cancel()
 
         return len(models_ret) > 0
 
