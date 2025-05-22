@@ -1,6 +1,8 @@
 # Changes
 
 ## 0.1.6
+* Conflict-driven goal reaching for goals specified with negation as failure
+* Preliminary timeout feature for ASP solving
 * Add child nodes to nodes during A* search
 * Bellman backup for A* nodes
 * Tree backup for A* nodes
