@@ -134,6 +134,7 @@ def greedy_runner(env: Environment, heur_fn_q: HeurFnQ, proc_id: int,
     greedy = Greedy(env)
     greedy.add_instances(states, goals, eps_l=None)
     for _ in range(max_solve_steps):
+        # TODO maybe make rand_seen=False
         greedy.step(heuristic_fn, rand_seen=True)
 
     is_solved_all: NDArray[np.bool_] = np.array([instance.is_solved for instance in greedy.instances])

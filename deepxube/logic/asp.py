@@ -86,17 +86,23 @@ class Solver:
         self.models_banned: List[Model] = []
 
         self.ground_atoms: List[Atom] = ground_atoms
-        grnd_atoms_str_l: List[str] = [atom_to_str(atom) for atom in self.ground_atoms]
-        model_grnd_atoms_str: str = f"0 {{ {'; '.join(grnd_atoms_str_l)} }} {len(self.ground_atoms)}"
         grnd_atom_counts: List[str] = []
-        for grnd_atom_idx, grnd_atom_str in enumerate(grnd_atoms_str_l):
-            grnd_atom_counts.append(f"grnd_atom_count_num({grnd_atom_idx})")
-            grnd_atom_counts.append(f"grnd_atom_present({grnd_atom_idx}) :- {grnd_atom_str}")
+        model_grnd_atoms_str: str = ""
+        count_model_grnd_atoms_str: str = ""
+        count_model_grnd_atoms_gt_str: str = ""
+        minimize_grnd_atoms_str: str = ""
+        if len(self.ground_atoms) > 0:
+            grnd_atoms_str_l: List[str] = [atom_to_str(atom) for atom in self.ground_atoms]
+            model_grnd_atoms_str = f"0 {{ {'; '.join(grnd_atoms_str_l)} }} {len(self.ground_atoms)}"
+            for grnd_atom_idx, grnd_atom_str in enumerate(grnd_atoms_str_l):
+                grnd_atom_counts.append(f"grnd_atom_count_num({grnd_atom_idx})")
+                grnd_atom_counts.append(f"grnd_atom_present({grnd_atom_idx}) :- {grnd_atom_str}")
 
-        count_model_grnd_atoms_str: str = "count_model_grnd_atoms(N) :- N = #count{ V: grnd_atom_present(V) }"
-        count_model_grnd_atoms_gt_str: str = ("count_model_grnd_atoms_gt(N) :- grnd_atom_count_num(N), "
-                                              "count_model_grnd_atoms(M), M > N")
-        minimize_grnd_atoms_str = "#minimize {N: count_model_grnd_atoms(N)}"
+            count_model_grnd_atoms_str = "count_model_grnd_atoms(N) :- N = #count{ V: grnd_atom_present(V) }"
+            count_model_grnd_atoms_gt_str = ("count_model_grnd_atoms_gt(N) :- grnd_atom_count_num(N), "
+                                             "count_model_grnd_atoms(M), M > N")
+            minimize_grnd_atoms_str = "#minimize {N: count_model_grnd_atoms(N)}"
+
 
         # clingo control
         seed = int.from_bytes(os.urandom(4), 'big')
@@ -114,7 +120,8 @@ class Solver:
             self.ctl_rand.add('base', [], f"{add_line}\n")
             self.ctl_min.add('base', [], f"{add_line}\n")
         add_line = parse_clingo_line(minimize_grnd_atoms_str)
-        self.ctl_min.add('base', [], f"{add_line}\n")
+        if len(add_line) > 0:
+            self.ctl_min.add('base', [], f"{add_line}\n")
 
         self.ctl_rand.ground([("base", [])])
         self.ctl_min.ground([("base", [])])
