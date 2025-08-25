@@ -1,5 +1,8 @@
 # Changes
 
+## 0.1.7
+* Intializing solver checks if number of ground atoms > 0
+
 ## 0.1.6
 * Conflict-driven goal reaching for goals specified with negation as failure
 * Preliminary timeout feature for ASP solving
