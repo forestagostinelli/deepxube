@@ -152,8 +152,15 @@ def load_heuristic_fn(model_file: str, device: torch.device, on_gpu: bool, nnet:
 
 # parallel training
 def heuristic_fn_runner(heuristic_fn_input_queue: Queue, heuristic_fn_output_queues: List[Queue],
-                        model_file: str, device, on_gpu: bool, gpu_num: int, nnet: HeurFnNNet,
-                        env: Environment, all_zeros: bool, clip_zero: bool, batch_size: Optional[int]):
+                        model_file: str, device, on_gpu: bool, gpu_num: int,
+                        env: Environment, heur_type: str, all_zeros: bool, clip_zero: bool, batch_size: Optional[int]):
+    nnet: HeurFnNNet
+    if heur_type.upper() == "V":
+        nnet = env.get_v_nnet()
+    elif heur_type.upper() == "Q":
+        nnet = env.get_q_nnet()
+    else:
+        raise ValueError(f"Unknown heuristic type {heur_type}")
     heuristic_fn: Optional[HeurFN_T] = None
     if not all_zeros:
         heuristic_fn = load_heuristic_fn(model_file, device, on_gpu, nnet, env, gpu_num=gpu_num,
@@ -196,8 +203,8 @@ class HeurFnQ:
         return heuristic_fn
 
 
-def start_heur_fn_runners(num_procs: int, model_file: str, device, on_gpu: bool, nnet: HeurFnNNet,
-                          env: Environment, all_zeros: bool = False, clip_zero: bool = False,
+def start_heur_fn_runners(num_procs: int, model_file: str, device, on_gpu: bool, env: Environment, heur_type: str,
+                          all_zeros: bool = False, clip_zero: bool = False,
                           batch_size: Optional[int] = None) -> Tuple[List[HeurFnQ], List[BaseProcess]]:
     ctx = get_context("spawn")
 
@@ -218,8 +225,8 @@ def start_heur_fn_runners(num_procs: int, model_file: str, device, on_gpu: bool,
     heur_procs: List[BaseProcess] = []
     for gpu_num in gpu_nums:
         heur_fn_proc = ctx.Process(target=heuristic_fn_runner,
-                                   args=(heur_fn_i_q, heur_fn_o_qs, model_file, device, on_gpu, gpu_num, nnet,
-                                         env, all_zeros, clip_zero, batch_size))
+                                   args=(heur_fn_i_q, heur_fn_o_qs, model_file, device, on_gpu, gpu_num, env, heur_type,
+                                         all_zeros, clip_zero, batch_size))
         heur_fn_proc.daemon = True
         heur_fn_proc.start()
         heur_procs.append(heur_fn_proc)

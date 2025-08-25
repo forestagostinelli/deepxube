@@ -43,8 +43,8 @@ class Status:
 
         # Initialize per_solved_best
         print("Initializing per solved best")
-        heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(1, "", torch.device("cpu"), False, env.get_v_nnet(),
-                                                                  env, all_zeros=True)
+        heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(1, "", torch.device("cpu"), False, env, "V",
+                                                                  all_zeros=True)
         per_solved: float = greedy_test(self.states_start_t, self.goals_t, self.state_t_steps_l, env,
                                         heur_fn_qs, max_solve_steps=1)
         print("Greedy policy solved: %.2f%%" % per_solved)
@@ -276,7 +276,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int
         # update
         all_zeros: bool = not os.path.isfile(targ_file)
         heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(num_update_procs, targ_file,
-                                                                  device, on_gpu, env.get_v_nnet(), env,
+                                                                  device, on_gpu, env, "V",
                                                                   all_zeros=all_zeros, clip_zero=True,
                                                                   batch_size=update_nnet_batch_size)
 
@@ -302,7 +302,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int
         start_time = time.time()
 
         heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(num_update_procs, curr_file,
-                                                                  device, on_gpu, env.get_v_nnet(), env,
+                                                                  device, on_gpu, env, "V",
                                                                   all_zeros=False, clip_zero=False,
                                                                   batch_size=update_nnet_batch_size)
 

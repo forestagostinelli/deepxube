@@ -2,6 +2,7 @@
 
 ## 0.1.7
 * Intializing solver checks if number of ground atoms > 0
+* Create nnet on process instead of sending it to process
 
 ## 0.1.6
 * Conflict-driven goal reaching for goals specified with negation as failure
