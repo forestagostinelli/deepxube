@@ -111,6 +111,9 @@ def update_runner(num_states: int, step_max: int, step_probs: List[float], updat
             ctgs = ctgs[keep_idxs]
             is_solved_l = [is_solved_l[keep_idx] for keep_idx in keep_idxs]
             states_next = [states_next[keep_idx] for keep_idx in keep_idxs]
+        else:
+            curr_steps = curr_steps + 1
+            curr_steps[np.array(is_solved_l)] = step_max
 
         # put to queue
         start_time = time.time()
@@ -121,9 +124,6 @@ def update_runner(num_states: int, step_max: int, step_probs: List[float], updat
 
         num_states_curr += len(states)
         states = states_next
-        curr_steps = curr_steps + 1
-        curr_steps[np.array(is_solved_l)] = step_max
-
 
     result_queue.put((None, heur_fn_q.proc_id))
 
