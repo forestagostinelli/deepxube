@@ -130,11 +130,11 @@ def make_batches(nnet_rep: List[NDArray[Any]], ctgs: NDArray[np.float64],
     return batches
 
 
-def train_nnet(nnet: nn.Module, nnet_rep: List[NDArray[Any]], ctgs: NDArray[np.float64], device: torch.device,
-               batch_size: int, num_itrs: int, train_itr: int, lr: float, lr_d: float, display_itrs: int) -> float:
+def train_nnet(nnet: nn.Module, nnet_rep: List[NDArray[Any]], optimizer: Optimizer, ctgs: NDArray[np.float64],
+               device: torch.device, batch_size: int, num_itrs: int, train_itr: int, lr: float, lr_d: float,
+               display_itrs: int) -> float:
     # optimization
     criterion = nn.MSELoss()
-    optimizer: Optimizer = optim.Adam(nnet.parameters(), lr=lr)
 
     # initialize status tracking
     start_time = time.time()
@@ -272,6 +272,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int
     nnet = nn.DataParallel(nnet)
 
     # training
+    optimizer: Optimizer = optim.Adam(nnet.parameters(), lr=lr)
     while status.itr < max_itrs:
         # update
         all_zeros: bool = not os.path.isfile(targ_file)
@@ -291,7 +292,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, num_test_per_step: int
         # train nnet
         num_train_itrs: int = epochs_per_update * np.ceil(ctgs.shape[0] / batch_size)
         print("Training model for update number %i for %i iterations" % (status.update_num, num_train_itrs))
-        last_loss = train_nnet(nnet, nnet_rep, ctgs, device, batch_size, num_train_itrs,
+        last_loss = train_nnet(nnet, nnet_rep, optimizer, ctgs, device, batch_size, num_train_itrs,
                                status.itr, lr, lr_d, display)
         status.itr += num_train_itrs
 
