@@ -3,8 +3,9 @@
 ## 0.1.7
 * Intializing solver checks if number of ground atoms > 0
 * Create nnet on process instead of sending it to process
-* Updater balances number of steps to generate states when taking multiple update steps
-* Optimizer persists across data generation andtest
+* Updater now balances number of steps to generate states when taking multiple update steps
+* Optimizer now persists across data generation and test
+* No more random state sampling when testing for previously seen states
 
 ## 0.1.6
 * Conflict-driven goal reaching for goals specified with negation as failure
