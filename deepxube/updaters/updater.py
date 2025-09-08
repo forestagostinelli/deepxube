@@ -1,14 +1,39 @@
 from typing import List, Tuple, Any
 import numpy as np
+from networkx.algorithms.cuts import cut_size
 from numpy.typing import NDArray
 from deepxube.utils import misc_utils
+from deepxube.search.search_utils import bellman
 from deepxube.nnet.nnet_utils import HeurFnQ
 from deepxube.utils.timing_utils import Times
 from deepxube.environments.environment_abstract import Environment, State, Goal
 from deepxube.search.greedy_policy import Greedy
 from torch.multiprocessing import get_context, Queue
 from multiprocessing.process import BaseProcess
+import random
 import time
+
+
+def bellman_step_targ(env: Environment, states: List[State], goals: List[Goal], heur_fn, eps_l: List[float],
+                      times: Times) -> Tuple[List[State], NDArray, List[bool]]:
+    ctg_backups, ctg_next_p_tcs, states_exp, is_solved = bellman(states, goals, heur_fn, env, times)
+
+    # take action
+    start_time = time.time()
+    rand_vals = np.random.random(len(states))
+    states_next: List[State] = []
+    for idx in range(len(states)):
+        # get next state
+        state_exp: List[State] = states_exp[idx]
+        ctg_next_p_tc: NDArray[np.float64] = ctg_next_p_tcs[idx]
+
+        state_next: State = state_exp[int(np.argmin(ctg_next_p_tc))]
+        if rand_vals[idx] < eps_l[idx]:
+            state_next = random.choice(state_exp)
+        states_next.append(state_next)
+    times.record_time("get_next", time.time() - start_time)
+
+    return states_next, ctg_backups, is_solved
 
 
 def greedy_update(states: List[State], goals: List[Goal], env: Environment, num_steps: int, heuristic_fn,
@@ -44,52 +69,61 @@ def greedy_update(states: List[State], goals: List[Goal], env: Environment, num_
 
 def update_runner(num_states: int, step_max: int, step_probs: List[float], update_batch_size: int, heur_fn_q: HeurFnQ,
                   env: Environment, result_queue, solve_steps: int, update_method: str, eps_max: float):
+    times: Times = Times()
+
     heuristic_fn = heur_fn_q.get_heuristic_fn(env)
-    states_per_inst: float = solve_steps
+    num_inst_gen: int = min(int(np.ceil(num_states / solve_steps)), update_batch_size)
+    steps_gen: NDArray[np.int_] = np.random.choice(step_max + 1, size=num_inst_gen, p=step_probs)
+    curr_steps: NDArray = np.zeros(len(steps_gen))
+    eps_l: List[float] = list(np.random.rand(num_inst_gen) * eps_max)
+
+    times_states: Times = Times()
+    states, goals = env.get_start_goal_pairs(list(steps_gen), times=times_states)
+    times.add_times(times_states, ["get_states"])
+
     num_states_curr: int = 0
-
-    states_per_inst_l: List[float] = []
     while num_states_curr < num_states:
-        times: Times = Times()
-        num_states_i_pred: int = int(np.ceil(update_batch_size * states_per_inst))
-        if (num_states_curr + num_states_i_pred) > num_states:
-            num_inst_i = int(np.ceil((num_states - num_states_curr) / states_per_inst))
-        else:
-            num_inst_i = update_batch_size
-        num_steps_l: NDArray[np.int_] = np.random.choice(step_max + 1, size=num_inst_i, p=step_probs)
+        # generate states
+        idxs_gen: NDArray = np.where(curr_steps == step_max)[0]
+        num_gen: int = idxs_gen.shape[0]
+        if num_gen > 0:
+            times_states: Times = Times()
+            states_gen, goals_gen = env.get_start_goal_pairs(list(steps_gen[idxs_gen]), times=times_states)
+            times.add_times(times_states, ["get_states"])
+            for idx, idx_gen in enumerate(list(idxs_gen)):
+                states[idx_gen] = states_gen[idx]
+                goals[idx_gen] = goals_gen[idx]
+            curr_steps[idxs_gen] = 0
 
-        times_states: Times = Times()
-        states, states_goal_set = env.get_start_goal_pairs(list(num_steps_l), times=times_states)
-        times.add_times(times_states, ["get_states"])
-
+        # step
         if update_method.upper() == "GREEDY":
-            times_greedy: Times = Times()
-            states_update, goals_update, cost_to_go_update, is_solved = greedy_update(states, states_goal_set, env,
-                                                                                      solve_steps, heuristic_fn,
-                                                                                      eps_max, times_greedy)
-            times.add_times(times_greedy, ["greedy"])
+            states_next, ctgs, is_solved_l = bellman_step_targ(env, states, goals, heuristic_fn, eps_l, times)
         else:
             raise ValueError("Unknown update method %s" % update_method)
 
-        states_per_inst_l.append(len(states_update) / len(states))
-        states_per_inst = float(np.mean(states_per_inst_l))
-
-        leftover: int = (len(states_update) + num_states_curr) - num_states
+        # remove leftover
+        leftover: int = (len(states) + num_states_curr) - num_states
         if leftover > 0:
-            num_keep: int = len(states_update) - leftover
-            keep_idxs = np.random.choice(len(states_update), size=num_keep)
+            num_keep: int = len(states) - leftover
+            keep_idxs = np.random.choice(len(states), size=num_keep)
 
-            states_update = [states_update[keep_idx] for keep_idx in keep_idxs]
-            goals_update = [goals_update[keep_idx] for keep_idx in keep_idxs]
-            cost_to_go_update = cost_to_go_update[keep_idxs]
+            states = [states[keep_idx] for keep_idx in keep_idxs]
+            goals = [goals[keep_idx] for keep_idx in keep_idxs]
+            ctgs = ctgs[keep_idxs]
+            states_next = [states_next[keep_idx] for keep_idx in keep_idxs]
 
+        # put to queue
         start_time = time.time()
-        states_goals_update_nnet = env.states_goals_to_nnet_input(states_update, goals_update)
+        states_goals_nnet = env.states_goals_to_nnet_input(states, goals)
         times.record_time("states_goals_to_nnet", time.time() - start_time)
 
-        result_queue.put((states_goals_update_nnet, cost_to_go_update, is_solved, times))
+        result_queue.put((states_goals_nnet, ctgs, np.array(is_solved_l), times))
 
-        num_states_curr += len(states_update)
+        num_states_curr += len(states)
+        states = states_next
+        curr_steps = curr_steps + 1
+        curr_steps[np.array(is_solved_l)] = step_max
+
 
     result_queue.put((None, heur_fn_q.proc_id))
 

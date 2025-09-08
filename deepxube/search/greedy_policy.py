@@ -217,7 +217,7 @@ def greedy_test(states: List[State], goals: List[Goal], inst_gen_steps: List[int
             avg_solve_steps = float(np.mean(num_steps[is_solved]))
 
         # Print results
-        print("Back Steps: %i, %%Solved: %.2f, avgSolveSteps: %.2f, CTG Mean(Std/Min/Max): %.2f("
+        print("Steps: %i, %%Solved: %.2f, avgSolveSteps: %.2f, CTG Mean(Std/Min/Max): %.2f("
               "%.2f/%.2f/%.2f)" % (
                   back_step_test, per_solved, avg_solve_steps, float(np.mean(ctgs)),
                   float(np.std(ctgs)), float(np.min(ctgs)), float(np.max(ctgs))))
