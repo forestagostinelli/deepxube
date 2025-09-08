@@ -109,6 +109,7 @@ def update_runner(num_states: int, step_max: int, step_probs: List[float], updat
             states = [states[keep_idx] for keep_idx in keep_idxs]
             goals = [goals[keep_idx] for keep_idx in keep_idxs]
             ctgs = ctgs[keep_idxs]
+            is_solved_l = [is_solved_l[keep_idx] for keep_idx in keep_idxs]
             states_next = [states_next[keep_idx] for keep_idx in keep_idxs]
 
         # put to queue
