@@ -1,6 +1,5 @@
 from typing import List, Tuple, Any
 import numpy as np
-from networkx.algorithms.cuts import cut_size
 from numpy.typing import NDArray
 from deepxube.utils import misc_utils
 from deepxube.search.search_utils import bellman
