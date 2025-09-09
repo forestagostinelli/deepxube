@@ -142,7 +142,9 @@ def greedy_runner(env: Environment, heur_fn_q: HeurFnQ, proc_id: int,
     # Get state cost-to-go
     state_ctg_all: NDArray[np.float64] = heuristic_fn(states, goals)
 
-    results_queue.put((proc_id, is_solved_all, num_steps_all, state_ctg_all, inst_gen_steps))
+    states_ctg_bkup_all: NDArray[np.float64] = bellman(states, goals, heuristic_fn, env)[0]
+
+    results_queue.put((proc_id, is_solved_all, num_steps_all, state_ctg_all, states_ctg_bkup_all, inst_gen_steps))
 
 
 def greedy_test(states: List[State], goals: List[Goal], inst_gen_steps: List[int], env: Environment,
@@ -181,17 +183,20 @@ def greedy_test(states: List[State], goals: List[Goal], inst_gen_steps: List[int
     is_solved_l: List[List[bool]] = [[] for _ in heur_fn_qs]
     num_steps_l: List[List[int]] = [[] for _ in heur_fn_qs]
     ctgs_l: List[List[float]] = [[] for _ in heur_fn_qs]
+    ctgs_bkup_l: List[List[float]] = [[] for _ in heur_fn_qs]
     inst_gen_steps_l: List[List[int]] = [[] for _ in heur_fn_qs]
 
     for _ in heur_fn_qs:
-        proc_id, is_solved_i, num_steps_i, ctgs_i, inst_gen_steps_i = results_q.get()
+        proc_id, is_solved_i, num_steps_i, ctgs_i, ctgs_bkup_i, inst_gen_steps_i = results_q.get()
         is_solved_l[proc_id] = is_solved_i
         num_steps_l[proc_id] = num_steps_i
         ctgs_l[proc_id] = ctgs_i
+        ctgs_bkup_l[proc_id] = ctgs_bkup_i
         inst_gen_steps_l[proc_id] = inst_gen_steps_i
     is_solved_all = np.hstack(is_solved_l)
     num_steps_all = np.hstack(num_steps_l)
     ctgs_all = np.hstack(ctgs_l)
+    ctgs_bkup_all = np.hstack(ctgs_bkup_l)
     inst_gen_steps = list(np.hstack(inst_gen_steps_l))
 
     for proc in procs:
@@ -208,6 +213,7 @@ def greedy_test(states: List[State], goals: List[Goal], inst_gen_steps: List[int
         is_solved: NDArray[np.bool_] = is_solved_all[step_idxs]
         num_steps: NDArray[np.int_] = num_steps_all[step_idxs]
         ctgs: NDArray[np.float64] = ctgs_all[step_idxs]
+        ctgs_bkup: NDArray[np.float64] = ctgs_bkup_all[step_idxs]
 
         # Get stats
         per_solved = 100 * float(sum(is_solved)) / float(len(is_solved))
@@ -217,8 +223,11 @@ def greedy_test(states: List[State], goals: List[Goal], inst_gen_steps: List[int
 
         # Print results
         print("Steps: %i, %%Solved: %.2f, avgSolveSteps: %.2f, CTG Mean(Std/Min/Max): %.2f("
+              "%.2f/%.2f/%.2f) CTG_Backup: %.2f("
               "%.2f/%.2f/%.2f)" % (
-                  back_step_test, per_solved, avg_solve_steps, float(np.mean(ctgs)),
-                  float(np.std(ctgs)), float(np.min(ctgs)), float(np.max(ctgs))))
+                  back_step_test, per_solved, avg_solve_steps,
+                  float(np.mean(ctgs)), float(np.std(ctgs)), float(np.min(ctgs)), float(np.max(ctgs)),
+                  float(np.mean(ctgs_bkup)), float(np.std(ctgs_bkup)), float(np.min(ctgs_bkup)),
+                  float(np.max(ctgs_bkup))))
 
     return per_solved_all
