@@ -459,7 +459,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
                                                                   all_zeros=False, clip_zero=False,
                                                                   batch_size=up_args.up_nnet_batch_size)
 
-        max_solve_steps: int = min(status.update_num + 1, step_max)
+        max_solve_steps: int = min(status.update_num + 2, step_max)
 
         print("Testing greedy policy with %i states and %i steps" % (len(status.states_start_t), max_solve_steps))
         per_solved: float = greedy_test(status.states_start_t, status.goals_t, status.state_t_steps_l, env,
