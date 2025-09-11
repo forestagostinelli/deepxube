@@ -1,5 +1,5 @@
-from typing import List, Tuple, Set, Callable, Optional
-from deepxube.environments.environment_abstract import Environment, State, Goal
+from typing import List, Tuple, Set, Callable, Optional, Any
+from deepxube.environments.environment_abstract import Environment, State, Goal, Action
 from deepxube.utils import misc_utils
 from deepxube.utils.timing_utils import Times
 from deepxube.nnet.nnet_utils import HeurFnQ, HeurFN_T
@@ -11,24 +11,33 @@ import random
 import time
 
 
+class Node:
+    def __init__(self, state: State, goal: Goal, path_cost: float, parent_action: Optional[Action],
+                 parent: Optional['Node']):
+        self.state: State = state
+        self.goal: Goal = goal
+        self.path_cost: float = path_cost
+        self.heuristic: Optional[float] = None
+        self.parent_action: Optional[Action] = parent_action
+        self.parent: Optional[Node] = parent
+
+
 class Instance:
 
-    def __init__(self, state: State, goal: Goal, eps: float):
-        self.curr_state: State = state
+    def __init__(self, state: State, goal: Goal, eps: float, inst_info: Any):
+        self.goal = goal
+        self.root_node: Node = Node(state, self.goal, 0.0, None, None)
+        self.curr_node: Node = self.root_node
         self.is_solved: bool = False
-        self.goal: Goal = goal
         self.step_num: int = 0
-        self.traj: List[Tuple[State, float]] = []
-        self.seen_states: Set[State] = set()
+        self.seen_states: Set[State] = {state}
+        self.inst_info: Any = inst_info
 
         self.eps = eps
 
-    def add_to_traj(self, state: State, cost_to_go: float):
-        self.traj.append((state, cost_to_go))
-        self.seen_states.add(state)
-
-    def next_state(self, state: State):
-        self.curr_state = state
+    def next_state(self, state: State, action: Action, t_cost: float):
+        path_cost: float = self.curr_node.path_cost + t_cost
+        self.curr_node = Node(state, self.goal, path_cost, action, self.curr_node)
         self.step_num += 1
 
 
@@ -37,16 +46,19 @@ class Greedy:
         self.env: Environment = env
         self.instances: List[Instance] = []
 
-    def add_instances(self, states: List[State], goals: List[Goal], eps_l: Optional[List[float]]):
+    def add_instances(self, states: List[State], goals: List[Goal], eps_l: Optional[List[float]],
+                      inst_infos: Optional[List[Any]] = None):
         if eps_l is None:
             eps_l = [0] * len(states)
+        if inst_infos is None:
+            inst_infos = [None] * len(states)
 
         assert len(states) == len(goals), "Number of states and goals should be the same"
-        assert len(goals) == len(eps_l), "Number of epsilon given should be the same as number of instances"
+        assert len(states) == len(eps_l), "Number of epsilon given should be the same as number of instances"
+        assert len(states) == len(inst_infos), "Number of instance info given should be the same as number of instances"
 
-        for state, goal, eps_inst in zip(states, goals, eps_l):
-            # TODO, what about initial solve check?
-            instance: Instance = Instance(state, goal, eps_inst)
+        for state, goal, eps_inst, inst_info in zip(states, goals, eps_l, inst_infos):
+            instance: Instance = Instance(state, goal, eps_inst, inst_info)
             self.instances.append(instance)
 
     def step(self, heuristic_fn: HeurFN_T, times: Optional[Times] = None,
@@ -60,12 +72,13 @@ class Greedy:
         if len(instances) == 0:
             return [], [], np.zeros(0)
 
-        states: List[State] = [instance.curr_state for instance in instances]
-        goals: List[Goal] = [instance.goal for instance in instances]
+        states: List[State] = [instance.curr_node.state for instance in instances]
+        goals: List[Goal] = [instance.curr_node.goal for instance in instances]
         times.record_time("get_unsolved", time.time() - start_time)
 
         # bellman
-        ctg_backups, ctg_next_p_tcs, states_exp, is_solved = bellman(states, goals, heuristic_fn, self.env, times)
+        (ctg_backups, ctg_next_p_tcs, states_exp, actions_exp, tcs_exp,
+         is_solved) = bellman(states, goals, heuristic_fn, self.env, times)
 
         # take action
         start_time = time.time()
@@ -73,32 +86,22 @@ class Greedy:
         for idx in range(len(instances)):
             # add state to trajectory
             instance: Instance = instances[idx]
-            state: State = states[idx]
-            ctg_backup: float = float(ctg_backups[idx])
+            is_solved_i: bool = is_solved[idx]
 
-            instance.add_to_traj(state, ctg_backup)
+            instances[idx].is_solved = is_solved_i
 
             # get next state
-            if not is_solved[idx]:
+            if not is_solved_i:
                 state_exp: List[State] = states_exp[idx]
                 ctg_next_p_tc: NDArray[np.float64] = ctg_next_p_tcs[idx]
 
-                state_next: State = state_exp[int(np.argmin(ctg_next_p_tc))]
-                seen_state: bool = state_next in instance.seen_states
-                if (rand_vals[idx] < instance.eps) or (seen_state and rand_seen):
-                    state_next = random.choice(state_exp)
-                instance.next_state(state_next)
+                child_idx: int = int(np.argmin(ctg_next_p_tc))
+                state_next: State = state_exp[child_idx]
+                if (rand_vals[idx] < instance.eps) or (rand_seen and (state_next in instance.seen_states)):
+                    child_idx: int = random.choice(list(range(ctg_next_p_tc.shape[0])))
+                state_next: State = state_exp[child_idx]
+                instance.next_state(state_next, actions_exp[idx][child_idx], tcs_exp[idx][child_idx])
         times.record_time("get_next", time.time() - start_time)
-
-        # check which are solved
-        start_time = time.time()
-        states_next: List[State] = [instance.curr_state for instance in instances]
-        goals = [instance.goal for instance in instances]
-        is_solved_next: List[bool] = self.env.is_solved(states_next, goals)
-        solved_idxs: List[int] = list(np.where(is_solved_next)[0])
-        for solved_idx in solved_idxs:
-            instances[solved_idx].is_solved = True
-        times.record_time("record_solved", time.time() - start_time)
 
         return states, goals, ctg_backups
 
@@ -223,7 +226,7 @@ def greedy_test(states: List[State], goals: List[Goal], inst_gen_steps: List[int
 
         # Print results
         print("Steps: %i, %%Solved: %.2f, avgSolveSteps: %.2f, CTG Mean(Std/Min/Max): %.2f("
-              "%.2f/%.2f/%.2f) CTG_Backup: %.2f("
+              "%.2f/%.2f/%.2f), CTG_Backup: %.2f("
               "%.2f/%.2f/%.2f)" % (
                   back_step_test, per_solved, avg_solve_steps,
                   float(np.mean(ctgs)), float(np.std(ctgs)), float(np.min(ctgs)), float(np.max(ctgs)),

@@ -7,6 +7,8 @@
 * Optimizer now persists across data generation and test
 * No more random state sampling when testing for previously seen states
 * Add cost-to-go backup info to greedy policy test output
+* Remove redundant is_solved check for greedy policy
+* Consolidate updater for DAVI
 
 ## 0.1.6
 * Conflict-driven goal reaching for goals specified with negation as failure

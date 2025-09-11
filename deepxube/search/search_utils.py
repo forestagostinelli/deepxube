@@ -17,14 +17,15 @@ def is_valid_soln(state: State, goal: Goal, soln: List[Action], env: Environment
 
 def bellman(states: List[State], goals: List[Goal], heuristic_fn,
             env: Environment,
-            times: Optional[Times] = None) -> Tuple[NDArray[np.float64], List[NDArray[np.float64]], List[List[State]],
+            times: Optional[Times] = None) -> Tuple[NDArray[np.float64], List[NDArray[np.float64]],
+                                                    List[List[State]], List[List[Action]], List[List[float]],
                                                     List[bool]]:
     if times is None:
         times = Times()
 
     # expand states
     start_time = time.time()
-    states_exp, _, tcs_l = env.expand(states)
+    states_exp, actions_exp, tcs_exp = env.expand(states)
     times.record_time("expand", time.time() - start_time)
 
     # get cost-to-go of expanded states
@@ -45,11 +46,11 @@ def bellman(states: List[State], goals: List[Goal], heuristic_fn,
 
     # backup
     start_time = time.time()
-    tcs_flat: NDArray[np.float64] = np.hstack(tcs_l)
+    tcs_flat: NDArray[np.float64] = np.hstack(tcs_exp)
     ctg_next_p_tc_flat: NDArray[np.float64] = tcs_flat + ctg_next_flat
     ctg_next_p_tc_l: List[NDArray[np.float64]] = np.split(ctg_next_p_tc_flat, split_idxs)
 
     ctg_backup: NDArray[np.float64] = np.array([np.min(x) for x in ctg_next_p_tc_l]) * np.logical_not(is_solved)
     times.record_time("backup", time.time() - start_time)
 
-    return ctg_backup, ctg_next_p_tc_l, states_exp, is_solved
+    return ctg_backup, ctg_next_p_tc_l, states_exp, actions_exp, tcs_exp, is_solved
