@@ -1,10 +1,9 @@
-from typing import List, Tuple, Any, Union, cast
+from typing import List, Tuple, Union, cast
 from dataclasses import dataclass
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
 from deepxube.nnet.nnet_utils import HeurFnQ
 from deepxube.environments.environment_abstract import State, Environment, Goal
-from deepxube.updaters.updater import Updater
 from deepxube.search.greedy_policy import Greedy, greedy_test
 from deepxube.search.greedy_policy import Instance as InstanceGreedy
 from deepxube.utils.data_utils import sel_l
@@ -440,7 +439,8 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
         mean_ctg = ctgs_up.mean()
         min_ctg = ctgs_up.min()
         max_ctg = ctgs_up.max()
-        print(f"Generated {ctgs_up.shape[0]} training instances, Replay buffer size: {rb.size()}")
+        print(f"Generated {format(ctgs_up.shape[0], ',')} training instances, "
+              f"Replay buffer size: {format(rb.size(), ',')}")
         print(f"Cost-to-go (mean/min/max): %.2f/%.2f/%.2f" % (mean_ctg, min_ctg, max_ctg))
         print(f"Times - {times_up.get_time_str()}")
 
