@@ -4,8 +4,9 @@ from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
 from deepxube.nnet.nnet_utils import HeurFnQ
 from deepxube.environments.environment_abstract import State, Environment, Goal
+
+from deepxube.search.search_abstract import Search, Instance
 from deepxube.search.greedy_policy import Greedy, greedy_test
-from deepxube.search.greedy_policy import Instance as InstanceGreedy
 from deepxube.utils.data_utils import sel_l
 from deepxube.utils.timing_utils import Times
 from deepxube.utils import misc_utils
@@ -198,57 +199,81 @@ class ReplayBuffer:
                 self.add_idx = 0
 
 
+def to_data_q(env: Environment, search: Search, search_perf: SearchPerf, data_q: Queue, up_args: UpdateArgs,
+              solved_only: bool, times: Times) -> List[Instance]:
+    # get instances
+    if solved_only:
+        insts: List[Instance] = search.remove_solved_instances(up_args.up_step_max)
+    else:
+        insts: List[Instance] = search.instances
+
+    # get data
+    if len(insts) > 0:
+        states: List[State] = []
+        goals: List[Goal] = []
+        ctgs_bellman: List[float] = []
+        start_time = time.time()
+        for inst in insts:
+            for node in inst.nodes_expanded:
+                node.bellman_backup()
+
+            for node in inst.nodes_expanded:
+                if node.is_solved:
+                    node.upper_bound_parent_path(0.0)
+
+            states.extend([node.state for node in inst.nodes_expanded])
+            goals.extend([node.goal for node in inst.nodes_expanded])
+            ctgs_bellman.extend([node.bellman_backup_val for node in inst.nodes_expanded])
+            search_perf.update_perf(inst.has_soln(), inst.path_cost(), inst.itr)
+        times.record_time("bellman", time.time() - start_time)
+
+        # to nnet
+        start_time = time.time()
+        states_goals_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
+        times.record_time("to_nnet", time.time() - start_time)
+
+        # to queue
+        data_q.put((states_goals_nnet, np.array(ctgs_bellman)))
+
+    return insts
+
+
 def update_runner(batch_size: int, num_batches: int, step_max: int, heur_fn_q: HeurFnQ, env: Environment,
-                  result_queue: Queue, up_args: UpdateArgs):
+                  data_q: Queue, up_args: UpdateArgs):
     times: Times = Times()
 
-    def remove_instance_fn(inst_in: InstanceGreedy) -> bool:
-        if inst_in.is_solved:
-            return True
-        if inst_in.step_num >= up_args.up_step_max:
-            return True
-        return False
-
-    heuristic_fn = heur_fn_q.get_heuristic_fn(env)
+    heur_fn = heur_fn_q.get_heuristic_fn(env)
     greedy: Greedy = Greedy(env)
     search_perf: SearchPerf = SearchPerf()
     for _ in range(num_batches):
         # remove instances
-        insts_rem: List[InstanceGreedy] = greedy.remove_instances(remove_instance_fn)
-        for inst in insts_rem:
-            search_perf.update_perf(inst.is_solved, inst.curr_node.path_cost, inst.step_num)
+        insts_rem: List[Instance] = to_data_q(env, greedy, search_perf, data_q, up_args, True, times)
 
         # add instances
-        if (len(greedy.instances) < batch_size) or (len(insts_rem) > 0):
+        if (len(greedy.instances) == 0) or (len(insts_rem) > 0):
             steps_gen: List[int]
             eps_gen_l: List[float]
-            if len(insts_rem) == 0:
+            if len(greedy.instances) == 0:
                 steps_gen = list(np.random.choice(step_max + 1, size=batch_size))
                 eps_gen_l = list(np.random.rand(batch_size) * up_args.up_eps_max_greedy)
             else:
-                steps_gen = [int(inst.inst_info) for inst in insts_rem]
-                eps_gen_l = [inst.eps for inst in insts_rem]
+                steps_gen = [int(inst.inst_info[0]) for inst in insts_rem]
+                eps_gen_l = [float(inst.inst_info[1]) for inst in insts_rem]
 
             times_states: Times = Times()
             states_gen, goals_gen = env.get_start_goal_pairs(steps_gen, times=times_states)
             times.add_times(times_states, ["get_states"])
 
-            greedy.add_instances(states_gen, goals_gen, eps_l=eps_gen_l, inst_infos=steps_gen)
+            inst_infos: List[Tuple[int, float]] = [(step_gen, eps_gen)
+                                                   for step_gen, eps_gen in zip(steps_gen, eps_gen_l)]
+            greedy.add_instances(states_gen, goals_gen, heur_fn, eps_l=eps_gen_l, inst_infos=inst_infos)
 
         # take a step
-        states, goals, ctgs_backup = greedy.step(heuristic_fn, times=times, rand_seen=True)
+        greedy.step(heur_fn)
 
-        # put in queue
-        start_time = time.time()
-        states_goals_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
-        times.record_time("to_nnet", time.time() - start_time)
-
-        result_queue.put((states_goals_nnet, ctgs_backup))
-
-    insts_rem: List[InstanceGreedy] = greedy.remove_instances(remove_instance_fn)
-    for inst in insts_rem:
-        search_perf.update_perf(inst.is_solved, inst.curr_node.path_cost, inst.step_num)
-    result_queue.put((times, search_perf))
+    to_data_q(env, greedy, search_perf, data_q, up_args, False, times)
+    times.add_times(greedy.times, path=["search"])
+    data_q.put((times, search_perf))
 
 
 def load_data(model_dir: str, nnet_file: str, env: Environment, num_test_per_step: int,
@@ -430,7 +455,6 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
                     print(f"{num_gen_curr}/{num_inst_gen} instances (%.2f%%) "
                           f"(Data time: %.2f)" % (100 * num_gen_curr / num_inst_gen, time.time() - start_time_gen))
                     display_counts = display_counts[num_gen_curr < display_counts]
-
 
         nnet_utils.stop_heuristic_fn_runners(heur_procs, heur_fn_qs)
         for proc in procs:
