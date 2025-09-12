@@ -236,6 +236,7 @@ def update_runner(batch_size: int, num_batches: int, step_max: int, heur_fn_q: H
 
         # add instances
         if (len(greedy.instances) == 0) or (len(insts_rem) > 0):
+            times_states: Times = Times()
             steps_gen: List[int]
             eps_gen_l: List[float]
             if len(greedy.instances) == 0:
@@ -245,13 +246,12 @@ def update_runner(batch_size: int, num_batches: int, step_max: int, heur_fn_q: H
                 steps_gen = [int(inst.inst_info[0]) for inst in insts_rem]
                 eps_gen_l = [float(inst.inst_info[1]) for inst in insts_rem]
 
-            times_states: Times = Times()
             states_gen, goals_gen = env.get_start_goal_pairs(steps_gen, times=times_states)
-            times.add_times(times_states, ["get_states"])
 
             inst_infos: List[Tuple[int, float]] = [(step_gen, eps_gen)
                                                    for step_gen, eps_gen in zip(steps_gen, eps_gen_l)]
             greedy.add_instances(states_gen, goals_gen, heur_fn, eps_l=eps_gen_l, inst_infos=inst_infos)
+            times.add_times(times_states, ["get_states"])
 
         # take a step
         greedy.step(heur_fn)
