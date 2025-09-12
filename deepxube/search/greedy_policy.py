@@ -1,11 +1,10 @@
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Tuple
 from deepxube.environments.environment_abstract import Environment, State, Goal
 from deepxube.utils import misc_utils
 from deepxube.nnet.nnet_utils import HeurFnQ, HeurFN_T
 from deepxube.search.search_abstract import Node, Instance, Search
 import numpy as np
 from numpy.typing import NDArray
-from deepxube.search.search_utils import bellman
 from torch.multiprocessing import get_context, Queue
 import random
 import time
@@ -76,8 +75,7 @@ class Greedy(Search[InstanceGr]):
         return None
 
 
-def greedy_runner(env: Environment, heur_fn_q: HeurFnQ, proc_id: int,
-                  max_solve_steps: int, data_q, results_queue):
+def greedy_runner(env: Environment, heur_fn_q: HeurFnQ, proc_id: int, max_solve_steps: int, data_q, results_queue):
     heuristic_fn = heur_fn_q.get_heuristic_fn(env)
     states, goals, inst_gen_steps = data_q.get()
 
@@ -92,23 +90,22 @@ def greedy_runner(env: Environment, heur_fn_q: HeurFnQ, proc_id: int,
     path_costs_all: NDArray[np.int_] = np.array([instance.path_cost() for instance in greedy.instances])
 
     # Get state cost-to-go
-    state_ctg_all: NDArray[np.float64] = heuristic_fn(states, goals)
-
-    states_ctg_bkup_all: NDArray[np.float64] = bellman(states, goals, heuristic_fn, env)[0]
+    state_ctg_all: NDArray[np.float64] = np.array([inst.root_node.heuristic for inst in greedy.instances])
+    states_ctg_bkup_all: NDArray[np.float64] = np.array([inst.root_node.bellman_backup() for inst in greedy.instances])
 
     results_queue.put((proc_id, is_solved_all, num_steps_all, path_costs_all, state_ctg_all, states_ctg_bkup_all,
                        inst_gen_steps))
 
 
 def greedy_test(states: List[State], goals: List[Goal], inst_gen_steps: List[int], env: Environment,
-                heur_fn_qs: List[HeurFnQ], max_solve_steps: Optional[int] = None) -> float:
+                heur_fn_qs: List[HeurFnQ], max_solve_steps: Optional[int] = None) -> Tuple[float, NDArray]:
     # initialize
     if max_solve_steps is None:
         max_solve_steps = max(max(inst_gen_steps), 1)
 
     ctx = get_context("spawn")
-    data_q: Queue = ctx.Queue()
     results_q: Queue = ctx.Queue()
+    data_qs: List[Queue] = [ctx.Queue() for _ in heur_fn_qs]
     procs: List = []
     num_states_per_proc: List[int] = misc_utils.split_evenly(len(states), len(heur_fn_qs))
     start_idx: int = 0
@@ -121,6 +118,7 @@ def greedy_test(states: List[State], goals: List[Goal], inst_gen_steps: List[int
 
         # start process
         end_idx: int = start_idx + num_states_proc
+        data_q: Queue = data_qs[proc_id]
         proc = ctx.Process(target=greedy_runner, args=(env, heur_fn_q, proc_id, max_solve_steps, data_q, results_q))
         proc.daemon = True
         proc.start()
@@ -153,7 +151,8 @@ def greedy_test(states: List[State], goals: List[Goal], inst_gen_steps: List[int
     path_costs_all = np.hstack(path_costs_l)
     ctgs_all = np.hstack(ctgs_l)
     ctgs_bkup_all = np.hstack(ctgs_bkup_l)
-    inst_gen_steps = list(np.hstack(inst_gen_steps_l))
+    inst_gen_steps_new = list(np.hstack(inst_gen_steps_l))
+    assert inst_gen_steps_new == inst_gen_steps
 
     for proc in procs:
         proc.join()
@@ -189,4 +188,4 @@ def greedy_test(states: List[State], goals: List[Goal], inst_gen_steps: List[int
                   float(np.mean(ctgs_bkup)), float(np.std(ctgs_bkup)), float(np.min(ctgs_bkup)),
                   float(np.max(ctgs_bkup))))
 
-    return per_solved_all
+    return per_solved_all, is_solved_all

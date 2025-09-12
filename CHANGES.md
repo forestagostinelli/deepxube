@@ -9,6 +9,9 @@
 * Add cost-to-go backup info to greedy policy test output
 * Remove redundant is_solved check for greedy policy
 * Consolidate updater for DAVI
+* Upper bound cost-to-go by path cost if solved during update
+* Balance probabilities for steps based on solve percentage
+
 
 ## 0.1.6
 * Conflict-driven goal reaching for goals specified with negation as failure

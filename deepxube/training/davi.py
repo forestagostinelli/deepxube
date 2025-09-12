@@ -7,6 +7,7 @@ from deepxube.environments.environment_abstract import State, Environment, Goal
 
 from deepxube.search.search_abstract import Search, Instance
 from deepxube.search.greedy_policy import Greedy, greedy_test
+from deepxube.search.search_utils import SearchPerf
 from deepxube.utils.data_utils import sel_l
 from deepxube.utils.timing_utils import Times
 from deepxube.utils import misc_utils
@@ -70,43 +71,8 @@ class UpdateArgs:
     up_eps_max_greedy: float
 
 
-@dataclass
-class SearchPerf:
-    def __init__(self):
-        self.is_solved_l: List[bool] = []
-        self.path_costs: List[float] = []
-        self.search_itrs_l: List[int] = []
-
-    def update_perf(self, is_solved: bool, path_cost: float, search_itrs: int):
-        self.is_solved_l.append(is_solved)
-        if is_solved:
-            self.path_costs.append(path_cost)
-            self.search_itrs_l.append(search_itrs)
-
-    def comb_perf(self, search_perf2: 'SearchPerf') -> 'SearchPerf':
-        search_perf_new: SearchPerf = SearchPerf()
-        search_perf_new.is_solved_l = self.is_solved_l + search_perf2.is_solved_l
-        search_perf_new.path_costs = self.path_costs + search_perf2.path_costs
-        search_perf_new.search_itrs_l = self.search_itrs_l + search_perf2.search_itrs_l
-
-        return search_perf_new
-
-    def stats(self) -> Tuple[float, float, float]:
-        path_cost_ave: float = 0.0
-        if len(self.path_costs) > 0:
-            path_cost_ave: float = float(np.mean(self.path_costs))
-        search_itrs_ave: float = float(np.mean(self.search_itrs_l))
-        per_solved: float = 100.0 * float(np.mean(self.is_solved_l))
-
-        return per_solved, path_cost_ave, search_itrs_ave
-
-    def to_string(self) -> str:
-        per_solved, path_cost_ave, search_itrs_ave = self.stats()
-        return f"%solved: {per_solved:.2f}, path_costs: {path_cost_ave:.3f}, search_itrs: {search_itrs_ave:.3f}"
-
-
 class Status:
-    def __init__(self, env: Environment, step_max: int, num_test_per_step: int):
+    def __init__(self, env: Environment, step_max: int, num_test_per_step: int, num_procs: int):
         self.itr: int = 0
         self.update_num: int = 0
 
@@ -124,13 +90,32 @@ class Status:
 
         # Initialize per_solved_best
         print("Initializing per solved best")
-        heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(1, "", torch.device("cpu"), False, env, "V",
+        heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(num_procs, "", torch.device("cpu"), False, env, "V",
                                                                   all_zeros=True)
-        per_solved: float = greedy_test(self.states_start_t, self.goals_t, self.state_t_steps_l, env,
-                                        heur_fn_qs, max_solve_steps=1)
+        per_solved, is_solved_all = greedy_test(self.states_start_t, self.goals_t, self.state_t_steps_l, env,
+                                                heur_fn_qs, max_solve_steps=1)
         print("Greedy policy solved: %.2f%%" % per_solved)
         self.per_solved_best: float = per_solved
 
+        self.step_probs: NDArray = np.zeros(step_max + 1)/(step_max + 1)
+        self.step_max: int = step_max
+        self.update_step_probs(is_solved_all)
+
+    def update_step_probs(self, is_solved_all: NDArray):
+        per_solved_per_step_l: List[float] = []
+        for step in range(self.step_max + 1):
+            step_idxs: NDArray = np.where(np.array(self.state_t_steps_l) == step)[0]
+            per_solved_per_step_l.append(100.0 * float(np.mean(is_solved_all[step_idxs])))
+        per_solved_per_step: NDArray = np.array(per_solved_per_step_l)
+
+        num_no_soln: int = np.sum(per_solved_per_step == 0)
+        if num_no_soln == 0:
+            self.step_probs: NDArray = per_solved_per_step / per_solved_per_step.sum()
+        else:
+            num_w_soln_eff: float = per_solved_per_step.sum() / 100.0
+            num_tot_eff: float = num_w_soln_eff + 1
+            self.step_probs: NDArray = num_w_soln_eff * per_solved_per_step / per_solved_per_step.sum() / num_tot_eff
+            self.step_probs[per_solved_per_step == 0] = 1 / num_tot_eff / num_no_soln
 
 class ReplayBuffer:
     def __init__(self, max_size: int):
@@ -224,7 +209,7 @@ def to_data_q(env: Environment, search: Search, search_perf: SearchPerf, data_q:
             states.extend([node.state for node in inst.nodes_expanded])
             goals.extend([node.goal for node in inst.nodes_expanded])
             ctgs_bellman.extend([node.bellman_backup_val for node in inst.nodes_expanded])
-            search_perf.update_perf(inst.has_soln(), inst.path_cost(), inst.itr)
+            search_perf.update_perf(inst)
         times.record_time("bellman", time.time() - start_time)
 
         # to nnet
@@ -239,7 +224,7 @@ def to_data_q(env: Environment, search: Search, search_perf: SearchPerf, data_q:
 
 
 def update_runner(batch_size: int, num_batches: int, step_max: int, heur_fn_q: HeurFnQ, env: Environment,
-                  data_q: Queue, up_args: UpdateArgs):
+                  data_q: Queue, up_args: UpdateArgs, step_probs: NDArray):
     times: Times = Times()
 
     heur_fn = heur_fn_q.get_heuristic_fn(env)
@@ -254,7 +239,7 @@ def update_runner(batch_size: int, num_batches: int, step_max: int, heur_fn_q: H
             steps_gen: List[int]
             eps_gen_l: List[float]
             if len(greedy.instances) == 0:
-                steps_gen = list(np.random.choice(step_max + 1, size=batch_size))
+                steps_gen = list(np.random.choice(step_max + 1, size=batch_size, p=step_probs))
                 eps_gen_l = list(np.random.rand(batch_size) * up_args.up_eps_max_greedy)
             else:
                 steps_gen = [int(inst.inst_info[0]) for inst in insts_rem]
@@ -277,7 +262,7 @@ def update_runner(batch_size: int, num_batches: int, step_max: int, heur_fn_q: H
 
 
 def load_data(model_dir: str, nnet_file: str, env: Environment, num_test_per_step: int,
-              step_max: int) -> Tuple[nn.Module, Status]:
+              step_max: int, num_procs: int) -> Tuple[nn.Module, Status]:
     status_file: str = "%s/status.pkl" % model_dir
     if os.path.isfile(nnet_file):
         nnet = nnet_utils.load_nnet(nnet_file, env.get_v_nnet())
@@ -290,7 +275,7 @@ def load_data(model_dir: str, nnet_file: str, env: Environment, num_test_per_ste
         print(f"Loaded with itr: {status.itr}, update_num: {status.update_num}, "
               f"per_solved_best: {status.per_solved_best}")
     else:
-        status = Status(env, step_max, num_test_per_step)
+        status = Status(env, step_max, num_test_per_step, num_procs)
         # noinspection PyTypeChecker
         pickle.dump(status, open(status_file, "wb"), protocol=-1)
 
@@ -404,7 +389,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
 
     # load nnet
     print("Loading nnet and status")
-    nnet, status = load_data(nnet_dir, curr_file, env, num_test_per_step, step_max)
+    nnet, status = load_data(nnet_dir, curr_file, env, num_test_per_step, step_max, up_args.up_procs)
     nnet.to(device)
     nnet = nn.DataParallel(nnet)
 
@@ -422,12 +407,16 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
         data_q: Queue = ctx.Queue()
         batches_per_procs: List[int] = misc_utils.split_evenly(up_args.up_itrs, up_args.up_procs)
         procs: List[BaseProcess] = []
+
+        step_prob_str: str = ', '.join([f'{step_num}:{step_prob:.2f}'
+                                        for step_num, step_prob in zip(range(status.step_max + 1), status.step_probs)])
+        print(f"Step probs: {step_prob_str}")
         for proc_id, heur_fn_q in enumerate(heur_fn_qs):
             num_batches: int = batches_per_procs[proc_id]
             if num_batches == 0:
                 continue
             proc = ctx.Process(target=update_runner, args=(train_args.batch_size, num_batches, step_max, heur_fn_q, env,
-                                                           data_q, up_args))
+                                                           data_q, up_args, status.step_probs))
             proc.daemon = True
             proc.start()
             procs.append(proc)
@@ -486,9 +475,10 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
         max_solve_steps: int = min(status.update_num + 2, step_max)
 
         print("Testing greedy policy with %i states and %i steps" % (len(status.states_start_t), max_solve_steps))
-        per_solved: float = greedy_test(status.states_start_t, status.goals_t, status.state_t_steps_l, env,
-                                        heur_fn_qs, max_solve_steps=max_solve_steps)
+        per_solved, is_solved_all = greedy_test(status.states_start_t, status.goals_t, status.state_t_steps_l, env,
+                                                heur_fn_qs, max_solve_steps=max_solve_steps)
         print("Greedy policy solved (best): %.2f%% (%.2f%%)" % (per_solved, status.per_solved_best))
+        status.update_step_probs(is_solved_all)
 
         nnet_utils.stop_heuristic_fn_runners(heur_procs, heur_fn_qs)
         print("Test time: %.2f" % (time.time() - start_time))

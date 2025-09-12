@@ -25,7 +25,7 @@ class Node:
         self.t_costs: Optional[List[float]] = None
         self.bellman_backup_val: Optional[float] = None
 
-    def bellman_backup(self):
+    def bellman_backup(self) -> float:
         self.bellman_backup_val: float
         if self.is_solved:
             self.bellman_backup_val = 0.0
@@ -39,6 +39,8 @@ class Node:
                 self.bellman_backup_val = np.inf
                 for node_c, tc in zip(self.children, self.t_costs):
                     self.bellman_backup_val = min(self.bellman_backup_val, tc + node_c.heuristic)
+
+        return self.bellman_backup_val
 
     def upper_bound_parent_path(self, ctg_ub: float):
         self.bellman_backup_val = min(self.bellman_backup_val, ctg_ub)
