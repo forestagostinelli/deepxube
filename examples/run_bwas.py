@@ -3,8 +3,9 @@ from typing import List, Dict, Optional, Any
 from deepxube.environments.environment_abstract import Environment, State, Action, Goal
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
+from deepxube.search.search_abstract import get_path
 from deepxube.search.search_utils import is_valid_soln
-from deepxube.search.bwas import AStar, Node, get_path
+from deepxube.search.bwas import BWAS, Node
 from deepxube.environments.env_utils import get_environment
 import numpy as np
 from argparse import ArgumentParser
@@ -90,10 +91,10 @@ def main():
 
         start_time = time.time()
         num_itrs: int = 0
-        astar = AStar(env)
-        astar.add_instances([state], [goal], [args.weight], heuristic_fn)
+        astar = BWAS(env)
+        astar.add_instances([state], [goal], heuristic_fn, weights=[args.weight])
         while not min(x.finished for x in astar.instances):
-            astar.step(heuristic_fn, args.batch_size, verbose=args.verbose)
+            astar.step(heuristic_fn, batch_size=args.batch_size, verbose=args.verbose)
             num_itrs += 1
             if (args.time_limit >= 0) and ((time.time() - start_time) > args.time_limit):
                 break
@@ -122,8 +123,7 @@ def main():
         results["solved"].append(solved)
 
         # print to screen
-        timing_str = ", ".join(["%s: %.2f" % (key, val) for key, val in astar.timings.items()])
-        print("Times - %s, num_itrs: %i" % (timing_str, num_itrs))
+        print(f"Times - {astar.times.get_time_str()}, num_itrs: {num_itrs}")
 
         print(f"State: %i, SolnCost: %.2f, # Nodes Gen: %s, Itrs: %i, Itrs/sec: %.2f, Solved: {solved}, "
               f"Time: %.2f" % (state_idx, path_cost, format(num_nodes_gen_idx, ","), num_itrs,

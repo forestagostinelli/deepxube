@@ -60,7 +60,6 @@ class UpdateArgs:
     of memory.
     :param up_step_max: Maximum number of search steps to take from generated start states to generate additional data.
     Increasing this number could make the heuristic function more robust to depression regions.
-    Max number of steps taken has an upper bound of up_itrs.
     :param up_eps_max_greedy: epsilon greedy policy max. Each start/goal pair will have an eps uniformly distributed
     between 0 and greedy_update_eps_max
     """
@@ -202,9 +201,9 @@ def to_data_q(env: Environment, search: Search, search_perf: SearchPerf, data_q:
             for node in inst.nodes_expanded:
                 node.bellman_backup()
 
-            for node in inst.nodes_expanded:
-                if node.is_solved:
-                    node.upper_bound_parent_path(0.0)
+            # for node in inst.nodes_expanded:
+            #    if node.is_solved:
+            #        node.upper_bound_parent_path(0.0)
 
             states.extend([node.state for node in inst.nodes_expanded])
             goals.extend([node.goal for node in inst.nodes_expanded])
@@ -236,7 +235,6 @@ def update_runner(batch_size: int, num_batches: int, step_max: int, heur_fn_q: H
 
         # add instances
         if (len(greedy.instances) == 0) or (len(insts_rem) > 0):
-            times_states: Times = Times()
             steps_gen: List[int]
             eps_gen_l: List[float]
             if len(greedy.instances) == 0:
@@ -246,12 +244,13 @@ def update_runner(batch_size: int, num_batches: int, step_max: int, heur_fn_q: H
                 steps_gen = [int(inst.inst_info[0]) for inst in insts_rem]
                 eps_gen_l = [float(inst.inst_info[1]) for inst in insts_rem]
 
+            times_states: Times = Times()
             states_gen, goals_gen = env.get_start_goal_pairs(steps_gen, times=times_states)
+            times.add_times(times_states, ["get_states"])
 
             inst_infos: List[Tuple[int, float]] = [(step_gen, eps_gen)
                                                    for step_gen, eps_gen in zip(steps_gen, eps_gen_l)]
             greedy.add_instances(states_gen, goals_gen, heur_fn, eps_l=eps_gen_l, inst_infos=inst_infos)
-            times.add_times(times_states, ["get_states"])
 
         # take a step
         greedy.step(heur_fn)

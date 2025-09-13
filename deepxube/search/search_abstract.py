@@ -52,8 +52,8 @@ class Node:
 
 
 class Instance:
-    def __init__(self, state: State, goal: Goal, heuristic: float, is_solved: bool, inst_info: Any):
-        self.root_node: Node = Node(state, goal, 0.0, heuristic, is_solved, None, None, None)
+    def __init__(self, root_node: Node, inst_info: Any):
+        self.root_node: Node = root_node
         self.itr: int = 0  # update with every search iteration
         self.num_nodes_generated: int = 0
         self.inst_info: Any = inst_info
@@ -151,7 +151,7 @@ class Search(ABC, Generic[I]):
 
         for instance, nodes_by_inst_i in zip(instances, nodes_by_inst):
             instance.nodes_expanded.extend(nodes_by_inst_i)
-        self.times.record_time("update_inst", time.time() - start_time)
+        self.times.record_time("up_inst", time.time() - start_time)
 
         return nodes_c_by_inst
 

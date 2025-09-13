@@ -11,8 +11,8 @@ import time
 
 
 class InstanceGr(Instance):
-    def __init__(self, state: State, goal: Goal, heuristic: float, is_solved: bool, inst_info: Any, eps: float):
-        super().__init__(state, goal, heuristic, is_solved, inst_info)
+    def __init__(self, root_node: Node, inst_info: Any, eps: float):
+        super().__init__(root_node, inst_info)
         self.curr_node: Node = self.root_node
         self.eps = eps
 
@@ -26,16 +26,15 @@ class Greedy(Search[InstanceGr]):
         if eps_l is None:
             eps_l = [0.0] * len(states)
 
-        assert len(states) == len(goals), "Number of states and goals should be the same"
-        assert len(states) == len(eps_l), "Number of epsilon given should be the same as number of instances"
-        assert len(states) == len(inst_infos), "Number of instance info given should be the same as number of instances"
+        assert len(states) == len(goals) == len(inst_infos) == len(eps_l), "Number should be the same"
 
         heuristics: NDArray = heur_fn(states, goals)
         is_solved_l: List[bool] = self.env.is_solved(states, goals)
 
         for state, goal, heuristic, is_solved, inst_info, eps_inst in zip(states, goals, heuristics, is_solved_l,
                                                                           inst_infos, eps_l):
-            instance: InstanceGr = InstanceGr(state, goal, heuristic, is_solved, inst_info, eps_inst)
+            root_node: Node = Node(state, goal, 0.0, heuristic, is_solved, None, None, None)
+            instance: InstanceGr = InstanceGr(root_node, inst_info, eps_inst)
             self.instances.append(instance)
         self.times.record_time("add", time.time() - start_time)
 
