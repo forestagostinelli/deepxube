@@ -73,6 +73,10 @@ class Greedy(Search[InstanceGr]):
 
         return None
 
+    def _get_unsolved_instances(self) -> List[InstanceGr]:
+        instances_unsolved: List[InstanceGr] = [instance for instance in self.instances if not instance.has_soln()]
+        return instances_unsolved
+
 
 def greedy_runner(env: Environment, heur_fn_q: HeurFnQ, proc_id: int, max_solve_steps: int, data_q, results_queue):
     heuristic_fn = heur_fn_q.get_heuristic_fn(env)

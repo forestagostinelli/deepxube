@@ -183,10 +183,6 @@ class Search(ABC, Generic[I]):
 
         return instances_remove
 
-    def _get_unsolved_instances(self) -> List[I]:
-        instances_unsolved: List[I] = [instance for instance in self.instances if not instance.has_soln()]
-        return instances_unsolved
-
 
 def get_path(node: Node) -> Tuple[List[State], List[Action], float]:
     """ Gets path from the start state to the goal state associated with the input node
