@@ -7,8 +7,8 @@ from deepxube.environments.environment_abstract import State, Environment, Goal
 
 from deepxube.search.search_abstract import Search, Instance
 from deepxube.search.bwas import BWAS
-from deepxube.search.greedy_policy import Greedy, greedy_test
-from deepxube.search.search_utils import SearchPerf
+from deepxube.search.greedy_policy import Greedy
+from deepxube.search.search_utils import SearchPerf, search_test
 from deepxube.utils.data_utils import sel_l
 from deepxube.utils.timing_utils import Times
 from deepxube.utils import misc_utils
@@ -54,7 +54,10 @@ class TrainArgs:
 
 @dataclass
 class UpdateArgs:
-    """
+    """ Search performance is printed after update. This will most likely be higher than greedy since the steps taken
+    to generate instances are balanced according to solve performance and because, each time an instance is solved, a
+    new one is created with the same number of steps to maintain training data balance.
+
     :param up_itrs: How many iterations to do before checking if target network should be updated
     :param up_procs: Number of parallel workers used to compute updated cost-to-go values
     :param up_nnet_batch_size: Batch size of each nnet used for each process update. Make smaller if running out
@@ -94,8 +97,8 @@ class Status:
         print("Initializing per solved best")
         heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(num_procs, "", torch.device("cpu"), False, env, "V",
                                                                   all_zeros=True)
-        per_solved, is_solved_all = greedy_test(self.states_start_t, self.goals_t, self.state_t_steps_l, env,
-                                                heur_fn_qs, max_solve_steps=1)
+        per_solved, is_solved_all = search_test(self.states_start_t, self.goals_t, self.state_t_steps_l, env,
+                                                heur_fn_qs, "greedy", 1)
         print("Greedy policy solved: %.2f%%" % per_solved)
         self.per_solved_best: float = per_solved
 
@@ -474,7 +477,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
         print(f"Generated {format(ctgs_up.shape[0], ',')} training instances, "
               f"Replay buffer size: {format(rb.size(), ',')}")
         print(f"Cost-to-go (mean/min/max): %.2f/%.2f/%.2f" % (mean_ctg, min_ctg, max_ctg))
-        # print(search_perf.to_string())
+        print(search_perf.to_string())
         print(f"Times - {times_up.get_time_str()}")
 
         # train nnet
@@ -487,7 +490,6 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
 
         # test
         start_time = time.time()
-
         heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(up_args.up_procs, curr_file, device, on_gpu, env, "V",
                                                                   all_zeros=False, clip_zero=False,
                                                                   batch_size=up_args.up_nnet_batch_size)
@@ -495,8 +497,8 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
         max_solve_steps: int = min(status.update_num + 2, step_max)
 
         print("Testing greedy policy with %i states and %i steps" % (len(status.states_start_t), max_solve_steps))
-        per_solved, is_solved_all = greedy_test(status.states_start_t, status.goals_t, status.state_t_steps_l, env,
-                                                heur_fn_qs, max_solve_steps=max_solve_steps)
+        per_solved, is_solved_all = search_test(status.states_start_t, status.goals_t, status.state_t_steps_l, env,
+                                                heur_fn_qs, "greedy", max_solve_steps)
         print("Greedy policy solved (best): %.2f%% (%.2f%%)" % (per_solved, status.per_solved_best))
         status.update_step_probs(is_solved_all)
 
