@@ -10,6 +10,8 @@ import time
 
 
 class Node:
+    __slots__ = ['state', 'goal', 'path_cost', 'heuristic', 'is_solved', 'parent_action', 'parent_t_cost', 'parent',
+                 'children', 't_costs', 'bellman_backup_val']
     def __init__(self, state: State, goal: Goal, path_cost: float, heuristic: float, is_solved: bool,
                  parent_action: Optional[Action], parent_t_cost: Optional[float], parent: Optional['Node']):
         self.state: State = state
