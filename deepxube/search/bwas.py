@@ -1,6 +1,6 @@
 from typing import List, Tuple, Dict, Optional, Any
-from deepxube.environments.environment_abstract import State, Goal
-from deepxube.search.search_abstract import Environment, Search, Node, Instance
+from deepxube.environments.environment_abstract import Environment, State, Goal
+from deepxube.search.search_abstract import Search, Node, Instance
 from deepxube.nnet.nnet_utils import HeurFN_T
 import numpy as np
 from heapq import heappush, heappop
@@ -25,6 +25,7 @@ class InstanceBWAS(Instance):
         self.check_and_push([self.root_node], [self.root_node.heuristic])
 
     def check_and_push(self, nodes: List[Node], costs: List[float]):
+        assert len(nodes) == len(costs), "should have same length"
         for node, cost in zip(nodes, costs):
             # check
             path_cost_prev: Optional[float] = self.closed_dict.get(node.state)
@@ -43,6 +44,7 @@ class InstanceBWAS(Instance):
             if node.is_solved and ((self.goal_node is None) or (node.path_cost < self.goal_node.path_cost)):
                 self.goal_node = node
 
+        # TODO check if elems_popped len is 0
         cost_first: float = elems_popped[0][0]
         if (self.goal_node is not None) and ((self.weight * self.goal_node.path_cost) <= cost_first):
             self.finished = True
@@ -101,7 +103,9 @@ class BWAS(Search[InstanceBWAS]):
 
         # Check if children are in closed and push if not
         start_time = time.time()
+        assert len(instances) == len(nodes_c_by_inst) == len(costs_by_inst)
         for instance, nodes_c, costs in zip(instances, nodes_c_by_inst, costs_by_inst):
+            assert len(nodes_c) == len(costs)
             instance.check_and_push(nodes_c, costs)
         self.times.record_time("check_push", time.time() - start_time)
 
@@ -126,3 +130,13 @@ class BWAS(Search[InstanceBWAS]):
         self.steps += 1
         for instance in instances:
             instance.itr += 1
+
+    def remove_finished_instances(self, itr_max: int) -> List[InstanceBWAS]:
+        def remove_instance_fn(inst_in: InstanceBWAS) -> bool:
+            if inst_in.finished:
+                return True
+            if inst_in.itr >= itr_max:
+                return True
+            return False
+
+        return self.remove_instances(remove_instance_fn)

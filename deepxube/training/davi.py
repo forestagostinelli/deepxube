@@ -1,4 +1,4 @@
-from typing import List, Tuple, Union, cast
+from typing import List, Tuple, Union, cast, Dict, Any
 from dataclasses import dataclass
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
@@ -6,6 +6,7 @@ from deepxube.nnet.nnet_utils import HeurFnQ
 from deepxube.environments.environment_abstract import State, Environment, Goal
 
 from deepxube.search.search_abstract import Search, Instance
+from deepxube.search.bwas import BWAS
 from deepxube.search.greedy_policy import Greedy, greedy_test
 from deepxube.search.search_utils import SearchPerf
 from deepxube.utils.data_utils import sel_l
@@ -58,6 +59,7 @@ class UpdateArgs:
     :param up_procs: Number of parallel workers used to compute updated cost-to-go values
     :param up_nnet_batch_size: Batch size of each nnet used for each process update. Make smaller if running out
     of memory.
+    :param up_search: greedy or astar
     :param up_step_max: Maximum number of search steps to take from generated start states to generate additional data.
     Increasing this number could make the heuristic function more robust to depression regions.
     :param up_eps_max_greedy: epsilon greedy policy max. Each start/goal pair will have an eps uniformly distributed
@@ -66,6 +68,7 @@ class UpdateArgs:
     up_itrs: int
     up_procs: int
     up_nnet_batch_size: int
+    up_search: str
     up_step_max: int
     up_eps_max_greedy: float
 
@@ -184,10 +187,10 @@ class ReplayBuffer:
 
 
 def to_data_q(env: Environment, search: Search, search_perf: SearchPerf, data_q: Queue, up_args: UpdateArgs,
-              solved_only: bool, times: Times) -> List[Instance]:
+              finished_only: bool, times: Times) -> List[Instance]:
     # get instances
-    if solved_only:
-        insts: List[Instance] = search.remove_solved_instances(up_args.up_step_max)
+    if finished_only:
+        insts: List[Instance] = search.remove_finished_instances(up_args.up_step_max)
     else:
         insts: List[Instance] = search.instances
 
@@ -208,7 +211,8 @@ def to_data_q(env: Environment, search: Search, search_perf: SearchPerf, data_q:
             states.extend([node.state for node in inst.nodes_expanded])
             goals.extend([node.goal for node in inst.nodes_expanded])
             ctgs_bellman.extend([node.bellman_backup_val for node in inst.nodes_expanded])
-            search_perf.update_perf(inst)
+            if finished_only:
+                search_perf.update_perf(inst)
         times.record_time("bellman", time.time() - start_time)
 
         # to nnet
@@ -226,37 +230,53 @@ def update_runner(batch_size: int, num_batches: int, step_max: int, heur_fn_q: H
                   data_q: Queue, up_args: UpdateArgs, step_probs: NDArray):
     times: Times = Times()
 
+    up_search: str = up_args.up_search.upper()
     heur_fn = heur_fn_q.get_heuristic_fn(env)
-    greedy: Greedy = Greedy(env)
+    search: Search
+    if up_search == "GREEDY":
+        search: Search = Greedy(env)
+    elif up_search == "ASTAR":
+        search: Search = BWAS(env)
+    else:
+        raise ValueError(f"Unknown search method {up_args.up_search}")
     search_perf: SearchPerf = SearchPerf()
     for _ in range(num_batches):
         # remove instances
-        insts_rem: List[Instance] = to_data_q(env, greedy, search_perf, data_q, up_args, True, times)
+        insts_rem: List[Instance] = to_data_q(env, search, search_perf, data_q, up_args, True, times)
 
         # add instances
-        if (len(greedy.instances) == 0) or (len(insts_rem) > 0):
+        if (len(search.instances) == 0) or (len(insts_rem) > 0):
+            # get steps generate
             steps_gen: List[int]
-            eps_gen_l: List[float]
-            if len(greedy.instances) == 0:
+            if len(search.instances) == 0:
                 steps_gen = list(np.random.choice(step_max + 1, size=batch_size, p=step_probs))
-                eps_gen_l = list(np.random.rand(batch_size) * up_args.up_eps_max_greedy)
             else:
                 steps_gen = [int(inst.inst_info[0]) for inst in insts_rem]
-                eps_gen_l = [float(inst.inst_info[1]) for inst in insts_rem]
+
+            # get kwargs and instance information
+            kwargs: Dict[str, Any] = dict()
+            inst_infos: List[Any]
+            if up_search == "GREEDY":
+                if len(search.instances) == 0:
+                    eps_gen_l = list(np.random.rand(batch_size) * up_args.up_eps_max_greedy)
+                else:
+                    eps_gen_l = [float(inst.inst_info[1]) for inst in insts_rem]
+                inst_infos: List[Tuple[int, float]] = [(step_gen, eps_gen)
+                                                       for step_gen, eps_gen in zip(steps_gen, eps_gen_l)]
+            elif up_search == "ASTAR":
+                inst_infos: List[Tuple[int]] = [(step_gen,) for step_gen in steps_gen]
 
             times_states: Times = Times()
             states_gen, goals_gen = env.get_start_goal_pairs(steps_gen, times=times_states)
             times.add_times(times_states, ["get_states"])
 
-            inst_infos: List[Tuple[int, float]] = [(step_gen, eps_gen)
-                                                   for step_gen, eps_gen in zip(steps_gen, eps_gen_l)]
-            greedy.add_instances(states_gen, goals_gen, heur_fn, eps_l=eps_gen_l, inst_infos=inst_infos)
+            search.add_instances(states_gen, goals_gen, heur_fn, inst_infos=inst_infos, **kwargs)
 
         # take a step
-        greedy.step(heur_fn)
+        search.step(heur_fn)
 
-    to_data_q(env, greedy, search_perf, data_q, up_args, False, times)
-    times.add_times(greedy.times, path=["search"])
+    to_data_q(env, search, search_perf, data_q, up_args, False, times)
+    times.add_times(search.times, path=["search"])
     data_q.put((times, search_perf))
 
 
@@ -454,6 +474,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
         print(f"Generated {format(ctgs_up.shape[0], ',')} training instances, "
               f"Replay buffer size: {format(rb.size(), ',')}")
         print(f"Cost-to-go (mean/min/max): %.2f/%.2f/%.2f" % (mean_ctg, min_ctg, max_ctg))
+        # print(search_perf.to_string())
         print(f"Times - {times_up.get_time_str()}")
 
         # train nnet

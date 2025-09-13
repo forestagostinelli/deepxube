@@ -84,7 +84,7 @@ class Search(ABC, Generic[I]):
 
     @abstractmethod
     def add_instances(self, states: List[State], goals: List[Goal], heur_fn: HeurFN_T,
-                      inst_infos: Optional[List[Any]] = None):
+                      inst_infos: Optional[List[Any]] = None, **kwargs):
         pass
 
     @abstractmethod
@@ -145,7 +145,12 @@ class Search(ABC, Generic[I]):
 
         # get child nodes by instance
         start_time = time.time()
-        nodes_c_by_inst: List[List[Node]] = misc_utils.unflatten(nodes_c, split_idxs)
+        nodes_c_by_state: List[List[Node]] = misc_utils.unflatten(nodes_c, split_idxs_c)
+        nodes_c_by_inst_state: List[List[List[Node]]] = misc_utils.unflatten(nodes_c_by_state, split_idxs)
+        nodes_c_by_inst: List[List[Node]] = []
+        for nodes_c_by_inst_state_i in nodes_c_by_inst_state:
+            nodes_c_by_inst.append(misc_utils.flatten(nodes_c_by_inst_state_i)[0])
+
         for instance, nodes_c_by_inst_i in zip(instances, nodes_c_by_inst):
             instance.num_nodes_generated += len(nodes_c_by_inst_i)
 
@@ -155,15 +160,9 @@ class Search(ABC, Generic[I]):
 
         return nodes_c_by_inst
 
-    def remove_solved_instances(self, itr_max: int) -> List[I]:
-        def remove_instance_fn(inst_in: Instance) -> bool:
-            if inst_in.has_soln():
-                return True
-            if inst_in.itr >= itr_max:
-                return True
-            return False
-
-        return self.remove_instances(remove_instance_fn)
+    @abstractmethod
+    def remove_finished_instances(self, itr_max: int) -> List[I]:
+        pass
 
     def remove_instances(self, test_rem: Callable[[I], bool]) -> List[I]:
         """ Remove instances

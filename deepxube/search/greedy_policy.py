@@ -73,6 +73,16 @@ class Greedy(Search[InstanceGr]):
 
         return None
 
+    def remove_finished_instances(self, itr_max: int) -> List[InstanceGr]:
+        def remove_instance_fn(inst_in: InstanceGr) -> bool:
+            if inst_in.has_soln():
+                return True
+            if inst_in.itr >= itr_max:
+                return True
+            return False
+
+        return self.remove_instances(remove_instance_fn)
+
     def _get_unsolved_instances(self) -> List[InstanceGr]:
         instances_unsolved: List[InstanceGr] = [instance for instance in self.instances if not instance.has_soln()]
         return instances_unsolved
