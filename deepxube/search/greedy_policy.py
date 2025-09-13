@@ -1,4 +1,4 @@
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Tuple
 from deepxube.environments.environment_abstract import State, Goal
 from deepxube.nnet.nnet_utils import HeurFN_T
 from deepxube.search.search_abstract import Node, Instance, Search
@@ -36,13 +36,18 @@ class Greedy(Search[InstanceGr]):
             self.instances.append(instance)
         self.times.record_time("add", time.time() - start_time)
 
-    def step(self, heur_fn: HeurFN_T):
+    def step(self, heur_fn: HeurFN_T) -> Tuple[List[State], List[Goal], List[float]]:
         # get unsolved instances
         instances: List[InstanceGr] = self._get_unsolved_instances()
         if len(instances) == 0:
-            return None
+            return [], [], []
 
         self.expand_nodes(instances, [[inst.curr_node] for inst in instances], heur_fn)
+        start_time = time.time()
+        states: List[State] = [inst.curr_node.state for inst in instances]
+        goals: List[Goal] = [inst.curr_node.goal for inst in instances]
+        ctgs: List[float] = [inst.curr_node.bellman_backup() for inst in instances]
+        self.times.record_time("bellman", time.time() - start_time)
 
         # take action
         start_time = time.time()
@@ -69,7 +74,7 @@ class Greedy(Search[InstanceGr]):
             instance.itr += 1
         self.times.record_time("get_next", time.time() - start_time)
 
-        return None
+        return states, goals, ctgs
 
     def remove_finished_instances(self, itr_max: int) -> List[InstanceGr]:
         def remove_instance_fn(inst_in: InstanceGr) -> bool:

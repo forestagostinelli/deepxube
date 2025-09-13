@@ -88,7 +88,7 @@ class Search(ABC, Generic[I]):
         pass
 
     @abstractmethod
-    def step(self, heur_fn: HeurFN_T):
+    def step(self, heur_fn: HeurFN_T) -> Tuple[List[State], List[Goal], List[float]]:
         pass
 
     def expand_nodes(self, instances: List[I], nodes_by_inst: List[List[Node]], heur_fn: HeurFN_T) -> List[List[Node]]:

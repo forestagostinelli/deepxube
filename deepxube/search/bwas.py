@@ -79,16 +79,17 @@ class BWAS(Search[InstanceBWAS]):
             self.instances.append(InstanceBWAS(root_node, inst_info, weight))
         self.times.record_time("add", time.time() - start_time)
 
-    def step(self, heur_fn: HeurFN_T, batch_size: int = 1, verbose: bool = False):
+    def step(self, heur_fn: HeurFN_T, batch_size: int = 1,
+             verbose: bool = False) -> Tuple[List[State], List[Goal], List[float]]:
         instances: List[InstanceBWAS] = [instance for instance in self.instances if not instance.finished]
 
         # Pop from open
         start_time = time.time()
-        popped_nodes_by_inst: List[List[Node]] = [instance.pop_from_open(batch_size) for instance in instances]
+        nodes_by_inst_popped: List[List[Node]] = [instance.pop_from_open(batch_size) for instance in instances]
         self.times.record_time("pop", time.time() - start_time)
 
         # Expand nodes
-        nodes_c_by_inst: List[List[Node]] = self.expand_nodes(instances, popped_nodes_by_inst, heur_fn)
+        nodes_c_by_inst: List[List[Node]] = self.expand_nodes(instances, nodes_by_inst_popped, heur_fn)
 
         # Get cost
         start_time = time.time()
@@ -130,6 +131,15 @@ class BWAS(Search[InstanceBWAS]):
         self.steps += 1
         for instance in instances:
             instance.itr += 1
+
+        # return
+        start_time = time.time()
+        nodes_popped_flat, _ = misc_utils.flatten(nodes_by_inst_popped)
+        states: List[State] = [node.state for node in nodes_popped_flat]
+        goals: List[Goal] = [node.goal for node in nodes_popped_flat]
+        ctgs: List[float] = [node.bellman_backup() for node in nodes_popped_flat]
+        self.times.record_time("bellman", time.time() - start_time)
+        return states, goals, ctgs
 
     def remove_finished_instances(self, itr_max: int) -> List[InstanceBWAS]:
         def remove_instance_fn(inst_in: InstanceBWAS) -> bool:

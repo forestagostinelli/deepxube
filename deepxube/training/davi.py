@@ -122,6 +122,7 @@ class Status:
             self.step_probs: NDArray = num_w_soln_eff * per_solved_per_step / per_solved_per_step.sum() / num_tot_eff
             self.step_probs[per_solved_per_step == 0] = 1 / num_tot_eff / num_no_soln
 
+
 class ReplayBuffer:
     def __init__(self, max_size: int):
         self.inputs: List[NDArray] = []
@@ -189,46 +190,6 @@ class ReplayBuffer:
                 self.add_idx = 0
 
 
-def to_data_q(env: Environment, search: Search, search_perf: SearchPerf, data_q: Queue, up_args: UpdateArgs,
-              finished_only: bool, times: Times) -> List[Instance]:
-    # get instances
-    if finished_only:
-        insts: List[Instance] = search.remove_finished_instances(up_args.up_step_max)
-    else:
-        insts: List[Instance] = search.instances
-
-    # get data
-    if len(insts) > 0:
-        states: List[State] = []
-        goals: List[Goal] = []
-        ctgs_bellman: List[float] = []
-        start_time = time.time()
-        for inst in insts:
-            for node in inst.nodes_expanded:
-                node.bellman_backup()
-
-            # for node in inst.nodes_expanded:
-            #    if node.is_solved:
-            #        node.upper_bound_parent_path(0.0)
-
-            states.extend([node.state for node in inst.nodes_expanded])
-            goals.extend([node.goal for node in inst.nodes_expanded])
-            ctgs_bellman.extend([node.bellman_backup_val for node in inst.nodes_expanded])
-            if finished_only:
-                search_perf.update_perf(inst)
-        times.record_time("bellman", time.time() - start_time)
-
-        # to nnet
-        start_time = time.time()
-        states_goals_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
-        times.record_time("to_nnet", time.time() - start_time)
-
-        # to queue
-        data_q.put((states_goals_nnet, np.array(ctgs_bellman)))
-
-    return insts
-
-
 def update_runner(batch_size: int, num_batches: int, step_max: int, heur_fn_q: HeurFnQ, env: Environment,
                   data_q: Queue, up_args: UpdateArgs, step_probs: NDArray):
     times: Times = Times()
@@ -242,10 +203,13 @@ def update_runner(batch_size: int, num_batches: int, step_max: int, heur_fn_q: H
         search: Search = BWAS(env)
     else:
         raise ValueError(f"Unknown search method {up_args.up_search}")
+
     search_perf: SearchPerf = SearchPerf()
     for _ in range(num_batches):
         # remove instances
-        insts_rem: List[Instance] = to_data_q(env, search, search_perf, data_q, up_args, True, times)
+        insts_rem: List[Instance] = search.remove_finished_instances(up_args.up_step_max)
+        for inst_rem in insts_rem:
+            search_perf.update_perf(inst_rem)
 
         # add instances
         if (len(search.instances) == 0) or (len(insts_rem) > 0):
@@ -269,6 +233,7 @@ def update_runner(batch_size: int, num_batches: int, step_max: int, heur_fn_q: H
             elif up_search == "ASTAR":
                 inst_infos: List[Tuple[int]] = [(step_gen,) for step_gen in steps_gen]
 
+            # generate states
             times_states: Times = Times()
             states_gen, goals_gen = env.get_start_goal_pairs(steps_gen, times=times_states)
             times.add_times(times_states, ["get_states"])
@@ -276,9 +241,18 @@ def update_runner(batch_size: int, num_batches: int, step_max: int, heur_fn_q: H
             search.add_instances(states_gen, goals_gen, heur_fn, inst_infos=inst_infos, **kwargs)
 
         # take a step
-        search.step(heur_fn)
+        states, goals, ctgs_bellman = search.step(heur_fn)
 
-    to_data_q(env, search, search_perf, data_q, up_args, False, times)
+        # to nnet
+        start_time = time.time()
+        states_goals_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
+        times.record_time("to_nnet", time.time() - start_time)
+
+        # put
+        start_time = time.time()
+        data_q.put((states_goals_nnet, np.array(ctgs_bellman)))
+        times.record_time("put", time.time() - start_time)
+
     times.add_times(search.times, path=["search"])
     data_q.put((times, search_perf))
 
