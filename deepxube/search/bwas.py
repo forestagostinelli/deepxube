@@ -44,7 +44,7 @@ class InstanceBWAS(Instance):
                 self.goal_node = node
 
         cost_first: float = elems_popped[0][0]
-        if (self.goal_node is not None) and (self.goal_node.path_cost <= cost_first):
+        if (self.goal_node is not None) and ((self.weight * self.goal_node.path_cost) <= cost_first):
             self.finished = True
 
         return nodes_popped
