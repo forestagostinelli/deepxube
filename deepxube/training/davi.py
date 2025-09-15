@@ -11,7 +11,6 @@ from deepxube.search.greedy_policy import Greedy
 from deepxube.search.search_utils import SearchPerf, search_test
 from deepxube.utils.data_utils import sel_l
 from deepxube.utils.timing_utils import Times
-from deepxube.utils import misc_utils
 
 import torch
 from torch import Tensor
@@ -60,6 +59,8 @@ class UpdateArgs:
 
     :param up_itrs: How many iterations to do before checking if target network should be updated
     :param up_procs: Number of parallel workers used to compute updated cost-to-go values
+    :param up_batch_size: Max states each process will update at a time. Used to prevent Python multiprocessing from
+    hanging due to memory issues. Reduce this value if this is ocurring.
     :param up_nnet_batch_size: Batch size of each nnet used for each process update. Make smaller if running out
     of memory.
     :param up_search: greedy or astar
@@ -70,6 +71,7 @@ class UpdateArgs:
     """
     up_itrs: int
     up_procs: int
+    up_batch_size: int
     up_nnet_batch_size: int
     up_search: str
     up_step_max: int
@@ -190,70 +192,82 @@ class ReplayBuffer:
                 self.add_idx = 0
 
 
-def update_runner(batch_size: int, num_batches: int, step_max: int, heur_fn_q: HeurFnQ, env: Environment,
-                  data_q: Queue, up_args: UpdateArgs, step_probs: NDArray):
+def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q: Queue, data_q: Queue,
+                  up_args: UpdateArgs, step_probs: NDArray):
     times: Times = Times()
 
     up_search: str = up_args.up_search.upper()
     heur_fn = heur_fn_q.get_heuristic_fn(env)
-    search: Search
-    if up_search == "GREEDY":
-        search: Search = Greedy(env)
-    elif up_search == "ASTAR":
-        search: Search = BWAS(env)
-    else:
-        raise ValueError(f"Unknown search method {up_args.up_search}")
-
     search_perf: SearchPerf = SearchPerf()
-    for _ in range(num_batches):
-        # remove instances
-        insts_rem: List[Instance] = search.remove_finished_instances(up_args.up_step_max)
-        for inst_rem in insts_rem:
-            search_perf.update_perf(inst_rem)
+    while True:
+        batch_size = to_q.get()
+        if batch_size is None:
+            break
 
-        # add instances
-        if (len(search.instances) == 0) or (len(insts_rem) > 0):
-            # get steps generate
-            steps_gen: List[int]
-            if len(search.instances) == 0:
-                steps_gen = list(np.random.choice(step_max + 1, size=batch_size, p=step_probs))
-            else:
-                steps_gen = [int(inst.inst_info[0]) for inst in insts_rem]
+        search: Search
+        if up_search == "GREEDY":
+            search: Search = Greedy(env)
+        elif up_search == "ASTAR":
+            search: Search = BWAS(env)
+        else:
+            raise ValueError(f"Unknown search method {up_args.up_search}")
 
-            # get kwargs and instance information
-            kwargs: Dict[str, Any] = dict()
-            inst_infos: List[Any]
-            if up_search == "GREEDY":
+        insts_rem: List[Instance] = []
+        for _ in range(up_args.up_step_max):
+            # add instances
+            if (len(search.instances) == 0) or (len(insts_rem) > 0):
+                times_states: Times = Times()
+                # get steps generate
+                start_time = time.time()
+                steps_gen: List[int]
                 if len(search.instances) == 0:
-                    eps_gen_l = list(np.random.rand(batch_size) * up_args.up_eps_max_greedy)
+                    steps_gen = list(np.random.choice(gen_step_max + 1, size=batch_size, p=step_probs))
                 else:
-                    eps_gen_l = [float(inst.inst_info[1]) for inst in insts_rem]
-                inst_infos: List[Tuple[int, float]] = [(step_gen, eps_gen)
-                                                       for step_gen, eps_gen in zip(steps_gen, eps_gen_l)]
-            elif up_search == "ASTAR":
-                inst_infos: List[Tuple[int]] = [(step_gen,) for step_gen in steps_gen]
+                    steps_gen = [int(inst.inst_info[0]) for inst in insts_rem]
+                times_states.record_time("steps_gen", time.time() - start_time)
 
-            # generate states
-            times_states: Times = Times()
-            states_gen, goals_gen = env.get_start_goal_pairs(steps_gen, times=times_states)
-            times.add_times(times_states, ["get_states"])
+                # generate states
+                states_gen, goals_gen = env.get_start_goal_pairs(steps_gen, times=times_states)
+                times.add_times(times_states, ["get_states"])
 
-            search.add_instances(states_gen, goals_gen, heur_fn, inst_infos=inst_infos, **kwargs)
+                # get kwargs and instance information
+                start_time = time.time()
+                kwargs: Dict[str, Any] = dict()
+                inst_infos: List[Any]
+                if up_search == "GREEDY":
+                    if len(search.instances) == 0:
+                        eps_gen_l = list(np.random.rand(batch_size) * up_args.up_eps_max_greedy)
+                    else:
+                        eps_gen_l = [float(inst.inst_info[1]) for inst in insts_rem]
+                    inst_infos: List[Tuple[int, float]] = [(step_gen, eps_gen)
+                                                           for step_gen, eps_gen in zip(steps_gen, eps_gen_l)]
+                    kwargs['eps_l'] = eps_gen_l
+                elif up_search == "ASTAR":
+                    inst_infos: List[Tuple[int]] = [(step_gen,) for step_gen in steps_gen]
+                times.record_time("inst_info", time.time() - start_time)
 
-        # take a step
-        states, goals, ctgs_bellman = search.step(heur_fn)
+                search.add_instances(states_gen, goals_gen, heur_fn, inst_infos=inst_infos, **kwargs)
 
-        # to nnet
-        start_time = time.time()
-        states_goals_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
-        times.record_time("to_nnet", time.time() - start_time)
+            # take a step
+            states, goals, ctgs_bellman = search.step(heur_fn)
 
-        # put
-        start_time = time.time()
-        data_q.put((states_goals_nnet, np.array(ctgs_bellman)))
-        times.record_time("put", time.time() - start_time)
+            # to nnet
+            start_time = time.time()
+            states_goals_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
+            times.record_time("to_nnet", time.time() - start_time)
 
-    times.add_times(search.times, path=["search"])
+            # put
+            start_time = time.time()
+            data_q.put((states_goals_nnet, np.array(ctgs_bellman)))
+            times.record_time("put", time.time() - start_time)
+
+            # remove instances
+            insts_rem: List[Instance] = search.remove_finished_instances(up_args.up_step_max)
+            for inst_rem in insts_rem:
+                search_perf.update_perf(inst_rem)
+
+        times.add_times(search.times, path=["search"])
+
     data_q.put((times, search_perf))
 
 
@@ -400,19 +414,30 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
                                                                   batch_size=up_args.up_nnet_batch_size)
 
         ctx = get_context("spawn")
+        num_gen_up: int = train_args.batch_size * up_args.up_itrs
+        assert num_gen_up % up_args.up_step_max == 0, (f"Number of instances to generate per update "
+                                                       f"(batch_size * up_itrs = {num_gen_up}), is not divisible by "
+                                                       f"the max number of search steps to take during the "
+                                                       f"update ({up_args.up_step_max})")
+        to_q: Queue = ctx.Queue()
+        num_to_send_procs: int = num_gen_up // up_args.up_step_max
+        num_to_send_procs_max: int = min(num_to_send_procs // up_args.up_procs, up_args.up_batch_size)
+        num_sent_procs: int = 0
+        while num_sent_procs < num_to_send_procs:
+            num_left_to_send: int = num_to_send_procs - num_sent_procs
+            num_send_i: int = min(num_to_send_procs_max, num_left_to_send)
+            to_q.put(num_send_i)
+            num_sent_procs += num_send_i
+
         data_q: Queue = ctx.Queue()
-        batches_per_procs: List[int] = misc_utils.split_evenly(up_args.up_itrs, up_args.up_procs)
         procs: List[BaseProcess] = []
 
         step_prob_str: str = ', '.join([f'{step_num}:{step_prob:.2f}'
                                         for step_num, step_prob in zip(range(status.step_max + 1), status.step_probs)])
         print(f"Step probs: {step_prob_str}")
         for proc_id, heur_fn_q in enumerate(heur_fn_qs):
-            num_batches: int = batches_per_procs[proc_id]
-            if num_batches == 0:
-                continue
-            proc = ctx.Process(target=update_runner, args=(train_args.batch_size, num_batches, step_max, heur_fn_q, env,
-                                                           data_q, up_args, status.step_probs))
+            proc = ctx.Process(target=update_runner, args=(step_max, heur_fn_q, env, to_q, data_q, up_args,
+                                                           status.step_probs))
             proc.daemon = True
             proc.start()
             procs.append(proc)
@@ -440,6 +465,9 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
                     print(f"{num_gen_curr}/{num_inst_gen} instances (%.2f%%) "
                           f"(Data time: %.2f)" % (100 * num_gen_curr / num_inst_gen, time.time() - start_time_gen))
                     display_counts = display_counts[num_gen_curr < display_counts]
+                if num_gen_curr == num_inst_gen:
+                    for _ in procs:
+                        to_q.put(None)
 
         nnet_utils.stop_heuristic_fn_runners(heur_procs, heur_fn_qs)
         for proc in procs:
