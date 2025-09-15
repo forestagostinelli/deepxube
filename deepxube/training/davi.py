@@ -366,9 +366,8 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
     states, goals = env.get_start_goal_pairs([0])
     states_goals_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
     inputs_nnet_shm: List[SharedNDArray] = []
-    for nnet_idx, states_goals_nnet_i in enumerate(states_goals_nnet):
-        states_goals_nnet_i = states_goals_nnet_i[0]
-        inputs_nnet_shm.append(SharedNDArray((num_gen_up,) + states_goals_nnet_i.shape, states_goals_nnet_i.dtype,
+    for nnet_idx, inputs_nnet_i in enumerate(states_goals_nnet):
+        inputs_nnet_shm.append(SharedNDArray((num_gen_up,) + inputs_nnet_i[0].shape, inputs_nnet_i.dtype,
                                              f"input{nnet_idx}", True))
     ctgs_shm = SharedNDArray((num_gen_up,), np.float64, f"ctgs", True)
 
@@ -422,8 +421,8 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
             end_idx: int = cast(int, data_get[1])
             inputs_nnet_i: List[NDArray] = []
             for inputs_idx in range(len(inputs_nnet_shm)):
-                inputs_nnet_i.append(inputs_nnet_shm[inputs_idx][start_idx:end_idx])
-            ctgs_shm_i: NDArray = ctgs_shm[start_idx:end_idx]
+                inputs_nnet_i.append(inputs_nnet_shm[inputs_idx][start_idx:end_idx].copy())
+            ctgs_shm_i: NDArray = ctgs_shm[start_idx:end_idx].copy()
             rb.add(inputs_nnet_i, ctgs_shm_i)
             num_gen_curr += end_idx - start_idx
             times_up.record_time("rb", time.time() - start_time)
@@ -448,9 +447,9 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
     nnet_utils.stop_heuristic_fn_runners(heur_procs, heur_fn_qs)
     for proc in procs:
         proc.join()
-    for shm_arr in inputs_nnet_shm + [ctgs_shm]:
-        shm_arr.close()
-        shm_arr.unlink()
+    for arr_shm in inputs_nnet_shm + [ctgs_shm]:
+        arr_shm.close()
+        arr_shm.unlink()
 
 
 def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs, up_args: UpdateArgs,

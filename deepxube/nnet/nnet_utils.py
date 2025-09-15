@@ -1,5 +1,6 @@
 from typing import List, Tuple, Optional, Callable, Any, Union, cast
 from deepxube.environments.environment_abstract import Environment, State, Goal, HeurFnNNet
+from deepxube.utils.data_utils import SharedNDArray, np_to_shnd
 import numpy as np
 from numpy.typing import NDArray
 import os
@@ -108,7 +109,7 @@ def get_heuristic_fn(nnet: nn.Module, device: torch.device, env: Environment, cl
 
             start_idx = end_idx
 
-        cost_to_go = np.concatenate(cost_to_go_l, axis=0)
+        cost_to_go = np.concatenate(cost_to_go_l, axis=0).astype(np.float64)
         assert (cost_to_go.shape[0] == num_states)
 
         if clip_zero:
@@ -167,16 +168,18 @@ def heuristic_fn_runner(heuristic_fn_input_queue: Queue, heuristic_fn_output_que
                                          clip_zero=clip_zero, batch_size=batch_size)
 
     while True:
-        proc_id, states_goals_nnet = heuristic_fn_input_queue.get()
+        inputs_nnet_shm: Optional[List[SharedNDArray]]
+        proc_id, inputs_nnet_shm = heuristic_fn_input_queue.get()
         if proc_id is None:
             break
 
         if all_zeros:
-            heuristics = np.zeros(states_goals_nnet[0].shape[0], dtype=float)
+            heuristics = np.zeros(inputs_nnet_shm[0].array.shape[0], dtype=float)
         else:
-            heuristics = cast(HeurFN_T, heuristic_fn)(states_goals_nnet, None)
+            heuristics = cast(HeurFN_T, heuristic_fn)(inputs_nnet_shm[0].array, None)
 
-        heuristic_fn_output_queues[proc_id].put(heuristics)
+        shm_name: str = f"{inputs_nnet_shm[0].shm.name}_out"
+        heuristic_fn_output_queues[proc_id].put(np_to_shnd(heuristics, shm_name))
 
     return heuristic_fn
 
@@ -188,17 +191,21 @@ class HeurFnQ:
         self.proc_id: int = proc_id
 
     def get_heuristic_fn(self, env: Environment) -> HeurFN_T:
-        def heuristic_fn(states: Any, goals: Optional[List[Goal]]):
-            # states: Union[List[State], NDArray[Any]]
-            if goals is not None:
-                states_goals_nnet = env.states_goals_to_nnet_input(states, goals)
-            else:
-                states_goals_nnet = states
-            self.heur_fn_i_q.put((self.proc_id, states_goals_nnet))
+        def heuristic_fn(states: List[State], goals: List[Goal]) -> NDArray:
+            inputs_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
+            inputs_nnet_shm: List[SharedNDArray] = [np_to_shnd(inputs_nnet_i, f"{input_idx}_{self.proc_id}")
+                                                    for input_idx, inputs_nnet_i in enumerate(inputs_nnet)]
 
-            heuristics = self.heur_fn_o_q.get()
+            self.heur_fn_i_q.put((self.proc_id, inputs_nnet_shm))
 
-            return heuristics
+            heurs_shm: SharedNDArray = self.heur_fn_o_q.get()
+            heurs: NDArray = heurs_shm.array.copy()
+
+            for arr_shm in inputs_nnet_shm + [heurs_shm]:
+                arr_shm.close()
+                arr_shm.unlink()
+
+            return heurs
 
         return heuristic_fn
 
