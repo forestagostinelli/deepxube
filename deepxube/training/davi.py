@@ -451,16 +451,20 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
         start_time_gen = time.time()
         num_procs_done: int = 0
         while num_procs_done < len(procs):
+            start_time = time.time()
             data_get: Union[Tuple[Times, SearchPerf], TrainData] = data_q.get()
+            times_up.record_time("get", time.time() - start_time)
             if type(data_get[0]) is Times:
                 times_up.add_times(data_get[0])
                 search_perf = search_perf.comb_perf(data_get[1])
                 num_procs_done += 1
             else:
+                start_time = time.time()
                 train_data: TrainData = cast(TrainData, data_get)
                 rb.add(train_data[0], train_data[1])
                 ctgs_up = np.concatenate((ctgs_up, train_data[1]), axis=0)
                 num_gen_curr: int = ctgs_up.shape[0]
+                times_up.record_time("rb", time.time() - start_time)
                 if num_gen_curr >= min(display_counts):
                     print(f"{num_gen_curr}/{num_inst_gen} instances (%.2f%%) "
                           f"(Data time: %.2f)" % (100 * num_gen_curr / num_inst_gen, time.time() - start_time_gen))
