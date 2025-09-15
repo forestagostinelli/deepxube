@@ -212,6 +212,9 @@ def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q:
         else:
             raise ValueError(f"Unknown search method {up_args.up_search}")
 
+        states: List[State] = []
+        goals: List[Goal] = []
+        ctgs_bellman: List[float] = []
         insts_rem: List[Instance] = []
         for _ in range(up_args.up_step_max):
             # add instances
@@ -249,23 +252,25 @@ def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q:
                 search.add_instances(states_gen, goals_gen, heur_fn, inst_infos=inst_infos, **kwargs)
 
             # take a step
-            states, goals, ctgs_bellman = search.step(heur_fn)
-
-            # to nnet
-            start_time = time.time()
-            states_goals_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
-            times.record_time("to_nnet", time.time() - start_time)
-
-            # put
-            start_time = time.time()
-            data_q.put((states_goals_nnet, np.array(ctgs_bellman)))
-            times.record_time("put", time.time() - start_time)
+            states_i, goals_i, ctgs_bellman_i = search.step(heur_fn)
+            states.extend(states_i)
+            goals.extend(goals_i)
+            ctgs_bellman.extend(ctgs_bellman_i)
 
             # remove instances
             insts_rem: List[Instance] = search.remove_finished_instances(up_args.up_step_max)
             for inst_rem in insts_rem:
                 search_perf.update_perf(inst_rem)
 
+        # to nnet
+        start_time = time.time()
+        states_goals_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
+        times.record_time("to_nnet", time.time() - start_time)
+
+        # put
+        start_time = time.time()
+        data_q.put((states_goals_nnet, np.array(ctgs_bellman)))
+        times.record_time("put", time.time() - start_time)
         times.add_times(search.times, path=["search"])
 
     data_q.put((times, search_perf))
