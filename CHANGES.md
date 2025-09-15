@@ -10,6 +10,7 @@
 * Remove redundant is_solved check for greedy policy
 * Consolidate updater for DAVI
 * Balance probabilities for steps based on solve percentage
+* Use SharedMemory for update and heuristic function runners
 
 
 ## 0.1.6
