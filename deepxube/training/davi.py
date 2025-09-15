@@ -9,6 +9,7 @@ from deepxube.search.search_abstract import Search, Instance
 from deepxube.search.bwas import BWAS
 from deepxube.search.greedy_policy import Greedy
 from deepxube.search.search_utils import SearchPerf, search_test
+from deepxube.utils.misc_utils import split_evenly
 from deepxube.utils.data_utils import sel_l
 from deepxube.utils.timing_utils import Times
 from deepxube.utils.data_utils import SharedNDArray
@@ -60,8 +61,6 @@ class UpdateArgs:
 
     :param up_itrs: How many iterations to do before checking if target network should be updated
     :param up_procs: Number of parallel workers used to compute updated cost-to-go values
-    :param up_batch_size: Max states each process will update at a time. Used to prevent Python multiprocessing from
-    hanging due to memory issues. Reduce this value if this is ocurring.
     :param up_nnet_batch_size: Batch size of each nnet used for each process update. Make smaller if running out
     of memory.
     :param up_search: greedy or astar
@@ -72,7 +71,6 @@ class UpdateArgs:
     """
     up_itrs: int
     up_procs: int
-    up_batch_size: int
     up_nnet_batch_size: int
     up_search: str
     up_step_max: int
@@ -365,18 +363,16 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
                                                               batch_size=up_args.up_nnet_batch_size)
 
     # shared memory
-    print("Creating shared memory")
-    start_time = time.time()
     states, goals = env.get_start_goal_pairs([0])
     states_goals_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
     inputs_nnet_shm: List[SharedNDArray] = []
     for nnet_idx, states_goals_nnet_i in enumerate(states_goals_nnet):
         states_goals_nnet_i = states_goals_nnet_i[0]
         inputs_nnet_shm.append(SharedNDArray((num_gen_up,) + states_goals_nnet_i.shape, states_goals_nnet_i.dtype,
-                                         f"input{nnet_idx}", True))
+                                             f"input{nnet_idx}", True))
     ctgs_shm = SharedNDArray((num_gen_up,), np.float64, f"ctgs", True)
-    print(f"Time: {time.time() - start_time}")
 
+    # sending index data to processes
     ctx = get_context("spawn")
     assert num_gen_up % up_args.up_step_max == 0, (f"Number of instances to generate per update "
                                                    f"(batch_size * up_itrs = {num_gen_up}), is not divisible by "
@@ -384,16 +380,13 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
                                                    f"update ({up_args.up_step_max})")
     to_q: Queue = ctx.Queue()
     num_to_send_procs: int = num_gen_up // up_args.up_step_max
-    num_to_send_procs_max: int = min(num_to_send_procs // up_args.up_procs, up_args.up_batch_size)
-    num_sent_procs: int = 0
+    num_send_per_proc: List[int] = split_evenly(num_to_send_procs, up_args.up_procs)
     start_idx: int = 0
-    while num_sent_procs < num_to_send_procs:
-        num_left_to_send: int = num_to_send_procs - num_sent_procs
-        num_send_i: int = min(num_to_send_procs_max, num_left_to_send)
-        to_q.put((num_send_i, start_idx))
-        start_idx += num_send_i * up_args.up_step_max
-        num_sent_procs += num_send_i
+    for num_send_proc in num_send_per_proc:
+        to_q.put((num_send_proc, start_idx))
+        start_idx += num_send_proc * up_args.up_step_max
 
+    # starting processes
     data_q: Queue = ctx.Queue()
     procs: List[BaseProcess] = []
 
@@ -407,11 +400,11 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
         proc.start()
         procs.append(proc)
 
+    # getting data from processes
     times_up: Times = Times()
     search_perf: SearchPerf = SearchPerf()
-    num_inst_gen: int = up_args.up_itrs * train_args.batch_size
-    print(f"Generating {format(num_inst_gen, ',')} training instances")
-    display_counts: NDArray[np.int_] = np.linspace(0, num_inst_gen, 10, dtype=int)
+    print(f"Generating {format(num_gen_up, ',')} training instances")
+    display_counts: NDArray[np.int_] = np.linspace(0, num_gen_up, 10, dtype=int)
     start_time_gen = time.time()
     num_procs_done: int = 0
     num_gen_curr: int = 0
@@ -435,10 +428,10 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
             num_gen_curr += end_idx - start_idx
             times_up.record_time("rb", time.time() - start_time)
             if num_gen_curr >= min(display_counts):
-                print(f"{num_gen_curr}/{num_inst_gen} instances (%.2f%%) "
-                      f"(Tot time: %.2f)" % (100 * num_gen_curr / num_inst_gen, time.time() - start_time_gen))
+                print(f"{num_gen_curr}/{num_gen_up} instances (%.2f%%) "
+                      f"(Tot time: %.2f)" % (100 * num_gen_curr / num_gen_up, time.time() - start_time_gen))
                 display_counts = display_counts[num_gen_curr < display_counts]
-            if num_gen_curr == num_inst_gen:
+            if num_gen_curr == num_gen_up:
                 for _ in procs:
                     to_q.put((None, None))
 
