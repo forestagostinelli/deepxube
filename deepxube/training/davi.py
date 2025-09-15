@@ -257,8 +257,8 @@ def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, data_
         end_idx = start_idx + len(states)
         assert len(states) == batch_size
         for input_idx in range(len(states_goals_nnet)):
-            inputs_nnet_shm[input_idx][start_idx:end_idx] = states_goals_nnet[input_idx]
-        ctgs_shm[start_idx:end_idx] = ctgs_bellman
+            inputs_nnet_shm[input_idx][start_idx:end_idx] = states_goals_nnet[input_idx].copy()
+        ctgs_shm[start_idx:end_idx] = ctgs_bellman.copy()
         data_q.put((start_idx, end_idx))
         start_idx = end_idx
         times.record_time("put", time.time() - start_time)
