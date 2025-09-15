@@ -173,12 +173,15 @@ def heuristic_fn_runner(heuristic_fn_input_queue: Queue, heuristic_fn_output_que
         if proc_id is None:
             break
 
+        inputs_nnet: List[NDArray] = []
+        for inputs_idx in range(len(inputs_nnet_shm)):
+            inputs_nnet.append(inputs_nnet_shm[inputs_idx].array)
         if all_zeros:
-            heuristics = np.zeros(inputs_nnet_shm[0].array.shape[0], dtype=float)
+            heuristics = np.zeros(inputs_nnet[0].shape[0], dtype=float)
         else:
-            heuristics = cast(HeurFN_T, heuristic_fn)(inputs_nnet_shm[0].array, None)
+            heuristics = cast(HeurFN_T, heuristic_fn)(inputs_nnet, None)
 
-        shm_name: str = f"{inputs_nnet_shm[0].shm.name}_out"
+        shm_name: str = f"{proc_id}_out"
         heuristic_fn_output_queues[proc_id].put(np_to_shnd(heuristics, shm_name))
 
     return heuristic_fn
