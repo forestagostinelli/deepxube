@@ -177,12 +177,16 @@ def heuristic_fn_runner(heuristic_fn_input_queue: Queue, heuristic_fn_output_que
         for inputs_idx in range(len(inputs_nnet_shm)):
             inputs_nnet.append(inputs_nnet_shm[inputs_idx].array)
         if all_zeros:
-            heuristics = np.zeros(inputs_nnet[0].shape[0], dtype=float)
+            heurs = np.zeros(inputs_nnet[0].shape[0], dtype=float)
         else:
-            heuristics = cast(HeurFN_T, heuristic_fn)(inputs_nnet, None)
+            heurs = cast(HeurFN_T, heuristic_fn)(inputs_nnet, None)
 
         shm_name: str = f"{proc_id}_out"
-        heuristic_fn_output_queues[proc_id].put(np_to_shnd(heuristics, shm_name))
+        heurs_shm: SharedNDArray = np_to_shnd(heurs, shm_name)
+        heuristic_fn_output_queues[proc_id].put(heurs_shm)
+
+        for arr_shm in inputs_nnet_shm + [heurs_shm]:
+            arr_shm.close()
 
     return heuristic_fn
 

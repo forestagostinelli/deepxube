@@ -192,7 +192,7 @@ class ReplayBuffer:
 
 
 def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, data_q: Queue,
-                  up_args: UpdateArgs, step_probs: NDArray, inputs_nnet_shm: SharedNDArray,
+                  up_args: UpdateArgs, step_probs: NDArray, inputs_nnet_shm: List[SharedNDArray],
                   ctgs_shm: SharedNDArray, batch_size: int, start_idx: int):
     times: Times = Times()
 
@@ -271,6 +271,8 @@ def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, data_
     times.add_times(search.times, path=["search"])
 
     data_q.put((times, search_perf))
+    for arr_shm in inputs_nnet_shm + [ctgs_shm]:
+        arr_shm.close()
 
 
 def load_data(model_dir: str, nnet_file: str, env: Environment, num_test_per_step: int,
