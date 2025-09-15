@@ -11,6 +11,7 @@ from deepxube.search.greedy_policy import Greedy
 from deepxube.search.search_utils import SearchPerf, search_test
 from deepxube.utils.data_utils import sel_l
 from deepxube.utils.timing_utils import Times
+from deepxube.utils.data_utils import SharedNDArray
 
 import torch
 from torch import Tensor
@@ -193,14 +194,15 @@ class ReplayBuffer:
 
 
 def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q: Queue, data_q: Queue,
-                  up_args: UpdateArgs, step_probs: NDArray):
+                  up_args: UpdateArgs, step_probs: NDArray, inputs_nnet_shm: SharedNDArray,
+                  ctgs_shm: SharedNDArray):
     times: Times = Times()
 
     up_search: str = up_args.up_search.upper()
     heur_fn = heur_fn_q.get_heuristic_fn(env)
     search_perf: SearchPerf = SearchPerf()
     while True:
-        batch_size = to_q.get()
+        batch_size, start_idx = to_q.get()
         if batch_size is None:
             break
 
@@ -212,9 +214,6 @@ def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q:
         else:
             raise ValueError(f"Unknown search method {up_args.up_search}")
 
-        states: List[State] = []
-        goals: List[Goal] = []
-        ctgs_bellman: List[float] = []
         insts_rem: List[Instance] = []
         for _ in range(up_args.up_step_max):
             # add instances
@@ -252,25 +251,29 @@ def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q:
                 search.add_instances(states_gen, goals_gen, heur_fn, inst_infos=inst_infos, **kwargs)
 
             # take a step
-            states_i, goals_i, ctgs_bellman_i = search.step(heur_fn)
-            states.extend(states_i)
-            goals.extend(goals_i)
-            ctgs_bellman.extend(ctgs_bellman_i)
+            states, goals, ctgs_bellman = search.step(heur_fn)
+
+            # to nnet
+            start_time = time.time()
+            states_goals_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
+            times.record_time("to_nnet", time.time() - start_time)
+
+            # put
+            start_time = time.time()
+            end_idx = start_idx + len(states)
+            for input_idx in range(len(states_goals_nnet)):
+                inputs_nnet_shm[input_idx][start_idx:end_idx] = states_goals_nnet[input_idx]
+            ctgs_shm[start_idx:end_idx] = ctgs_bellman
+            data_q.put((start_idx, end_idx))
+            start_idx = end_idx
+            times.record_time("put", time.time() - start_time)
 
             # remove instances
             insts_rem: List[Instance] = search.remove_finished_instances(up_args.up_step_max)
             for inst_rem in insts_rem:
                 search_perf.update_perf(inst_rem)
 
-        # to nnet
-        start_time = time.time()
-        states_goals_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
-        times.record_time("to_nnet", time.time() - start_time)
 
-        # put
-        start_time = time.time()
-        data_q.put((states_goals_nnet, np.array(ctgs_bellman)))
-        times.record_time("put", time.time() - start_time)
         times.add_times(search.times, path=["search"])
 
     data_q.put((times, search_perf))
@@ -355,13 +358,26 @@ def train_nnet(nnet: nn.Module, rb: ReplayBuffer, optimizer: Optimizer, device: 
 def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_args: TrainArgs, status: Status,
                     rb: ReplayBuffer, targ_file: str, device: torch.device, on_gpu: bool):
     # update
+    num_gen_up: int = train_args.batch_size * up_args.up_itrs
     all_zeros: bool = not os.path.isfile(targ_file)
     heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(up_args.up_procs, targ_file, device, on_gpu, env, "V",
                                                               all_zeros=all_zeros, clip_zero=True,
                                                               batch_size=up_args.up_nnet_batch_size)
 
+    # shared memory
+    print("Creating shared memory")
+    start_time = time.time()
+    states, goals = env.get_start_goal_pairs([0])
+    states_goals_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
+    inputs_nnet_shm: List[SharedNDArray] = []
+    for nnet_idx, states_goals_nnet_i in enumerate(states_goals_nnet):
+        states_goals_nnet_i = states_goals_nnet_i[0]
+        inputs_nnet_shm.append(SharedNDArray((num_gen_up,) + states_goals_nnet_i.shape, states_goals_nnet_i.dtype,
+                                         f"input{nnet_idx}", True))
+    ctgs_shm = SharedNDArray((num_gen_up,), np.float64, f"ctgs", True)
+    print(f"Time: {time.time() - start_time}")
+
     ctx = get_context("spawn")
-    num_gen_up: int = train_args.batch_size * up_args.up_itrs
     assert num_gen_up % up_args.up_step_max == 0, (f"Number of instances to generate per update "
                                                    f"(batch_size * up_itrs = {num_gen_up}), is not divisible by "
                                                    f"the max number of search steps to take during the "
@@ -370,10 +386,12 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
     num_to_send_procs: int = num_gen_up // up_args.up_step_max
     num_to_send_procs_max: int = min(num_to_send_procs // up_args.up_procs, up_args.up_batch_size)
     num_sent_procs: int = 0
+    start_idx: int = 0
     while num_sent_procs < num_to_send_procs:
         num_left_to_send: int = num_to_send_procs - num_sent_procs
         num_send_i: int = min(num_to_send_procs_max, num_left_to_send)
-        to_q.put(num_send_i)
+        to_q.put((num_send_i, start_idx))
+        start_idx += num_send_i * up_args.up_step_max
         num_sent_procs += num_send_i
 
     data_q: Queue = ctx.Queue()
@@ -384,22 +402,22 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
     print(f"Step probs: {step_prob_str}")
     for proc_id, heur_fn_q in enumerate(heur_fn_qs):
         proc = ctx.Process(target=update_runner, args=(step_max, heur_fn_q, env, to_q, data_q, up_args,
-                                                       status.step_probs))
+                                                       status.step_probs, inputs_nnet_shm, ctgs_shm))
         proc.daemon = True
         proc.start()
         procs.append(proc)
 
     times_up: Times = Times()
     search_perf: SearchPerf = SearchPerf()
-    ctgs_up: NDArray = np.zeros(0)
     num_inst_gen: int = up_args.up_itrs * train_args.batch_size
     print(f"Generating {format(num_inst_gen, ',')} training instances")
     display_counts: NDArray[np.int_] = np.linspace(0, num_inst_gen, 10, dtype=int)
     start_time_gen = time.time()
     num_procs_done: int = 0
+    num_gen_curr: int = 0
     while num_procs_done < len(procs):
         start_time = time.time()
-        data_get: Union[Tuple[Times, SearchPerf], TrainData] = data_q.get()
+        data_get: Union[Tuple[Times, SearchPerf], Tuple[int, int]] = data_q.get()
         times_up.record_time("get", time.time() - start_time)
         if type(data_get[0]) is Times:
             times_up.add_times(data_get[0])
@@ -407,10 +425,14 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
             num_procs_done += 1
         else:
             start_time = time.time()
-            train_data: TrainData = cast(TrainData, data_get)
-            rb.add(train_data[0], train_data[1])
-            ctgs_up = np.concatenate((ctgs_up, train_data[1]), axis=0)
-            num_gen_curr: int = ctgs_up.shape[0]
+            start_idx: int = cast(int, data_get[0])
+            end_idx: int = cast(int, data_get[1])
+            inputs_nnet_i: List[NDArray] = []
+            for inputs_idx in range(len(inputs_nnet_shm)):
+                inputs_nnet_i.append(inputs_nnet_shm[inputs_idx][start_idx:end_idx])
+            ctgs_shm_i: NDArray = ctgs_shm[start_idx:end_idx]
+            rb.add(inputs_nnet_i, ctgs_shm_i)
+            num_gen_curr += end_idx - start_idx
             times_up.record_time("rb", time.time() - start_time)
             if num_gen_curr >= min(display_counts):
                 print(f"{num_gen_curr}/{num_inst_gen} instances (%.2f%%) "
@@ -418,20 +440,24 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
                 display_counts = display_counts[num_gen_curr < display_counts]
             if num_gen_curr == num_inst_gen:
                 for _ in procs:
-                    to_q.put(None)
+                    to_q.put((None, None))
 
-    nnet_utils.stop_heuristic_fn_runners(heur_procs, heur_fn_qs)
-    for proc in procs:
-        proc.join()
-
-    mean_ctg = ctgs_up.mean()
-    min_ctg = ctgs_up.min()
-    max_ctg = ctgs_up.max()
-    print(f"Generated {format(ctgs_up.shape[0], ',')} training instances, "
+    mean_ctg = ctgs_shm.array.mean()
+    min_ctg = ctgs_shm.array.min()
+    max_ctg = ctgs_shm.array.max()
+    print(f"Generated {format(ctgs_shm.array.shape[0], ',')} training instances, "
           f"Replay buffer size: {format(rb.size(), ',')}")
     print(f"Cost-to-go (mean/min/max): %.2f/%.2f/%.2f" % (mean_ctg, min_ctg, max_ctg))
     print(search_perf.to_string())
     print(f"Times - {times_up.get_time_str()}")
+
+    # clean up
+    nnet_utils.stop_heuristic_fn_runners(heur_procs, heur_fn_qs)
+    for proc in procs:
+        proc.join()
+    for shm_arr in inputs_nnet_shm + [ctgs_shm]:
+        shm_arr.close()
+        shm_arr.unlink()
 
 
 def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs, up_args: UpdateArgs,

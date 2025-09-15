@@ -1,4 +1,4 @@
-from typing import List, Any
+from typing import List, Any, Tuple
 
 import sys
 
@@ -8,6 +8,9 @@ import os
 import shutil
 import numpy as np
 from numpy.typing import NDArray
+
+from multiprocessing import shared_memory
+from multiprocessing.shared_memory import SharedMemory
 
 
 class Logger(object):
@@ -87,3 +90,58 @@ def combine_l_l(l_l: List[List[NDArray]], comb: str) -> List[NDArray]:
         l_l_comb.append(l_l_idx_comb)
 
     return l_l_comb
+
+
+class SharedNDArray:
+    """
+    Wraps a numpy array in multiprocessing shared memory.
+    Pickleable: can be sent through multiprocessing.Queue.
+    """
+
+    def __init__(self, shape: Tuple[int, ...], dtype, name: str, create: bool):
+        self.shape = tuple(shape)
+        self.dtype = np.dtype(dtype)
+
+        if create:
+            # create new shared block
+            nbytes: int = int(np.prod(self.shape)) * self.dtype.itemsize
+            self.shm: SharedMemory = shared_memory.SharedMemory(create=True, size=nbytes, name=name)
+        else:
+            # attach to existing shared block
+            self.shm: SharedMemory = shared_memory.SharedMemory(name=name)
+
+        # numpy view backed by shared memory
+        self.array = np.ndarray(self.shape, dtype=self.dtype, buffer=self.shm.buf)
+
+    @property
+    def name(self) -> str:
+        return self.shm.name
+
+    def close(self) -> None:
+        """Close this process's handle."""
+        self.shm.close()
+
+    def unlink(self) -> None:
+        """Free system resource (call once when all processes are done)."""
+        self.shm.unlink()
+
+    # --- Pickling support ---
+    def __reduce__(self):
+        """
+        When pickled, only send (shape, dtype, name).
+        Receiving process reattaches with create=False.
+        """
+        return self.__class__, (self.shape, self.dtype, self.shm.name, False)
+
+    # --- Convenience ---
+    def __getitem__(self, key):
+        return self.array[key]
+
+    def __setitem__(self, key, value):
+        self.array[key] = value
+
+    def __array__(self):
+        return self.array
+
+    def __repr__(self):
+        return f"SharedNDArray(name={self.name}, shape={self.shape}, dtype={self.dtype})"
