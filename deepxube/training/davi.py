@@ -259,6 +259,7 @@ def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q:
             # put
             start_time = time.time()
             end_idx = start_idx + len(states)
+            assert len(states) == batch_size
             for input_idx in range(len(states_goals_nnet)):
                 inputs_nnet_shm[input_idx][start_idx:end_idx] = states_goals_nnet[input_idx]
             ctgs_shm[start_idx:end_idx] = ctgs_bellman
@@ -364,9 +365,9 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
 
     # shared memory
     states, goals = env.get_start_goal_pairs([0])
-    states_goals_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
+    inputs_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
     inputs_nnet_shm: List[SharedNDArray] = []
-    for nnet_idx, inputs_nnet_i in enumerate(states_goals_nnet):
+    for nnet_idx, inputs_nnet_i in enumerate(inputs_nnet):
         inputs_nnet_shm.append(SharedNDArray((num_gen_up,) + inputs_nnet_i[0].shape, inputs_nnet_i.dtype,
                                              f"input{nnet_idx}", True))
     ctgs_shm = SharedNDArray((num_gen_up,), np.float64, f"ctgs", True)
@@ -419,12 +420,12 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
             start_time = time.time()
             start_idx: int = cast(int, data_get[0])
             end_idx: int = cast(int, data_get[1])
-            inputs_nnet_i: List[NDArray] = []
+            inputs_nnet_get: List[NDArray] = []
             for inputs_idx in range(len(inputs_nnet_shm)):
-                inputs_nnet_i.append(inputs_nnet_shm[inputs_idx][start_idx:end_idx].copy())
-            ctgs_shm_i: NDArray = ctgs_shm[start_idx:end_idx].copy()
-            rb.add(inputs_nnet_i, ctgs_shm_i)
-            num_gen_curr += end_idx - start_idx
+                inputs_nnet_get.append(inputs_nnet_shm[inputs_idx][start_idx:end_idx].copy())
+            ctgs_shm_get: NDArray = ctgs_shm[start_idx:end_idx].copy()
+            rb.add(inputs_nnet_get, ctgs_shm_get)
+            num_gen_curr += (end_idx - start_idx)
             times_up.record_time("rb", time.time() - start_time)
             if num_gen_curr >= min(display_counts):
                 print(f"{num_gen_curr}/{num_gen_up} instances (%.2f%%) "
