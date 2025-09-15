@@ -97,11 +97,11 @@ class Status:
 
         # Initialize per_solved_best
         print("Initializing per solved best")
-        heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(num_procs, "", torch.device("cpu"), False, env, "V",
-                                                                  all_zeros=True)
-        per_solved, is_solved_all = search_test(self.states_start_t, self.goals_t, self.state_t_steps_l, env,
-                                                heur_fn_qs, "greedy", 1)
+        start_time = time.time()
+        per_solved, is_solved_all = search_test(env, self.states_start_t, self.goals_t, self.state_t_steps_l, num_procs,
+                                                "", None, torch.device("cpu"), False, "greedy", 1)
         print("Greedy policy solved: %.2f%%" % per_solved)
+        print("Test time: %.2f" % (time.time() - start_time))
         self.per_solved_best: float = per_solved
 
         self.step_probs: NDArray = np.zeros(step_max + 1)/(step_max + 1)
@@ -352,6 +352,88 @@ def train_nnet(nnet: nn.Module, rb: ReplayBuffer, optimizer: Optimizer, device: 
     return last_loss
 
 
+def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_args: TrainArgs, status: Status,
+                    rb: ReplayBuffer, targ_file: str, device: torch.device, on_gpu: bool):
+    # update
+    all_zeros: bool = not os.path.isfile(targ_file)
+    heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(up_args.up_procs, targ_file, device, on_gpu, env, "V",
+                                                              all_zeros=all_zeros, clip_zero=True,
+                                                              batch_size=up_args.up_nnet_batch_size)
+
+    ctx = get_context("spawn")
+    num_gen_up: int = train_args.batch_size * up_args.up_itrs
+    assert num_gen_up % up_args.up_step_max == 0, (f"Number of instances to generate per update "
+                                                   f"(batch_size * up_itrs = {num_gen_up}), is not divisible by "
+                                                   f"the max number of search steps to take during the "
+                                                   f"update ({up_args.up_step_max})")
+    to_q: Queue = ctx.Queue()
+    num_to_send_procs: int = num_gen_up // up_args.up_step_max
+    num_to_send_procs_max: int = min(num_to_send_procs // up_args.up_procs, up_args.up_batch_size)
+    num_sent_procs: int = 0
+    while num_sent_procs < num_to_send_procs:
+        num_left_to_send: int = num_to_send_procs - num_sent_procs
+        num_send_i: int = min(num_to_send_procs_max, num_left_to_send)
+        to_q.put(num_send_i)
+        num_sent_procs += num_send_i
+
+    data_q: Queue = ctx.Queue()
+    procs: List[BaseProcess] = []
+
+    step_prob_str: str = ', '.join([f'{step_num}:{step_prob:.2f}'
+                                    for step_num, step_prob in zip(range(status.step_max + 1), status.step_probs)])
+    print(f"Step probs: {step_prob_str}")
+    for proc_id, heur_fn_q in enumerate(heur_fn_qs):
+        proc = ctx.Process(target=update_runner, args=(step_max, heur_fn_q, env, to_q, data_q, up_args,
+                                                       status.step_probs))
+        proc.daemon = True
+        proc.start()
+        procs.append(proc)
+
+    times_up: Times = Times()
+    search_perf: SearchPerf = SearchPerf()
+    ctgs_up: NDArray = np.zeros(0)
+    num_inst_gen: int = up_args.up_itrs * train_args.batch_size
+    print(f"Generating {format(num_inst_gen, ',')} training instances")
+    display_counts: NDArray[np.int_] = np.linspace(0, num_inst_gen, 10, dtype=int)
+    start_time_gen = time.time()
+    num_procs_done: int = 0
+    while num_procs_done < len(procs):
+        start_time = time.time()
+        data_get: Union[Tuple[Times, SearchPerf], TrainData] = data_q.get()
+        times_up.record_time("get", time.time() - start_time)
+        if type(data_get[0]) is Times:
+            times_up.add_times(data_get[0])
+            search_perf = search_perf.comb_perf(data_get[1])
+            num_procs_done += 1
+        else:
+            start_time = time.time()
+            train_data: TrainData = cast(TrainData, data_get)
+            rb.add(train_data[0], train_data[1])
+            ctgs_up = np.concatenate((ctgs_up, train_data[1]), axis=0)
+            num_gen_curr: int = ctgs_up.shape[0]
+            times_up.record_time("rb", time.time() - start_time)
+            if num_gen_curr >= min(display_counts):
+                print(f"{num_gen_curr}/{num_inst_gen} instances (%.2f%%) "
+                      f"(Tot time: %.2f)" % (100 * num_gen_curr / num_inst_gen, time.time() - start_time_gen))
+                display_counts = display_counts[num_gen_curr < display_counts]
+            if num_gen_curr == num_inst_gen:
+                for _ in procs:
+                    to_q.put(None)
+
+    nnet_utils.stop_heuristic_fn_runners(heur_procs, heur_fn_qs)
+    for proc in procs:
+        proc.join()
+
+    mean_ctg = ctgs_up.mean()
+    min_ctg = ctgs_up.min()
+    max_ctg = ctgs_up.max()
+    print(f"Generated {format(ctgs_up.shape[0], ',')} training instances, "
+          f"Replay buffer size: {format(rb.size(), ',')}")
+    print(f"Cost-to-go (mean/min/max): %.2f/%.2f/%.2f" % (mean_ctg, min_ctg, max_ctg))
+    print(search_perf.to_string())
+    print(f"Times - {times_up.get_time_str()}")
+
+
 def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs, up_args: UpdateArgs,
           rb_past_up: int = 10, num_test_per_step: int = 30, debug: bool = False):
     """ Train a deep neural network heuristic (DNN) function with deep approximate value iteration (DAVI).
@@ -413,83 +495,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
     optimizer: Optimizer = optim.Adam(nnet.parameters(), lr=train_args.lr)
     while status.itr < train_args.max_itrs:
         # update
-        all_zeros: bool = not os.path.isfile(targ_file)
-        heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(up_args.up_procs, targ_file, device, on_gpu, env, "V",
-                                                                  all_zeros=all_zeros, clip_zero=True,
-                                                                  batch_size=up_args.up_nnet_batch_size)
-
-        ctx = get_context("spawn")
-        num_gen_up: int = train_args.batch_size * up_args.up_itrs
-        assert num_gen_up % up_args.up_step_max == 0, (f"Number of instances to generate per update "
-                                                       f"(batch_size * up_itrs = {num_gen_up}), is not divisible by "
-                                                       f"the max number of search steps to take during the "
-                                                       f"update ({up_args.up_step_max})")
-        to_q: Queue = ctx.Queue()
-        num_to_send_procs: int = num_gen_up // up_args.up_step_max
-        num_to_send_procs_max: int = min(num_to_send_procs // up_args.up_procs, up_args.up_batch_size)
-        num_sent_procs: int = 0
-        while num_sent_procs < num_to_send_procs:
-            num_left_to_send: int = num_to_send_procs - num_sent_procs
-            num_send_i: int = min(num_to_send_procs_max, num_left_to_send)
-            to_q.put(num_send_i)
-            num_sent_procs += num_send_i
-
-        data_q: Queue = ctx.Queue()
-        procs: List[BaseProcess] = []
-
-        step_prob_str: str = ', '.join([f'{step_num}:{step_prob:.2f}'
-                                        for step_num, step_prob in zip(range(status.step_max + 1), status.step_probs)])
-        print(f"Step probs: {step_prob_str}")
-        for proc_id, heur_fn_q in enumerate(heur_fn_qs):
-            proc = ctx.Process(target=update_runner, args=(step_max, heur_fn_q, env, to_q, data_q, up_args,
-                                                           status.step_probs))
-            proc.daemon = True
-            proc.start()
-            procs.append(proc)
-
-        times_up: Times = Times()
-        search_perf: SearchPerf = SearchPerf()
-        ctgs_up: NDArray = np.zeros(0)
-        num_inst_gen: int = up_args.up_itrs * train_args.batch_size
-        print(f"Generating {format(num_inst_gen, ',')} training instances")
-        display_counts: NDArray[np.int_] = np.linspace(0, num_inst_gen, 10, dtype=int)
-        start_time_gen = time.time()
-        num_procs_done: int = 0
-        while num_procs_done < len(procs):
-            start_time = time.time()
-            data_get: Union[Tuple[Times, SearchPerf], TrainData] = data_q.get()
-            times_up.record_time("get", time.time() - start_time)
-            if type(data_get[0]) is Times:
-                times_up.add_times(data_get[0])
-                search_perf = search_perf.comb_perf(data_get[1])
-                num_procs_done += 1
-            else:
-                start_time = time.time()
-                train_data: TrainData = cast(TrainData, data_get)
-                rb.add(train_data[0], train_data[1])
-                ctgs_up = np.concatenate((ctgs_up, train_data[1]), axis=0)
-                num_gen_curr: int = ctgs_up.shape[0]
-                times_up.record_time("rb", time.time() - start_time)
-                if num_gen_curr >= min(display_counts):
-                    print(f"{num_gen_curr}/{num_inst_gen} instances (%.2f%%) "
-                          f"(Data time: %.2f)" % (100 * num_gen_curr / num_inst_gen, time.time() - start_time_gen))
-                    display_counts = display_counts[num_gen_curr < display_counts]
-                if num_gen_curr == num_inst_gen:
-                    for _ in procs:
-                        to_q.put(None)
-
-        nnet_utils.stop_heuristic_fn_runners(heur_procs, heur_fn_qs)
-        for proc in procs:
-            proc.join()
-
-        mean_ctg = ctgs_up.mean()
-        min_ctg = ctgs_up.min()
-        max_ctg = ctgs_up.max()
-        print(f"Generated {format(ctgs_up.shape[0], ',')} training instances, "
-              f"Replay buffer size: {format(rb.size(), ',')}")
-        print(f"Cost-to-go (mean/min/max): %.2f/%.2f/%.2f" % (mean_ctg, min_ctg, max_ctg))
-        print(search_perf.to_string())
-        print(f"Times - {times_up.get_time_str()}")
+        get_update_data(env, step_max, up_args, train_args, status, rb, targ_file, device, on_gpu)
 
         # train nnet
         print("Training model for update number %i for %i iterations" % (status.update_num, up_args.up_itrs))
@@ -501,19 +507,15 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
 
         # test
         start_time = time.time()
-        heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(up_args.up_procs, curr_file, device, on_gpu, env, "V",
-                                                                  all_zeros=False, clip_zero=False,
-                                                                  batch_size=up_args.up_nnet_batch_size)
-
         max_solve_steps: int = min(status.update_num + 2, step_max)
 
         print("Testing greedy policy with %i states and %i steps" % (len(status.states_start_t), max_solve_steps))
-        per_solved, is_solved_all = search_test(status.states_start_t, status.goals_t, status.state_t_steps_l, env,
-                                                heur_fn_qs, "greedy", max_solve_steps)
+        per_solved, is_solved_all = search_test(env, status.states_start_t, status.goals_t, status.state_t_steps_l,
+                                                up_args.up_procs, curr_file, up_args.up_nnet_batch_size, device, on_gpu,
+                                                "greedy", max_solve_steps)
         print("Greedy policy solved (best): %.2f%% (%.2f%%)" % (per_solved, status.per_solved_best))
         status.update_step_probs(is_solved_all)
 
-        nnet_utils.stop_heuristic_fn_runners(heur_procs, heur_fn_qs)
         print("Test time: %.2f" % (time.time() - start_time))
 
         # clear cuda memory

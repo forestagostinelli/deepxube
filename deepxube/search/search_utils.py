@@ -9,7 +9,8 @@ from deepxube.search.bwas import BWAS
 from deepxube.utils import misc_utils
 from deepxube.utils.timing_utils import Times
 from torch.multiprocessing import get_context, Queue
-from deepxube.nnet.nnet_utils import HeurFnQ
+from deepxube.nnet.nnet_utils import HeurFnQ, start_heur_fn_runners, stop_heuristic_fn_runners
+import torch
 import time
 
 
@@ -127,10 +128,17 @@ def search_runner(env: Environment, heur_fn_q: HeurFnQ, proc_id: int, search_met
                        inst_gen_steps))
 
 
-def search_test(states: List[State], goals: List[Goal], inst_gen_steps: List[int], env: Environment,
-                heur_fn_qs: List[HeurFnQ], search_method: str,
-                max_solve_steps: int) -> Tuple[float, NDArray]:
-    # initialize
+def search_test(env: Environment, states: List[State], goals: List[Goal], inst_gen_steps: List[int],
+                num_procs: int, nnet_file: str, nnet_batch_size: Optional[int], device: torch.device, on_gpu: bool,
+                search_method: str, max_solve_steps: int) -> Tuple[float, NDArray]:
+    # start heur fns
+    all_zeros: bool = False
+    if len(nnet_file) == 0:
+        all_zeros = True
+    heur_fn_qs, heur_procs = start_heur_fn_runners(num_procs, nnet_file, device, on_gpu, env, "V", all_zeros=all_zeros,
+                                                   clip_zero=False, batch_size=nnet_batch_size)
+
+    # start search runners
     ctx = get_context("spawn")
     results_q: Queue = ctx.Queue()
     data_qs: List[Queue] = [ctx.Queue() for _ in heur_fn_qs]
@@ -214,5 +222,7 @@ def search_test(states: List[State], goals: List[Goal], inst_gen_steps: List[int
                   float(np.mean(ctgs)), float(np.std(ctgs)), float(np.min(ctgs)), float(np.max(ctgs)),
                   float(np.mean(ctgs_bkup)), float(np.std(ctgs_bkup)), float(np.min(ctgs_bkup)),
                   float(np.max(ctgs_bkup))))
+
+    stop_heuristic_fn_runners(heur_procs, heur_fn_qs)
 
     return per_solved_all, is_solved_all
