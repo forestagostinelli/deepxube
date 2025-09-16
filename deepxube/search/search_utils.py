@@ -44,11 +44,13 @@ class SearchPerf:
         return search_perf_new
 
     def stats(self) -> Tuple[float, float, float]:
+        per_solved: float = 100.0 * float(np.mean(self.is_solved_l))
+
         path_cost_ave: float = 0.0
+        search_itrs_ave: float = 0.0
         if len(self.path_costs) > 0:
             path_cost_ave: float = float(np.mean(self.path_costs))
-        search_itrs_ave: float = float(np.mean(self.search_itrs_l))
-        per_solved: float = 100.0 * float(np.mean(self.is_solved_l))
+            search_itrs_ave: float = float(np.mean(self.search_itrs_l))
 
         return per_solved, path_cost_ave, search_itrs_ave
 

@@ -53,9 +53,8 @@ class TrainArgs:
 
 @dataclass
 class UpdateArgs:
-    """ Search performance is printed after update. This will most likely be higher than greedy since the steps taken
-    to generate instances are balanced according to solve performance and because, each time an instance is solved, a
-    new one is created with the same number of steps to maintain training data balance.
+    """ Each time an instance is solved, a new one is created with the same number of steps to maintain training data
+    balance.
 
     :param up_itrs: How many iterations to do before checking if target network should be updated
     :param up_procs: Number of parallel workers used to compute updated cost-to-go values
@@ -131,8 +130,7 @@ def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q:
 
     up_search: str = up_args.up_search.upper()
     heur_fn = heur_fn_q.get_heuristic_fn(env)
-    search_perf: SearchPerf = SearchPerf()
-
+    step_to_search_perf: Dict[int, SearchPerf] = dict()
     while True:
         batch_size, start_idx = to_q.get()
         if batch_size is None:
@@ -205,12 +203,15 @@ def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q:
             # remove instances
             insts_rem: List[Instance] = search.remove_finished_instances(up_args.up_step_max)
             for inst_rem in insts_rem:
-                search_perf.update_perf(inst_rem)
+                step_num_inst: int = int(inst_rem.inst_info[0])
+                if step_num_inst not in step_to_search_perf.keys():
+                    step_to_search_perf[step_num_inst] = SearchPerf()
+                step_to_search_perf[step_num_inst].update_perf(inst_rem)
 
         data_q.put((start_idx_batch, start_idx))
         times.add_times(search.times, path=["search"])
 
-    data_q.put((times, search_perf))
+    data_q.put((times, step_to_search_perf))
     for arr_shm in inputs_nnet_shm + [ctgs_shm]:
         arr_shm.close()
 
@@ -348,7 +349,7 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
 
     # getting data from processes
     times_up: Times = Times()
-    search_perf: SearchPerf = SearchPerf()
+    step_to_search_perf: Dict[int, SearchPerf] = dict()
     print(f"Generating {format(num_gen_up, ',')} training instances")
     display_counts: NDArray[np.int_] = np.linspace(0, num_gen_up, 10, dtype=int)
     start_time_gen = time.time()
@@ -356,11 +357,14 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
     num_gen_curr: int = 0
     while num_procs_done < len(procs):
         start_time = time.time()
-        data_get: Union[Tuple[Times, SearchPerf], Tuple[int, int]] = data_q.get()
+        data_get: Union[Tuple[Times, Dict[int, SearchPerf]], Tuple[int, int]] = data_q.get()
         times_up.record_time("get", time.time() - start_time)
         if type(data_get[0]) is Times:
             times_up.add_times(data_get[0])
-            search_perf = search_perf.comb_perf(data_get[1])
+            for step_num_perf, search_perf in data_get[1].items():
+                if step_num_perf not in step_to_search_perf.keys():
+                    step_to_search_perf[step_num_perf] = SearchPerf()
+                step_to_search_perf[step_num_perf] = step_to_search_perf[step_num_perf].comb_perf(search_perf)
             num_procs_done += 1
         else:
             start_time = time.time()
@@ -387,7 +391,17 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
     print(f"Generated {format(num_gen_curr, ',')} training instances, "
           f"Replay buffer size: {format(rb.size(), ',')}")
     print(f"Cost-to-go (mean/min/max): %.2f/%.2f/%.2f" % (mean_ctg, min_ctg, max_ctg))
-    print(search_perf.to_string())
+    per_solved_l: List[float] = []
+    path_cost_ave_l: List[float] = []
+    search_itrs_ave_l: List[float] = []
+    for search_perf in step_to_search_perf.values():
+        per_solved_i, path_cost_ave_i, search_itrs_ave_i = search_perf.stats()
+        per_solved_l.append(per_solved_i)
+        if per_solved_i > 0.0:
+            path_cost_ave_l.append(path_cost_ave_i)
+            search_itrs_ave_l.append(search_itrs_ave_i)
+    print(f"%solved: {np.mean(per_solved_l):.2f}, path_costs: {np.mean(path_cost_ave_l):.3f}, "
+          f"search_itrs: {np.mean(search_itrs_ave_l):.3f} (equally weighted across step numbers)")
     print(f"Times - {times_up.get_time_str()}")
 
     # clean up
