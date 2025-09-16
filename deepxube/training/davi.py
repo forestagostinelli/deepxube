@@ -1,5 +1,7 @@
 from typing import List, Tuple, Union, cast, Dict, Any
 from dataclasses import dataclass
+
+from deepxube.training.train_utils import ReplayBuffer
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
 from deepxube.nnet.nnet_utils import HeurFnQ
@@ -10,7 +12,6 @@ from deepxube.search.bwas import BWAS
 from deepxube.search.greedy_policy import Greedy
 from deepxube.search.search_utils import SearchPerf, search_test
 from deepxube.utils.misc_utils import split_evenly
-from deepxube.utils.data_utils import sel_l
 from deepxube.utils.timing_utils import Times
 from deepxube.utils.data_utils import SharedNDArray
 
@@ -32,9 +33,6 @@ import time
 import sys
 import shutil
 import random
-
-
-TrainData = Tuple[List[NDArray], NDArray]
 
 
 @dataclass
@@ -124,73 +122,6 @@ class Status:
             num_tot_eff: float = num_w_soln_eff + 1
             self.step_probs: NDArray = num_w_soln_eff * per_solved_per_step / per_solved_per_step.sum() / num_tot_eff
             self.step_probs[per_solved_per_step == 0] = 1 / num_tot_eff / num_no_soln
-
-
-class ReplayBuffer:
-    def __init__(self, max_size: int):
-        self.inputs: List[NDArray] = []
-        self.ctgs: NDArray = np.empty(0)
-        self.max_size: int = max_size
-        self.curr_size: int = 0
-        self.add_idx: int = 0
-
-    def add(self, inputs_add: List[NDArray], ctgs_add: NDArray):
-        self.curr_size = min(self.curr_size + ctgs_add.shape[0], self.max_size)
-        if self.ctgs.shape[0] == 0:
-            # first add
-            start_time = time.time()
-            print("Input array sizes:")
-            for input_idx in range(len(inputs_add)):
-                print(f"index: {input_idx}, dtype: {inputs_add[input_idx].dtype}, shape:",
-                      inputs_add[input_idx].shape[1:])
-                self.inputs.append(inputs_add[input_idx][:self.max_size])
-            self.ctgs = ctgs_add[:self.max_size]
-
-            self.add_idx = self.curr_size
-
-            print(f"Initializing replay buffer with max size {format(self.max_size, ',')}")
-            rep_num: int = self.max_size - self.curr_size
-            for input_idx in range(len(self.inputs)):
-                inputs_add_idx_rep: NDArray = np.repeat(inputs_add[input_idx][0:1], rep_num, axis=0)
-                self.inputs[input_idx] = np.concatenate((self.inputs[input_idx], inputs_add_idx_rep), axis=0)
-
-            ctgs_add_rep: NDArray = np.repeat(ctgs_add[0:1], rep_num, axis=0)
-            self.ctgs = np.concatenate((self.ctgs, ctgs_add_rep), axis=0)
-            print(f"Replay buffer initialized. Time: {time.time() - start_time}")
-        else:
-            self._add_circular(inputs_add, ctgs_add)
-
-    def sample(self, num: int) -> TrainData:
-        sel_idxs: NDArray = np.random.randint(self.size(), size=num)
-
-        inputs_samp: List[NDArray] = sel_l(self.inputs, sel_idxs)
-        ctgs_samp: NDArray = self.ctgs[sel_idxs]
-
-        return inputs_samp, ctgs_samp
-
-    def size(self) -> int:
-        return self.curr_size
-
-    def clear(self):
-        self.curr_size: int = 0
-        self.add_idx: int = 0
-
-    def _add_circular(self, inputs_add: List[NDArray], ctgs_add: NDArray):
-        start_idx: int = 0
-        assert len(self.inputs) == len(inputs_add), "should have same number of arrays"
-        while start_idx < ctgs_add.shape[0]:
-            num_add: int = min(ctgs_add.shape[0] - start_idx, self.max_size - self.add_idx)
-            end_idx: int = start_idx + num_add
-            add_idx_end: int = self.add_idx + num_add
-
-            for input_idx in range(len(self.inputs)):
-                self.inputs[input_idx][self.add_idx:add_idx_end] = inputs_add[input_idx][start_idx:end_idx]
-            self.ctgs[self.add_idx:add_idx_end] = ctgs_add[start_idx:end_idx]
-
-            start_idx = end_idx
-            self.add_idx = add_idx_end
-            if self.add_idx == self.max_size:
-                self.add_idx = 0
 
 
 def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q: Queue, data_q: Queue,
@@ -304,7 +235,7 @@ def load_data(model_dir: str, nnet_file: str, env: Environment, num_test_per_ste
     return nnet, status
 
 
-def train_nnet(nnet: nn.Module, rb: ReplayBuffer, optimizer: Optimizer, device: torch.device,  num_itrs: int,
+def train_nnet(nnet: nn.Module, rb: ReplayBuffer, optimizer: Optimizer, device: torch.device, num_itrs: int,
                train_itr: int, train_args: TrainArgs) -> float:
     # optimization
     criterion = nn.MSELoss()
@@ -325,8 +256,9 @@ def train_nnet(nnet: nn.Module, rb: ReplayBuffer, optimizer: Optimizer, device: 
             param_group['lr'] = lr_itr
 
         # get data
-        inputs_batch_np, ctgs_batch_np = rb.sample(train_args.batch_size)
-        ctgs_batch_np = ctgs_batch_np.astype(np.float32)
+        arrays_samp: List[NDArray] = rb.sample(train_args.batch_size)
+        inputs_batch_np: List[NDArray] = arrays_samp[:-1]
+        ctgs_batch_np: NDArray = arrays_samp[-1].astype(np.float32)
 
         # send data to device
         inputs_batch: List[Tensor] = nnet_utils.to_pytorch_input(inputs_batch_np, device)
@@ -437,7 +369,7 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
             for inputs_idx in range(len(inputs_nnet_shm)):
                 inputs_nnet_get.append(inputs_nnet_shm[inputs_idx][start_idx:end_idx].copy())
             ctgs_shm_get: NDArray = ctgs_shm[start_idx:end_idx].copy()
-            rb.add(inputs_nnet_get, ctgs_shm_get)
+            rb.add(inputs_nnet_get + [ctgs_shm_get])
             num_gen_curr += (end_idx - start_idx)
             times_up.record_time("rb", time.time() - start_time)
             if num_gen_curr >= min(display_counts):
@@ -522,8 +454,19 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
     nnet.to(device)
     nnet = nn.DataParallel(nnet)
 
+    # initialize replay buffer
+    states, goals = env.get_start_goal_pairs([0])
+    inputs_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
+    rb_shapes: List[Tuple[int, ...]] = []
+    rb_dtypes: List[np.dtype] = []
+    for nnet_idx, inputs_nnet_i in enumerate(inputs_nnet):
+        rb_shapes.append(inputs_nnet_i[0].shape)
+        rb_dtypes.append(inputs_nnet_i.dtype)
+    rb_shapes.append(tuple())
+    rb_dtypes.append(np.dtype(np.float64))
+    rb: ReplayBuffer = ReplayBuffer(train_args.batch_size * up_args.up_itrs * rb_past_up, rb_shapes, rb_dtypes)
+
     # training
-    rb: ReplayBuffer = ReplayBuffer(train_args.batch_size * up_args.up_itrs * rb_past_up)
     optimizer: Optimizer = optim.Adam(nnet.parameters(), lr=train_args.lr)
     while status.itr < train_args.max_itrs:
         # update

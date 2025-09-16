@@ -3,7 +3,6 @@ from deepxube.environments.environment_abstract import State, Goal
 from deepxube.nnet.nnet_utils import HeurFN_T
 from deepxube.search.search_abstract import Node, Instance, Search
 import numpy as np
-from numpy.typing import NDArray
 import random
 import time
 
@@ -27,16 +26,9 @@ class Greedy(Search[InstanceGr]):
 
         assert len(states) == len(goals) == len(inst_infos) == len(eps_l), "Number should be the same"
 
-        if compute_init_heur:
-            heuristics: NDArray = heur_fn(states, goals)
-        else:
-            heuristics: NDArray = np.zeros(len(states)).astype(np.float64)
+        root_nodes: List[Node] = self._create_root_nodes(states, goals, heur_fn, compute_init_heur)
 
-        is_solved_l: List[bool] = self.env.is_solved(states, goals)
-
-        for state, goal, heuristic, is_solved, inst_info, eps_inst in zip(states, goals, heuristics, is_solved_l,
-                                                                          inst_infos, eps_l):
-            root_node: Node = Node(state, goal, 0.0, heuristic, is_solved, None, None, None)
+        for root_node, inst_info, eps_inst in zip(root_nodes, inst_infos, eps_l):
             instance: InstanceGr = InstanceGr(root_node, inst_info, eps_inst)
             self.instances.append(instance)
         self.times.record_time("add", time.time() - start_time)

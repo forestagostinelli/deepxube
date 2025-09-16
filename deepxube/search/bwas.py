@@ -7,7 +7,6 @@ from heapq import heappush, heappop
 
 from deepxube.utils import misc_utils
 import time
-from numpy.typing import NDArray
 
 
 OpenSetElem = Tuple[float, int, Node]
@@ -67,17 +66,8 @@ class BWAS(Search[InstanceBWAS]):
             weights = [1.0] * len(states)
 
         assert len(states) == len(goals) == len(inst_infos) == len(weights), "Number should be the same"
-        # compute starting costs
-        if compute_init_heur:
-            heuristics: NDArray = heur_fn(states, goals)
-        else:
-            heuristics: NDArray = np.zeros(len(states)).astype(np.float64)
 
-        root_nodes: List[Node] = []
-        is_solved_states: NDArray[np.bool_] = np.array(self.env.is_solved(states, goals))
-        for state, goal, heuristic, is_solved in zip(states, goals, heuristics, is_solved_states):
-            root_node: Node = Node(state, goal, 0.0, heuristic, is_solved, None, None, None)
-            root_nodes.append(root_node)
+        root_nodes: List[Node] = self._create_root_nodes(states, goals, heur_fn, compute_init_heur)
 
         # initialize instances
         for root_node, inst_info, weight in zip(root_nodes, inst_infos, weights):

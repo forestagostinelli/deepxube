@@ -182,6 +182,23 @@ class Search(ABC, Generic[I]):
 
         return instances_remove
 
+    def _create_root_nodes(self, states: List[State], goals: List[Goal], heur_fn: HeurFN_T,
+                           compute_init_heur: bool) -> List[Node]:
+        if compute_init_heur:
+            heuristics: NDArray = heur_fn(states, goals)
+        else:
+            heuristics: NDArray = np.zeros(len(states)).astype(np.float64)
+
+        root_nodes: List[Node] = []
+        is_solved_l: List[bool] = self.env.is_solved(states, goals)
+        for state, goal, heuristic, is_solved in zip(states, goals, heuristics, is_solved_l):
+            root_node: Node = Node(state, goal, 0.0, heuristic, is_solved, None, None, None)
+            root_nodes.append(root_node)
+
+        return root_nodes
+
+
+
 
 def get_path(node: Node) -> Tuple[List[State], List[Action], float]:
     """ Gets path from the start state to the goal state associated with the input node
