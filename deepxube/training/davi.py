@@ -147,6 +147,7 @@ def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q:
             raise ValueError(f"Unknown search method {up_args.up_search}")
 
         insts_rem: List[Instance] = []
+        start_idx_batch: int = start_idx
         for _ in range(up_args.up_step_max):
             # add instances
             if (len(search.instances) == 0) or (len(insts_rem) > 0):
@@ -198,7 +199,6 @@ def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q:
             for input_idx in range(len(states_goals_nnet)):
                 inputs_nnet_shm[input_idx][start_idx:end_idx] = states_goals_nnet[input_idx].copy()
             ctgs_shm[start_idx:end_idx] = ctgs_bellman.copy()
-            data_q.put((start_idx, end_idx))
             start_idx = end_idx
             times.record_time("put", time.time() - start_time)
 
@@ -207,6 +207,7 @@ def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q:
             for inst_rem in insts_rem:
                 search_perf.update_perf(inst_rem)
 
+        data_q.put((start_idx_batch, start_idx))
         times.add_times(search.times, path=["search"])
 
     data_q.put((times, search_perf))
