@@ -249,7 +249,8 @@ def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q:
                     inst_infos: List[Tuple[int]] = [(step_gen,) for step_gen in steps_gen]
                 times.record_time("inst_info", time.time() - start_time)
 
-                search.add_instances(states_gen, goals_gen, heur_fn, inst_infos=inst_infos, **kwargs)
+                search.add_instances(states_gen, goals_gen, heur_fn, inst_infos=inst_infos, compute_init_heur=False,
+                                     **kwargs)
 
             # take a step
             states, goals, ctgs_bellman = search.step(heur_fn)

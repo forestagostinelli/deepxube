@@ -11,6 +11,7 @@
 * Consolidate updater for DAVI
 * Balance probabilities for steps based on solve percentage
 * Use SharedMemory for update and heuristic function runners
+* Add option to skip computation of initial heuristic value for search
 
 
 ## 0.1.6

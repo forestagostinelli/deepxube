@@ -84,7 +84,7 @@ class Search(ABC, Generic[I]):
 
     @abstractmethod
     def add_instances(self, states: List[State], goals: List[Goal], heur_fn: HeurFN_T,
-                      inst_infos: Optional[List[Any]] = None, **kwargs):
+                      inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True, **kwargs):
         pass
 
     @abstractmethod

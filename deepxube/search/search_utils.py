@@ -112,7 +112,7 @@ def search_runner(env: Environment, heur_fn_q: HeurFnQ, proc_id: int, search_met
     else:
         raise ValueError(f"Unknown search method {search_method}")
 
-    search.add_instances(states, goals, heuristic_fn)
+    search.add_instances(states, goals, heuristic_fn, compute_init_heur=True)
     for _ in range(max_solve_steps):
         search.step(heuristic_fn)
 

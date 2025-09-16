@@ -58,7 +58,8 @@ class BWAS(Search[InstanceBWAS]):
         self.steps: int = 0
 
     def add_instances(self, states: List[State], goals: List[Goal], heur_fn: HeurFN_T,
-                      inst_infos: Optional[List[Any]] = None, weights: Optional[List[float]] = None):
+                      inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True,
+                      weights: Optional[List[float]] = None):
         start_time = time.time()
         if inst_infos is None:
             inst_infos = [None] * len(states)
@@ -67,7 +68,11 @@ class BWAS(Search[InstanceBWAS]):
 
         assert len(states) == len(goals) == len(inst_infos) == len(weights), "Number should be the same"
         # compute starting costs
-        heuristics: NDArray = heur_fn(states, goals)
+        if compute_init_heur:
+            heuristics: NDArray = heur_fn(states, goals)
+        else:
+            heuristics: NDArray = np.zeros(len(states)).astype(np.float64)
+
         root_nodes: List[Node] = []
         is_solved_states: NDArray[np.bool_] = np.array(self.env.is_solved(states, goals))
         for state, goal, heuristic, is_solved in zip(states, goals, heuristics, is_solved_states):

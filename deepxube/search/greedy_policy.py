@@ -17,7 +17,8 @@ class InstanceGr(Instance):
 
 class Greedy(Search[InstanceGr]):
     def add_instances(self, states: List[State], goals: List[Goal], heur_fn: HeurFN_T,
-                      inst_infos: Optional[List[Any]] = None, eps_l: Optional[List[float]] = None):
+                      inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True,
+                      eps_l: Optional[List[float]] = None):
         start_time = time.time()
         if inst_infos is None:
             inst_infos = [None] * len(states)
@@ -26,7 +27,11 @@ class Greedy(Search[InstanceGr]):
 
         assert len(states) == len(goals) == len(inst_infos) == len(eps_l), "Number should be the same"
 
-        heuristics: NDArray = heur_fn(states, goals)
+        if compute_init_heur:
+            heuristics: NDArray = heur_fn(states, goals)
+        else:
+            heuristics: NDArray = np.zeros(len(states)).astype(np.float64)
+
         is_solved_l: List[bool] = self.env.is_solved(states, goals)
 
         for state, goal, heuristic, is_solved, inst_info, eps_inst in zip(states, goals, heuristics, is_solved_l,
