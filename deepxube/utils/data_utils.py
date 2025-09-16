@@ -1,4 +1,4 @@
-from typing import List, Any, Tuple
+from typing import List, Any, Tuple, Optional
 
 import sys
 
@@ -98,12 +98,13 @@ class SharedNDArray:
     Pickleable: can be sent through multiprocessing.Queue.
     """
 
-    def __init__(self, shape: Tuple[int, ...], dtype, name: str, create: bool):
+    def __init__(self, shape: Tuple[int, ...], dtype, name: Optional[str], create: bool):
         self.shape = tuple(shape)
         self.dtype = np.dtype(dtype)
 
         if create:
             # create new shared block
+            assert name is None, "Let SharedMemory do name creation"
             nbytes: int = int(np.prod(self.shape)) * self.dtype.itemsize
             self.shm: SharedMemory = shared_memory.SharedMemory(create=True, size=nbytes, name=name)
         else:
@@ -146,8 +147,8 @@ class SharedNDArray:
     def __repr__(self):
         return f"SharedNDArray(name={self.name}, shape={self.shape}, dtype={self.dtype})"
 
-def np_to_shnd(arr: NDArray, shm_name: str) -> SharedNDArray:
-    arr_shm: SharedNDArray = SharedNDArray(arr.shape, arr.dtype, shm_name, True)
+def np_to_shnd(arr: NDArray) -> SharedNDArray:
+    arr_shm: SharedNDArray = SharedNDArray(arr.shape, arr.dtype, None, True)
     arr_shm.array[:] = arr
 
     return arr_shm

@@ -181,8 +181,7 @@ def heuristic_fn_runner(heuristic_fn_input_queue: Queue, heuristic_fn_output_que
         else:
             heurs = cast(HeurFN_T, heuristic_fn)(inputs_nnet, None)
 
-        shm_name: str = f"out_proc{proc_id}"
-        heurs_shm: SharedNDArray = np_to_shnd(heurs, shm_name)
+        heurs_shm: SharedNDArray = np_to_shnd(heurs)
         heuristic_fn_output_queues[proc_id].put(heurs_shm)
 
         for arr_shm in inputs_nnet_shm + [heurs_shm]:
@@ -200,7 +199,7 @@ class HeurFnQ:
     def get_heuristic_fn(self, env: Environment) -> HeurFN_T:
         def heuristic_fn(states: List[State], goals: List[Goal]) -> NDArray:
             inputs_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
-            inputs_nnet_shm: List[SharedNDArray] = [np_to_shnd(inputs_nnet_i, f"input{input_idx}_proc{self.proc_id}")
+            inputs_nnet_shm: List[SharedNDArray] = [np_to_shnd(inputs_nnet_i)
                                                     for input_idx, inputs_nnet_i in enumerate(inputs_nnet)]
 
             self.heur_fn_i_q.put((self.proc_id, inputs_nnet_shm))

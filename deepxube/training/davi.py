@@ -308,8 +308,8 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
     inputs_nnet_shm: List[SharedNDArray] = []
     for nnet_idx, inputs_nnet_i in enumerate(inputs_nnet):
         inputs_nnet_shm.append(SharedNDArray((num_gen_up,) + inputs_nnet_i[0].shape, inputs_nnet_i.dtype,
-                                             f"input{nnet_idx}", True))
-    ctgs_shm = SharedNDArray((num_gen_up,), np.float64, f"ctgs", True)
+                                             None, True))
+    ctgs_shm = SharedNDArray((num_gen_up,), np.float64, None, True)
 
     # sending index data to processes
     ctx = get_context("spawn")
