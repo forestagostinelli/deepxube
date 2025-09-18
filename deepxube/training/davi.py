@@ -51,6 +51,7 @@ class UpdateArgs:
     between 0 and greedy_update_eps_max
     :param up_epochs: do up_epochs * up_itrs iterations worth of training before checking for update. Can decrease data
     generation time, but can increase risk of overfitting between updates checks.
+    :param up_test: greedy: update when greedy policy improves, const: update every update check
     """
     up_itrs: int
     up_procs: int
@@ -60,6 +61,7 @@ class UpdateArgs:
     up_step_max: int
     up_eps_max_greedy: float
     up_epochs: int = 1
+    up_test: str = "greedy"
 
 
 class Status:
@@ -449,16 +451,21 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
         torch.cuda.empty_cache()
 
         update_nnet: bool
-        if per_solved > status.per_solved_best:
-            print("Updating target network")
-            status.per_solved_best = per_solved
+        if up_args.up_test.upper() == "GREEDY":
+            if per_solved > status.per_solved_best:
+                status.per_solved_best = per_solved
+                update_nnet = True
+            else:
+                update_nnet = False
+        elif up_args.up_test.upper() == "CONST":
             update_nnet = True
         else:
-            update_nnet = False
+            raise ValueError(f"Unknown update test {up_args.up_test}")
 
         print("Last loss was %f" % last_loss)
         if update_nnet:
             # Update nnet
+            print("Updating target network")
             rb.clear()
             shutil.copy(curr_file, targ_file)
             status.update_num = status.update_num + 1
