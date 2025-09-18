@@ -1,7 +1,7 @@
-from typing import List, Tuple, Union, cast, Dict, Any
+from typing import List, Tuple, Dict, Any, cast
 from dataclasses import dataclass
 
-from deepxube.training.train_utils import ReplayBuffer
+from deepxube.training.train_utils import ReplayBuffer, train_heur, TrainArgs
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
 from deepxube.nnet.nnet_utils import HeurFnQ
@@ -9,14 +9,13 @@ from deepxube.environments.environment_abstract import State, Environment, Goal
 
 from deepxube.search.search_abstract import Search, Instance
 from deepxube.search.bwas import BWAS
-from deepxube.search.greedy_policy import Greedy
+from deepxube.search.greedy_policy import Greedy, InstanceGr
 from deepxube.search.search_utils import SearchPerf, search_test
 from deepxube.utils.misc_utils import split_evenly
 from deepxube.utils.timing_utils import Times
 from deepxube.utils.data_utils import SharedNDArray
 
 import torch
-from torch import Tensor
 import torch.optim as optim
 from torch.optim.optimizer import Optimizer
 import torch.nn as nn
@@ -36,27 +35,11 @@ import random
 
 
 @dataclass
-class TrainArgs:
-    """
-    :param batch_size: Batch size
-    :param lr: Initial learning rate
-    :param lr_d: Learning rate decay for every iteration. Learning rate is decayed according to: lr * (lr_d ^ itr)
-    :param max_itrs: Maximum number of iterations
-    :param display: Number of iterations to display progress. No display if 0.
-    """
-    batch_size: int
-    lr: float
-    lr_d: float
-    max_itrs: int
-    display: bool
-
-
-@dataclass
 class UpdateArgs:
     """ Each time an instance is solved, a new one is created with the same number of steps to maintain training data
     balance.
 
-    :param up_itrs: How many iterations to do before checking if target network should be updated
+    :param up_itrs: How many iterations worth of data to generate per udpate
     :param up_procs: Number of parallel workers used to compute updated cost-to-go values
     :param up_batch_size: Helps manage memory. Decrease if memory is running out during update.
     :param up_nnet_batch_size: Batch size of each nnet used for each process update. Make smaller if running out
@@ -66,6 +49,8 @@ class UpdateArgs:
     Increasing this number could make the heuristic function more robust to depression regions.
     :param up_eps_max_greedy: epsilon greedy policy max. Each start/goal pair will have an eps uniformly distributed
     between 0 and greedy_update_eps_max
+    :param up_epochs: do up_epochs * up_itrs iterations worth of training before checking for update. Can decrease data
+    generation time, but can increase risk of overfitting between updates checks.
     """
     up_itrs: int
     up_procs: int
@@ -74,6 +59,7 @@ class UpdateArgs:
     up_search: str
     up_step_max: int
     up_eps_max_greedy: float
+    up_epochs: int = 1
 
 
 class Status:
@@ -163,20 +149,15 @@ def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q:
                 states_gen, goals_gen = env.get_start_goal_pairs(steps_gen, times=times_states)
                 times.add_times(times_states, ["get_states"])
 
-                # get kwargs and instance information
+                # get instance information and kwargs
                 start_time = time.time()
+                inst_infos: List[Tuple[int]] = [(step_gen,) for step_gen in steps_gen]
                 kwargs: Dict[str, Any] = dict()
-                inst_infos: List[Any]
                 if up_search == "GREEDY":
                     if len(search.instances) == 0:
-                        eps_gen_l = list(np.random.rand(batch_size) * up_args.up_eps_max_greedy)
+                        kwargs['eps_l'] = list(np.random.rand(batch_size) * up_args.up_eps_max_greedy)
                     else:
-                        eps_gen_l = [float(inst.inst_info[1]) for inst in insts_rem]
-                    inst_infos: List[Tuple[int, float]] = [(step_gen, eps_gen)
-                                                           for step_gen, eps_gen in zip(steps_gen, eps_gen_l)]
-                    kwargs['eps_l'] = eps_gen_l
-                elif up_search == "ASTAR":
-                    inst_infos: List[Tuple[int]] = [(step_gen,) for step_gen in steps_gen]
+                        kwargs['eps_l'] = [cast(InstanceGr, inst).eps for inst in insts_rem]
                 times.record_time("inst_info", time.time() - start_time)
 
                 search.add_instances(states_gen, goals_gen, heur_fn, inst_infos=inst_infos, compute_init_heur=False,
@@ -202,6 +183,8 @@ def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q:
 
             # remove instances
             insts_rem: List[Instance] = search.remove_finished_instances(up_args.up_step_max)
+
+            # search performance
             for inst_rem in insts_rem:
                 step_num_inst: int = int(inst_rem.inst_info[0])
                 if step_num_inst not in step_to_search_perf.keys():
@@ -237,65 +220,9 @@ def load_data(model_dir: str, nnet_file: str, env: Environment, num_test_per_ste
     return nnet, status
 
 
-def train_nnet(nnet: nn.Module, rb: ReplayBuffer, optimizer: Optimizer, device: torch.device, num_itrs: int,
-               train_itr: int, train_args: TrainArgs) -> float:
-    # optimization
-    criterion = nn.MSELoss()
-
-    # initialize status tracking
-    start_time = time.time()
-
-    # train network
-    nnet.train()
-    max_itrs: int = train_itr + num_itrs
-
-    last_loss: float = np.inf
-    while train_itr < max_itrs:
-        # zero the parameter gradients
-        optimizer.zero_grad()
-        lr_itr: float = train_args.lr * (train_args.lr_d ** train_itr)
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = lr_itr
-
-        # get data
-        arrays_samp: List[NDArray] = rb.sample(train_args.batch_size)
-        inputs_batch_np: List[NDArray] = arrays_samp[:-1]
-        ctgs_batch_np: NDArray = arrays_samp[-1].astype(np.float32)
-
-        # send data to device
-        inputs_batch: List[Tensor] = nnet_utils.to_pytorch_input(inputs_batch_np, device)
-        ctgs_batch: Tensor = torch.tensor(ctgs_batch_np, device=device)
-
-        # forward
-        ctgs_nnet: Tensor = nnet(inputs_batch)
-
-        # loss
-        loss = criterion(ctgs_nnet[:, 0], ctgs_batch)
-
-        # backwards
-        loss.backward()
-
-        # step
-        optimizer.step()
-
-        last_loss = loss.item()
-        # display progress
-        if (train_args.display > 0) and (train_itr % train_args.display == 0):
-            print("Itr: %i, lr: %.2E, loss: %.2E, targ_ctg: %.2f, nnet_ctg: %.2f, "
-                  "Time: %.2f" % (
-                      train_itr, lr_itr, loss.item(), ctgs_batch.mean().item(),
-                      ctgs_nnet.mean().item(), time.time() - start_time))
-
-            start_time = time.time()
-
-        train_itr = train_itr + 1
-
-    return last_loss
-
-
 def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_args: TrainArgs, status: Status,
                     rb: ReplayBuffer, targ_file: str, device: torch.device, on_gpu: bool):
-    # update
+    # update heuristic functions
     num_gen_up: int = train_args.batch_size * up_args.up_itrs
     all_zeros: bool = not os.path.isfile(targ_file)
     heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(up_args.up_procs, targ_file, device, on_gpu, env, "V",
@@ -349,42 +276,40 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
 
     # getting data from processes
     times_up: Times = Times()
-    step_to_search_perf: Dict[int, SearchPerf] = dict()
     print(f"Generating {format(num_gen_up, ',')} training instances")
     display_counts: NDArray[np.int_] = np.linspace(0, num_gen_up, 10, dtype=int)
     start_time_gen = time.time()
-    num_procs_done: int = 0
     num_gen_curr: int = 0
-    while num_procs_done < len(procs):
+    while num_gen_curr < num_gen_up:
+        start_idx, end_idx = data_q.get()
         start_time = time.time()
-        data_get: Union[Tuple[Times, Dict[int, SearchPerf]], Tuple[int, int]] = data_q.get()
-        times_up.record_time("get", time.time() - start_time)
-        if type(data_get[0]) is Times:
-            times_up.add_times(data_get[0])
-            for step_num_perf, search_perf in data_get[1].items():
-                if step_num_perf not in step_to_search_perf.keys():
-                    step_to_search_perf[step_num_perf] = SearchPerf()
-                step_to_search_perf[step_num_perf] = step_to_search_perf[step_num_perf].comb_perf(search_perf)
-            num_procs_done += 1
-        else:
-            start_time = time.time()
-            start_idx: int = cast(int, data_get[0])
-            end_idx: int = cast(int, data_get[1])
-            inputs_nnet_get: List[NDArray] = []
-            for inputs_idx in range(len(inputs_nnet_shm)):
-                inputs_nnet_get.append(inputs_nnet_shm[inputs_idx][start_idx:end_idx].copy())
-            ctgs_shm_get: NDArray = ctgs_shm[start_idx:end_idx].copy()
-            rb.add(inputs_nnet_get + [ctgs_shm_get])
-            num_gen_curr += (end_idx - start_idx)
-            times_up.record_time("rb", time.time() - start_time)
-            if num_gen_curr >= min(display_counts):
-                print(f"{num_gen_curr}/{num_gen_up} instances (%.2f%%) "
-                      f"(Tot time: %.2f)" % (100 * num_gen_curr / num_gen_up, time.time() - start_time_gen))
-                display_counts = display_counts[num_gen_curr < display_counts]
-            if num_gen_curr == num_gen_up:
-                for _ in procs:
-                    to_q.put((None, None))
+        inputs_nnet_get: List[NDArray] = []
+        for inputs_idx in range(len(inputs_nnet_shm)):
+            inputs_nnet_get.append(inputs_nnet_shm[inputs_idx][start_idx:end_idx].copy())
+        ctgs_shm_get: NDArray = ctgs_shm[start_idx:end_idx].copy()
+        rb.add(inputs_nnet_get + [ctgs_shm_get])
+        num_gen_curr += (end_idx - start_idx)
+        times_up.record_time("rb", time.time() - start_time)
+        if num_gen_curr >= min(display_counts):
+            print(f"{num_gen_curr}/{num_gen_up} instances (%.2f%%) "
+                  f"(Tot time: %.2f)" % (100 * num_gen_curr / num_gen_up, time.time() - start_time_gen))
+            display_counts = display_counts[num_gen_curr < display_counts]
 
+    # sending stop signal
+    for _ in procs:
+        to_q.put((None, None))
+
+    # get summary from processes
+    step_to_search_perf: Dict[int, SearchPerf] = dict()
+    for _ in procs:
+        times_up_i, step_to_search_perf_i  = data_q.get()
+        times_up.add_times(times_up_i)
+        for step_num_perf, search_perf in step_to_search_perf_i.items():
+            if step_num_perf not in step_to_search_perf.keys():
+                step_to_search_perf[step_num_perf] = SearchPerf()
+            step_to_search_perf[step_num_perf] = step_to_search_perf[step_num_perf].comb_perf(search_perf)
+
+    # print summary
     mean_ctg = ctgs_shm.array.mean()
     min_ctg = ctgs_shm.array.min()
     max_ctg = ctgs_shm.array.max()
@@ -483,14 +408,26 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
 
     # training
     optimizer: Optimizer = optim.Adam(nnet.parameters(), lr=train_args.lr)
+    criterion = nn.MSELoss()
     while status.itr < train_args.max_itrs:
         # update
         get_update_data(env, step_max, up_args, train_args, status, rb, targ_file, device, on_gpu)
 
+        # get batches
+        print("Getting training batches")
+        start_time = time.time()
+        batches: List[Tuple[List[NDArray], NDArray]] = []
+        for _ in range(up_args.up_itrs * up_args.up_epochs):
+            arrays_samp: List[NDArray] = rb.sample(train_args.batch_size)
+            inputs_batch_np: List[NDArray] = arrays_samp[:-1]
+            ctgs_batch_np: NDArray = np.expand_dims(arrays_samp[-1].astype(np.float32), 1)
+            batches.append((inputs_batch_np, ctgs_batch_np))
+        print(f"Time: {time.time() - start_time}")
+
         # train nnet
-        print("Training model for update number %i for %i iterations" % (status.update_num, up_args.up_itrs))
-        last_loss = train_nnet(nnet, rb, optimizer, device, up_args.up_itrs, status.itr, train_args)
-        status.itr += up_args.up_itrs
+        print("Training model for update number %i for %i iterations" % (status.update_num, len(batches)))
+        last_loss = train_heur(nnet, batches, optimizer, criterion, device, status.itr, train_args)
+        status.itr += len(batches)
 
         # save nnet
         torch.save(nnet.state_dict(), curr_file)

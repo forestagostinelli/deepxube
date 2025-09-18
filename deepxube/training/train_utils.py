@@ -1,10 +1,33 @@
 import time
 from typing import List, Tuple
+from dataclasses import dataclass
 
 import numpy as np
 from numpy.typing import NDArray
 
 from deepxube.utils.data_utils import sel_l
+from deepxube.nnet import nnet_utils
+
+import torch
+from torch import Tensor
+from torch.optim.optimizer import Optimizer
+import torch.nn as nn
+
+
+@dataclass
+class TrainArgs:
+    """
+    :param batch_size: Batch size
+    :param lr: Initial learning rate
+    :param lr_d: Learning rate decay for every iteration. Learning rate is decayed according to: lr * (lr_d ^ itr)
+    :param max_itrs: Maximum number of iterations
+    :param display: Number of iterations to display progress. No display if 0.
+    """
+    batch_size: int
+    lr: float
+    lr_d: float
+    max_itrs: int
+    display: bool
 
 
 class ReplayBuffer:
@@ -60,3 +83,51 @@ class ReplayBuffer:
             self.add_idx = add_idx_end
             if self.add_idx == self.max_size:
                 self.add_idx = 0
+
+
+def train_heur(nnet: nn.Module, batches: List[Tuple[List[NDArray], NDArray]], optimizer: Optimizer, criterion,
+               device: torch.device, train_itr: int, train_args: TrainArgs) -> float:
+    # initialize status tracking
+    start_time = time.time()
+
+    # train network
+    nnet.train()
+
+    last_loss: float = np.inf
+    for (inputs_batch_np, ctgs_batch_np) in batches:
+        # zero the parameter gradients
+        optimizer.zero_grad()
+        lr_itr: float = train_args.lr * (train_args.lr_d ** train_itr)
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr_itr
+
+        # send data to device
+        inputs_batch: List[Tensor] = nnet_utils.to_pytorch_input(inputs_batch_np, device)
+        ctgs_batch: Tensor = torch.tensor(ctgs_batch_np, device=device)
+
+        # forward
+        ctgs_nnet: Tensor = nnet(inputs_batch)
+
+        # loss
+        assert ctgs_nnet.size() == ctgs_batch.size()
+        loss = criterion(ctgs_nnet, ctgs_batch)
+
+        # backwards
+        loss.backward()
+
+        # step
+        optimizer.step()
+
+        last_loss = loss.item()
+        # display progress
+        if (train_args.display > 0) and (train_itr % train_args.display == 0):
+            print("Itr: %i, lr: %.2E, loss: %.2E, targ_ctg: %.2f, nnet_ctg: %.2f, "
+                  "Time: %.2f" % (
+                      train_itr, lr_itr, loss.item(), ctgs_batch.mean().item(), ctgs_nnet.mean().item(),
+                      time.time() - start_time))
+
+            start_time = time.time()
+
+        train_itr = train_itr + 1
+
+    return last_loss
