@@ -11,9 +11,9 @@ from deepxube.search.search_abstract import Search, Instance
 from deepxube.search.bwas import BWAS
 from deepxube.search.greedy_policy import Greedy, InstanceGr
 from deepxube.search.search_utils import SearchPerf, search_test
-from deepxube.utils.misc_utils import split_evenly
 from deepxube.utils.timing_utils import Times
 from deepxube.utils.data_utils import SharedNDArray
+from deepxube.utils.misc_utils import split_evenly
 
 import torch
 import torch.optim as optim
@@ -247,16 +247,20 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
                                                    f"the max number of search steps to take during the "
                                                    f"update ({up_args.up_step_max})")
     to_q: Queue = ctx.Queue()
-    num_to_send_procs: int = num_gen_up // up_args.up_step_max
-    num_to_send_procs_max: int = min(num_to_send_procs // up_args.up_procs, up_args.up_batch_size)
-    num_sent_procs: int = 0
+    num_searches: int = num_gen_up // up_args.up_step_max
+    num_searches_sent: int = 0
     start_idx: int = 0
     while start_idx < num_gen_up:
-        num_left_to_send: int = num_to_send_procs - num_sent_procs
-        num_send_i: int = min(num_to_send_procs_max, num_left_to_send)
-        to_q.put((num_send_i, start_idx))
-        num_sent_procs += num_send_i
-        start_idx += (num_send_i * up_args.up_step_max)
+        num_searches_left = num_searches - num_searches_sent
+        num_send_per_proc: List[int] = split_evenly(num_searches_left, up_args.up_procs)
+        for num_send_proc in num_send_per_proc:
+            num_send_proc = min(num_send_proc, up_args.up_batch_size)
+            if num_send_proc > 0:
+                to_q.put((num_send_proc, start_idx))
+                num_searches_sent += num_send_proc
+                start_idx += (num_send_proc * up_args.up_step_max)
+    assert num_searches_sent == num_searches
+    assert start_idx == num_gen_up
 
     # starting processes
     data_q: Queue = ctx.Queue()
@@ -264,12 +268,8 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
 
     step_prob_str: str = ', '.join([f'{step_num}:{step_prob:.2f}'
                                     for step_num, step_prob in zip(range(status.step_max + 1), status.step_probs)])
-    num_send_per_proc: List[int] = split_evenly(num_to_send_procs, up_args.up_procs)
     print(f"Step probs: {step_prob_str}")
     for proc_id, heur_fn_q in enumerate(heur_fn_qs):
-        num_send_proc: int = num_send_per_proc[proc_id]
-        if num_send_proc == 0:
-            continue
         proc = ctx.Process(target=update_runner, args=(step_max, heur_fn_q, env, to_q, data_q, up_args,
                                                        status.step_probs, inputs_nnet_shm, ctgs_shm))
         proc.daemon = True
@@ -278,7 +278,7 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
 
     # getting data from processes
     times_up: Times = Times()
-    print(f"Generating {format(num_gen_up, ',')} training instances")
+    print(f"Generating {format(num_gen_up, ',')} training instances with {num_searches} searches")
     display_counts: NDArray[np.int_] = np.linspace(0, num_gen_up, 10, dtype=int)
     start_time_gen = time.time()
     num_gen_curr: int = 0
@@ -452,17 +452,14 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
 
         update_nnet: bool
         if up_args.up_test.upper() == "GREEDY":
-            if per_solved > status.per_solved_best:
-                status.per_solved_best = per_solved
-                update_nnet = True
-            else:
-                update_nnet = False
+            update_nnet = per_solved > status.per_solved_best
         elif up_args.up_test.upper() == "CONST":
             update_nnet = True
         else:
             raise ValueError(f"Unknown update test {up_args.up_test}")
 
         print("Last loss was %f" % last_loss)
+        status.per_solved_best = max(status.per_solved_best, per_solved)
         if update_nnet:
             # Update nnet
             print("Updating target network")

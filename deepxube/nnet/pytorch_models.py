@@ -1,7 +1,6 @@
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Union, Callable
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from torch.nn.parameter import Parameter
 from torch import Tensor
 from torch.nn.utils import parametrizations
@@ -81,69 +80,68 @@ def get_act_fn(act: str):
 
 
 class ResnetModel(nn.Module):
-    def __init__(self, resnet_dim: int, num_resnet_blocks: int, out_dim: int, batch_norm: bool,
-                 weight_norm: bool = False, layer_act: str = "RELU"):
+    def __init__(self, block_init: Callable[[], nn.Module], num_resnet_blocks: int, act_fn: str):
         super().__init__()
         self.blocks = nn.ModuleList()
         self.act_fns = nn.ModuleList()
 
         # resnet blocks
         for block_num in range(num_resnet_blocks):
-            block_net = FullyConnectedModel(resnet_dim, [resnet_dim] * 2, [batch_norm] * 2, [layer_act, "LINEAR"],
-                                            weight_norms=[weight_norm] * 2)
+            block_net: nn.Module = block_init()
             module_list: nn.ModuleList = nn.ModuleList([block_net])
 
             self.blocks.append(module_list)
-            self.act_fns.append(get_act_fn(layer_act))
-
-        # output
-        self.fc_out = nn.Linear(resnet_dim, out_dim)
+            self.act_fns.append(get_act_fn(act_fn))
 
     def forward(self, x):
         # resnet blocks
         module_list: nn.ModuleList
-        for module_list in self.blocks:
+        for module_list, act_fn in zip(self.blocks, self.act_fns):
             res_inp = x
             for module in module_list:
                 x = module(x)
 
-            x = F.relu(x + res_inp)
+            x = act_fn(x + res_inp)
 
-        # output
-        x = self.fc_out(x)
         return x
 
 
 class FullyConnectedModel(nn.Module):
-    def _forward_unimplemented(self, *input_val: Any) -> None:
-        pass
-
-    def __init__(self, input_dim: int, layer_dims: List[int], layer_batch_norms: List[bool], layer_acts: List[str],
-                 weight_norms: Optional[List[bool]] = None):
+    def __init__(self, input_dim: int, dims: List[int], acts: List[str], batch_norms: Optional[List[bool]] = None,
+                 weight_norms: Optional[List[bool]] = None, group_norms: Optional[List[int]] = None):
         super().__init__()
+        if batch_norms is None:
+            batch_norms = [False] * len(dims)
         if weight_norms is None:
-            weight_norms = [False] * len(layer_dims)
-        self.layers: nn.ModuleList = nn.ModuleList()
+            weight_norms = [False] * len(dims)
+        if group_norms is None:
+            group_norms = [-1] * len(dims)
+        self.layers: nn.ModuleList[nn.ModuleList] = nn.ModuleList()
 
         # layers
-        for layer_dim, batch_norm, act, weight_norm in zip(layer_dims, layer_batch_norms, layer_acts, weight_norms):
+        for dim, act, batch_norm, weight_norm, group_norm in zip(dims, acts, batch_norms, weight_norms, group_norms,
+                                                                 strict=True):
             module_list = nn.ModuleList()
 
             # linear
             if weight_norm:
-                module_list.append(parametrizations.weight_norm(nn.Linear(input_dim, layer_dim)))
+                module_list.append(nn.utils.parametrizations.weight_norm(nn.Linear(input_dim, dim)))
             else:
-                module_list.append(nn.Linear(input_dim, layer_dim))
+                module_list.append(nn.Linear(input_dim, dim))
 
             # batch norm
             if batch_norm:
-                module_list.append(nn.BatchNorm1d(layer_dim))
+                module_list.append(nn.BatchNorm1d(dim))
+
+            # group norm
+            if group_norm > 0:
+                module_list.append(nn.GroupNorm(group_norm, dim))
 
             # activation
             module_list.append(get_act_fn(act))
             self.layers.append(module_list)
 
-            input_dim = layer_dim
+            input_dim = dim
 
     def forward(self, x):
         x = x.float()
@@ -154,6 +152,7 @@ class FullyConnectedModel(nn.Module):
                 x = module(x)
 
         return x
+
 
 
 class Conv2dModel(nn.Module):

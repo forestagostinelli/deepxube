@@ -8,7 +8,6 @@ from .environment_abstract import EnvGrndAtoms, State, Action, Goal, HeurFnNNet
 import numpy as np
 import torch
 from torch import nn, Tensor
-import torch.nn.functional as F
 
 from random import randrange
 
@@ -33,7 +32,7 @@ class Cube3ProcessStates(nn.Module):
 
         # preprocess input
         if self.one_hot_depth > 0:
-            x = F.one_hot(x.long(), self.one_hot_depth)
+            x = nn.functional.one_hot(x.long(), self.one_hot_depth)
             x = x.float()
             x = x.view(-1, self.state_dim * self.one_hot_depth)
         else:
@@ -42,34 +41,28 @@ class Cube3ProcessStates(nn.Module):
         return x
 
 
-class Cube3FCResnet(nn.Module):
-    def __init__(self, input_dim: int, h1_dim: int, resnet_dim: int, num_resnet_blocks: int, out_dim: int,
-                 batch_norm: bool, weight_norm: bool):
-        super().__init__()
-        self.first_fc = FullyConnectedModel(input_dim, [h1_dim, resnet_dim], [batch_norm] * 2, ["RELU"] * 2,
-                                            weight_norms=[weight_norm] * 2)
-        self.resnet = ResnetModel(resnet_dim, num_resnet_blocks, out_dim, batch_norm, weight_norm=weight_norm,
-                                  layer_act="RELU")
-
-    def forward(self, x: Tensor):
-        x = self.first_fc(x)
-        x = self.resnet(x)
-
-        return x
-
-
 class Cube3NNet(HeurFnNNet):
-    def __init__(self, state_dim: int, one_hot_depth: int, h1_dim: int, resnet_dim: int, num_res_blocks: int,
-                 out_dim: int, batch_norm: bool, weight_norm: bool, nnet_type: str):
+    def __init__(self, state_dim: int, oh_depth0: int, oh_depth1: int, res_dim: int, num_res_blocks: int, out_dim: int,
+                 batch_norm: bool, weight_norm: bool, group_norm: int, act_fn: str, nnet_type: str):
         super().__init__(nnet_type)
-        self.state_proc = Cube3ProcessStates(state_dim, one_hot_depth)
+        self.state_proc0 = Cube3ProcessStates(state_dim, oh_depth0)
+        self.state_proc1 = Cube3ProcessStates(state_dim, oh_depth1)
 
-        input_dim: int = state_dim * one_hot_depth * 2
-        self.heur = Cube3FCResnet(input_dim, h1_dim, resnet_dim, num_res_blocks, out_dim, batch_norm, weight_norm)
+        input_dim: int = (state_dim * oh_depth0) + (state_dim * oh_depth1)
+        def res_block_init() -> nn.Module:
+            return FullyConnectedModel(res_dim, [res_dim] * 2, [act_fn, "LINEAR"],
+                                       batch_norms=[batch_norm] * 2, weight_norms=[weight_norm] * 2,
+                                       group_norms=[group_norm] * 2)
+
+        self.heur = nn.Sequential(
+            nn.Linear(input_dim, res_dim),
+            ResnetModel(res_block_init, num_res_blocks, act_fn),
+            nn.Linear(res_dim, out_dim)
+        )
 
     def forward(self, states_goals_l: List[Tensor]):
-        states_proc = self.state_proc(states_goals_l[0])
-        goals_proc = self.state_proc(states_goals_l[1])
+        states_proc = self.state_proc0(states_goals_l[0])
+        goals_proc = self.state_proc1(states_goals_l[1])
 
         x: Tensor = self.heur(torch.cat((states_proc, goals_proc), dim=1))
 
@@ -247,13 +240,13 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal]):
 
     def get_v_nnet(self) -> HeurFnNNet:
         state_dim: int = (self.cube_len ** 2) * 6
-        nnet = Cube3NNet(state_dim, 7, 5000, 1000, 4, 1, True, False, "V")
+        nnet = Cube3NNet(state_dim, 6, 7, 1000, 4, 1, True, False, -1, "RELU", "V")
 
         return nnet
 
     def get_q_nnet(self) -> HeurFnNNet:
         state_dim: int = (self.cube_len ** 2) * 6
-        nnet = Cube3NNet(state_dim, 7, 5000, 1000, 4, self.num_actions, True, False, "Q")
+        nnet = Cube3NNet(state_dim, 6, 7, 1000, 4, self.num_actions, True, False, -1, "RELU", "V")
 
         return nnet
 
