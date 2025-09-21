@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict
 from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
@@ -28,9 +28,13 @@ class SearchPerf:
         self.is_solved_l: List[bool] = []
         self.path_costs: List[float] = []
         self.search_itrs_l: List[int] = []
+        self.ctgs: List[float] = []
+        self.ctgs_bkup: List[float] = []
 
     def update_perf(self, instance: Instance):
         self.is_solved_l.append(instance.has_soln())
+        self.ctgs.append(instance.root_node.heuristic)
+        self.ctgs_bkup.append(instance.root_node.bellman_backup())
         if instance.has_soln():
             self.path_costs.append(instance.path_cost())
             self.search_itrs_l.append(instance.itr)
@@ -40,19 +44,22 @@ class SearchPerf:
         search_perf_new.is_solved_l = self.is_solved_l + search_perf2.is_solved_l
         search_perf_new.path_costs = self.path_costs + search_perf2.path_costs
         search_perf_new.search_itrs_l = self.search_itrs_l + search_perf2.search_itrs_l
+        search_perf_new.ctgs = self.ctgs + search_perf2.ctgs
+        search_perf_new.ctgs_bkup = self.ctgs_bkup + search_perf2.ctgs_bkup
 
         return search_perf_new
 
-    def stats(self) -> Tuple[float, float, float]:
-        per_solved: float = 100.0 * float(np.mean(self.is_solved_l))
+    def per_solved(self) -> float:
+        return 100.0 * float(np.mean(self.is_solved_l))
 
+    def stats(self) -> Tuple[float, float, float]:
         path_cost_ave: float = 0.0
         search_itrs_ave: float = 0.0
         if len(self.path_costs) > 0:
             path_cost_ave: float = float(np.mean(self.path_costs))
             search_itrs_ave: float = float(np.mean(self.search_itrs_l))
 
-        return per_solved, path_cost_ave, search_itrs_ave
+        return self.per_solved(), path_cost_ave, search_itrs_ave
 
     def to_string(self) -> str:
         per_solved, path_cost_ave, search_itrs_ave = self.stats()
@@ -228,3 +235,33 @@ def search_test(env: Environment, states: List[State], goals: List[Goal], inst_g
     stop_heuristic_fn_runners(heur_procs, heur_fn_qs)
 
     return per_solved_all, is_solved_all
+
+
+def print_search_perf(step_to_search_perf: Dict[int, SearchPerf]):
+    steps: List[int] = list(step_to_search_perf.keys())
+    steps = sorted(steps)
+    step_show_idxs: List[int] = list(np.unique(np.linspace(0, len(steps) - 1, 30, dtype=int)))
+    for step_show_idx in step_show_idxs:
+        step_show: int = steps[step_show_idx]
+        search_perf: SearchPerf = step_to_search_perf[step_show]
+
+        is_solved: NDArray[np.bool_] = np.array(search_perf.is_solved_l)
+        ctgs: NDArray[np.float64] = np.array(search_perf.ctgs)
+        ctgs_bkup: NDArray[np.float64] = np.array(search_perf.ctgs_bkup)
+
+        # Get stats
+        per_solved = 100 * float(sum(is_solved)) / float(len(is_solved))
+        avg_itrs: float = 0.0
+        avg_path_costs: float = 0.0
+        if per_solved > 0.0:
+            avg_itrs = float(np.mean(search_perf.search_itrs_l))
+            avg_path_costs = float(np.mean(search_perf.path_costs))
+
+        # Print results
+        print(f"Steps: %i, %%Solved: %.2f, avgItrs: {avg_itrs:.2f}, avgPathCosts: {avg_path_costs:.2f}, "
+              f"CTG Mean(Std/Min/Max): %.2f(%.2f/%.2f/%.2f), CTG_Backup: %.2f("
+              "%.2f/%.2f/%.2f)" % (
+                  step_show, per_solved,
+                  float(np.mean(ctgs)), float(np.std(ctgs)), float(np.min(ctgs)), float(np.max(ctgs)),
+                  float(np.mean(ctgs_bkup)), float(np.std(ctgs_bkup)), float(np.min(ctgs_bkup)),
+                  float(np.max(ctgs_bkup))))

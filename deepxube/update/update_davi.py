@@ -1,0 +1,220 @@
+import os
+import time
+from dataclasses import dataclass
+from multiprocessing import Queue, get_context
+from multiprocessing.process import BaseProcess
+from typing import List, Dict, Tuple, Any
+
+import numpy as np
+import torch
+from numpy.typing import NDArray
+
+from deepxube.environments.environment_abstract import Environment
+from deepxube.nnet import nnet_utils
+from deepxube.nnet.nnet_utils import HeurFnQ
+from deepxube.search.bwas import BWAS
+from deepxube.search.search_abstract import Search, Instance
+from deepxube.search.search_utils import SearchPerf
+from deepxube.training.train_utils import ReplayBuffer
+from deepxube.utils.data_utils import SharedNDArray
+from deepxube.utils.misc_utils import split_evenly_w_max
+from deepxube.utils.timing_utils import Times
+
+
+@dataclass
+class UpdateArgs:
+    """ Each time an instance is solved, a new one is created with the same number of steps to maintain training data
+    balance.
+
+    :param up_itrs: How many iterations worth of data to generate per udpate
+    :param up_procs: Number of parallel workers used to compute updated cost-to-go values
+    :param up_step_max: Maximum number of search steps to take from generated start states to generate additional data.
+    :param up_batch_size: Maximum number of searches to do at a time. Helps manage memory.
+    Decrease if memory is running out during update.
+    :param up_nnet_batch_size: Batch size of each nnet used for each process update. Make smaller if running out
+    of memory.
+    Increasing this number could make the heuristic function more robust to depression regions.
+    :param up_epochs: do up_epochs * up_itrs iterations worth of training before checking for update. Can decrease data
+    generation time, but can increase risk of overfitting between updates checks.
+    """
+    up_itrs: int
+    up_procs: int
+    up_step_max: int
+    up_batch_size: int
+    up_nnet_batch_size: int
+    up_epochs: int = 1
+
+
+def update_runner(gen_step_max: int, search_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q: Queue,
+                  from_q: Queue, step_probs: NDArray, inputs_nnet_shm: List[SharedNDArray], ctgs_shm: SharedNDArray):
+    times: Times = Times()
+
+    heur_fn = heur_fn_q.get_heuristic_fn(env)
+    step_to_search_perf: Dict[int, SearchPerf] = dict()
+    while True:
+        batch_size, start_idx = to_q.get()
+        if batch_size is None:
+            break
+
+        search: Search = BWAS(env)
+
+        insts_rem: List[Instance] = []
+        start_idx_batch: int = start_idx
+        for _ in range(search_step_max):
+            # add instances
+            if (len(search.instances) == 0) or (len(insts_rem) > 0):
+                times_states: Times = Times()
+                # get steps generate
+                start_time = time.time()
+                steps_gen: List[int]
+                if len(search.instances) == 0:
+                    steps_gen = list(np.random.choice(gen_step_max + 1, size=batch_size, p=step_probs))
+                else:
+                    steps_gen = [int(inst.inst_info[0]) for inst in insts_rem]
+                times_states.record_time("steps_gen", time.time() - start_time)
+
+                # generate states
+                states_gen, goals_gen = env.get_start_goal_pairs(steps_gen, times=times_states)
+                times.add_times(times_states, ["get_states"])
+
+                # get instance information and kwargs
+                start_time = time.time()
+                inst_infos: List[Tuple[int]] = [(step_gen,) for step_gen in steps_gen]
+                kwargs: Dict[str, Any] = dict()
+                times.record_time("inst_info", time.time() - start_time)
+
+                search.add_instances(states_gen, goals_gen, heur_fn, inst_infos=inst_infos, compute_init_heur=False,
+                                     **kwargs)
+
+            # take a step
+            states, goals, ctgs_bellman = search.step(heur_fn)
+
+            # to nnet
+            start_time = time.time()
+            states_goals_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
+            times.record_time("to_nnet", time.time() - start_time)
+
+            # put
+            start_time = time.time()
+            end_idx = start_idx + len(states)
+            assert len(states) == batch_size
+            for input_idx in range(len(states_goals_nnet)):
+                inputs_nnet_shm[input_idx][start_idx:end_idx] = states_goals_nnet[input_idx].copy()
+            ctgs_shm[start_idx:end_idx] = ctgs_bellman.copy()
+            start_idx = end_idx
+            times.record_time("put", time.time() - start_time)
+
+            # remove instances
+            insts_rem: List[Instance] = search.remove_finished_instances(search_step_max)
+
+            # search performance
+            for inst_rem in insts_rem:
+                step_num_inst: int = int(inst_rem.inst_info[0])
+                if step_num_inst not in step_to_search_perf.keys():
+                    step_to_search_perf[step_num_inst] = SearchPerf()
+                step_to_search_perf[step_num_inst].update_perf(inst_rem)
+
+        from_q.put((start_idx_batch, start_idx))
+        times.add_times(search.times, path=["search"])
+
+    from_q.put((times, step_to_search_perf))
+    for arr_shm in inputs_nnet_shm + [ctgs_shm]:
+        arr_shm.close()
+
+
+def get_update_data(env: Environment, step_max: int, step_probs: NDArray, num_gen: int, up_args: UpdateArgs,
+                    rb: ReplayBuffer, targ_file: str, device: torch.device, on_gpu: bool) -> Dict[int, SearchPerf]:
+    # update heuristic functions
+    all_zeros: bool = not os.path.isfile(targ_file)
+    heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(up_args.up_procs, targ_file, device, on_gpu, env, "V",
+                                                              all_zeros=all_zeros, clip_zero=True,
+                                                              batch_size=up_args.up_nnet_batch_size)
+
+    # shared memory
+    states, goals = env.get_start_goal_pairs([0])
+    inputs_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
+    inputs_nnet_shm: List[SharedNDArray] = []
+    for nnet_idx, inputs_nnet_i in enumerate(inputs_nnet):
+        inputs_nnet_shm.append(SharedNDArray((num_gen,) + inputs_nnet_i[0].shape, inputs_nnet_i.dtype,
+                                             None, True))
+    ctgs_shm = SharedNDArray((num_gen,), np.float64, None, True)
+
+    # sending index data to processes
+    ctx = get_context("spawn")
+    assert num_gen % up_args.up_step_max == 0, (f"Number of instances to generate per for this update {num_gen} is not "
+                                                f"divisible by the max number of search steps to take during the "
+                                                f"update ({up_args.up_step_max})")
+    to_q: Queue = ctx.Queue()
+    num_searches: int = num_gen // up_args.up_step_max
+    num_to_send_per: List[int] = split_evenly_w_max(num_searches, up_args.up_procs, up_args.up_batch_size)
+    start_idx: int = 0
+    for num_to_send_per_i in num_to_send_per:
+        if num_to_send_per_i > 0:
+            to_q.put((num_to_send_per_i, start_idx))
+            start_idx += (num_to_send_per_i * up_args.up_step_max)
+    assert start_idx == num_gen
+
+    # starting processes
+    from_q: Queue = ctx.Queue()
+    procs: List[BaseProcess] = []
+
+    for proc_id, heur_fn_q in enumerate(heur_fn_qs):
+        proc = ctx.Process(target=update_runner, args=(step_max, up_args.up_step_max, heur_fn_q, env, to_q, from_q,
+                                                       step_probs, inputs_nnet_shm, ctgs_shm))
+        proc.daemon = True
+        proc.start()
+        procs.append(proc)
+
+    # getting data from processes
+    times_up: Times = Times()
+    print(f"Generating {format(num_gen, ',')} training instances with {num_searches} searches")
+    display_counts: NDArray[np.int_] = np.linspace(0, num_gen, 10, dtype=int)
+    start_time_gen = time.time()
+    num_gen_curr: int = 0
+    while num_gen_curr < num_gen:
+        start_idx, end_idx = from_q.get()
+        start_time = time.time()
+        inputs_nnet_get: List[NDArray] = []
+        for inputs_idx in range(len(inputs_nnet_shm)):
+            inputs_nnet_get.append(inputs_nnet_shm[inputs_idx][start_idx:end_idx].copy())
+        ctgs_shm_get: NDArray = ctgs_shm[start_idx:end_idx].copy()
+        rb.add(inputs_nnet_get + [ctgs_shm_get])
+        num_gen_curr += (end_idx - start_idx)
+        times_up.record_time("rb", time.time() - start_time)
+        if num_gen_curr >= min(display_counts):
+            print(f"{num_gen_curr}/{num_gen} instances (%.2f%%) "
+                  f"(Tot time: %.2f)" % (100 * num_gen_curr / num_gen, time.time() - start_time_gen))
+            display_counts = display_counts[num_gen_curr < display_counts]
+
+    # sending stop signal
+    for _ in procs:
+        to_q.put((None, None))
+
+    # get summary from processes
+    step_to_search_perf: Dict[int, SearchPerf] = dict()
+    for _ in procs:
+        times_up_i, step_to_search_perf_i  = from_q.get()
+        times_up.add_times(times_up_i)
+        for step_num_perf, search_perf in step_to_search_perf_i.items():
+            if step_num_perf not in step_to_search_perf.keys():
+                step_to_search_perf[step_num_perf] = SearchPerf()
+            step_to_search_perf[step_num_perf] = step_to_search_perf[step_num_perf].comb_perf(search_perf)
+
+    # cost-to-go summary
+    mean_ctg = ctgs_shm.array.mean()
+    min_ctg = ctgs_shm.array.min()
+    max_ctg = ctgs_shm.array.max()
+    print(f"Generated {format(num_gen_curr, ',')} training instances, "
+          f"Replay buffer size: {format(rb.size(), ',')}")
+    print(f"Cost-to-go (mean/min/max): %.2f/%.2f/%.2f" % (mean_ctg, min_ctg, max_ctg))
+    print(f"Times - {times_up.get_time_str()}")
+
+    # clean up
+    nnet_utils.stop_heuristic_fn_runners(heur_procs, heur_fn_qs)
+    for proc in procs:
+        proc.join()
+    for arr_shm in inputs_nnet_shm + [ctgs_shm]:
+        arr_shm.close()
+        arr_shm.unlink()
+
+    return step_to_search_perf

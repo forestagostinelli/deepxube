@@ -37,6 +37,23 @@ def split_evenly(num_total: int, num_splits: int) -> List[int]:
     return num_per
 
 
+def split_evenly_w_max(num_total: int, num_splits: int, max_per: int) -> List[int]:
+    """ Return list may be longer than num_splits
+
+    """
+    num_done: int = 0
+    num_per: List[int] = []
+    while num_done < num_total:
+        num_left = num_total - num_done
+        num_per_no_max: List[int] = split_evenly(num_left, num_splits)
+        for num_per_i in num_per_no_max:
+            num_per_i = min(num_per_i, max_per)
+            num_per.append(num_per_i)
+            num_done += num_per_i
+    assert num_done == num_total
+    return num_per
+
+
 def remove_all_whitespace(val: str) -> str:
     pattern = re.compile(r'\s+')
     val = re.sub(pattern, '', val)

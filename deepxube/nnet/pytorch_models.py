@@ -51,6 +51,27 @@ class SPLASH(nn.Module):
         return output
 
 
+class SPLASH1(nn.Module):
+    def __init__(self, init: str = "RELU"):
+        super().__init__()
+        init = init.upper()
+
+        self.output_bias: Parameter = Parameter(torch.zeros(1), requires_grad=True)
+
+        self.coeff_right: Parameter = Parameter(torch.ones(1), requires_grad=True)
+        if init == "RELU":
+            self.coeff_left: Parameter = Parameter(torch.zeros(1), requires_grad=True)
+        elif init == "LINEAR":
+            self.coeff_left: Parameter = Parameter(-torch.ones(1), requires_grad=True)
+        else:
+            raise ValueError("Unknown init %s" % init)
+
+    def forward(self, x: Tensor):
+        x = (self.coeff_right * nn.functional.relu(x)) - (self.coeff_left * nn.functional.relu(-x)) + self.output_bias
+
+        return x
+
+
 class LinearAct(nn.Module):
     def __init__(self):
         super().__init__()
@@ -73,6 +94,8 @@ def get_act_fn(act: str):
         return nn.Tanh()
     elif act == "SPLASH":
         return SPLASH()
+    elif act == "SPLASH1":
+        return SPLASH1()
     elif act == "LINEAR":
         return LinearAct()
     else:
