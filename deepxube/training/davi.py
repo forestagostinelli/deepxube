@@ -166,8 +166,8 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
     criterion = nn.MSELoss()
     while status.itr < train_args.max_itrs:
         # update
-        step_prob_str: str = ', '.join([f'{step_num}:{step_prob:.2f}'
-                                        for step_num, step_prob in zip(range(status.step_max + 1), status.step_probs)])
+        steps_show: List[int] = list(np.unique(np.linspace(0, status.step_max, 30, dtype=int)))
+        step_prob_str: str = ', '.join([f'{step}:{status.step_probs[step]:.2f}' for step in steps_show])
         print(f"Step probs: {step_prob_str}")
         num_gen: int = train_args.batch_size * up_args.up_itrs
         step_to_search_perf: Dict[int, SearchPerf] = get_update_data(env, step_max, status.step_probs, num_gen, up_args,
