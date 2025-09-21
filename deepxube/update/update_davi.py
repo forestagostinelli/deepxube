@@ -83,7 +83,7 @@ def update_runner(gen_step_max: int, search_step_max: int, heur_fn_q: HeurFnQ, e
                 kwargs: Dict[str, Any] = dict()
                 times.record_time("inst_info", time.time() - start_time)
 
-                search.add_instances(states_gen, goals_gen, heur_fn, inst_infos=inst_infos, compute_init_heur=False,
+                search.add_instances(states_gen, goals_gen, heur_fn, inst_infos=inst_infos, compute_init_heur=True,
                                      **kwargs)
 
             # take a step
@@ -167,7 +167,7 @@ def get_update_data(env: Environment, step_max: int, step_probs: NDArray, num_ge
 
     # getting data from processes
     times_up: Times = Times()
-    print(f"Generating {format(num_gen, ',')} training instances with {num_searches} searches")
+    print(f"Generating {format(num_gen, ',')} training instances with {format(num_searches, ',')} searches")
     display_counts: NDArray[np.int_] = np.linspace(0, num_gen, 10, dtype=int)
     start_time_gen = time.time()
     num_gen_curr: int = 0
