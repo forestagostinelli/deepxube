@@ -1,7 +1,8 @@
 from argparse import ArgumentParser
 from deepxube.environments.environment_abstract import Environment
 from deepxube.training.train_utils import TrainArgs
-from deepxube.training.davi import train, UpdateArgs
+from deepxube.training.davi import train
+from deepxube.update.update_davi import UpdateArgs
 from deepxube.environments.env_utils import get_environment
 
 
@@ -24,24 +25,18 @@ def main():
     parser.add_argument('--up_batch_size', type=int, default=1000, help="")
     parser.add_argument('--up_nnet_batch_size', type=int, default=10000, help="")
     parser.add_argument('--up_step_max', type=int, default=30, help="")
-    parser.add_argument('--up_eps_max_greedy', type=float, default=0.1, help="")
-    parser.add_argument('--up_search', type=str, default="greedy", help="")
     parser.add_argument('--up_epochs', type=int, default=1, help="")
-    parser.add_argument('--up_test', type=str, default="greedy", help="")
 
     # other
     parser.add_argument('--rb', type=int, default=1, help="")
-    parser.add_argument('--num_test_per_step', type=int, default=30, help="")
     parser.add_argument('--debug', action='store_true', default=False, help="")
     args = parser.parse_args()
 
     env: Environment = get_environment(args.env)
     train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.display)
-    up_args: UpdateArgs = UpdateArgs(args.up_itrs, args.up_procs, args.up_batch_size, args.up_nnet_batch_size,
-                                     args.up_search, args.up_step_max, args.up_eps_max_greedy, up_epochs=args.up_epochs,
-                                     up_test=args.up_test)
-    train(env, args.step_max, args.nnet_dir, train_args, up_args, rb_past_up=args.rb,
-          num_test_per_step=args.num_test_per_step, debug=args.debug)
+    up_args: UpdateArgs = UpdateArgs(args.up_itrs, args.up_procs, args.up_step_max, args.up_batch_size,
+                                     args.up_nnet_batch_size, up_epochs=args.up_epochs)
+    train(env, args.step_max, args.nnet_dir, train_args, up_args, rb_past_up=args.rb, debug=args.debug)
 
 
 if __name__ == "__main__":
