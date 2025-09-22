@@ -29,9 +29,10 @@ class Status:
         self.itr: int = 0
         self.update_num: int = 0
         self.step_max: int = step_max
-        self.step_probs: NDArray = np.zeros(self.step_max + 1)
-        self.step_probs[0] = 0.5
-        self.step_probs[1:] = 0.5/self.step_max
+        # self.step_probs: NDArray = np.zeros(self.step_max + 1)
+        # self.step_probs[0] = 0.5
+        # self.step_probs[1:] = 0.5/self.step_max
+        self.step_probs: NDArray = np.ones(self.step_max + 1)/(step_max + 1)
 
     def update_step_probs(self, step_to_search_perf: Dict[int, SearchPerf]):
         per_solved_per_step_l: List[float] = []
@@ -173,7 +174,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
         step_to_search_perf: Dict[int, SearchPerf] = get_update_data(env, step_max, status.step_probs, num_gen, up_args,
                                                                      rb, targ_file, device, on_gpu)
         print_update_summary(step_to_search_perf, writer, status)
-        status.update_step_probs(step_to_search_perf)
+        # status.update_step_probs(step_to_search_perf)
 
         # get batches
         print("Getting training batches")
