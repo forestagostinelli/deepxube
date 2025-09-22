@@ -3,6 +3,7 @@ from deepxube.utils import misc_utils
 from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel
 from deepxube.logic.logic_objects import Atom, Model
 from deepxube.visualizers.cube3_viz_simple import InteractiveCube
+from deepxube.utils.timing_utils import Times
 from .environment_abstract import EnvGrndAtoms, State, Action, Goal, HeurFnNNet
 
 import numpy as np
@@ -180,6 +181,10 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal]):
 
         self.int_to_color: NDArray[np.str_] = np.concatenate((np.array(self.colors_grnd_obj), ['k']))  # type: ignore
 
+        self.fixed_goal: bool = False
+        if self.env_name.lower() == "cube3_fixed":
+            self.fixed_goal: bool = True
+
     def next_state(self, states: List[Cube3State], actions: List[Cube3Action]) -> Tuple[List[Cube3State], List[float]]:
         states_np = np.stack([x.colors for x in states], axis=0)
 
@@ -282,6 +287,29 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal]):
         states: List[Cube3State] = [Cube3State(x) for x in list(states_np)]
 
         return states
+
+    def get_start_goal_pairs(self, num_steps_l: List[int],
+                             times: Optional[Times] = None) -> Tuple[List[Cube3State], List[Cube3Goal]]:
+        if not self.fixed_goal:
+            return super().get_start_goal_pairs(num_steps_l, times=times)
+        else:
+            states_goal: List[Cube3State] = [Cube3State(self.goal_colors.copy()) for _ in num_steps_l]
+            states_start: List[Cube3State] = self._random_walk(states_goal, num_steps_l)
+            goals: List[Cube3Goal] = self.sample_goal(states_start, states_goal)
+
+            return states_start, goals
+
+    def sample_goal(self, states_start: List[Cube3State], states_goal: List[Cube3State]) -> List[Cube3Goal]:
+        if not self.fixed_goal:
+            return super().sample_goal(states_start, states_goal)
+        else:
+            models_g: List[Model] = []
+
+            models_s: List[Model] = self.state_to_model(states_goal)
+            for model_s in models_s:
+                models_g.append(model_s)
+
+            return self.model_to_goal(models_g)
 
     def start_state_fixed(self, states: List[Cube3State]) -> List[Model]:
         return [frozenset() for _ in states]
