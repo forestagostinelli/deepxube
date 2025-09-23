@@ -113,8 +113,8 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
     :param nnet_dir: directory where DNN will be saved
     :param train_args: training arguments
     :param up_args: update arguments
-    :param rb_past_up: amount of data from previous update checks to keep in replay buffer. Total replay buffer size
-    will then be train_args.batch_size * up_args.up_itrs * rb_past_up
+    :param rb_past_up: amount of data generated from previous updates to keep in replay buffer. Total replay buffer size
+    will then be train_args.batch_size * up_args.up_gen_itrs * rb_past_up
     :param debug: Turns off logging to make typing during breakpoints easier
     :return: None
     """
@@ -160,7 +160,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
         rb_dtypes.append(inputs_nnet_i.dtype)
     rb_shapes.append(tuple())
     rb_dtypes.append(np.dtype(np.float64))
-    rb: ReplayBuffer = ReplayBuffer(train_args.batch_size * up_args.up_itrs * rb_past_up, rb_shapes, rb_dtypes)
+    rb: ReplayBuffer = ReplayBuffer(train_args.batch_size * up_args.up_gen_itrs * rb_past_up, rb_shapes, rb_dtypes)
 
     # training
     optimizer: Optimizer = optim.Adam(nnet.parameters(), lr=train_args.lr)
@@ -170,7 +170,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
         steps_show: List[int] = list(np.unique(np.linspace(0, status.step_max, 30, dtype=int)))
         step_prob_str: str = ', '.join([f'{step}:{status.step_probs[step]:.2E}' for step in steps_show])
         print(f"Step probs: {step_prob_str}")
-        num_gen: int = train_args.batch_size * up_args.up_itrs
+        num_gen: int = train_args.batch_size * up_args.up_gen_itrs
         step_to_search_perf: Dict[int, SearchPerf] = get_update_data(env, step_max, status.step_probs, num_gen, up_args,
                                                                      rb, targ_file, device, on_gpu)
         print_update_summary(step_to_search_perf, writer, status)
@@ -180,7 +180,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
         print("Getting training batches")
         start_time = time.time()
         batches: List[Tuple[List[NDArray], NDArray]] = []
-        for _ in range(up_args.up_itrs * up_args.up_epochs):
+        for _ in range(up_args.up_itrs):
             arrays_samp: List[NDArray] = rb.sample(train_args.batch_size)
             inputs_batch_np: List[NDArray] = arrays_samp[:-1]
             ctgs_batch_np: NDArray = np.expand_dims(arrays_samp[-1].astype(np.float32), 1)

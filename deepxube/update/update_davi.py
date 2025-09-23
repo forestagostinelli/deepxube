@@ -26,7 +26,8 @@ class UpdateArgs:
     """ Each time an instance is solved, a new one is created with the same number of steps to maintain training data
     balance.
 
-    :param up_itrs: How many iterations worth of data to generate per udpate
+    :param up_itrs: How many iterations to wait for updating target network
+    :param up_gen_itrs: How many iterations worth of data to generate per udpate
     :param up_procs: Number of parallel workers used to compute updated cost-to-go values
     :param up_step_max: Maximum number of search steps to take from generated start states to generate additional data.
     :param up_batch_size: Maximum number of searches to do at a time. Helps manage memory.
@@ -34,15 +35,13 @@ class UpdateArgs:
     :param up_nnet_batch_size: Batch size of each nnet used for each process update. Make smaller if running out
     of memory.
     Increasing this number could make the heuristic function more robust to depression regions.
-    :param up_epochs: do up_epochs * up_itrs iterations worth of training before checking for update. Can decrease data
-    generation time, but can increase risk of overfitting between updates checks.
     """
     up_itrs: int
+    up_gen_itrs: int
     up_procs: int
     up_step_max: int
     up_batch_size: int
     up_nnet_batch_size: int
-    up_epochs: int = 1
 
 
 def update_runner(gen_step_max: int, search_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q: Queue,
