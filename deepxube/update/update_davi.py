@@ -124,6 +124,8 @@ def update_runner(gen_step_max: int, search_step_max: int, heur_fn_q: HeurFnQ, e
 def get_update_data(env: Environment, step_max: int, step_probs: NDArray, num_gen: int, up_args: UpdateArgs,
                     rb: ReplayBuffer, targ_file: str, device: torch.device, on_gpu: bool) -> Dict[int, SearchPerf]:
     start_time_gen = time.time()
+    num_searches: int = num_gen // up_args.up_step_max
+    print(f"Generating {format(num_gen, ',')} training instances with {format(num_searches, ',')} searches")
     # update heuristic functions
     all_zeros: bool = not os.path.isfile(targ_file)
     heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(up_args.up_procs, targ_file, device, on_gpu, env, "V",
@@ -145,7 +147,6 @@ def get_update_data(env: Environment, step_max: int, step_probs: NDArray, num_ge
                                                 f"divisible by the max number of search steps to take during the "
                                                 f"update ({up_args.up_step_max})")
     to_q: Queue = ctx.Queue()
-    num_searches: int = num_gen // up_args.up_step_max
     num_to_send_per: List[int] = split_evenly_w_max(num_searches, up_args.up_procs, up_args.up_batch_size)
     start_idx: int = 0
     for num_to_send_per_i in num_to_send_per:
@@ -167,7 +168,6 @@ def get_update_data(env: Environment, step_max: int, step_probs: NDArray, num_ge
 
     # getting data from processes
     times_up: Times = Times()
-    print(f"Generating {format(num_gen, ',')} training instances with {format(num_searches, ',')} searches")
     display_counts: NDArray[np.int_] = np.linspace(0, num_gen, 10, dtype=int)
     num_gen_curr: int = 0
     while num_gen_curr < num_gen:

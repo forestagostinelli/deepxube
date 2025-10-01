@@ -167,7 +167,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
     criterion = nn.MSELoss()
     while status.itr < train_args.max_itrs:
         # update
-        start_time = time.time()
+        # start_time = time.time()
         # steps_show: List[int] = list(np.unique(np.linspace(0, status.step_max, 30, dtype=int)))
         # step_prob_str: str = ', '.join([f'{step}:{status.step_probs[step]:.2E}' for step in steps_show])
         # print(f"Step probs: {step_prob_str}")
