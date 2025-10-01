@@ -107,7 +107,7 @@ class Solver:
         # clingo control
         seed = int.from_bytes(os.urandom(4), 'big')
         arguments_rand = ["--models=1", "--opt-mode=ignore", "--heuristic=Domain", "--dom-mod=5,16", "--rand-prob=1",
-                          f"--seed={seed}"]
+                          f"--seed={seed}", "--stats=2"]
         arguments_min = ["--models=1", "--opt-mode=optN", "--heuristic=Domain", "--dom-mod=5,16"]
         self.ctl_rand: Control = clingo.Control(arguments=arguments_rand)
         self.ctl_min: Control = clingo.Control(arguments=arguments_min)
@@ -125,6 +125,13 @@ class Solver:
 
         self.ctl_rand.ground([("base", [])])
         self.ctl_min.ground([("base", [])])
+
+    def get_num_ground_rules(self) -> int:
+        # FIXME this behavior changes if looking at statistics before solve, not sure why
+        self.ctl_rand.solve()
+        num_grnd_rules: int = self.ctl_rand.statistics["problem"]["lp"]["rules"]
+
+        return num_grnd_rules
 
     def get_models(self, spec: Spec, on_model: Callable[[Any], Model], num_models: int, minimal: bool) -> List[Model]:
         """

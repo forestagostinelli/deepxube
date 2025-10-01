@@ -2,17 +2,17 @@
 
 ## 0.1.7
 * Intializing solver checks if number of ground atoms > 0
-* Create nnet on process instead of sending it to process
 * Updater now balances number of steps to generate states when taking multiple update steps
 * Optimizer now persists across data generation and test
 * No more random state sampling when testing for previously seen states
 * Add cost-to-go backup info to greedy policy test output
 * Remove redundant is_solved check for greedy policy
 * Consolidate updater for DAVI
-* Balance probabilities for steps based on solve percentage
+* Balance probabilities for steps based on solve percentage (not sure if will keep)
 * Use SharedMemory for update and heuristic function runners
 * Add option to skip computation of initial heuristic value for search
 * Faster replay buffer initialization
+* Get more statistics when solving with clingo
 
 
 ## 0.1.6
