@@ -5,7 +5,8 @@ from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
 from deepxube.search.search_abstract import get_path
 from deepxube.search.search_utils import is_valid_soln
-from deepxube.search.bwas import BWAS, Node
+from deepxube.search.bwas import BWAS
+from deepxube.search.search_abstract_v import NodeV
 from deepxube.environments.env_utils import get_environment
 import numpy as np
 from argparse import ArgumentParser
@@ -106,7 +107,7 @@ def main():
         path_cost: float = np.inf
         itrs_per_sec: float = num_itrs / solve_time
         num_nodes_gen_idx: int = astar.instances[0].num_nodes_generated
-        goal_node: Optional[Node] = astar.instances[0].goal_node
+        goal_node: Optional[NodeV] = astar.instances[0].goal_node
         if goal_node is not None:
             path_states, path_actions, path_cost = get_path(goal_node)
             assert is_valid_soln(state, goal, path_actions, env)

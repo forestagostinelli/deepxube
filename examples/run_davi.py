@@ -20,10 +20,10 @@ def main():
     parser.add_argument('--display', type=int, default=100, help="")
 
     # update args
-    parser.add_argument('--up_itrs', type=int, default=5000, help="")
-    parser.add_argument('--up_gen_itrs', type=int, default=5000, help="")
+    parser.add_argument('--up_itrs', type=int, default=1000, help="")
+    parser.add_argument('--up_gen_itrs', type=int, default=1000, help="")
     parser.add_argument('--up_procs', type=int, default=1, help="")
-    parser.add_argument('--up_step_max', type=int, default=30, help="")
+    parser.add_argument('--up_search_itrs', type=int, default=200, help="")
     parser.add_argument('--up_batch_size', type=int, default=1000, help="")
     parser.add_argument('--up_nnet_batch_size', type=int, default=10000, help="")
 
@@ -34,7 +34,7 @@ def main():
 
     env: Environment = get_environment(args.env)
     train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.display)
-    up_args: UpdateArgs = UpdateArgs(args.up_itrs, args.up_gen_itrs, args.up_procs, args.up_step_max,
+    up_args: UpdateArgs = UpdateArgs(args.up_itrs, args.up_gen_itrs, args.up_procs, args.up_search_itrs,
                                      args.up_batch_size, args.up_nnet_batch_size)
     train(env, args.step_max, args.nnet_dir, train_args, up_args, rb_past_up=args.rb, debug=args.debug)
 
