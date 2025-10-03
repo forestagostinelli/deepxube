@@ -1,12 +1,12 @@
 import time
 from abc import abstractmethod
-from typing import List, Optional, Tuple, TypeVar, Callable
+from typing import List, Optional, Tuple, TypeVar
 
 import numpy as np
 from numpy.typing import NDArray
 
 from deepxube.search.search_abstract import Search, Node, Instance
-from deepxube.environments.environment_abstract import Environment, State, Goal, Action
+from deepxube.environments.environment_abstract import Environment, State, Goal, Action, HeurFnV
 from deepxube.utils import misc_utils
 
 
@@ -53,11 +53,11 @@ class SearchV(Search[I]):
         super().__init__(env)
 
     @abstractmethod
-    def step(self, heur_fn: Callable) -> Tuple[List[State], List[Goal], List[float]]:
+    def step(self, heur_fn: HeurFnV) -> Tuple[List[State], List[Goal], List[float]]:
         pass
 
     def expand_nodes(self, instances: List[I], nodes_by_inst: List[List[NodeV]],
-                     heur_fn: Callable) -> List[List[NodeV]]:
+                     heur_fn: HeurFnV) -> List[List[NodeV]]:
         start_time = time.time()
         # flatten (for speed)
         nodes: List[NodeV]
@@ -89,7 +89,7 @@ class SearchV(Search[I]):
         self.times.record_time("is_solved", time.time() - start_time)
 
         start_time = time.time()
-        heuristics_c_flat: List[float] = list(heur_fn(states_c_flat, goals_c_flat))
+        heuristics_c_flat: List[float] = heur_fn(states_c_flat, goals_c_flat)
         heuristics_c: List[List[float]] = misc_utils.unflatten(heuristics_c_flat, split_idxs_c)
         self.times.record_time("heur", time.time() - start_time)
 
@@ -124,12 +124,12 @@ class SearchV(Search[I]):
 
         return nodes_c_by_inst
 
-    def _create_root_nodes(self, states: List[State], goals: List[Goal], heur_fn: Callable,
+    def _create_root_nodes(self, states: List[State], goals: List[Goal], heur_fn: HeurFnV,
                            compute_init_heur: bool) -> List[NodeV]:
         if compute_init_heur:
-            heuristics: NDArray = heur_fn(states, goals)
+            heuristics: List[float] = heur_fn(states, goals)
         else:
-            heuristics: NDArray = np.zeros(len(states)).astype(np.float64)
+            heuristics: List[float] = [0.0 for _ in states]
 
         root_nodes: List[NodeV] = []
         is_solved_l: List[bool] = self.env.is_solved(states, goals)
