@@ -3,7 +3,8 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 from deepxube.environments.environment_abstract import Environment, State, Action, Goal
-from deepxube.search.search_abstract import Search, Instance
+from deepxube.search.search_abstract import Instance
+from deepxube.search.search_abstract_v import SearchV
 from deepxube.search.greedy_policy import Greedy
 from deepxube.search.bwas import BWAS
 from deepxube.utils import misc_utils
@@ -34,7 +35,7 @@ class SearchPerf:
     def update_perf(self, instance: Instance):
         self.is_solved_l.append(instance.has_soln())
         self.ctgs.append(instance.root_node.heuristic)
-        self.ctgs_bkup.append(instance.root_node.bellman_backup())
+        self.ctgs_bkup.append(instance.root_node.backup())
         if instance.has_soln():
             self.path_costs.append(instance.path_cost())
             self.search_itrs_l.append(instance.itr)
@@ -115,9 +116,9 @@ def search_runner(env: Environment, heur_fn_q: HeurFnQ, proc_id: int, search_met
     # Solve with search
     search_method = search_method.upper()
     if search_method == "GREEDY":
-        search: Search = Greedy(env)
+        search: SearchV = Greedy(env)
     elif search_method == "ASTAR":
-        search: Search = BWAS(env)
+        search: SearchV = BWAS(env)
     else:
         raise ValueError(f"Unknown search method {search_method}")
 

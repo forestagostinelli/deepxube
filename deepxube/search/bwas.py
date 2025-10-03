@@ -1,6 +1,7 @@
 from typing import List, Tuple, Dict, Optional, Any
 from deepxube.environments.environment_abstract import Environment, State, Goal
-from deepxube.search.search_abstract import Search, Node, Instance
+from deepxube.search.search_abstract import Instance
+from deepxube.search.search_abstract_v import SearchV, NodeV
 from deepxube.nnet.nnet_utils import HeurFN_T
 import numpy as np
 from heapq import heappush, heappop
@@ -9,12 +10,13 @@ from deepxube.utils import misc_utils
 import time
 
 
-OpenSetElem = Tuple[float, int, Node]
+OpenSetElem = Tuple[float, int, NodeV]
 
 
 class InstanceBWAS(Instance):
-    def __init__(self, root_node: Node, inst_info: Any, weight: float):
+    def __init__(self, root_node: NodeV, inst_info: Any, weight: float):
         super().__init__(root_node, inst_info)
+        self.root_node: NodeV = root_node
         self.open_set: List[OpenSetElem] = []
         self.heappush_count: int = 0
         self.closed_dict: Dict[State, float] = dict()
@@ -23,7 +25,7 @@ class InstanceBWAS(Instance):
 
         self.check_and_push([self.root_node], [self.root_node.heuristic])
 
-    def check_and_push(self, nodes: List[Node], costs: List[float]):
+    def check_and_push(self, nodes: List[NodeV], costs: List[float]):
         assert len(nodes) == len(costs), "should have same length"
         for node, cost in zip(nodes, costs):
             # check
@@ -33,11 +35,11 @@ class InstanceBWAS(Instance):
                 heappush(self.open_set, (cost, self.heappush_count, node))
                 self.heappush_count += 1
 
-    def pop_from_open(self, num_nodes: int) -> List[Node]:
+    def pop_from_open(self, num_nodes: int) -> List[NodeV]:
         num_to_pop: int = min(num_nodes, len(self.open_set))
 
         elems_popped: List[OpenSetElem] = [heappop(self.open_set) for _ in range(num_to_pop)]
-        nodes_popped: List[Node] = [elem_popped[2] for elem_popped in elems_popped]
+        nodes_popped: List[NodeV] = [elem_popped[2] for elem_popped in elems_popped]
 
         for node in nodes_popped:
             if node.is_solved and ((self.goal_node is None) or (node.path_cost < self.goal_node.path_cost)):
@@ -51,7 +53,7 @@ class InstanceBWAS(Instance):
         return nodes_popped
 
 
-class BWAS(Search[InstanceBWAS]):
+class BWAS(SearchV[InstanceBWAS]):
     def __init__(self, env: Environment):
         super().__init__(env)
         self.steps: int = 0
@@ -67,7 +69,7 @@ class BWAS(Search[InstanceBWAS]):
 
         assert len(states) == len(goals) == len(inst_infos) == len(weights), "Number should be the same"
 
-        root_nodes: List[Node] = self._create_root_nodes(states, goals, heur_fn, compute_init_heur)
+        root_nodes: List[NodeV] = self._create_root_nodes(states, goals, heur_fn, compute_init_heur)
 
         # initialize instances
         for root_node, inst_info, weight in zip(root_nodes, inst_infos, weights):
@@ -80,11 +82,11 @@ class BWAS(Search[InstanceBWAS]):
 
         # Pop from open
         start_time = time.time()
-        nodes_by_inst_popped: List[List[Node]] = [instance.pop_from_open(batch_size) for instance in instances]
+        nodes_by_inst_popped: List[List[NodeV]] = [instance.pop_from_open(batch_size) for instance in instances]
         self.times.record_time("pop", time.time() - start_time)
 
         # Expand nodes
-        nodes_c_by_inst: List[List[Node]] = self.expand_nodes(instances, nodes_by_inst_popped, heur_fn)
+        nodes_c_by_inst: List[List[NodeV]] = self.expand_nodes(instances, nodes_by_inst_popped, heur_fn)
 
         # Get cost
         start_time = time.time()
@@ -132,7 +134,7 @@ class BWAS(Search[InstanceBWAS]):
         nodes_popped_flat, _ = misc_utils.flatten(nodes_by_inst_popped)
         states: List[State] = [node.state for node in nodes_popped_flat]
         goals: List[Goal] = [node.goal for node in nodes_popped_flat]
-        ctgs: List[float] = [node.bellman_backup() for node in nodes_popped_flat]
+        ctgs: List[float] = [node.backup() for node in nodes_popped_flat]
         self.times.record_time("bellman", time.time() - start_time)
         return states, goals, ctgs
 

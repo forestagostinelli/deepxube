@@ -7,9 +7,9 @@ from deepxube.nnet import nnet_utils
 from deepxube.nnet.nnet_utils import HeurFnQ
 from deepxube.environments.environment_abstract import State, Environment, Goal
 
-from deepxube.search.search_abstract import Search, Instance
+from deepxube.search.search_abstract_v import SearchV, InstanceV
 from deepxube.search.bwas import BWAS
-from deepxube.search.greedy_policy import Greedy, InstanceGr
+from deepxube.search.greedy_policy import Greedy, InstanceGrV
 from deepxube.search.search_utils import SearchPerf, search_test
 from deepxube.utils.timing_utils import Times
 from deepxube.utils.data_utils import SharedNDArray
@@ -125,15 +125,15 @@ def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q:
         if batch_size is None:
             break
 
-        search: Search
+        search: SearchV
         if up_search == "GREEDY":
-            search: Search = Greedy(env)
+            search: SearchV = Greedy(env)
         elif up_search == "ASTAR":
-            search: Search = BWAS(env)
+            search: SearchV = BWAS(env)
         else:
             raise ValueError(f"Unknown search method {up_args.up_search}")
 
-        insts_rem: List[Instance] = []
+        insts_rem: List[InstanceV] = []
         start_idx_batch: int = start_idx
         for _ in range(up_args.up_step_max):
             # add instances
@@ -160,7 +160,7 @@ def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q:
                     if len(search.instances) == 0:
                         kwargs['eps_l'] = list(np.random.rand(batch_size) * up_args.up_eps_max_greedy)
                     else:
-                        kwargs['eps_l'] = [cast(InstanceGr, inst).eps for inst in insts_rem]
+                        kwargs['eps_l'] = [cast(InstanceGrV, inst).eps for inst in insts_rem]
                 times.record_time("inst_info", time.time() - start_time)
 
                 search.add_instances(states_gen, goals_gen, heur_fn, inst_infos=inst_infos, compute_init_heur=False,
@@ -185,7 +185,7 @@ def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q:
             times.record_time("put", time.time() - start_time)
 
             # remove instances
-            insts_rem: List[Instance] = search.remove_finished_instances(up_args.up_step_max)
+            insts_rem: List[InstanceV] = search.remove_finished_instances(up_args.up_step_max)
 
             # search performance
             for inst_rem in insts_rem:
