@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 from deepxube.environments.environment_abstract import Environment
 from deepxube.training.train_utils import TrainArgs
 from deepxube.training.davi import train
-from deepxube.update.update_davi import UpdateArgs
+from deepxube.update.updater import UpdateArgs
 from deepxube.environments.env_utils import get_environment
 
 

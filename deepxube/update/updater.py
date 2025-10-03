@@ -29,7 +29,7 @@ class UpdateArgs:
     :param up_itrs: How many iterations to wait for updating target network
     :param up_gen_itrs: How many iterations worth of data to generate per udpate
     :param up_procs: Number of parallel workers used to compute updated cost-to-go values
-    :param up_step_max: Maximum number of search steps to take from generated start states to generate additional data.
+    :param up_search_itrs: Maximum number of search iterationos to take from generated problem instances
     :param up_batch_size: Maximum number of searches to do at a time. Helps manage memory.
     Decrease if memory is running out during update.
     :param up_nnet_batch_size: Batch size of each nnet used for each process update. Make smaller if running out
@@ -39,7 +39,7 @@ class UpdateArgs:
     up_itrs: int
     up_gen_itrs: int
     up_procs: int
-    up_step_max: int
+    up_search_itrs: int
     up_batch_size: int
     up_nnet_batch_size: int
 
@@ -124,7 +124,7 @@ def update_runner(gen_step_max: int, search_step_max: int, heur_fn_q: HeurFnQ, e
 def get_update_data(env: Environment, step_max: int, step_probs: NDArray, num_gen: int, up_args: UpdateArgs,
                     rb: ReplayBuffer, targ_file: str, device: torch.device, on_gpu: bool) -> Dict[int, SearchPerf]:
     start_time_gen = time.time()
-    num_searches: int = num_gen // up_args.up_step_max
+    num_searches: int = num_gen // up_args.up_search_itrs
     print(f"Generating {format(num_gen, ',')} training instances with {format(num_searches, ',')} searches")
     # update heuristic functions
     all_zeros: bool = not os.path.isfile(targ_file)
@@ -143,16 +143,16 @@ def get_update_data(env: Environment, step_max: int, step_probs: NDArray, num_ge
 
     # sending index data to processes
     ctx = get_context("spawn")
-    assert num_gen % up_args.up_step_max == 0, (f"Number of instances to generate per for this update {num_gen} is not "
-                                                f"divisible by the max number of search steps to take during the "
-                                                f"update ({up_args.up_step_max})")
+    assert num_gen % up_args.up_search_itrs == 0, (f"Number of instances to generate per for this update {num_gen} is not "
+                                                f"divisible by the max number of search iterations to take during the "
+                                                f"update ({up_args.up_search_itrs})")
     to_q: Queue = ctx.Queue()
     num_to_send_per: List[int] = split_evenly_w_max(num_searches, up_args.up_procs, up_args.up_batch_size)
     start_idx: int = 0
     for num_to_send_per_i in num_to_send_per:
         if num_to_send_per_i > 0:
             to_q.put((num_to_send_per_i, start_idx))
-            start_idx += (num_to_send_per_i * up_args.up_step_max)
+            start_idx += (num_to_send_per_i * up_args.up_search_itrs)
     assert start_idx == num_gen
 
     # starting processes
@@ -160,7 +160,7 @@ def get_update_data(env: Environment, step_max: int, step_probs: NDArray, num_ge
     procs: List[BaseProcess] = []
 
     for proc_id, heur_fn_q in enumerate(heur_fn_qs):
-        proc = ctx.Process(target=update_runner, args=(step_max, up_args.up_step_max, heur_fn_q, env, to_q, from_q,
+        proc = ctx.Process(target=update_runner, args=(step_max, up_args.up_search_itrs, heur_fn_q, env, to_q, from_q,
                                                        step_probs, inputs_nnet_shm, ctgs_shm))
         proc.daemon = True
         proc.start()
