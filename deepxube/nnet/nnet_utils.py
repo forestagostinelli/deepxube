@@ -146,7 +146,7 @@ class NNetPar(ABC):
         self.proc_id: Optional[int] = proc_id
 
     @abstractmethod
-    def get_nnet_par_fn(self) -> Callable[..., ...]:
+    def get_nnet_par_fn(self) -> Callable[..., Any]:
         pass
 
     @abstractmethod

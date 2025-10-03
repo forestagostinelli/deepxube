@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple, TypeVar
 import numpy as np
 from numpy.typing import NDArray
 
-from deepxube.search.search_abstract import Search, Node, Instance
+from deepxube.search.search import Search, Node, Instance
 from deepxube.environments.environment_abstract import Environment, State, Goal, Action, HeurFnV
 from deepxube.utils import misc_utils
 

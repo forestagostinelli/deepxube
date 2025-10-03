@@ -12,10 +12,10 @@ from numpy.typing import NDArray
 from deepxube.nnet.nnet_utils import NNetPar
 from deepxube.environments.environment_abstract import Environment, State, Goal, Action, NNetType, NNetParV, NNetParQ
 from deepxube.nnet import nnet_utils
-from deepxube.search.search_v.search_abstract_v import SearchV
+from deepxube.search.search_v.search_v import SearchV
 from deepxube.search.search_v.bwas import BWAS
-from deepxube.search.search_q.search_abstract_q import SearchQ
-from deepxube.search.search_abstract import Search, Instance
+from deepxube.search.search_q.search_q import SearchQ
+from deepxube.search.search import Search, Instance
 from deepxube.search.search_utils import SearchPerf
 from deepxube.training.train_utils import ReplayBuffer, get_single_nnet_input
 from deepxube.utils.data_utils import SharedNDArray
@@ -62,6 +62,7 @@ def update_runner(gen_step_max: int, search_step_max: int, env: Environment, heu
             search: Search = BWAS(env)
         elif nnet_type is NNetType.Q:
             search: Search = BWQS(env)
+            pass
 
         insts_rem: List[Instance] = []
         start_idx_batch: int = start_idx

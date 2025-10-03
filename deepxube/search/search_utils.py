@@ -3,8 +3,8 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 from deepxube.environments.environment_abstract import Environment, State, Action, Goal
-from deepxube.search.search_abstract import Instance
-from deepxube.search.search_v.search_abstract_v import SearchV
+from deepxube.search.search import Instance
+from deepxube.search.search_v.search_v import SearchV
 from deepxube.search.search_v.greedy_policy import Greedy
 from deepxube.search.search_v.bwas import BWAS
 from deepxube.utils import misc_utils

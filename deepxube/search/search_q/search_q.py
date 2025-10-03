@@ -1,12 +1,11 @@
 import time
 from abc import abstractmethod
-from typing import List, Optional, Tuple, TypeVar, Callable
+from typing import List, Optional, Tuple, TypeVar
 
 import numpy as np
-from numpy.typing import NDArray
 
-from deepxube.search.search_abstract import Search, Node, Instance
-from deepxube.environments.environment_abstract import Environment, State, Goal, Action
+from deepxube.search.search import Search, Node, Instance
+from deepxube.environments.environment_abstract import Environment, State, Goal, Action, HeurFnQ
 
 
 class NodeQ(Node):
@@ -52,15 +51,16 @@ class SearchQ(Search[I]):
         super().__init__(env)
 
     @abstractmethod
-    def step(self, heur_fn: Callable) -> Tuple[List[State], List[Goal], List[Action], List[float]]:
+    def step(self, heur_fn: HeurFnQ) -> Tuple[List[State], List[Goal], List[Action], List[float]]:
         pass
 
-    def _create_root_nodes(self, states: List[State], goals: List[Goal], heur_fn: Callable,
+    def _create_root_nodes(self, states: List[State], goals: List[Goal], heur_fn: HeurFnQ,
                            compute_init_heur: bool) -> List[NodeQ]:
         if compute_init_heur:
-            heuristics: NDArray = heur_fn(states, goals)
+            actions_l: List[List[Action]] = self.env.get_state_actions(states)
+            heuristics: List[float] = [min(x) for x in heur_fn(states, goals, actions_l)]
         else:
-            heuristics: NDArray = np.zeros(len(states)).astype(np.float64)
+            heuristics: List[float] = [0.0 for _ in states]
 
         root_nodes: List[NodeQ] = []
         is_solved_l: List[bool] = self.env.is_solved(states, goals)
