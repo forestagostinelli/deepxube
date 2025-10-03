@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Union, Optional, Set, Any, TypeVar, Generic
+from typing import List, Tuple, Union, Optional, Set, Any, TypeVar, Generic, Callable
 import numpy as np
-import torch.nn as nn
+from deepxube.utils.data_utils import SharedNDArray, np_to_shnd
 from deepxube.logic.logic_objects import Atom, Model
 from deepxube.utils import misc_utils
+from deepxube.nnet.nnet_utils import NNetPar
 from deepxube.utils.timing_utils import Times
+from torch import nn
 import random
 import time
 from numpy.typing import NDArray
@@ -38,19 +40,32 @@ class Goal(ABC):
     pass
 
 
-class HeurFnNNet(nn.Module):
-    valid_nnet_types: Set[str] = {"V", "Q"}
+class NNetParV(NNetPar):
+    def get_nnet_par_fn(self) -> Callable[..., NDArray[Any]]:
+        assert self.nnet_fn_i_q is not None
+        assert self.nnet_fn_o_q is not None
+        assert self.proc_id is not None
+        def heuristic_fn(states: List[State], goals: List[Goal]) -> NDArray:
+            inputs_nnet: List[NDArray] = self.to_nnet(states, goals)
+            inputs_nnet_shm: List[SharedNDArray] = [np_to_shnd(inputs_nnet_i)
+                                                    for input_idx, inputs_nnet_i in enumerate(inputs_nnet)]
 
-    def __init__(self, nnet_type: str):
-        """
-        @param nnet_type:  "V" for value function for approximate value iteration and A* search.
-        "Q" for Q-network for Q-learning and Q* search.
-        """
-        super().__init__()
-        nnet_type = nnet_type.upper()
-        assert nnet_type in self.valid_nnet_types, (f"Invalid nnet type: {nnet_type}. Valid nnet types are: "
-                                                    f"{self.valid_nnet_types}")
-        self.nnet_type = nnet_type
+            self.nnet_fn_i_q.put((self.proc_id, inputs_nnet_shm))
+
+            heurs_shm: SharedNDArray = self.nnet_fn_o_q.get()
+            heurs: NDArray = heurs_shm.array.copy()
+
+            for arr_shm in inputs_nnet_shm + [heurs_shm]:
+                arr_shm.close()
+                arr_shm.unlink()
+
+            return heurs[:, 0]
+
+        return heuristic_fn
+
+    @abstractmethod
+    def get_nnet(self) -> nn.Module:
+        pass
 
 
 S = TypeVar('S', bound=State)
@@ -172,6 +187,7 @@ class Environment(ABC, Generic[S, A, G]):
             states_next, tcs_move = self.next_state(states_idxs, actions_idxs)
 
             # transition cost
+            idx: int
             for exp_idx, idx in enumerate(idxs):
                 states_exp_l[idx].append(states_next[exp_idx])
                 actions_exp_l[idx].append(actions_idxs[exp_idx])
@@ -183,68 +199,44 @@ class Environment(ABC, Generic[S, A, G]):
         return states_exp_l, actions_exp_l, tcs_l
 
     @abstractmethod
-    def states_goals_to_nnet_input(self, states: List[S], goals: List[G]) -> List[NDArray[Any]]:
-        """ States and goals to numpy arrays to be fed to the neural network
-
-        @param states: List of states
-        @param goals: List of goals
-        @return: List of numpy arrays. Each index along the first dimension of each array corresponds to the
-        index of a state.
-        """
-        pass
-
-    @abstractmethod
-    def get_v_nnet(self) -> HeurFnNNet:
+    def get_v_nnet(self) -> NNetParV:
         """ Get the neural network model for value iteration and A* search
 
         @return: neural network model
         """
         pass
 
-    @abstractmethod
-    def get_q_nnet(self) -> HeurFnNNet:
-        """ Get the neural network model for Q-learning and Q* search. Has not been implemented yet,
-        so do not have to implement (raise NotImplementedError).
-
-        @return: neural network model
-        """
-        pass
-
-    @abstractmethod
     def get_pddl_domain(self) -> List[str]:
         """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using
         traiditional planners (raise NotImplementedError).
 
         :return:
         """
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     def state_goal_to_pddl_inst(self, state: S, goal: G) -> List[str]:
         """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using
         traiditional planners (raise NotImplementedError).
 
         :return:
         """
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     def pddl_action_to_action(self, pddl_action: str) -> Action:
         """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using
         traiditional planners (raise NotImplementedError).
 
         :return:
         """
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     def visualize(self, states: Union[List[S], List[G]]) -> NDArray[np.float64]:
         """ Implement if visualizing states. If you are planning on visualizing states, you do not have to implement
         this (raise NotImplementedError).
 
         :return:
         """
-        pass
+        raise NotImplementedError
 
     def _random_walk(self, states: List[S], num_steps_l: List[int]) -> List[S]:
         states_walk: List[S] = [state for state in states]
@@ -258,6 +250,7 @@ class Environment(ABC, Generic[S, A, G]):
 
             states_moved, _ = self.next_state_rand(states_to_move)
 
+            idx: int
             for move_idx, idx in enumerate(idxs):
                 states_walk[idx] = states_moved[move_idx]
 

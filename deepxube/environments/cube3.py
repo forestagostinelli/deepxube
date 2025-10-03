@@ -4,7 +4,7 @@ from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel
 from deepxube.logic.logic_objects import Atom, Model
 from deepxube.visualizers.cube3_viz_simple import InteractiveCube
 from deepxube.utils.timing_utils import Times
-from .environment_abstract import EnvGrndAtoms, State, Action, Goal, HeurFnNNet
+from .environment_abstract import EnvGrndAtoms, State, Action, Goal, NNetParV
 
 import numpy as np
 import torch
@@ -42,10 +42,10 @@ class Cube3ProcessStates(nn.Module):
         return x
 
 
-class Cube3NNet(HeurFnNNet):
+class Cube3NNet(nn.Module):
     def __init__(self, state_dim: int, oh_depth0: int, oh_depth1: int, res_dim: int, num_res_blocks: int, out_dim: int,
-                 batch_norm: bool, weight_norm: bool, group_norm: int, act_fn: str, nnet_type: str):
-        super().__init__(nnet_type)
+                 batch_norm: bool, weight_norm: bool, group_norm: int, act_fn: str):
+        super().__init__()
         self.state_proc0 = Cube3ProcessStates(state_dim, oh_depth0)
         self.state_proc1 = Cube3ProcessStates(state_dim, oh_depth1)
 
@@ -104,6 +104,17 @@ class Cube3Action(Action):
         if isinstance(other, Cube3Action):
             return self.action == other.action
         return NotImplemented
+
+
+class Cube3NNetParV(NNetParV):
+    def get_nnet(self) -> nn.Module:
+        state_dim: int = (3 ** 2) * 6
+        return Cube3NNet(state_dim, 6, 7, 1000, 4, 1, True, False, -1, "RELU")
+
+    def to_nnet(self, states: List[Cube3State], goals: List[Cube3Goal]) -> List[NDArray[Any]]:
+        states_np: NDArray[np.uint8] = np.stack([state.colors for state in states], axis=0).astype(np.uint8)
+        goals_np: NDArray[np.uint8] = np.stack([goal.colors for goal in goals], axis=0)
+        return [states_np, goals_np]
 
 
 def _get_adj() -> Dict[int, NDArray[np.int_]]:
@@ -243,17 +254,8 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal]):
     def model_to_goal(self, models: List[Model]) -> List[Cube3Goal]:
         return [Cube3Goal(x) for x in self._models_to_np(models)]
 
-    def get_v_nnet(self) -> HeurFnNNet:
-        state_dim: int = (self.cube_len ** 2) * 6
-        nnet = Cube3NNet(state_dim, 6, 7, 1000, 4, 1, True, False, -1, "RELU", "V")
-
-        return nnet
-
-    def get_q_nnet(self) -> HeurFnNNet:
-        state_dim: int = (self.cube_len ** 2) * 6
-        nnet = Cube3NNet(state_dim, 6, 7, 1000, 4, self.num_actions, True, False, -1, "RELU", "V")
-
-        return nnet
+    def get_v_nnet(self) -> Cube3NNetParV:
+        return Cube3NNetParV()
 
     def get_start_states(self, num_states: int) -> List[Cube3State]:
         assert (num_states > 0)

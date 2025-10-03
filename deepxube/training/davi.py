@@ -5,6 +5,7 @@ from deepxube.training.train_utils import ReplayBuffer, train_heur, TrainArgs
 from deepxube.update.updater import UpdateArgs, get_update_data
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
+from deepxube.nnet.nnet_utils import NNetPar
 from deepxube.environments.environment_abstract import Environment
 
 import torch
@@ -54,12 +55,14 @@ class Status:
             self.step_probs[per_solved_per_step == 0] = 1 / num_tot_eff / num_no_soln
 
 
-def load_data(model_dir: str, nnet_file: str, env: Environment, step_max: int) -> Tuple[nn.Module, Status]:
+def load_data(model_dir: str, curr_file: str, targ_file: str, env: Environment,
+              step_max: int) -> Tuple[nn.Module, Status]:
     status_file: str = "%s/status.pkl" % model_dir
-    if os.path.isfile(nnet_file):
-        nnet = nnet_utils.load_nnet(nnet_file, env.get_v_nnet())
+    if os.path.isfile(curr_file):
+        nnet = nnet_utils.load_nnet(curr_file, env.get_v_nnet().get_nnet())
     else:
-        nnet = env.get_v_nnet()
+        nnet = env.get_v_nnet().get_nnet()
+        torch.save(nnet.state_dict(), targ_file)
 
     status: Status
     if os.path.isfile(status_file):
@@ -146,13 +149,14 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
 
     # load nnet
     print("Loading nnet and status")
-    nnet, status = load_data(nnet_dir, curr_file, env, step_max)
+    nnet, status = load_data(nnet_dir, curr_file, targ_file, env, step_max)
     nnet.to(device)
     nnet = nn.DataParallel(nnet)
 
     # initialize replay buffer
+    nnet_par: NNetPar = env.get_v_nnet()
     states, goals = env.get_start_goal_pairs([0])
-    inputs_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
+    inputs_nnet: List[NDArray] = nnet_par.to_nnet(states, goals)
     rb_shapes: List[Tuple[int, ...]] = []
     rb_dtypes: List[np.dtype] = []
     for nnet_idx, inputs_nnet_i in enumerate(inputs_nnet):

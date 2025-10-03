@@ -11,7 +11,7 @@ from numpy.typing import NDArray
 
 from deepxube.environments.environment_abstract import Environment
 from deepxube.nnet import nnet_utils
-from deepxube.nnet.nnet_utils import HeurFnQ
+from deepxube.nnet.nnet_utils import NNetPar
 from deepxube.search.bwas import BWAS
 from deepxube.search.search_abstract import Search, Instance
 from deepxube.search.search_utils import SearchPerf
@@ -44,11 +44,11 @@ class UpdateArgs:
     up_nnet_batch_size: int
 
 
-def update_runner(gen_step_max: int, search_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q: Queue,
+def update_runner(gen_step_max: int, search_step_max: int, heur_fn_par: NNetPar, env: Environment, to_q: Queue,
                   from_q: Queue, step_probs: NDArray, inputs_nnet_shm: List[SharedNDArray], ctgs_shm: SharedNDArray):
     times: Times = Times()
 
-    heur_fn = heur_fn_q.get_heuristic_fn(env)
+    heur_fn = heur_fn_par.get_nnet_par_fn()
     step_to_search_perf: Dict[int, SearchPerf] = dict()
     while True:
         batch_size, start_idx = to_q.get()
@@ -90,7 +90,7 @@ def update_runner(gen_step_max: int, search_step_max: int, heur_fn_q: HeurFnQ, e
 
             # to nnet
             start_time = time.time()
-            states_goals_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
+            states_goals_nnet: List[NDArray] = heur_fn_par.to_nnet(states, goals)
             times.record_time("to_nnet", time.time() - start_time)
 
             # put
@@ -128,13 +128,14 @@ def get_update_data(env: Environment, step_max: int, step_probs: NDArray, num_ge
     print(f"Generating {format(num_gen, ',')} training instances with {format(num_searches, ',')} searches")
     # update heuristic functions
     all_zeros: bool = not os.path.isfile(targ_file)
-    heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(up_args.up_procs, targ_file, device, on_gpu, env, "V",
-                                                              all_zeros=all_zeros, clip_zero=True,
+    nnet_par: NNetPar = env.get_v_nnet()
+    heur_fn_qs, heur_procs = nnet_utils.start_nnet_fn_runners(nnet_par.__class__, up_args.up_procs, targ_file,
+                                                              device, on_gpu, all_zeros=all_zeros, clip_zero=True,
                                                               batch_size=up_args.up_nnet_batch_size)
 
     # shared memory
     states, goals = env.get_start_goal_pairs([0])
-    inputs_nnet: List[NDArray] = env.states_goals_to_nnet_input(states, goals)
+    inputs_nnet: List[NDArray] = nnet_par.to_nnet(states, goals)
     inputs_nnet_shm: List[SharedNDArray] = []
     for nnet_idx, inputs_nnet_i in enumerate(inputs_nnet):
         inputs_nnet_shm.append(SharedNDArray((num_gen,) + inputs_nnet_i[0].shape, inputs_nnet_i.dtype,
@@ -209,7 +210,7 @@ def get_update_data(env: Environment, step_max: int, step_probs: NDArray, num_ge
     print(f"Times - {times_up.get_time_str()}")
 
     # clean up
-    nnet_utils.stop_heuristic_fn_runners(heur_procs, heur_fn_qs)
+    nnet_utils.stop_nnet_runners(heur_procs, heur_fn_qs)
     for proc in procs:
         proc.join()
     for arr_shm in inputs_nnet_shm + [ctgs_shm]:

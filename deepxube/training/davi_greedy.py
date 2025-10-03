@@ -228,7 +228,7 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
     # update heuristic functions
     num_gen_up: int = train_args.batch_size * up_args.up_itrs
     all_zeros: bool = not os.path.isfile(targ_file)
-    heur_fn_qs, heur_procs = nnet_utils.start_heur_fn_runners(up_args.up_procs, targ_file, device, on_gpu, env, "V",
+    heur_fn_qs, heur_procs = nnet_utils.start_nnet_fn_runners(up_args.up_procs, targ_file, device, on_gpu, env, "V",
                                                               all_zeros=all_zeros, clip_zero=True,
                                                               batch_size=up_args.up_nnet_batch_size)
 
@@ -333,7 +333,7 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
     print(f"Times - {times_up.get_time_str()}")
 
     # clean up
-    nnet_utils.stop_heuristic_fn_runners(heur_procs, heur_fn_qs)
+    nnet_utils.stop_nnet_runners(heur_procs, heur_fn_qs)
     for proc in procs:
         proc.join()
     for arr_shm in inputs_nnet_shm + [ctgs_shm]:
