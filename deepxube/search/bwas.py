@@ -2,7 +2,7 @@ from typing import List, Tuple, Dict, Optional, Any
 from deepxube.environments.environment_abstract import Environment, State, Goal
 from deepxube.search.search_abstract import Instance
 from deepxube.search.search_abstract_v import SearchV, NodeV
-from deepxube.nnet.nnet_utils import HeurFN_T
+from deepxube.nnet.nnet_utils import Callable
 import numpy as np
 from heapq import heappush, heappop
 
@@ -58,7 +58,7 @@ class BWAS(SearchV[InstanceBWAS]):
         super().__init__(env)
         self.steps: int = 0
 
-    def add_instances(self, states: List[State], goals: List[Goal], heur_fn: HeurFN_T,
+    def add_instances(self, states: List[State], goals: List[Goal], heur_fn: Callable,
                       inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True,
                       weights: Optional[List[float]] = None):
         start_time = time.time()
@@ -76,7 +76,7 @@ class BWAS(SearchV[InstanceBWAS]):
             self.instances.append(InstanceBWAS(root_node, inst_info, weight))
         self.times.record_time("add", time.time() - start_time)
 
-    def step(self, heur_fn: HeurFN_T, batch_size: int = 1,
+    def step(self, heur_fn: Callable, batch_size: int = 1,
              verbose: bool = False) -> Tuple[List[State], List[Goal], List[float]]:
         instances: List[InstanceBWAS] = [instance for instance in self.instances if not instance.finished]
 

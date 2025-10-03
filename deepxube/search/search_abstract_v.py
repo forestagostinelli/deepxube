@@ -1,13 +1,12 @@
 import time
 from abc import abstractmethod
-from typing import List, Optional, Tuple, TypeVar
+from typing import List, Optional, Tuple, TypeVar, Callable
 
 import numpy as np
 from numpy.typing import NDArray
 
 from deepxube.search.search_abstract import Search, Node, Instance
 from deepxube.environments.environment_abstract import Environment, State, Goal, Action
-from deepxube.nnet.nnet_utils import HeurFN_T
 from deepxube.utils import misc_utils
 
 
@@ -54,11 +53,11 @@ class SearchV(Search[I]):
         super().__init__(env)
 
     @abstractmethod
-    def step(self, heur_fn: HeurFN_T) -> Tuple[List[State], List[Goal], List[float]]:
+    def step(self, heur_fn: Callable) -> Tuple[List[State], List[Goal], List[float]]:
         pass
 
     def expand_nodes(self, instances: List[I], nodes_by_inst: List[List[NodeV]],
-                     heur_fn: HeurFN_T) -> List[List[NodeV]]:
+                     heur_fn: Callable) -> List[List[NodeV]]:
         start_time = time.time()
         # flatten (for speed)
         nodes: List[NodeV]
@@ -125,7 +124,7 @@ class SearchV(Search[I]):
 
         return nodes_c_by_inst
 
-    def _create_root_nodes(self, states: List[State], goals: List[Goal], heur_fn: HeurFN_T,
+    def _create_root_nodes(self, states: List[State], goals: List[Goal], heur_fn: Callable,
                            compute_init_heur: bool) -> List[NodeV]:
         if compute_init_heur:
             heuristics: NDArray = heur_fn(states, goals)

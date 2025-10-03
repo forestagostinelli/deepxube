@@ -1,6 +1,5 @@
-from typing import List, Optional, Any, Tuple
+from typing import List, Optional, Any, Tuple, Callable
 from deepxube.environments.environment_abstract import State, Goal
-from deepxube.nnet.nnet_utils import HeurFN_T
 from deepxube.search.search_abstract import Instance
 from deepxube.search.search_abstract_v import SearchV, NodeV
 import numpy as np
@@ -11,12 +10,13 @@ import time
 class InstanceGrV(Instance):
     def __init__(self, root_node: NodeV, inst_info: Any, eps: float):
         super().__init__(root_node, inst_info)
+        self.root_node: NodeV = root_node
         self.curr_node: NodeV = self.root_node
         self.eps = eps
 
 
 class Greedy(SearchV[InstanceGrV]):
-    def add_instances(self, states: List[State], goals: List[Goal], heur_fn: HeurFN_T,
+    def add_instances(self, states: List[State], goals: List[Goal], heur_fn: Callable,
                       inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True,
                       eps_l: Optional[List[float]] = None):
         start_time = time.time()
@@ -34,7 +34,7 @@ class Greedy(SearchV[InstanceGrV]):
             self.instances.append(instance)
         self.times.record_time("add", time.time() - start_time)
 
-    def step(self, heur_fn: HeurFN_T) -> Tuple[List[State], List[Goal], List[float]]:
+    def step(self, heur_fn: Callable) -> Tuple[List[State], List[Goal], List[float]]:
         # get unsolved instances
         instances: List[InstanceGrV] = self._get_unsolved_instances()
         if len(instances) == 0:

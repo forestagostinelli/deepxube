@@ -10,7 +10,7 @@ from deepxube.search.bwas import BWAS
 from deepxube.utils import misc_utils
 from deepxube.utils.timing_utils import Times
 from torch.multiprocessing import get_context, Queue
-from deepxube.nnet.nnet_utils import HeurFnQ, start_heur_fn_runners, stop_heuristic_fn_runners
+from deepxube.nnet.nnet_utils import NNetPar, start_nnet_fn_runners, stop_nnet_runners
 import torch
 import time
 
@@ -108,9 +108,9 @@ def bellman(states: List[State], goals: List[Goal], heuristic_fn,
     return ctg_backup, ctg_next_p_tc_l, states_exp, actions_exp, tcs_exp, is_solved
 
 
-def search_runner(env: Environment, heur_fn_q: HeurFnQ, proc_id: int, search_method: str, max_solve_steps: int, data_q,
+def search_runner(env: Environment, nnet_par: NNetPar, proc_id: int, search_method: str, max_solve_steps: int, data_q,
                   results_queue):
-    heuristic_fn = heur_fn_q.get_heuristic_fn(env)
+    heuristic_fn = nnet_par.get_nnet_par_fn()
     states, goals, inst_gen_steps = data_q.get()
 
     # Solve with search
@@ -145,8 +145,8 @@ def search_test(env: Environment, states: List[State], goals: List[Goal], inst_g
     all_zeros: bool = False
     if len(nnet_file) == 0:
         all_zeros = True
-    heur_fn_qs, heur_procs = start_heur_fn_runners(num_procs, nnet_file, device, on_gpu, env, "V", all_zeros=all_zeros,
-                                                   clip_zero=False, batch_size=nnet_batch_size)
+    heur_fn_qs, heur_procs = start_nnet_fn_runners(env.get_v_nnet().__class__, num_procs, nnet_file, device, on_gpu,
+                                                   all_zeros=all_zeros, clip_zero=False, batch_size=nnet_batch_size)
 
     # start search runners
     ctx = get_context("spawn")
@@ -233,7 +233,7 @@ def search_test(env: Environment, states: List[State], goals: List[Goal], inst_g
                   float(np.mean(ctgs_bkup)), float(np.std(ctgs_bkup)), float(np.min(ctgs_bkup)),
                   float(np.max(ctgs_bkup))))
 
-    stop_heuristic_fn_runners(heur_procs, heur_fn_qs)
+    stop_nnet_runners(heur_procs, heur_fn_qs)
 
     return per_solved_all, is_solved_all
 

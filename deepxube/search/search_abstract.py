@@ -2,7 +2,6 @@ from typing import Generic, List, Optional, Any, Tuple, Callable, TypeVar
 from deepxube.environments.environment_abstract import Environment, State, Goal, Action
 from deepxube.utils.timing_utils import Times
 
-from deepxube.nnet.nnet_utils import HeurFN_T
 from abc import ABC, abstractmethod
 import numpy as np
 
@@ -56,12 +55,12 @@ class Search(ABC, Generic[I]):
         self.times: Times = Times()
 
     @abstractmethod
-    def add_instances(self, states: List[State], goals: List[Goal], heur_fn: HeurFN_T,
+    def add_instances(self, states: List[State], goals: List[Goal], heur_fn: Callable,
                       inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True, **kwargs):
         pass
 
     @abstractmethod
-    def step(self, heur_fn: HeurFN_T) -> Tuple[List[State], List[Goal], List[float]]:
+    def step(self, heur_fn: Callable) -> Tuple[List[State], List[Goal], List[float]]:
         pass
 
     @abstractmethod
