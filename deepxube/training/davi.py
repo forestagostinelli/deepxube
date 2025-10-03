@@ -2,7 +2,7 @@ from typing import List, Tuple, Dict
 
 from deepxube.search.search_utils import SearchPerf, print_search_perf
 from deepxube.training.train_utils import ReplayBuffer, train_heur, TrainArgs
-from deepxube.update.update_davi import UpdateArgs, get_update_data
+from deepxube.update.updater import UpdateArgs, get_update_data
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
 from deepxube.environments.environment_abstract import Environment
