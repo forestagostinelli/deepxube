@@ -1,7 +1,7 @@
 from typing import List, Tuple, Dict
 
 from deepxube.search.search_utils import SearchPerf, print_search_perf
-from deepxube.training.train_utils import ReplayBuffer, train_heur, TrainArgs
+from deepxube.training.train_utils import ReplayBuffer, train_heur_nnet, TrainArgs
 from deepxube.update.updater import UpdateArgs, get_update_data
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
@@ -55,13 +55,13 @@ class Status:
             self.step_probs[per_solved_per_step == 0] = 1 / num_tot_eff / num_no_soln
 
 
-def load_data(model_dir: str, curr_file: str, targ_file: str, env: Environment,
+def load_data(model_dir: str, curr_file: str, targ_file: str, nnet_par: NNetPar,
               step_max: int) -> Tuple[nn.Module, Status]:
     status_file: str = "%s/status.pkl" % model_dir
     if os.path.isfile(curr_file):
-        nnet = nnet_utils.load_nnet(curr_file, env.get_v_nnet().get_nnet())
+        nnet = nnet_utils.load_nnet(curr_file, nnet_par.get_nnet())
     else:
-        nnet = env.get_v_nnet().get_nnet()
+        nnet = nnet_par.get_nnet()
         torch.save(nnet.state_dict(), targ_file)
 
     status: Status
@@ -149,12 +149,12 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
 
     # load nnet
     print("Loading nnet and status")
-    nnet, status = load_data(nnet_dir, curr_file, targ_file, env, step_max)
+    nnet_par: NNetPar = env.get_nnet(train_args.nnet_type)
+    nnet, status = load_data(nnet_dir, curr_file, targ_file, nnet_par, step_max)
     nnet.to(device)
     nnet = nn.DataParallel(nnet)
 
     # initialize replay buffer
-    nnet_par: NNetPar = env.get_v_nnet()
     states, goals = env.get_start_goal_pairs([0])
     inputs_nnet: List[NDArray] = nnet_par.to_nnet(states, goals)
     rb_shapes: List[Tuple[int, ...]] = []
@@ -194,7 +194,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
 
         # train nnet
         print("Training model for update number %i for %i iterations" % (status.update_num, len(batches)))
-        last_loss = train_heur(nnet, batches, optimizer, criterion, device, status.itr, train_args)
+        last_loss = train_heur_nnet(nnet, batches, optimizer, criterion, device, status.itr, train_args)
         print("Last loss was %f" % last_loss)
         status.itr += len(batches)
 

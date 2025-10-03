@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
+from deepxube.environments.environment_abstract import NNetType
 from deepxube.utils.data_utils import sel_l
 from deepxube.nnet import nnet_utils
 
@@ -17,12 +18,14 @@ import torch.nn as nn
 @dataclass
 class TrainArgs:
     """
+    :param nnet_type: Type of neural network being trained
     :param batch_size: Batch size
     :param lr: Initial learning rate
     :param lr_d: Learning rate decay for every iteration. Learning rate is decayed according to: lr * (lr_d ^ itr)
     :param max_itrs: Maximum number of iterations
     :param display: Number of iterations to display progress. No display if 0.
     """
+    nnet_type: NNetType
     batch_size: int
     lr: float
     lr_d: float
@@ -85,8 +88,8 @@ class ReplayBuffer:
                 self.add_idx = 0
 
 
-def train_heur(nnet: nn.Module, batches: List[Tuple[List[NDArray], NDArray]], optimizer: Optimizer, criterion,
-               device: torch.device, train_itr: int, train_args: TrainArgs) -> float:
+def train_heur_nnet(nnet: nn.Module, batches: List[Tuple[List[NDArray], NDArray]], optimizer: Optimizer, criterion,
+                    device: torch.device, train_itr: int, train_args: TrainArgs) -> float:
     # initialize status tracking
     start_time = time.time()
 

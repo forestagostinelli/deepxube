@@ -10,6 +10,7 @@ from torch import nn
 import random
 import time
 from numpy.typing import NDArray
+from enum import Enum
 
 
 class State(ABC):
@@ -40,8 +41,14 @@ class Goal(ABC):
     pass
 
 
+class NNetType(Enum):
+    V = 1
+    QFix = 2
+    Q = 3
+
+
 class NNetParV(NNetPar):
-    def get_nnet_par_fn(self) -> Callable[..., NDArray[Any]]:
+    def get_nnet_par_fn(self) -> Callable[[List[State], List[Goal]], NDArray[Any]]:
         assert self.nnet_fn_i_q is not None
         assert self.nnet_fn_o_q is not None
         assert self.proc_id is not None
@@ -60,6 +67,34 @@ class NNetParV(NNetPar):
                 arr_shm.unlink()
 
             return heurs[:, 0]
+
+        return heuristic_fn
+
+    @abstractmethod
+    def get_nnet(self) -> nn.Module:
+        pass
+
+
+class NNetParQFix(NNetPar):
+    def get_nnet_par_fn(self) -> Callable[[List[State], List[Goal]], NDArray[Any]]:
+        assert self.nnet_fn_i_q is not None
+        assert self.nnet_fn_o_q is not None
+        assert self.proc_id is not None
+        def heuristic_fn(states: List[State], goals: List[Goal]) -> NDArray:
+            inputs_nnet: List[NDArray] = self.to_nnet(states, goals)
+            inputs_nnet_shm: List[SharedNDArray] = [np_to_shnd(inputs_nnet_i)
+                                                    for input_idx, inputs_nnet_i in enumerate(inputs_nnet)]
+
+            self.nnet_fn_i_q.put((self.proc_id, inputs_nnet_shm))
+
+            heurs_shm: SharedNDArray = self.nnet_fn_o_q.get()
+            q_vals: NDArray = heurs_shm.array.copy()
+
+            for arr_shm in inputs_nnet_shm + [heurs_shm]:
+                arr_shm.close()
+                arr_shm.unlink()
+
+            return q_vals
 
         return heuristic_fn
 
@@ -198,6 +233,14 @@ class Environment(ABC, Generic[S, A, G]):
 
         return states_exp_l, actions_exp_l, tcs_l
 
+    def get_nnet(self, nnet_type: NNetType) -> NNetPar:
+        if nnet_type is nnet_type.V:
+            return self.get_v_nnet()
+        elif nnet_type is nnet_type.QFix:
+            return self.get_qfix_nnet()
+        else:
+            raise ValueError(f"Unknown neural network type {nnet_type}")
+
     @abstractmethod
     def get_v_nnet(self) -> NNetParV:
         """ Get the neural network model for value iteration and A* search
@@ -205,6 +248,14 @@ class Environment(ABC, Generic[S, A, G]):
         @return: neural network model
         """
         pass
+
+    def get_qfix_nnet(self) -> NNetParQFix:
+        """ Get the neural network model for q-learning and Q* search that has a fixed action space and maps
+        instances to an array of q_values for each action
+
+        @return: neural network model
+        """
+        raise NotImplementedError
 
     def get_pddl_domain(self) -> List[str]:
         """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using

@@ -1,7 +1,7 @@
 from typing import List, Tuple, Dict, Any, cast
 from dataclasses import dataclass
 
-from deepxube.training.train_utils import ReplayBuffer, train_heur, TrainArgs
+from deepxube.training.train_utils import ReplayBuffer, train_heur_nnet, TrainArgs
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
 from deepxube.nnet.nnet_utils import HeurFnQ
@@ -430,7 +430,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
 
         # train nnet
         print("Training model for update number %i for %i iterations" % (status.update_num, len(batches)))
-        last_loss = train_heur(nnet, batches, optimizer, criterion, device, status.itr, train_args)
+        last_loss = train_heur_nnet(nnet, batches, optimizer, criterion, device, status.itr, train_args)
         status.itr += len(batches)
 
         # save nnet
