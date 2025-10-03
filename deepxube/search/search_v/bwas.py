@@ -1,7 +1,7 @@
 from typing import List, Tuple, Dict, Optional, Any
 from deepxube.environments.environment_abstract import Environment, State, Goal
 from deepxube.search.search_abstract import Instance
-from deepxube.search.search_abstract_v import SearchV, NodeV
+from deepxube.search.search_v.search_abstract_v import SearchV, NodeV
 from deepxube.nnet.nnet_utils import Callable
 import numpy as np
 from heapq import heappush, heappop

@@ -13,6 +13,8 @@
 * Add option to skip computation of initial heuristic value for search
 * Faster replay buffer initialization
 * Get more statistics when solving with clingo
+* Refactor search
+* Refactor neural networks
 
 
 ## 0.1.6

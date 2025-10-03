@@ -8,8 +8,8 @@ from deepxube.nnet.nnet_utils import HeurFnQ
 from deepxube.environments.environment_abstract import State, Environment, Goal
 
 from deepxube.search.search_abstract_v import SearchV, InstanceV
-from deepxube.search.bwas import BWAS
-from deepxube.search.greedy_policy import Greedy, InstanceGrV
+from deepxube.search.search_v.bwas import BWAS
+from deepxube.search.search_v.greedy_policy import Greedy, InstanceGrV
 from deepxube.search.search_utils import SearchPerf, search_test
 from deepxube.utils.timing_utils import Times
 from deepxube.utils.data_utils import SharedNDArray

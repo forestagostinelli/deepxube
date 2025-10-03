@@ -249,13 +249,14 @@ class Environment(ABC, Generic[S, A, G]):
         """
         pass
 
+    @abstractmethod
     def get_qfix_nnet(self) -> NNetParQFix:
         """ Get the neural network model for q-learning and Q* search that has a fixed action space and maps
         instances to an array of q_values for each action
 
         @return: neural network model
         """
-        raise NotImplementedError
+        pass
 
     def get_pddl_domain(self) -> List[str]:
         """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using

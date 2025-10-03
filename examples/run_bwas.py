@@ -5,8 +5,8 @@ from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
 from deepxube.search.search_abstract import get_path
 from deepxube.search.search_utils import is_valid_soln
-from deepxube.search.bwas import BWAS
-from deepxube.search.search_abstract_v import NodeV
+from deepxube.search.search_v.bwas import BWAS
+from deepxube.search.search_v.search_abstract_v import NodeV
 from deepxube.environments.env_utils import get_environment
 import numpy as np
 from argparse import ArgumentParser

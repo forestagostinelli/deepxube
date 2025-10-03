@@ -4,7 +4,7 @@ from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel
 from deepxube.logic.logic_objects import Atom, Model
 from deepxube.visualizers.cube3_viz_simple import InteractiveCube
 from deepxube.utils.timing_utils import Times
-from .environment_abstract import EnvGrndAtoms, State, Action, Goal, NNetParV
+from .environment_abstract import EnvGrndAtoms, State, Action, Goal, NNetParV, NNetParQFix
 
 import numpy as np
 import torch
@@ -256,6 +256,9 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal]):
 
     def get_v_nnet(self) -> Cube3NNetParV:
         return Cube3NNetParV()
+
+    def get_qfix_nnet(self) -> NNetParQFix:
+        raise NotImplementedError
 
     def get_start_states(self, num_states: int) -> List[Cube3State]:
         assert (num_states > 0)

@@ -12,7 +12,7 @@ from numpy.typing import NDArray
 from deepxube.environments.environment_abstract import Environment
 from deepxube.nnet import nnet_utils
 from deepxube.nnet.nnet_utils import NNetPar
-from deepxube.search.bwas import BWAS
+from deepxube.search.search_v.bwas import BWAS
 from deepxube.search.search_abstract import Search, Instance
 from deepxube.search.search_utils import SearchPerf
 from deepxube.training.train_utils import ReplayBuffer

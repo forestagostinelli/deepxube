@@ -4,9 +4,9 @@ import numpy as np
 from numpy.typing import NDArray
 from deepxube.environments.environment_abstract import Environment, State, Action, Goal
 from deepxube.search.search_abstract import Instance
-from deepxube.search.search_abstract_v import SearchV
-from deepxube.search.greedy_policy import Greedy
-from deepxube.search.bwas import BWAS
+from deepxube.search.search_v.search_abstract_v import SearchV
+from deepxube.search.search_v.greedy_policy import Greedy
+from deepxube.search.search_v.bwas import BWAS
 from deepxube.utils import misc_utils
 from deepxube.utils.timing_utils import Times
 from torch.multiprocessing import get_context, Queue
