@@ -71,7 +71,7 @@ class NNetParV(NNetPar):
         return heuristic_fn
 
     @abstractmethod
-    def get_nnet(self) -> nn.Module:
+    def to_nnet(self, states: List[State], goals: List[Goal]) -> List[NDArray[Any]]:
         pass
 
 

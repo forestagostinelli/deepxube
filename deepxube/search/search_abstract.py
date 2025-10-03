@@ -60,7 +60,7 @@ class Search(ABC, Generic[I]):
         pass
 
     @abstractmethod
-    def step(self, heur_fn: Callable) -> Tuple[List[State], List[Goal], List[float]]:
+    def step(self, heur_fn: Callable) -> Any:
         pass
 
     @abstractmethod

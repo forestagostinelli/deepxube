@@ -134,9 +134,9 @@ class BWAS(SearchV[InstanceBWAS]):
         nodes_popped_flat, _ = misc_utils.flatten(nodes_by_inst_popped)
         states: List[State] = [node.state for node in nodes_popped_flat]
         goals: List[Goal] = [node.goal for node in nodes_popped_flat]
-        ctgs: List[float] = [node.backup() for node in nodes_popped_flat]
+        ctgs_bellman: List[float] = [node.backup() for node in nodes_popped_flat]
         self.times.record_time("bellman", time.time() - start_time)
-        return states, goals, ctgs
+        return states, goals, ctgs_bellman
 
     def remove_finished_instances(self, itr_max: int) -> List[InstanceBWAS]:
         def remove_instance_fn(inst_in: InstanceBWAS) -> bool:

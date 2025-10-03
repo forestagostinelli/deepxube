@@ -1,17 +1,18 @@
+from typing import List, Dict, Tuple, Any, cast
 import os
 import time
 from dataclasses import dataclass
 from multiprocessing import Queue, get_context
 from multiprocessing.process import BaseProcess
-from typing import List, Dict, Tuple, Any
 
 import numpy as np
 import torch
 from numpy.typing import NDArray
 
-from deepxube.environments.environment_abstract import Environment
+from deepxube.environments.environment_abstract import Environment, State, Goal, NNetType, NNetParV
 from deepxube.nnet import nnet_utils
 from deepxube.nnet.nnet_utils import NNetPar
+from deepxube.search.search_v.search_abstract_v import SearchV
 from deepxube.search.search_v.bwas import BWAS
 from deepxube.search.search_abstract import Search, Instance
 from deepxube.search.search_utils import SearchPerf
@@ -44,8 +45,9 @@ class UpdateArgs:
     up_nnet_batch_size: int
 
 
-def update_runner(gen_step_max: int, search_step_max: int, heur_fn_par: NNetPar, env: Environment, to_q: Queue,
-                  from_q: Queue, step_probs: NDArray, inputs_nnet_shm: List[SharedNDArray], ctgs_shm: SharedNDArray):
+def update_runner(gen_step_max: int, search_step_max: int, env: Environment, heur_fn_par: NNetPar, nnet_type: NNetType,
+                  to_q: Queue, from_q: Queue, step_probs: NDArray, inputs_nnet_shm: List[SharedNDArray],
+                  ctgs_shm: SharedNDArray):
     times: Times = Times()
 
     heur_fn = heur_fn_par.get_nnet_par_fn()
@@ -55,7 +57,10 @@ def update_runner(gen_step_max: int, search_step_max: int, heur_fn_par: NNetPar,
         if batch_size is None:
             break
 
-        search: Search = BWAS(env)
+        if nnet_type is NNetType.V:
+            search: Search = BWAS(env)
+        else:
+            raise ValueError(f"Unknown nnet type {nnet_type}")
 
         insts_rem: List[Instance] = []
         start_idx_batch: int = start_idx
@@ -86,20 +91,26 @@ def update_runner(gen_step_max: int, search_step_max: int, heur_fn_par: NNetPar,
                                      **kwargs)
 
             # take a step
-            states, goals, ctgs_bellman = search.step(heur_fn)
+            search_ret: Any = search.step(heur_fn)
 
             # to nnet
             start_time = time.time()
-            states_goals_nnet: List[NDArray] = heur_fn_par.to_nnet(states, goals)
+            inputs_nnet: List[NDArray]
+            ctgs_bellman: List[float]
+            if nnet_type is NNetType.V:
+                assert isinstance(search, SearchV)
+                cast(Tuple[List[State], List[Goal], List[float]], search_ret)
+                states, goals, ctgs_bellman = search_ret
+                inputs_nnet = cast(NNetParV, heur_fn_par).to_nnet(states, goals)
             times.record_time("to_nnet", time.time() - start_time)
 
             # put
             start_time = time.time()
-            end_idx = start_idx + len(states)
-            assert len(states) == batch_size
-            for input_idx in range(len(states_goals_nnet)):
-                inputs_nnet_shm[input_idx][start_idx:end_idx] = states_goals_nnet[input_idx].copy()
-            ctgs_shm[start_idx:end_idx] = ctgs_bellman.copy()
+            end_idx = start_idx + len(ctgs_bellman)
+            assert len(ctgs_bellman) == batch_size
+            for input_idx in range(len(inputs_nnet)):
+                inputs_nnet_shm[input_idx][start_idx:end_idx] = inputs_nnet[input_idx].copy()
+            ctgs_shm[start_idx:end_idx] = np.array(ctgs_bellman).copy()
             start_idx = end_idx
             times.record_time("put", time.time() - start_time)
 
@@ -122,16 +133,17 @@ def update_runner(gen_step_max: int, search_step_max: int, heur_fn_par: NNetPar,
 
 
 def get_update_data(env: Environment, step_max: int, step_probs: NDArray, num_gen: int, up_args: UpdateArgs,
-                    rb: ReplayBuffer, targ_file: str, device: torch.device, on_gpu: bool) -> Dict[int, SearchPerf]:
+                    rb: ReplayBuffer, nnet_type: NNetType, targ_file: str, device: torch.device,
+                    on_gpu: bool) -> Dict[int, SearchPerf]:
     start_time_gen = time.time()
     num_searches: int = num_gen // up_args.up_search_itrs
     print(f"Generating {format(num_gen, ',')} training instances with {format(num_searches, ',')} searches")
     # update heuristic functions
     all_zeros: bool = not os.path.isfile(targ_file)
-    nnet_par: NNetPar = env.get_v_nnet()
-    heur_fn_qs, heur_procs = nnet_utils.start_nnet_fn_runners(nnet_par.__class__, up_args.up_procs, targ_file,
-                                                              device, on_gpu, all_zeros=all_zeros, clip_zero=True,
-                                                              batch_size=up_args.up_nnet_batch_size)
+    nnet_par: NNetPar = env.get_nnet(nnet_type)
+    heur_fn_par_l, heur_procs = nnet_utils.start_nnet_fn_runners(nnet_par.__class__, up_args.up_procs, targ_file,
+                                                                 device, on_gpu, all_zeros=all_zeros, clip_zero=True,
+                                                                 batch_size=up_args.up_nnet_batch_size)
 
     # shared memory
     states, goals = env.get_start_goal_pairs([0])
@@ -160,9 +172,9 @@ def get_update_data(env: Environment, step_max: int, step_probs: NDArray, num_ge
     from_q: Queue = ctx.Queue()
     procs: List[BaseProcess] = []
 
-    for proc_id, heur_fn_q in enumerate(heur_fn_qs):
-        proc = ctx.Process(target=update_runner, args=(step_max, up_args.up_search_itrs, heur_fn_q, env, to_q, from_q,
-                                                       step_probs, inputs_nnet_shm, ctgs_shm))
+    for proc_id, heur_fn_par in enumerate(heur_fn_par_l):
+        proc = ctx.Process(target=update_runner, args=(step_max, up_args.up_search_itrs, env, heur_fn_par, nnet_type,
+                                                       to_q, from_q, step_probs, inputs_nnet_shm, ctgs_shm))
         proc.daemon = True
         proc.start()
         procs.append(proc)
@@ -210,7 +222,7 @@ def get_update_data(env: Environment, step_max: int, step_probs: NDArray, num_ge
     print(f"Times - {times_up.get_time_str()}")
 
     # clean up
-    nnet_utils.stop_nnet_runners(heur_procs, heur_fn_qs)
+    nnet_utils.stop_nnet_runners(heur_procs, heur_fn_par_l)
     for proc in procs:
         proc.join()
     for arr_shm in inputs_nnet_shm + [ctgs_shm]:

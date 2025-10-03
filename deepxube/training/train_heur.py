@@ -177,7 +177,8 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
         # print(f"Step probs: {step_prob_str}")
         num_gen: int = train_args.batch_size * up_args.up_gen_itrs
         step_to_search_perf: Dict[int, SearchPerf] = get_update_data(env, step_max, status.step_probs, num_gen, up_args,
-                                                                     rb, targ_file, device, on_gpu)
+                                                                     rb, train_args.nnet_type, targ_file, device,
+                                                                     on_gpu)
         print_update_summary(step_to_search_perf, writer, status)
         # status.update_step_probs(step_to_search_perf)
 
