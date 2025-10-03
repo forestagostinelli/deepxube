@@ -15,6 +15,7 @@
 * Get more statistics when solving with clingo
 * Refactor search
 * Refactor neural networks
+* Environment has a function for getting a random action that is applicable to a given state
 
 
 ## 0.1.6

@@ -6,7 +6,6 @@ from deepxube.logic.logic_objects import Atom, Model
 from deepxube.utils import misc_utils
 from deepxube.nnet.nnet_utils import NNetPar
 from deepxube.utils.timing_utils import Times
-from torch import nn
 import random
 import time
 from numpy.typing import NDArray
@@ -43,8 +42,12 @@ class Goal(ABC):
 
 class NNetType(Enum):
     V = 1
-    QFix = 2
-    Q = 3
+    Q = 2
+
+
+class NNetQType(Enum):
+    FIXED = 1
+    DYNAMIC = 2
 
 
 class NNetParV(NNetPar):
@@ -75,31 +78,43 @@ class NNetParV(NNetPar):
         pass
 
 
-class NNetParQFix(NNetPar):
-    def get_nnet_par_fn(self) -> Callable[[List[State], List[Goal]], NDArray[Any]]:
+class NNetParQ(NNetPar):
+    def get_nnet_par_fn(self) -> Callable[[List[State], List[Goal], List[List[Action]]], List[NDArray[Any]]]:
         assert self.nnet_fn_i_q is not None
         assert self.nnet_fn_o_q is not None
         assert self.proc_id is not None
-        def heuristic_fn(states: List[State], goals: List[Goal]) -> NDArray:
-            inputs_nnet: List[NDArray] = self.to_nnet(states, goals)
-            inputs_nnet_shm: List[SharedNDArray] = [np_to_shnd(inputs_nnet_i)
-                                                    for input_idx, inputs_nnet_i in enumerate(inputs_nnet)]
+        def heuristic_fn(states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[NDArray]:
+            q_vals_l: List[NDArray]
+            if self.nnet_q_type is NNetQType.FIXED:
+                assert len(set(len(actions) for actions in actions_l)) == 1, "action size should be fixed"
+                inputs_nnet: List[NDArray] = self.to_nnet(states, goals, actions_l)
+                inputs_nnet_shm: List[SharedNDArray] = [np_to_shnd(inputs_nnet_i)
+                                                        for input_idx, inputs_nnet_i in enumerate(inputs_nnet)]
 
-            self.nnet_fn_i_q.put((self.proc_id, inputs_nnet_shm))
+                self.nnet_fn_i_q.put((self.proc_id, inputs_nnet_shm))
 
-            heurs_shm: SharedNDArray = self.nnet_fn_o_q.get()
-            q_vals: NDArray = heurs_shm.array.copy()
+                heurs_shm: SharedNDArray = self.nnet_fn_o_q.get()
+                q_vals: NDArray = heurs_shm.array.copy()
+                assert q_vals.shape[0] == len(states)
+                q_vals_l = [q_vals[state_idx] for state_idx in range(len(states))]
 
-            for arr_shm in inputs_nnet_shm + [heurs_shm]:
-                arr_shm.close()
-                arr_shm.unlink()
+                for arr_shm in inputs_nnet_shm + [heurs_shm]:
+                    arr_shm.close()
+                    arr_shm.unlink()
+            elif self.nnet_q_type is NNetQType.DYNAMIC:
+                breakpoint()
 
-            return q_vals
+            return q_vals_l
 
         return heuristic_fn
 
     @abstractmethod
-    def get_nnet(self) -> nn.Module:
+    def to_nnet(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[NDArray[Any]]:
+        pass
+
+    @property
+    @abstractmethod
+    def nnet_q_type(self) -> NNetQType:
         pass
 
 
@@ -127,9 +142,18 @@ class Environment(ABC, Generic[S, A, G]):
         """ Get actions applicable to each states
 
         @param states: List of states
-        @return: Applicable ations
+        @return: Applicable actions
         """
         pass
+
+    def get_state_action_rand(self, states: List[S]) -> List[A]:
+        """ Get a random action that is applicable to the current state
+
+        @param states: List of states
+        @return: Applicable actions
+        """
+        state_actions_l: List[List[A]] = self.get_state_actions(states)
+        return [random.choice(state_actions) for state_actions in state_actions_l]
 
     @abstractmethod
     def next_state(self, states: List[S], actions: List[A]) -> Tuple[List[S], List[float]]:
@@ -147,8 +171,7 @@ class Environment(ABC, Generic[S, A, G]):
         @param states: List of states
         @return: Next states, transition costs
         """
-        state_actions: List[List[A]] = self.get_state_actions(states)
-        actions_rand: List[A] = [random.choice(x) for x in state_actions]
+        actions_rand: List[A] = self.get_state_action_rand(states)
         return self.next_state(states, actions_rand)
 
     @abstractmethod
@@ -236,10 +259,8 @@ class Environment(ABC, Generic[S, A, G]):
     def get_nnet(self, nnet_type: NNetType) -> NNetPar:
         if nnet_type is nnet_type.V:
             return self.get_v_nnet()
-        elif nnet_type is nnet_type.QFix:
-            return self.get_qfix_nnet()
-        else:
-            raise ValueError(f"Unknown neural network type {nnet_type}")
+        elif nnet_type is nnet_type.Q:
+            return self.get_q_nnet()
 
     @abstractmethod
     def get_v_nnet(self) -> NNetParV:
@@ -250,9 +271,8 @@ class Environment(ABC, Generic[S, A, G]):
         pass
 
     @abstractmethod
-    def get_qfix_nnet(self) -> NNetParQFix:
-        """ Get the neural network model for q-learning and Q* search that has a fixed action space and maps
-        instances to an array of q_values for each action
+    def get_q_nnet(self) -> NNetParQ:
+        """ Get the neural network model for q-learning and Q* search
 
         @return: neural network model
         """

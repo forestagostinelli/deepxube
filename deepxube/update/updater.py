@@ -9,14 +9,15 @@ import numpy as np
 import torch
 from numpy.typing import NDArray
 
-from deepxube.environments.environment_abstract import Environment, State, Goal, NNetType, NNetParV
-from deepxube.nnet import nnet_utils
 from deepxube.nnet.nnet_utils import NNetPar
+from deepxube.environments.environment_abstract import Environment, State, Goal, Action, NNetType, NNetParV, NNetParQ
+from deepxube.nnet import nnet_utils
 from deepxube.search.search_v.search_abstract_v import SearchV
 from deepxube.search.search_v.bwas import BWAS
+from deepxube.search.search_q.search_abstract_q import SearchQ
 from deepxube.search.search_abstract import Search, Instance
 from deepxube.search.search_utils import SearchPerf
-from deepxube.training.train_utils import ReplayBuffer
+from deepxube.training.train_utils import ReplayBuffer, get_single_nnet_input
 from deepxube.utils.data_utils import SharedNDArray
 from deepxube.utils.misc_utils import split_evenly_w_max
 from deepxube.utils.timing_utils import Times
@@ -59,8 +60,8 @@ def update_runner(gen_step_max: int, search_step_max: int, env: Environment, heu
 
         if nnet_type is NNetType.V:
             search: Search = BWAS(env)
-        else:
-            raise ValueError(f"Unknown nnet type {nnet_type}")
+        elif nnet_type is NNetType.Q:
+            search: Search = BWQS(env)
 
         insts_rem: List[Instance] = []
         start_idx_batch: int = start_idx
@@ -97,11 +98,16 @@ def update_runner(gen_step_max: int, search_step_max: int, env: Environment, heu
             start_time = time.time()
             inputs_nnet: List[NDArray]
             ctgs_bellman: List[float]
-            if nnet_type is NNetType.V:
-                assert isinstance(search, SearchV)
-                cast(Tuple[List[State], List[Goal], List[float]], search_ret)
-                states, goals, ctgs_bellman = search_ret
+            if isinstance(search, SearchV):
+                states, goals, ctgs_bellman = cast(Tuple[List[State], List[Goal], List[float]], search_ret)
                 inputs_nnet = cast(NNetParV, heur_fn_par).to_nnet(states, goals)
+            elif isinstance(search, SearchQ):
+                states, goals, actions, ctgs_bellman = cast(Tuple[List[State], List[Goal], List[Action], List[float]],
+                                                            search_ret)
+                actions_l: List[List[Action]] = [[action] for action in actions]
+                inputs_nnet = cast(NNetParQ, heur_fn_par).to_nnet(states, goals, actions_l)
+            else:
+                raise ValueError(f"Unknown search class {search.__class__}")
             times.record_time("to_nnet", time.time() - start_time)
 
             # put
@@ -146,8 +152,7 @@ def get_update_data(env: Environment, step_max: int, step_probs: NDArray, num_ge
                                                                  batch_size=up_args.up_nnet_batch_size)
 
     # shared memory
-    states, goals = env.get_start_goal_pairs([0])
-    inputs_nnet: List[NDArray] = nnet_par.to_nnet(states, goals)
+    inputs_nnet: List[NDArray] = get_single_nnet_input(env, nnet_par)
     inputs_nnet_shm: List[SharedNDArray] = []
     for nnet_idx, inputs_nnet_i in enumerate(inputs_nnet):
         inputs_nnet_shm.append(SharedNDArray((num_gen,) + inputs_nnet_i[0].shape, inputs_nnet_i.dtype,

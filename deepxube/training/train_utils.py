@@ -1,11 +1,12 @@
 import time
-from typing import List, Tuple
+from typing import List, Tuple, Any
 from dataclasses import dataclass
 
 import numpy as np
 from numpy.typing import NDArray
 
-from deepxube.environments.environment_abstract import NNetType
+from deepxube.nnet.nnet_utils import NNetPar
+from deepxube.environments.environment_abstract import Environment, Action, NNetType, NNetParV, NNetParQ
 from deepxube.utils.data_utils import sel_l
 from deepxube.nnet import nnet_utils
 
@@ -134,3 +135,17 @@ def train_heur_nnet(nnet: nn.Module, batches: List[Tuple[List[NDArray], NDArray]
         train_itr = train_itr + 1
 
     return last_loss
+
+
+def get_single_nnet_input(env: Environment, nnet_par: NNetPar) -> List[NDArray[Any]]:
+    states, goals = env.get_start_goal_pairs([0])
+
+    if isinstance(nnet_par, NNetParV):
+        inputs_nnet: List[NDArray[Any]] = nnet_par.to_nnet(states, goals)
+    elif isinstance(nnet_par, NNetParQ):
+        actions: List[Action] = env.get_state_action_rand(states)
+        inputs_nnet: List[NDArray[Any]] = nnet_par.to_nnet(states, goals, [actions])
+    else:
+        raise ValueError(f"Unknown nnet par class {nnet_par.__class__}")
+
+    return inputs_nnet

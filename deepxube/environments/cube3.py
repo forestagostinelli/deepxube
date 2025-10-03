@@ -4,7 +4,7 @@ from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel
 from deepxube.logic.logic_objects import Atom, Model
 from deepxube.visualizers.cube3_viz_simple import InteractiveCube
 from deepxube.utils.timing_utils import Times
-from .environment_abstract import EnvGrndAtoms, State, Action, Goal, NNetParV, NNetParQFix
+from .environment_abstract import EnvGrndAtoms, State, Action, Goal, NNetParV, NNetParQ, NNetQType
 
 import numpy as np
 import torch
@@ -20,9 +20,6 @@ from numpy.typing import NDArray
 
 
 class Cube3ProcessStates(nn.Module):
-    def _forward_unimplemented(self, *input_val: Any) -> None:
-        pass
-
     def __init__(self, state_dim: int, one_hot_depth: int):
         super().__init__()
         self.state_dim: int = state_dim
@@ -66,6 +63,36 @@ class Cube3NNet(nn.Module):
         goals_proc = self.state_proc1(states_goals_l[1])
 
         x: Tensor = self.heur(torch.cat((states_proc, goals_proc), dim=1))
+
+        return x
+
+
+class Cube3NNetQ(nn.Module):
+    def __init__(self, state_dim: int, oh_depth0: int, oh_depth1: int, res_dim: int, num_res_blocks: int, out_dim: int,
+                 batch_norm: bool, weight_norm: bool, group_norm: int, act_fn: str):
+        super().__init__()
+        self.state_proc0 = Cube3ProcessStates(state_dim, oh_depth0)
+        self.state_proc1 = Cube3ProcessStates(state_dim, oh_depth1)
+
+        input_dim: int = (state_dim * oh_depth0) + (state_dim * oh_depth1)
+        def res_block_init() -> nn.Module:
+            return FullyConnectedModel(res_dim, [res_dim] * 2, [act_fn, "LINEAR"],
+                                       batch_norms=[batch_norm] * 2, weight_norms=[weight_norm] * 2,
+                                       group_norms=[group_norm] * 2)
+
+        self.heur = nn.Sequential(
+            nn.Linear(input_dim, res_dim),
+            ResnetModel(res_block_init, num_res_blocks, act_fn),
+            nn.Linear(res_dim, out_dim)
+        )
+
+    def forward(self, states_goals_acts_l: List[Tensor]):
+        states_proc: Tensor = self.state_proc0(states_goals_acts_l[0])
+        goals_proc: Tensor = self.state_proc1(states_goals_acts_l[1])
+
+        x: Tensor = self.heur(torch.cat((states_proc, goals_proc), dim=1))
+
+        breakpoint()
 
         return x
 
@@ -115,6 +142,27 @@ class Cube3NNetParV(NNetParV):
         states_np: NDArray[np.uint8] = np.stack([state.colors for state in states], axis=0).astype(np.uint8)
         goals_np: NDArray[np.uint8] = np.stack([goal.colors for goal in goals], axis=0)
         return [states_np, goals_np]
+
+
+class Cube3NNetParQ(NNetParQ):
+    def get_nnet(self) -> nn.Module:
+        state_dim: int = (3 ** 2) * 6
+        return Cube3NNetQ(state_dim, 6, 7, 1000, 4, 12, True, False, -1, "RELU")
+
+    def to_nnet(self, states: List[Cube3State], goals: List[Cube3Goal],
+                actions_l: List[List[Cube3Action]]) -> List[NDArray[Any]]:
+        assert len(set(len(actions) for actions in actions_l)) == 1, "num actions should be the same for all instances"
+        num_actions: int = len(actions_l[0])
+        states_np: NDArray[np.uint8] = np.stack([state.colors for state in states], axis=0).astype(np.uint8)
+        goals_np: NDArray[np.uint8] = np.stack([goal.colors for goal in goals], axis=0)
+        actions_np: NDArray[int] = np.zeros((len(states), num_actions)).astype(int)
+        for state_idx in range(len(states)):
+            actions_np[state_idx] = np.array([action.action for action in actions_l[state_idx]])
+        return [states_np, goals_np, actions_np]
+
+    @property
+    def nnet_q_type(self) -> NNetQType:
+        return NNetQType.FIXED
 
 
 def _get_adj() -> Dict[int, NDArray[np.int_]]:
@@ -226,12 +274,6 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal]):
         is_solved_np = np.all(np.logical_or(states_np == goals_np, goals_np == 6), axis=1)
         return list(is_solved_np)
 
-    def states_goals_to_nnet_input(self, states: List[Cube3State], goals: List[Cube3Goal]) -> List[NDArray[np.uint8]]:
-        # states
-        states_np: NDArray[np.uint8] = np.stack([state.colors for state in states], axis=0).astype(np.uint8)
-        goals_np: NDArray[np.uint8] = np.stack([goal.colors for goal in goals], axis=0)
-        return [states_np, goals_np]
-
     def state_to_model(self, states: List[Cube3State]) -> List[Model]:
         states_np = np.stack([x.colors for x in states], axis=0).astype(np.uint8)
         colors_l = self.int_to_color[states_np]
@@ -257,8 +299,8 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal]):
     def get_v_nnet(self) -> Cube3NNetParV:
         return Cube3NNetParV()
 
-    def get_qfix_nnet(self) -> NNetParQFix:
-        raise NotImplementedError
+    def get_q_nnet(self) -> NNetParQ:
+        return Cube3NNetParQ()
 
     def get_start_states(self, num_states: int) -> List[Cube3State]:
         assert (num_states > 0)

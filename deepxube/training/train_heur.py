@@ -1,7 +1,7 @@
 from typing import List, Tuple, Dict
 
 from deepxube.search.search_utils import SearchPerf, print_search_perf
-from deepxube.training.train_utils import ReplayBuffer, train_heur_nnet, TrainArgs
+from deepxube.training.train_utils import ReplayBuffer, train_heur_nnet, TrainArgs, get_single_nnet_input
 from deepxube.update.updater import UpdateArgs, get_update_data
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
@@ -155,8 +155,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
     nnet = nn.DataParallel(nnet)
 
     # initialize replay buffer
-    states, goals = env.get_start_goal_pairs([0])
-    inputs_nnet: List[NDArray] = nnet_par.to_nnet(states, goals)
+    inputs_nnet: List[NDArray] = get_single_nnet_input(env, nnet_par)
     rb_shapes: List[Tuple[int, ...]] = []
     rb_dtypes: List[np.dtype] = []
     for nnet_idx, inputs_nnet_i in enumerate(inputs_nnet):
