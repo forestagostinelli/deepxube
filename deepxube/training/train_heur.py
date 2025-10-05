@@ -2,7 +2,7 @@ from typing import List, Tuple, Dict
 
 from deepxube.base.updater import UpdateHeur
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, print_pathfindperf
-from deepxube.training.train_utils import ReplayBuffer, train_heur_nnet, TrainArgs, get_single_nnet_input
+from deepxube.training.train_utils import ReplayBuffer, train_heur_nnet, TrainArgs
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
 
@@ -151,14 +151,9 @@ def train(updater: UpdateHeur, step_max: int, nnet_dir: str, train_args: TrainAr
     nnet = nn.DataParallel(nnet)
 
     # initialize replay buffer
-    inputs_nnet: List[NDArray] = get_single_nnet_input(updater.env, updater.heur_nnet)
-    rb_shapes: List[Tuple[int, ...]] = []
-    rb_dtypes: List[np.dtype] = []
-    for nnet_idx, inputs_nnet_i in enumerate(inputs_nnet):
-        rb_shapes.append(inputs_nnet_i[0].shape)
-        rb_dtypes.append(inputs_nnet_i.dtype)
-    rb_shapes.append(tuple())
-    rb_dtypes.append(np.dtype(np.float64))
+    shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = updater.get_input_shapes_dtypes()
+    rb_shapes: List[Tuple[int, ...]] = [x[0] for x in shapes_dtypes] + [tuple()]
+    rb_dtypes: List[np.dtype] = [x[1] for x in shapes_dtypes] + [np.dtype(np.float64)]
     rb: ReplayBuffer = ReplayBuffer(train_args.batch_size * updater.up_args.up_gen_itrs * rb_past_up, rb_shapes,
                                     rb_dtypes)
 
@@ -172,8 +167,10 @@ def train(updater: UpdateHeur, step_max: int, nnet_dir: str, train_args: TrainAr
         # step_prob_str: str = ', '.join([f'{step}:{status.step_probs[step]:.2E}' for step in steps_show])
         # print(f"Step probs: {step_prob_str}")
         num_gen: int = train_args.batch_size * updater.up_args.up_gen_itrs
-        step_to_search_perf: Dict[int, PathFindPerf] = updater.get_update_data(targ_file, step_max, status.step_probs,
-                                                                               num_gen, rb, device, on_gpu)
+        all_zeros: bool = status.update_num == 0
+        step_to_search_perf: Dict[int, PathFindPerf] = updater.get_update_data(targ_file, all_zeros, step_max,
+                                                                               status.step_probs, num_gen, rb, device,
+                                                                               on_gpu)
         print_update_summary(step_to_search_perf, writer, status)
         # status.update_step_probs(step_to_search_perf)
 

@@ -133,14 +133,3 @@ def train_heur_nnet(nnet: nn.Module, batches: List[Tuple[List[NDArray], NDArray]
         train_itr = train_itr + 1
 
     return last_loss
-
-
-def get_single_nnet_input(env: Environment, heur_nnet: HeurNNet) -> List[NDArray[Any]]:
-    states, goals = env.get_start_goal_pairs([0])
-
-    if isinstance(heur_nnet, HeurNNetV):
-        inputs_nnet: List[NDArray[Any]] = heur_nnet.to_np(states, goals)
-    else:
-        raise ValueError(f"Unknown heur nnet class {heur_nnet.__class__}")
-
-    return inputs_nnet
