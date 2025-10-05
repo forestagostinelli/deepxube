@@ -51,8 +51,8 @@ class PathFindPerf:
         path_cost_ave: float = 0.0
         search_itrs_ave: float = 0.0
         if len(self.path_costs) > 0:
-            path_cost_ave: float = float(np.mean(self.path_costs))
-            search_itrs_ave: float = float(np.mean(self.search_itrs_l))
+            path_cost_ave = float(np.mean(self.path_costs))
+            search_itrs_ave = float(np.mean(self.search_itrs_l))
 
         return self.per_solved(), path_cost_ave, search_itrs_ave
 

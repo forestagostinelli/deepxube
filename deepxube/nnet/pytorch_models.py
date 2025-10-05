@@ -59,10 +59,11 @@ class SPLASH1(nn.Module):
         self.output_bias: Parameter = Parameter(torch.zeros(1), requires_grad=True)
 
         self.coeff_right: Parameter = Parameter(torch.ones(1), requires_grad=True)
+        self.coeff_left: Parameter
         if init == "RELU":
-            self.coeff_left: Parameter = Parameter(torch.zeros(1), requires_grad=True)
+            self.coeff_left = Parameter(torch.zeros(1), requires_grad=True)
         elif init == "LINEAR":
-            self.coeff_left: Parameter = Parameter(-torch.ones(1), requires_grad=True)
+            self.coeff_left = Parameter(-torch.ones(1), requires_grad=True)
         else:
             raise ValueError("Unknown init %s" % init)
 
@@ -105,8 +106,8 @@ def get_act_fn(act: str):
 class ResnetModel(nn.Module):
     def __init__(self, block_init: Callable[[], nn.Module], num_resnet_blocks: int, act_fn: str):
         super().__init__()
-        self.blocks = nn.ModuleList()
-        self.act_fns = nn.ModuleList()
+        self.blocks: nn.ModuleList = nn.ModuleList()
+        self.act_fns: nn.ModuleList = nn.ModuleList()
 
         # resnet blocks
         for block_num in range(num_resnet_blocks):
@@ -118,8 +119,9 @@ class ResnetModel(nn.Module):
 
     def forward(self, x):
         # resnet blocks
-        module_list: nn.ModuleList
+        module_list: nn.Module
         for module_list, act_fn in zip(self.blocks, self.act_fns):
+            assert isinstance(module_list, nn.ModuleList)
             res_inp = x
             for module in module_list:
                 x = module(x)
@@ -139,7 +141,7 @@ class FullyConnectedModel(nn.Module):
             weight_norms = [False] * len(dims)
         if group_norms is None:
             group_norms = [-1] * len(dims)
-        self.layers: nn.ModuleList[nn.ModuleList] = nn.ModuleList()
+        self.layers: nn.ModuleList = nn.ModuleList()
 
         # layers
         for dim, act, batch_norm, weight_norm, group_norm in zip(dims, acts, batch_norms, weight_norms, group_norms,
@@ -169,8 +171,9 @@ class FullyConnectedModel(nn.Module):
     def forward(self, x):
         x = x.float()
 
-        module_list: nn.ModuleList
+        module_list: nn.Module
         for module_list in self.layers:
+            assert isinstance(module_list, nn.ModuleList)
             for module in module_list:
                 x = module(x)
 
@@ -233,8 +236,9 @@ class Conv2dModel(nn.Module):
     def forward(self, x):
         x = x.float()
 
-        module_list: nn.ModuleList
+        module_list: nn.Module
         for module_list in self.layers:
+            assert isinstance(module_list, nn.ModuleList)
             for module in module_list:
                 x = module(x)
 

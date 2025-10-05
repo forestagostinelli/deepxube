@@ -102,17 +102,18 @@ class SharedNDArray:
         self.shape = tuple(shape)
         self.dtype = np.dtype(dtype)
 
+        self.shm: SharedMemory
         if create:
             # create new shared block
             assert name is None, "Let SharedMemory do name creation"
             nbytes: int = int(np.prod(self.shape)) * self.dtype.itemsize
-            self.shm: SharedMemory = shared_memory.SharedMemory(create=True, size=nbytes, name=name)
+            self.shm = shared_memory.SharedMemory(create=True, size=nbytes, name=name)
         else:
             # attach to existing shared block
-            self.shm: SharedMemory = shared_memory.SharedMemory(name=name)
+            self.shm = shared_memory.SharedMemory(name=name)
 
         # numpy view backed by shared memory
-        self.array = np.ndarray(self.shape, dtype=self.dtype, buffer=self.shm.buf)
+        self.array: NDArray = np.ndarray(self.shape, dtype=self.dtype, buffer=self.shm.buf)
 
     @property
     def name(self) -> str:

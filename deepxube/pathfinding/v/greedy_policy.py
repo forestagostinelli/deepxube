@@ -64,7 +64,7 @@ class Greedy(PathFindV[InstanceGrV]):
 
                 child_idx: int = int(np.argmin(tc_p_ctg_next))
                 if rand_vals[idx] < instance.eps:
-                    child_idx: int = random.choice(list(range(len(tc_p_ctg_next))))
+                    child_idx = random.choice(list(range(len(tc_p_ctg_next))))
                 node_next: NodeV = children[child_idx]
 
                 instance.curr_node = node_next

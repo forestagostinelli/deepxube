@@ -171,7 +171,7 @@ class UpdateHeur(ABC):
                 times.record_time("put", time.time() - start_time)
 
                 # remove instances
-                insts_rem: List[Instance] = pathfind.remove_finished_instances(self.up_args.up_search_itrs)
+                insts_rem = pathfind.remove_finished_instances(self.up_args.up_search_itrs)
 
                 # pathfinding performance
                 for inst_rem in insts_rem:

@@ -64,8 +64,8 @@ class ReplayBuffer:
         return self.curr_size
 
     def clear(self):
-        self.curr_size: int = 0
-        self.add_idx: int = 0
+        self.curr_size = 0
+        self.add_idx = 0
 
     def _add_circular(self, arrays_add: List[NDArray]):
         start_idx: int = 0

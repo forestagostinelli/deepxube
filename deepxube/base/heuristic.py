@@ -78,6 +78,7 @@ class HeurNNetV(HeurNNet[HeurFnV]):
 HeurFnQ = Callable[[List[State], List[Goal], List[List[Action]]], List[List[float]]]
 
 
+"""
 class NNetParQ(NNetPar):
     def get_nnet_par_fn(self) -> HeurFnQ:
         assert self.nnet_fn_i_q is not None
@@ -117,3 +118,4 @@ class NNetParQ(NNetPar):
     @abstractmethod
     def nnet_q_type(self) -> NNetQType:
         pass
+"""

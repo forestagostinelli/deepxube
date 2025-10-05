@@ -147,6 +147,7 @@ class NodeV(Node):
         return self.bellman_backup_val
 
     def upper_bound_parent_path(self, ctg_ub: float):
+        assert self.bellman_backup_val is not None
         self.bellman_backup_val = min(self.bellman_backup_val, ctg_ub)
         if self.parent is not None:
             assert self.parent_t_cost is not None
@@ -232,10 +233,11 @@ class PathFindV(PathFind[I]):
 
     def _create_root_nodes(self, states: List[State], goals: List[Goal], heur_fn: HeurFnV,
                            compute_init_heur: bool) -> List[NodeV]:
+        heuristics: List[float]
         if compute_init_heur:
-            heuristics: List[float] = heur_fn(states, goals)
+            heuristics = heur_fn(states, goals)
         else:
-            heuristics: List[float] = [0.0 for _ in states]
+            heuristics = [0.0 for _ in states]
 
         root_nodes: List[NodeV] = []
         is_solved_l: List[bool] = self.env.is_solved(states, goals)
