@@ -1,11 +1,11 @@
-from typing import List, Dict, Tuple, Union, Any, Set, Optional
+from typing import List, Dict, Tuple, Union, Any, Set, Optional, cast
 from deepxube.utils import misc_utils
 from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel
 from deepxube.logic.logic_objects import Atom, Model
 from deepxube.visualizers.cube3_viz_simple import InteractiveCube
 from deepxube.utils.timing_utils import Times
 from deepxube.base.environment import EnvGrndAtoms, State, Action, Goal, SupportsPDDL
-from deepxube.base.heuristic import NNetQType, HeurNNetV, NNetParQ
+from deepxube.base.heuristic import HeurNNetV
 
 import numpy as np
 import torch
@@ -136,7 +136,7 @@ class Cube3Action(Action):
         return NotImplemented
 
 
-class Cube3NNetParV(HeurNNetV):
+class Cube3NNetParV(HeurNNetV[Cube3State, Cube3Goal]):
     def get_nnet(self) -> nn.Module:
         state_dim: int = (3 ** 2) * 6
         return Cube3NNet(state_dim, 6, 7, 1000, 4, 1, True, False, -1, "RELU")
@@ -147,6 +147,7 @@ class Cube3NNetParV(HeurNNetV):
         return [states_np, goals_np]
 
 
+"""
 class Cube3NNetParQ(NNetParQ):
     def get_nnet(self) -> nn.Module:
         state_dim: int = (3 ** 2) * 6
@@ -166,6 +167,7 @@ class Cube3NNetParQ(NNetParQ):
     @property
     def nnet_q_type(self) -> NNetQType:
         return NNetQType.FIXED
+"""
 
 
 def _get_adj() -> Dict[int, NDArray[np.int_]]:
@@ -272,8 +274,8 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal], SupportsPDDL):
     def is_solved(self, states: List[Cube3State], goals: List[Cube3Goal]) -> List[bool]:
         states_np: NDArray = np.stack([x.colors for x in states], axis=0)
         goals_np: NDArray = np.stack([x.colors for x in goals], axis=0)
-        is_solved_np: NDArray = np.all(np.logical_or(states_np == goals_np, goals_np == 6), axis=1)
-        return is_solved_np.tolist()
+        is_solved_np: NDArray[np.bool_] = np.all(np.logical_or(states_np == goals_np, goals_np == 6), axis=1)
+        return cast(List[bool], is_solved_np.tolist())
 
     def state_to_model(self, states: List[Cube3State]) -> List[Model]:
         states_np = np.stack([x.colors for x in states], axis=0).astype(np.uint8)

@@ -44,7 +44,6 @@ class Status:
         per_solved_per_step: NDArray = np.array(per_solved_per_step_l)
 
         num_no_soln: int = np.sum(per_solved_per_step == 0)
-        self.step_probs: NDArray
         if num_no_soln == 0:
             self.step_probs = per_solved_per_step / per_solved_per_step.sum()
         else:

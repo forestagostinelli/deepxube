@@ -130,7 +130,6 @@ class NodeV(Node):
         self.bellman_backup_val: Optional[float] = None
 
     def backup(self) -> float:
-        self.bellman_backup_val: float
         if self.is_solved:
             self.bellman_backup_val = 0.0
         else:
@@ -329,11 +328,12 @@ class PathFindQ(PathFind[I]):
 
     def _create_root_nodes(self, states: List[State], goals: List[Goal], heur_fn: HeurFnQ,
                            compute_init_heur: bool) -> List[NodeQ]:
+        heuristics: List[float]
         if compute_init_heur:
             actions_l: List[List[Action]] = self.env.get_state_actions(states)
-            heuristics: List[float] = [min(x) for x in heur_fn(states, goals, actions_l)]
+            heuristics = [min(x) for x in heur_fn(states, goals, actions_l)]
         else:
-            heuristics: List[float] = [0.0 for _ in states]
+            heuristics = [0.0 for _ in states]
 
         root_nodes: List[NodeQ] = []
         is_solved_l: List[bool] = self.env.is_solved(states, goals)

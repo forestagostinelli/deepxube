@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
 from enum import Enum
-from typing import Callable, List, Any, TypeVar, Generic
+from typing import Callable, List, Any, TypeVar, Generic, cast
 
 import numpy as np
 from numpy.typing import NDArray
@@ -47,12 +47,14 @@ class HeurNNet(NNetPar, Generic[H]):
         pass
 
 
-HeurFnV = Callable[[List[State], List[Goal]], List[float]]
+S = TypeVar('S', bound=State)
+G = TypeVar('G', bound=Goal)
+HeurFnV = Callable[[List[S], List[G]], List[float]]
 
 
-class HeurNNetV(HeurNNet[HeurFnV]):
+class HeurNNetV(HeurNNet[HeurFnV], Generic[S, G]):
     def get_nnet_par_fn(self, nnet_par_info: NNetParInfo) -> HeurFnV:
-        def heuristic_fn(states: List[State], goals: List[Goal]) -> List[float]:
+        def heuristic_fn(states: List[S], goals: List[G]) -> List[float]:
             inputs_nnet: List[NDArray] = self.to_np(states, goals)
             inputs_nnet_shm: List[SharedNDArray] = [np_to_shnd(inputs_nnet_i)
                                                     for input_idx, inputs_nnet_i in enumerate(inputs_nnet)]
@@ -66,12 +68,12 @@ class HeurNNetV(HeurNNet[HeurFnV]):
                 arr_shm.close()
                 arr_shm.unlink()
 
-            return heurs[:, 0].astype(np.float64).tolist()
+            return cast(List[float], heurs[:, 0].astype(np.float64).tolist())
 
         return heuristic_fn
 
     @abstractmethod
-    def to_np(self, states: List[State], goals: List[Goal]) -> List[NDArray[Any]]:
+    def to_np(self, states: List[S], goals: List[G]) -> List[NDArray[Any]]:
         pass
 
 
