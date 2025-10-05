@@ -1,11 +1,11 @@
 from typing import Tuple
 from deepxube.base.environment import Environment
-from deepxube.base.heuristic import NNetPar
+from deepxube.base.heuristic import HeurNNet
 import math
 import re
 
 
-def get_environment(env_name: str) -> Tuple[Environment, NNetPar]:
+def get_environment(env_name: str) -> Tuple[Environment, HeurNNet]:
     env_name = env_name.lower()
     puzzle_n_regex = re.search(r"puzzle(\d+)", env_name)
 

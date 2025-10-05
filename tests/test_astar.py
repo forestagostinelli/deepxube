@@ -1,10 +1,10 @@
 from typing import List
 import pytest
 from deepxube.base.environment import Environment
-from deepxube.search.astar import AStar, get_path
+from deepxube.pathfinding.astar import AStar, get_path
 from deepxube.environments.env_utils import get_environment
 from deepxube.nnet.nnet_utils import get_heuristic_fn, get_device, HeurFN_T
-from deepxube.search.search_utils import is_valid_soln
+from deepxube.pathfinding.pathfinding_utils import is_valid_soln
 
 import numpy as np
 
@@ -32,7 +32,7 @@ def test_search(env_name: str, num_steps_l: List[int], batch_size: int):
     astar: AStar = AStar(env)
     astar.add_instances(states, goals, [weight] * len(states), heur_fn)
 
-    # do search
+    # do pathfinding
     while min(x.finished for x in astar.instances) is False:
         astar.step(heur_fn, batch_size)
 

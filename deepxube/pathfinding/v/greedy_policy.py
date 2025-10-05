@@ -1,6 +1,6 @@
 from typing import List, Optional, Any, Tuple, Callable
 from deepxube.base.environment import State, Goal
-from deepxube.base.search import Instance, NodeV, SearchV
+from deepxube.base.pathfinding import Instance, NodeV, PathFindV
 import numpy as np
 import random
 import time
@@ -14,7 +14,7 @@ class InstanceGrV(Instance):
         self.eps = eps
 
 
-class Greedy(SearchV[InstanceGrV]):
+class Greedy(PathFindV[InstanceGrV]):
     def add_instances(self, states: List[State], goals: List[Goal], heur_fn: Callable,
                       inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True,
                       eps_l: Optional[List[float]] = None):

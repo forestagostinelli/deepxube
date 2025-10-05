@@ -5,7 +5,7 @@ from deepxube.logic.logic_objects import Atom, Model
 from deepxube.visualizers.cube3_viz_simple import InteractiveCube
 from deepxube.utils.timing_utils import Times
 from deepxube.base.environment import EnvGrndAtoms, State, Action, Goal, SupportsPDDL
-from deepxube.base.heuristic import NNetQType, NNetParV, NNetParQ
+from deepxube.base.heuristic import NNetQType, HeurNNetV, NNetParQ
 
 import numpy as np
 import torch
@@ -134,12 +134,12 @@ class Cube3Action(Action):
         return NotImplemented
 
 
-class Cube3NNetParV(NNetParV):
+class Cube3NNetParV(HeurNNetV):
     def get_nnet(self) -> nn.Module:
         state_dim: int = (3 ** 2) * 6
         return Cube3NNet(state_dim, 6, 7, 1000, 4, 1, True, False, -1, "RELU")
 
-    def to_nnet(self, states: List[Cube3State], goals: List[Cube3Goal]) -> List[NDArray[Any]]:
+    def to_np(self, states: List[Cube3State], goals: List[Cube3Goal]) -> List[NDArray[Any]]:
         states_np: NDArray[np.uint8] = np.stack([state.colors for state in states], axis=0).astype(np.uint8)
         goals_np: NDArray[np.uint8] = np.stack([goal.colors for goal in goals], axis=0)
         return [states_np, goals_np]

@@ -197,7 +197,7 @@ class InteractiveCube(plt.Axes):  # type: ignore
                 self.add_patch(sp)
         else:
             assert self._sticker_polys is not None
-            # subsequent call: update the polygon objects
+            # subsequent call: updater the polygon objects
             for i in range(len(colors)):
                 self._face_polys[i].set_xy(faces[i])
                 self._face_polys[i].set_zorder(face_zorders[i])

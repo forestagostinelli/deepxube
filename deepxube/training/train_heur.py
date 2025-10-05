@@ -1,12 +1,10 @@
 from typing import List, Tuple, Dict
 
-from deepxube.search.search_utils import SearchPerf, print_search_perf
+from deepxube.base.updater import UpdateHeur
+from deepxube.pathfinding.pathfinding_utils import PathFindPerf, print_pathfindperf
 from deepxube.training.train_utils import ReplayBuffer, train_heur_nnet, TrainArgs, get_single_nnet_input
-from deepxube.update.updater import UpdateArgs, get_update_data
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
-from deepxube.nnet.nnet_utils import NNetPar
-from deepxube.base.environment import Environment
 
 import torch
 import torch.optim as optim
@@ -35,13 +33,13 @@ class Status:
         # self.step_probs[1:] = 0.5/self.step_max
         self.step_probs: NDArray = np.ones(self.step_max + 1)/(step_max + 1)
 
-    def update_step_probs(self, step_to_search_perf: Dict[int, SearchPerf]):
+    def update_step_probs(self, step_to_search_perf: Dict[int, PathFindPerf]):
         per_solved_per_step_l: List[float] = []
         for step in range(self.step_max + 1):
             if step not in step_to_search_perf.keys():
                 per_solved_per_step_l.append(0.0)
             else:
-                search_perf: SearchPerf = step_to_search_perf[step]
+                search_perf: PathFindPerf = step_to_search_perf[step]
                 per_solved_per_step_l.append(search_perf.per_solved())
         per_solved_per_step: NDArray = np.array(per_solved_per_step_l)
 
@@ -55,13 +53,12 @@ class Status:
             self.step_probs[per_solved_per_step == 0] = 1 / num_tot_eff / num_no_soln
 
 
-def load_data(model_dir: str, curr_file: str, targ_file: str, nnet_par: NNetPar,
+def load_data(model_dir: str, curr_file: str, targ_file: str, nnet: nn.Module,
               step_max: int) -> Tuple[nn.Module, Status]:
     status_file: str = "%s/status.pkl" % model_dir
     if os.path.isfile(curr_file):
-        nnet = nnet_utils.load_nnet(curr_file, nnet_par.get_nnet())
+        nnet = nnet_utils.load_nnet(curr_file, nnet)
     else:
-        nnet = nnet_par.get_nnet()
         torch.save(nnet.state_dict(), targ_file)
 
     status: Status
@@ -76,7 +73,7 @@ def load_data(model_dir: str, curr_file: str, targ_file: str, nnet_par: NNetPar,
     return nnet, status
 
 
-def print_update_summary(step_to_search_perf: Dict[int, SearchPerf], writer: SummaryWriter, status: Status):
+def print_update_summary(step_to_search_perf: Dict[int, PathFindPerf], writer: SummaryWriter, status: Status):
     per_solved_l: List[float] = []
     path_cost_ave_l: List[float] = []
     search_itrs_ave_l: List[float] = []
@@ -91,15 +88,15 @@ def print_update_summary(step_to_search_perf: Dict[int, SearchPerf], writer: Sum
     search_itrs_ave: float = float(np.mean(search_itrs_ave_l))
     print(f"%solved: {per_solved_ave:.2f}, path_costs: {path_costs_ave:.3f}, "
           f"search_itrs: {search_itrs_ave:.3f} (equally weighted across step numbers)")
-    writer.add_scalar("solved (update)", per_solved_ave, status.itr)
-    writer.add_scalar("path_cost (update)", path_costs_ave, status.itr)
-    writer.add_scalar("search_itrs (update)", search_itrs_ave, status.itr)
+    writer.add_scalar("solved (updater)", per_solved_ave, status.itr)
+    writer.add_scalar("path_cost (updater)", path_costs_ave, status.itr)
+    writer.add_scalar("search_itrs (updater)", search_itrs_ave, status.itr)
 
-    print_search_perf(step_to_search_perf)
+    print_pathfindperf(step_to_search_perf)
 
 
-def train(env: Environment, nnet_par: NNetPar, step_max: int, nnet_dir: str, train_args: TrainArgs, up_args: UpdateArgs,
-          rb_past_up: int = 10, debug: bool = False):
+def train(updater: UpdateHeur, step_max: int, nnet_dir: str, train_args: TrainArgs, rb_past_up: int = 10,
+          debug: bool = False):
     """ Train a deep neural network heuristic (DNN) function with deep approximate value iteration (DAVI).
     A target DNN is maintained for computing the updated heuristic values. When the greedy policy improves on a fixed
     test set, the target DNN is updated to be the current DNN. The number of steps taken for testing the greedy policy
@@ -107,22 +104,21 @@ def train(env: Environment, nnet_par: NNetPar, step_max: int, nnet_dir: str, tra
     This makes the test a lot faster in the earlier stages, espeicially when step_max is large.
 
     For more information see:
-    - Agostinelli, Forest, et al. "Solving the Rubik’s cube with deep reinforcement learning and search."
+    - Agostinelli, Forest, et al. "Solving the Rubik’s cube with deep reinforcement learning and pathfinding."
     Nature Machine Intelligence 1.8 (2019): 356-363.
     - Bertsekas, D. P. & Tsitsiklis, J. N. Neuro-dynamic Programming (Athena Scientific, 1996).
 
-    :param env: an Environment object
-    :param nnet_par: NNetPar object
+    :param updater: an Updater object
     :param step_max: maximum number of steps to take to generate start/goal pairs
     :param nnet_dir: directory where DNN will be saved
     :param train_args: training arguments
-    :param up_args: update arguments
     :param rb_past_up: amount of data generated from previous updates to keep in replay buffer. Total replay buffer size
     will then be train_args.batch_size * up_args.up_gen_itrs * rb_past_up
     :param debug: Turns off logging to make typing during breakpoints easier
     :return: None
     """
     # Initialization
+    nnet: nn.Module = updater.heur_nnet.get_nnet()
     targ_file: str = f"{nnet_dir}/target.pt"
     curr_file = f"{nnet_dir}/current.pt"
     output_save_loc = "%s/output.txt" % nnet_dir
@@ -137,7 +133,7 @@ def train(env: Environment, nnet_par: NNetPar, step_max: int, nnet_dir: str, tra
     # Print basic info
     # print("HOST: %s" % os.uname()[1])
     print(f"Train args: {train_args}")
-    print(f"Update args: {up_args}")
+    print(f"Update args: {updater.up_args}")
     if 'SLURM_JOB_ID' in os.environ:
         print("SLURM JOB ID: %s" % os.environ['SLURM_JOB_ID'])
 
@@ -150,12 +146,12 @@ def train(env: Environment, nnet_par: NNetPar, step_max: int, nnet_dir: str, tra
 
     # load nnet
     print("Loading nnet and status")
-    nnet, status = load_data(nnet_dir, curr_file, targ_file, nnet_par, step_max)
+    nnet, status = load_data(nnet_dir, curr_file, targ_file, nnet, step_max)
     nnet.to(device)
     nnet = nn.DataParallel(nnet)
 
     # initialize replay buffer
-    inputs_nnet: List[NDArray] = get_single_nnet_input(env, nnet_par)
+    inputs_nnet: List[NDArray] = get_single_nnet_input(updater.env, updater.heur_nnet)
     rb_shapes: List[Tuple[int, ...]] = []
     rb_dtypes: List[np.dtype] = []
     for nnet_idx, inputs_nnet_i in enumerate(inputs_nnet):
@@ -163,21 +159,21 @@ def train(env: Environment, nnet_par: NNetPar, step_max: int, nnet_dir: str, tra
         rb_dtypes.append(inputs_nnet_i.dtype)
     rb_shapes.append(tuple())
     rb_dtypes.append(np.dtype(np.float64))
-    rb: ReplayBuffer = ReplayBuffer(train_args.batch_size * up_args.up_gen_itrs * rb_past_up, rb_shapes, rb_dtypes)
+    rb: ReplayBuffer = ReplayBuffer(train_args.batch_size * updater.up_args.up_gen_itrs * rb_past_up, rb_shapes,
+                                    rb_dtypes)
 
     # training
     optimizer: Optimizer = optim.Adam(nnet.parameters(), lr=train_args.lr)
     criterion = nn.MSELoss()
     while status.itr < train_args.max_itrs:
-        # update
+        # updater
         # start_time = time.time()
         # steps_show: List[int] = list(np.unique(np.linspace(0, status.step_max, 30, dtype=int)))
         # step_prob_str: str = ', '.join([f'{step}:{status.step_probs[step]:.2E}' for step in steps_show])
         # print(f"Step probs: {step_prob_str}")
-        num_gen: int = train_args.batch_size * up_args.up_gen_itrs
-        step_to_search_perf: Dict[int, SearchPerf] = get_update_data(env, nnet_par, step_max, status.step_probs,
-                                                                     num_gen, up_args, rb, train_args.nnet_type,
-                                                                     targ_file, device, on_gpu)
+        num_gen: int = train_args.batch_size * updater.up_args.up_gen_itrs
+        step_to_search_perf: Dict[int, PathFindPerf] = updater.get_update_data(targ_file, step_max, status.step_probs,
+                                                                               num_gen, rb, device, on_gpu)
         print_update_summary(step_to_search_perf, writer, status)
         # status.update_step_probs(step_to_search_perf)
 
@@ -185,7 +181,7 @@ def train(env: Environment, nnet_par: NNetPar, step_max: int, nnet_dir: str, tra
         print("Getting training batches")
         start_time = time.time()
         batches: List[Tuple[List[NDArray], NDArray]] = []
-        for _ in range(up_args.up_itrs):
+        for _ in range(updater.up_args.up_itrs):
             arrays_samp: List[NDArray] = rb.sample(train_args.batch_size)
             inputs_batch_np: List[NDArray] = arrays_samp[:-1]
             ctgs_batch_np: NDArray = np.expand_dims(arrays_samp[-1].astype(np.float32), 1)
@@ -193,7 +189,7 @@ def train(env: Environment, nnet_par: NNetPar, step_max: int, nnet_dir: str, tra
         print(f"Time: {time.time() - start_time}")
 
         # train nnet
-        print("Training model for update number %i for %i iterations" % (status.update_num, len(batches)))
+        print("Training model for updater number %i for %i iterations" % (status.update_num, len(batches)))
         last_loss = train_heur_nnet(nnet, batches, optimizer, criterion, device, status.itr, train_args)
         print("Last loss was %f" % last_loss)
         status.itr += len(batches)

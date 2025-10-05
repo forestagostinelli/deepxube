@@ -3,14 +3,9 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 from deepxube.base.environment import Environment, State, Action, Goal
-from deepxube.base.search import Instance, SearchV
-from deepxube.search.v.greedy_policy import Greedy
-from deepxube.search.v.bwas import BWAS
+from deepxube.base.pathfinding import Instance
 from deepxube.utils import misc_utils
 from deepxube.utils.timing_utils import Times
-from torch.multiprocessing import get_context, Queue
-from deepxube.nnet.nnet_utils import NNetPar, start_nnet_fn_runners, stop_nnet_runners
-import torch
 import time
 
 
@@ -23,7 +18,7 @@ def is_valid_soln(state: State, goal: Goal, soln: List[Action], env: Environment
 
 
 @dataclass
-class SearchPerf:
+class PathFindPerf:
     def __init__(self):
         self.is_solved_l: List[bool] = []
         self.path_costs: List[float] = []
@@ -39,8 +34,8 @@ class SearchPerf:
             self.path_costs.append(instance.path_cost())
             self.search_itrs_l.append(instance.itr)
 
-    def comb_perf(self, search_perf2: 'SearchPerf') -> 'SearchPerf':
-        search_perf_new: SearchPerf = SearchPerf()
+    def comb_perf(self, search_perf2: 'PathFindPerf') -> 'PathFindPerf':
+        search_perf_new: PathFindPerf = PathFindPerf()
         search_perf_new.is_solved_l = self.is_solved_l + search_perf2.is_solved_l
         search_perf_new.path_costs = self.path_costs + search_perf2.path_costs
         search_perf_new.search_itrs_l = self.search_itrs_l + search_perf2.search_itrs_l
@@ -107,17 +102,46 @@ def bellman(states: List[State], goals: List[Goal], heuristic_fn,
     return ctg_backup, ctg_next_p_tc_l, states_exp, actions_exp, tcs_exp, is_solved
 
 
-def search_runner(env: Environment, nnet_par: NNetPar, proc_id: int, search_method: str, max_solve_steps: int, data_q,
+def print_pathfindperf(step_to_pathfindperf: Dict[int, PathFindPerf]):
+    steps: List[int] = list(step_to_pathfindperf.keys())
+    steps = sorted(steps)
+    step_show_idxs: List[int] = list(np.unique(np.linspace(0, len(steps) - 1, 30, dtype=int)))
+    for step_show_idx in step_show_idxs:
+        step_show: int = steps[step_show_idx]
+        pathfindperf: PathFindPerf = step_to_pathfindperf[step_show]
+
+        is_solved: NDArray[np.bool_] = np.array(pathfindperf.is_solved_l)
+        ctgs: NDArray[np.float64] = np.array(pathfindperf.ctgs)
+        ctgs_bkup: NDArray[np.float64] = np.array(pathfindperf.ctgs_bkup)
+
+        # Get stats
+        per_solved = 100 * float(sum(is_solved)) / float(len(is_solved))
+        avg_itrs: float = 0.0
+        avg_path_costs: float = 0.0
+        if per_solved > 0.0:
+            avg_itrs = float(np.mean(pathfindperf.search_itrs_l))
+            avg_path_costs = float(np.mean(pathfindperf.path_costs))
+
+        # Print results
+        print(f"Steps: %i, %%Solved: %.2f, avgItrs: {avg_itrs:.2f}, avgPathCosts: {avg_path_costs:.2f}, "
+              f"CTG Mean(Std/Min/Max): %.2f(%.2f/%.2f/%.2f), CTG_Backup: %.2f("
+              "%.2f/%.2f/%.2f)" % (
+                  step_show, per_solved,
+                  float(np.mean(ctgs)), float(np.std(ctgs)), float(np.min(ctgs)), float(np.max(ctgs)),
+                  float(np.mean(ctgs_bkup)), float(np.std(ctgs_bkup)), float(np.min(ctgs_bkup)),
+                  float(np.max(ctgs_bkup))))
+"""
+def search_runner(env: Environment, heur_nnet: HeurNNet, proc_id: int, search_method: str, max_solve_steps: int, data_q,
                   results_queue):
-    heuristic_fn = nnet_par.get_nnet_par_fn()
+    heuristic_fn = heur_nnet.get_nnet_par_fn()
     states, goals, inst_gen_steps = data_q.get()
 
-    # Solve with search
+    # Solve with pathfinding
     search_method = search_method.upper()
     if search_method == "GREEDY":
-        search: SearchV = Greedy(env)
+        search: PathFindV = Greedy(env)
     elif search_method == "ASTAR":
-        search: SearchV = BWAS(env)
+        search: PathFindV = BWAS(env)
     else:
         raise ValueError(f"Unknown search method {search_method}")
 
@@ -147,7 +171,7 @@ def search_test(env: Environment, states: List[State], goals: List[Goal], inst_g
     heur_fn_qs, heur_procs = start_nnet_fn_runners(env.get_v_nnet().__class__, num_procs, nnet_file, device, on_gpu,
                                                    all_zeros=all_zeros, clip_zero=False, batch_size=nnet_batch_size)
 
-    # start search runners
+    # start pathfinding runners
     ctx = get_context("spawn")
     results_q: Queue = ctx.Queue()
     data_qs: List[Queue] = [ctx.Queue() for _ in heur_fn_qs]
@@ -235,33 +259,4 @@ def search_test(env: Environment, states: List[State], goals: List[Goal], inst_g
     stop_nnet_runners(heur_procs, heur_fn_qs)
 
     return per_solved_all, is_solved_all
-
-
-def print_search_perf(step_to_search_perf: Dict[int, SearchPerf]):
-    steps: List[int] = list(step_to_search_perf.keys())
-    steps = sorted(steps)
-    step_show_idxs: List[int] = list(np.unique(np.linspace(0, len(steps) - 1, 30, dtype=int)))
-    for step_show_idx in step_show_idxs:
-        step_show: int = steps[step_show_idx]
-        search_perf: SearchPerf = step_to_search_perf[step_show]
-
-        is_solved: NDArray[np.bool_] = np.array(search_perf.is_solved_l)
-        ctgs: NDArray[np.float64] = np.array(search_perf.ctgs)
-        ctgs_bkup: NDArray[np.float64] = np.array(search_perf.ctgs_bkup)
-
-        # Get stats
-        per_solved = 100 * float(sum(is_solved)) / float(len(is_solved))
-        avg_itrs: float = 0.0
-        avg_path_costs: float = 0.0
-        if per_solved > 0.0:
-            avg_itrs = float(np.mean(search_perf.search_itrs_l))
-            avg_path_costs = float(np.mean(search_perf.path_costs))
-
-        # Print results
-        print(f"Steps: %i, %%Solved: %.2f, avgItrs: {avg_itrs:.2f}, avgPathCosts: {avg_path_costs:.2f}, "
-              f"CTG Mean(Std/Min/Max): %.2f(%.2f/%.2f/%.2f), CTG_Backup: %.2f("
-              "%.2f/%.2f/%.2f)" % (
-                  step_show, per_solved,
-                  float(np.mean(ctgs)), float(np.std(ctgs)), float(np.min(ctgs)), float(np.max(ctgs)),
-                  float(np.mean(ctgs_bkup)), float(np.std(ctgs_bkup)), float(np.min(ctgs_bkup)),
-                  float(np.max(ctgs_bkup))))
+"""

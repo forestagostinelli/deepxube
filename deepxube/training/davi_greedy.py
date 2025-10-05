@@ -7,10 +7,10 @@ from deepxube.nnet import nnet_utils
 from deepxube.nnet.nnet_utils import HeurFnQ
 from deepxube.base.environment import State, Environment, Goal
 
-from deepxube.search.search_abstract_v import SearchV, InstanceV
-from deepxube.search.v.bwas import BWAS
-from deepxube.search.v.greedy_policy import Greedy, InstanceGrV
-from deepxube.search.search_utils import SearchPerf, search_test
+from deepxube.pathfinding.search_abstract_v import SearchV, InstanceV
+from deepxube.pathfinding.v.bwas import BWAS
+from deepxube.pathfinding.v.greedy_policy import Greedy, InstanceGrV
+from deepxube.pathfinding.pathfinding_utils import PathFindPerf, search_test
 from deepxube.utils.timing_utils import Times
 from deepxube.utils.data_utils import SharedNDArray
 from deepxube.utils.misc_utils import split_evenly_w_max
@@ -42,17 +42,17 @@ class UpdateArgs:
 
     :param up_itrs: How many iterations worth of data to generate per udpate
     :param up_procs: Number of parallel workers used to compute updated cost-to-go values
-    :param up_batch_size: Helps manage memory. Decrease if memory is running out during update.
-    :param up_nnet_batch_size: Batch size of each nnet used for each process update. Make smaller if running out
+    :param up_batch_size: Helps manage memory. Decrease if memory is running out during updater.
+    :param up_nnet_batch_size: Batch size of each nnet used for each process updater. Make smaller if running out
     of memory.
     :param up_search: greedy or astar
-    :param up_step_max: Maximum number of search steps to take from generated start states to generate additional data.
+    :param up_step_max: Maximum number of pathfinding steps to take from generated start states to generate additional data.
     Increasing this number could make the heuristic function more robust to depression regions.
     :param up_eps_max_greedy: epsilon greedy policy max. Each start/goal pair will have an eps uniformly distributed
     between 0 and greedy_update_eps_max
-    :param up_epochs: do up_epochs * up_itrs iterations worth of training before checking for update. Can decrease data
+    :param up_epochs: do up_epochs * up_itrs iterations worth of training before checking for updater. Can decrease data
     generation time, but can increase risk of overfitting between updates checks.
-    :param up_test: greedy: update when greedy policy improves, const: update every update check
+    :param up_test: greedy: updater when greedy policy improves, const: updater every updater check
     """
     up_itrs: int
     up_procs: int
@@ -119,7 +119,7 @@ def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q:
 
     up_search: str = up_args.up_search.upper()
     heur_fn = heur_fn_q.get_heuristic_fn(env)
-    step_to_search_perf: Dict[int, SearchPerf] = dict()
+    step_to_search_perf: Dict[int, PathFindPerf] = dict()
     while True:
         batch_size, start_idx = to_q.get()
         if batch_size is None:
@@ -131,7 +131,7 @@ def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q:
         elif up_search == "ASTAR":
             search: SearchV = BWAS(env)
         else:
-            raise ValueError(f"Unknown search method {up_args.up_search}")
+            raise ValueError(f"Unknown pathfinding method {up_args.up_search}")
 
         insts_rem: List[InstanceV] = []
         start_idx_batch: int = start_idx
@@ -187,15 +187,15 @@ def update_runner(gen_step_max: int, heur_fn_q: HeurFnQ, env: Environment, to_q:
             # remove instances
             insts_rem: List[InstanceV] = search.remove_finished_instances(up_args.up_step_max)
 
-            # search performance
+            # pathfinding performance
             for inst_rem in insts_rem:
                 step_num_inst: int = int(inst_rem.inst_info[0])
                 if step_num_inst not in step_to_search_perf.keys():
-                    step_to_search_perf[step_num_inst] = SearchPerf()
+                    step_to_search_perf[step_num_inst] = PathFindPerf()
                 step_to_search_perf[step_num_inst].update_perf(inst_rem)
 
         data_q.put((start_idx_batch, start_idx))
-        times.add_times(search.times, path=["search"])
+        times.add_times(search.times, path=["pathfinding"])
 
     data_q.put((times, step_to_search_perf))
     for arr_shm in inputs_nnet_shm + [ctgs_shm]:
@@ -225,7 +225,7 @@ def load_data(model_dir: str, nnet_file: str, env: Environment, num_test_per_ste
 
 def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_args: TrainArgs, status: Status,
                     rb: ReplayBuffer, targ_file: str, device: torch.device, on_gpu: bool, writer: SummaryWriter):
-    # update heuristic functions
+    # updater heuristic functions
     num_gen_up: int = train_args.batch_size * up_args.up_itrs
     all_zeros: bool = not os.path.isfile(targ_file)
     heur_fn_qs, heur_procs = nnet_utils.start_nnet_fn_runners(up_args.up_procs, targ_file, device, on_gpu, env, "V",
@@ -243,10 +243,10 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
 
     # sending index data to processes
     ctx = get_context("spawn")
-    assert num_gen_up % up_args.up_step_max == 0, (f"Number of instances to generate per update "
+    assert num_gen_up % up_args.up_step_max == 0, (f"Number of instances to generate per updater "
                                                    f"(batch_size * up_itrs = {num_gen_up}), is not divisible by "
-                                                   f"the max number of search steps to take during the "
-                                                   f"update ({up_args.up_step_max})")
+                                                   f"the max number of pathfinding steps to take during the "
+                                                   f"updater ({up_args.up_step_max})")
     to_q: Queue = ctx.Queue()
     num_searches: int = num_gen_up // up_args.up_step_max
     num_to_send_per: List[int] = split_evenly_w_max(num_searches, up_args.up_procs, up_args.up_batch_size)
@@ -297,13 +297,13 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
         to_q.put((None, None))
 
     # get summary from processes
-    step_to_search_perf: Dict[int, SearchPerf] = dict()
+    step_to_search_perf: Dict[int, PathFindPerf] = dict()
     for _ in procs:
         times_up_i, step_to_search_perf_i  = data_q.get()
         times_up.add_times(times_up_i)
         for step_num_perf, search_perf in step_to_search_perf_i.items():
             if step_num_perf not in step_to_search_perf.keys():
-                step_to_search_perf[step_num_perf] = SearchPerf()
+                step_to_search_perf[step_num_perf] = PathFindPerf()
             step_to_search_perf[step_num_perf] = step_to_search_perf[step_num_perf].comb_perf(search_perf)
 
     # print summary
@@ -327,9 +327,9 @@ def get_update_data(env: Environment, step_max: int, up_args: UpdateArgs, train_
     search_itrs_ave: float = float(np.mean(search_itrs_ave_l))
     print(f"%solved: {per_solved_ave:.2f}, path_costs: {path_costs_ave:.3f}, "
           f"search_itrs: {search_itrs_ave:.3f} (equally weighted across step numbers)")
-    writer.add_scalar("solved (update)", per_solved_ave, status.itr)
-    writer.add_scalar("path_cost (update)", path_costs_ave, status.itr)
-    writer.add_scalar("search_itrs (update)", search_itrs_ave, status.itr)
+    writer.add_scalar("solved (updater)", per_solved_ave, status.itr)
+    writer.add_scalar("path_cost (updater)", path_costs_ave, status.itr)
+    writer.add_scalar("search_itrs (updater)", search_itrs_ave, status.itr)
     print(f"Times - {times_up.get_time_str()}")
 
     # clean up
@@ -350,7 +350,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
     This makes the test a lot faster in the earlier stages, espeicially when step_max is large.
 
     For more information see:
-    - Agostinelli, Forest, et al. "Solving the Rubik’s cube with deep reinforcement learning and search."
+    - Agostinelli, Forest, et al. "Solving the Rubik’s cube with deep reinforcement learning and pathfinding."
     Nature Machine Intelligence 1.8 (2019): 356-363.
     - Bertsekas, D. P. & Tsitsiklis, J. N. Neuro-dynamic Programming (Athena Scientific, 1996).
 
@@ -358,8 +358,8 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
     :param step_max: maximum number of steps to take to generate start/goal pairs
     :param nnet_dir: directory where DNN will be saved
     :param train_args: training arguments
-    :param up_args: update arguments
-    :param rb_past_up: amount of data from previous update checks to keep in replay buffer. Total replay buffer size
+    :param up_args: updater arguments
+    :param rb_past_up: amount of data from previous updater checks to keep in replay buffer. Total replay buffer size
     will then be train_args.batch_size * up_args.up_itrs * rb_past_up. The replay buffer is cleared after the
     target network is updated.
     :param num_test_per_step: Number of test states for each step between 0 and step_max
@@ -414,7 +414,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
     optimizer: Optimizer = optim.Adam(nnet.parameters(), lr=train_args.lr)
     criterion = nn.MSELoss()
     while status.itr < train_args.max_itrs:
-        # update
+        # updater
         get_update_data(env, step_max, up_args, train_args, status, rb, targ_file, device, on_gpu, writer)
 
         # get batches
@@ -429,7 +429,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
         print(f"Time: {time.time() - start_time}")
 
         # train nnet
-        print("Training model for update number %i for %i iterations" % (status.update_num, len(batches)))
+        print("Training model for updater number %i for %i iterations" % (status.update_num, len(batches)))
         last_loss = train_heur_nnet(nnet, batches, optimizer, criterion, device, status.itr, train_args)
         status.itr += len(batches)
 
@@ -459,7 +459,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
         elif up_args.up_test.upper() == "CONST":
             update_nnet = True
         else:
-            raise ValueError(f"Unknown update test {up_args.up_test}")
+            raise ValueError(f"Unknown updater test {up_args.up_test}")
 
         print("Last loss was %f" % last_loss)
         status.per_solved_best = max(status.per_solved_best, per_solved)

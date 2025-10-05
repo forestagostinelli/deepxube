@@ -9,13 +9,13 @@ import numpy as np
 import torch
 from numpy.typing import NDArray
 
-from deepxube.nnet.nnet_utils import NNetPar
+from deepxube.nnet.nnet_utils import NNetParInfo
 from deepxube.base.environment import Environment, State, Goal, Action
-from deepxube.base.heuristic import NNetType, NNetParV, NNetParQ
+from deepxube.base.heuristic import HeurNNet, NNetType, HeurNNetV, NNetParQ
 from deepxube.nnet import nnet_utils
-from deepxube.search.v.bwas import BWAS
-from deepxube.base.search import Search, Instance, SearchV, SearchQ
-from deepxube.search.search_utils import SearchPerf
+from deepxube.pathfinding.v.bwas import BWAS
+from deepxube.base.pathfinding import PathFind, Instance, PathFindV, PathFindQ
+from deepxube.pathfinding.pathfinding_utils import PathFindPerf
 from deepxube.training.train_utils import ReplayBuffer, get_single_nnet_input
 from deepxube.utils.data_utils import SharedNDArray
 from deepxube.utils.misc_utils import split_evenly_w_max
@@ -30,10 +30,10 @@ class UpdateArgs:
     :param up_itrs: How many iterations to wait for updating target network
     :param up_gen_itrs: How many iterations worth of data to generate per udpate
     :param up_procs: Number of parallel workers used to compute updated cost-to-go values
-    :param up_search_itrs: Maximum number of search iterationos to take from generated problem instances
+    :param up_search_itrs: Maximum number of pathfinding iterationos to take from generated problem instances
     :param up_batch_size: Maximum number of searches to do at a time. Helps manage memory.
-    Decrease if memory is running out during update.
-    :param up_nnet_batch_size: Batch size of each nnet used for each process update. Make smaller if running out
+    Decrease if memory is running out during updater.
+    :param up_nnet_batch_size: Batch size of each nnet used for each process updater. Make smaller if running out
     of memory.
     Increasing this number could make the heuristic function more robust to depression regions.
     """
@@ -45,22 +45,22 @@ class UpdateArgs:
     up_nnet_batch_size: int
 
 
-def update_runner(gen_step_max: int, search_step_max: int, env: Environment, heur_fn_par: NNetPar, nnet_type: NNetType,
-                  to_q: Queue, from_q: Queue, step_probs: NDArray, inputs_nnet_shm: List[SharedNDArray],
-                  ctgs_shm: SharedNDArray):
+def update_runner(gen_step_max: int, search_step_max: int, env: Environment, nnet_par_info: NNetParInfo,
+                  heur_nnet: HeurNNet, nnet_type: NNetType, to_q: Queue, from_q: Queue, step_probs: NDArray,
+                  inputs_nnet_shm: List[SharedNDArray], ctgs_shm: SharedNDArray):
     times: Times = Times()
 
-    heur_fn = heur_fn_par.get_nnet_par_fn()
-    step_to_search_perf: Dict[int, SearchPerf] = dict()
+    heur_fn = heur_nnet.get_nnet_par_fn(nnet_par_info)
+    step_to_search_perf: Dict[int, PathFindPerf] = dict()
     while True:
         batch_size, start_idx = to_q.get()
         if batch_size is None:
             break
 
         if nnet_type is NNetType.V:
-            search: Search = BWAS(env)
+            search: PathFind = BWAS(env)
         elif nnet_type is NNetType.Q:
-            search: Search = BWQS(env)
+            search: PathFind = BWQS(env)
             pass
 
         insts_rem: List[Instance] = []
@@ -98,16 +98,16 @@ def update_runner(gen_step_max: int, search_step_max: int, env: Environment, heu
             start_time = time.time()
             inputs_nnet: List[NDArray]
             ctgs_bellman: List[float]
-            if isinstance(search, SearchV):
+            if isinstance(search, PathFindV):
                 states, goals, ctgs_bellman = cast(Tuple[List[State], List[Goal], List[float]], search_ret)
-                inputs_nnet = cast(NNetParV, heur_fn_par).to_nnet(states, goals)
-            elif isinstance(search, SearchQ):
+                inputs_nnet = cast(HeurNNetV, heur_nnet).to_np(states, goals)
+            elif isinstance(search, PathFindQ):
                 states, goals, actions, ctgs_bellman = cast(Tuple[List[State], List[Goal], List[Action], List[float]],
                                                             search_ret)
                 actions_l: List[List[Action]] = [[action] for action in actions]
-                inputs_nnet = cast(NNetParQ, heur_fn_par).to_nnet(states, goals, actions_l)
+                inputs_nnet = cast(NNetParQ, heur_nnet).to_nnet(states, goals, actions_l)
             else:
-                raise ValueError(f"Unknown search class {search.__class__}")
+                raise ValueError(f"Unknown pathfinding class {search.__class__}")
             times.record_time("to_nnet", time.time() - start_time)
 
             # put
@@ -123,35 +123,35 @@ def update_runner(gen_step_max: int, search_step_max: int, env: Environment, heu
             # remove instances
             insts_rem: List[Instance] = search.remove_finished_instances(search_step_max)
 
-            # search performance
+            # pathfinding performance
             for inst_rem in insts_rem:
                 step_num_inst: int = int(inst_rem.inst_info[0])
                 if step_num_inst not in step_to_search_perf.keys():
-                    step_to_search_perf[step_num_inst] = SearchPerf()
+                    step_to_search_perf[step_num_inst] = PathFindPerf()
                 step_to_search_perf[step_num_inst].update_perf(inst_rem)
 
         from_q.put((start_idx_batch, start_idx))
-        times.add_times(search.times, path=["search"])
+        times.add_times(search.times, path=["pathfinding"])
 
     from_q.put((times, step_to_search_perf))
     for arr_shm in inputs_nnet_shm + [ctgs_shm]:
         arr_shm.close()
 
 
-def get_update_data(env: Environment, nnet_par: NNetPar, step_max: int, step_probs: NDArray, num_gen: int,
+def get_update_data(env: Environment, heur_nnet: HeurNNet, step_max: int, step_probs: NDArray, num_gen: int,
                     up_args: UpdateArgs, rb: ReplayBuffer, nnet_type: NNetType, targ_file: str, device: torch.device,
-                    on_gpu: bool) -> Dict[int, SearchPerf]:
+                    on_gpu: bool) -> Dict[int, PathFindPerf]:
     start_time_gen = time.time()
     num_searches: int = num_gen // up_args.up_search_itrs
     print(f"Generating {format(num_gen, ',')} training instances with {format(num_searches, ',')} searches")
-    # update heuristic functions
+    # updater heuristic functions
     all_zeros: bool = not os.path.isfile(targ_file)
-    heur_fn_par_l, heur_procs = nnet_utils.start_nnet_fn_runners(nnet_par.__class__, up_args.up_procs, targ_file,
-                                                                 device, on_gpu, all_zeros=all_zeros, clip_zero=True,
-                                                                 batch_size=up_args.up_nnet_batch_size)
+    nnet_par_infos, nnet_procs = nnet_utils.start_nnet_fn_runners(heur_nnet.get_nnet, up_args.up_procs, targ_file,
+                                                                  device, on_gpu, all_zeros=all_zeros, clip_zero=True,
+                                                                  batch_size=up_args.up_nnet_batch_size)
 
     # shared memory
-    inputs_nnet: List[NDArray] = get_single_nnet_input(env, nnet_par)
+    inputs_nnet: List[NDArray] = get_single_nnet_input(env, heur_nnet)
     inputs_nnet_shm: List[SharedNDArray] = []
     for nnet_idx, inputs_nnet_i in enumerate(inputs_nnet):
         inputs_nnet_shm.append(SharedNDArray((num_gen,) + inputs_nnet_i[0].shape, inputs_nnet_i.dtype,
@@ -160,9 +160,9 @@ def get_update_data(env: Environment, nnet_par: NNetPar, step_max: int, step_pro
 
     # sending index data to processes
     ctx = get_context("spawn")
-    assert num_gen % up_args.up_search_itrs == 0, (f"Number of instances to generate per for this update {num_gen} is not "
-                                                f"divisible by the max number of search iterations to take during the "
-                                                f"update ({up_args.up_search_itrs})")
+    assert num_gen % up_args.up_search_itrs == 0, (f"Number of instances to generate per for this updater {num_gen} is not "
+                                                f"divisible by the max number of pathfinding iterations to take during the "
+                                                f"updater ({up_args.up_search_itrs})")
     to_q: Queue = ctx.Queue()
     num_to_send_per: List[int] = split_evenly_w_max(num_searches, up_args.up_procs, up_args.up_batch_size)
     start_idx: int = 0
@@ -176,9 +176,10 @@ def get_update_data(env: Environment, nnet_par: NNetPar, step_max: int, step_pro
     from_q: Queue = ctx.Queue()
     procs: List[BaseProcess] = []
 
-    for proc_id, heur_fn_par in enumerate(heur_fn_par_l):
-        proc = ctx.Process(target=update_runner, args=(step_max, up_args.up_search_itrs, env, heur_fn_par, nnet_type,
-                                                       to_q, from_q, step_probs, inputs_nnet_shm, ctgs_shm))
+    for proc_id, nnet_par_info in enumerate(nnet_par_infos):
+        proc = ctx.Process(target=update_runner, args=(step_max, up_args.up_search_itrs, env, nnet_par_info,
+                                                       heur_nnet, nnet_type, to_q, from_q, step_probs,
+                                                       inputs_nnet_shm, ctgs_shm))
         proc.daemon = True
         proc.start()
         procs.append(proc)
@@ -207,13 +208,13 @@ def get_update_data(env: Environment, nnet_par: NNetPar, step_max: int, step_pro
         to_q.put((None, None))
 
     # get summary from processes
-    step_to_search_perf: Dict[int, SearchPerf] = dict()
+    step_to_search_perf: Dict[int, PathFindPerf] = dict()
     for _ in procs:
         times_up_i, step_to_search_perf_i  = from_q.get()
         times_up.add_times(times_up_i)
         for step_num_perf, search_perf in step_to_search_perf_i.items():
             if step_num_perf not in step_to_search_perf.keys():
-                step_to_search_perf[step_num_perf] = SearchPerf()
+                step_to_search_perf[step_num_perf] = PathFindPerf()
             step_to_search_perf[step_num_perf] = step_to_search_perf[step_num_perf].comb_perf(search_perf)
 
     # cost-to-go summary
@@ -226,7 +227,7 @@ def get_update_data(env: Environment, nnet_par: NNetPar, step_max: int, step_pro
     print(f"Times - {times_up.get_time_str()}")
 
     # clean up
-    nnet_utils.stop_nnet_runners(heur_procs, heur_fn_par_l)
+    nnet_utils.stop_nnet_runners(nnet_procs, nnet_par_infos)
     for proc in procs:
         proc.join()
     for arr_shm in inputs_nnet_shm + [ctgs_shm]:

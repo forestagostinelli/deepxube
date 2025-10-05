@@ -1,9 +1,9 @@
 from argparse import ArgumentParser
-from deepxube.base.heuristic import NNetType
+from deepxube.base.environment import Environment
 from deepxube.training.train_utils import TrainArgs
 from deepxube.training.train_heur import train
-from deepxube.update.updater import UpdateArgs
-from deepxube.environments.env_utils import get_environment
+from deepxube.base.updater import UpHeurArgs, UpdateHeur
+from deepxube.updater.updater_heur import UpdateHeurBWAS
 
 
 def main():
@@ -19,7 +19,7 @@ def main():
     parser.add_argument('--max_itrs', type=int, default=1000000, help="")
     parser.add_argument('--display', type=int, default=100, help="")
 
-    # update args
+    # updater args
     parser.add_argument('--up_itrs', type=int, default=1000, help="")
     parser.add_argument('--up_gen_itrs', type=int, default=1000, help="")
     parser.add_argument('--up_procs', type=int, default=1, help="")
@@ -32,11 +32,20 @@ def main():
     parser.add_argument('--debug', action='store_true', default=False, help="")
     args = parser.parse_args()
 
-    env, nnet_par = get_environment(args.env)
-    train_args: TrainArgs = TrainArgs(NNetType.V, args.batch_size, args.lr, args.lr_d, args.max_itrs, args.display)
-    up_args: UpdateArgs = UpdateArgs(args.up_itrs, args.up_gen_itrs, args.up_procs, args.up_search_itrs,
+    up_args: UpHeurArgs = UpHeurArgs(args.up_itrs, args.up_gen_itrs, args.up_procs, args.up_search_itrs,
                                      args.up_batch_size, args.up_nnet_batch_size)
-    train(env, nnet_par, args.step_max, args.nnet_dir, train_args, up_args, rb_past_up=args.rb, debug=args.debug)
+
+    env: Environment
+    updater: UpdateHeur
+    if (args.env == "cube3") or (args.env == "cube3_fixed"):
+        from deepxube.environments.cube3 import Cube3, Cube3NNetParV
+        env = Cube3(args.env == "cube3_fixed")
+        updater = UpdateHeurBWAS(env, Cube3NNetParV(), up_args)
+    else:
+        raise ValueError(f"Unknown environment {args.env}")
+
+    train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.display)
+    train(updater, args.step_max, args.nnet_dir, train_args, rb_past_up=args.rb, debug=args.debug)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 from typing import List, Tuple, Dict, Optional, Any
 from deepxube.base.environment import Environment, State, Goal
 from deepxube.base.heuristic import HeurFnV
-from deepxube.base.search import Instance, NodeV, SearchV
+from deepxube.base.pathfinding import Instance, NodeV, PathFindV
 import numpy as np
 from heapq import heappush, heappop
 
@@ -52,7 +52,7 @@ class InstanceBWAS(Instance):
         return nodes_popped
 
 
-class BWAS(SearchV[InstanceBWAS]):
+class BWAS(PathFindV[InstanceBWAS]):
     def __init__(self, env: Environment):
         super().__init__(env)
         self.steps: int = 0
@@ -123,7 +123,7 @@ class BWAS(SearchV[InstanceBWAS]):
             print(f"Times - {self.times.get_time_str()}")
             print("")
 
-        # update iterations
+        # updater iterations
         self.steps += 1
         for instance in instances:
             instance.itr += 1

@@ -32,7 +32,7 @@ class Node(ABC):
 class Instance(ABC):
     def __init__(self, root_node: Node, inst_info: Any):
         self.root_node: Node = root_node
-        self.itr: int = 0  # update with every search iteration
+        self.itr: int = 0  # updater with every pathfinding iteration
         self.num_nodes_generated: int = 0
         self.inst_info: Any = inst_info
         self.goal_node: Optional[Node] = None
@@ -54,7 +54,7 @@ class Instance(ABC):
 I = TypeVar('I', bound=Instance)
 
 
-class Search(ABC, Generic[I]):
+class PathFind(ABC, Generic[I]):
     def __init__(self, env: Environment):
         self.env: Environment = env
         self.instances: List[I] = []
@@ -152,7 +152,7 @@ class NodeV(Node):
             self.parent.upper_bound_parent_path(ctg_ub + self.parent_t_cost)
 
 
-class SearchV(Search[I]):
+class PathFindV(PathFind[I]):
     def __init__(self, env: Environment):
         super().__init__(env)
 
@@ -267,7 +267,7 @@ class NodeQAct:
         self.action: Action = action
 
 
-class SearchQ(Search[I]):
+class PathFindQ(PathFind[I]):
     def __init__(self, env: Environment):
         super().__init__(env)
 
@@ -313,7 +313,7 @@ class SearchQ(Search[I]):
             nodes_c.append(node_c)
         self.times.record_time("make_nodes", time.time() - start_time)
 
-        # update instances
+        # updater instances
         start_time = time.time()
         nodes_c_by_inst: List[List[NodeQ]] = misc_utils.unflatten(nodes_c, split_idxs)
         for instance, nodes_c_by_inst_i in zip(instances, nodes_c_by_inst):

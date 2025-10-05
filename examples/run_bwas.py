@@ -3,9 +3,9 @@ from typing import List, Dict, Optional, Any
 from deepxube.base.environment import Environment, State, Action, Goal
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
-from deepxube.base.search import get_path, NodeV
-from deepxube.search.search_utils import is_valid_soln
-from deepxube.search.v.bwas import BWAS
+from deepxube.base.pathfinding import get_path, NodeV
+from deepxube.pathfinding.pathfinding_utils import is_valid_soln
+from deepxube.pathfinding.v.bwas import BWAS
 from deepxube.environments.env_utils import get_environment
 import numpy as np
 from argparse import ArgumentParser
@@ -24,9 +24,9 @@ def main():
     parser.add_argument('--insts', type=str, required=True, help="File containing instances (states and goals) to "
                                                                  "solve")
     parser.add_argument('--heur', type=str, required=True, help="nnet model file")
-    parser.add_argument('--batch_size', type=int, default=1, help="Batch size for batch-weighted A* search")
+    parser.add_argument('--batch_size', type=int, default=1, help="Batch size for batch-weighted A* pathfinding")
     parser.add_argument('--weight', type=float, default=1.0, help="Weight on path cost f(n) = w * g(n) + h(n)")
-    parser.add_argument('--time_limit', type=float, default=-1.0, help="A time limit for search. Default is -1, "
+    parser.add_argument('--time_limit', type=float, default=-1.0, help="A time limit for pathfinding. Default is -1, "
                                                                        "which means infinite.")
 
     parser.add_argument('--results', type=str, required=True, help="Directory to save results. Saves results after "
@@ -51,7 +51,7 @@ def main():
     env: Environment = get_environment(args.env)
 
     # get data
-    # sys.path.insert(0, '../DeepXube/deepxube/')  # TODO update states to not need this
+    # sys.path.insert(0, '../DeepXube/deepxube/')  # TODO updater states to not need this
     data: Dict = pickle.load(open(args.insts, "rb"))
     states: List[State] = data['states']
     goals: List[Goal] = data['goals']

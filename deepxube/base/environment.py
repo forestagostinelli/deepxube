@@ -13,14 +13,14 @@ from numpy.typing import NDArray
 class State(ABC):
     @abstractmethod
     def __hash__(self):
-        """ For use in CLOSED dictionary for heuristic search
+        """ For use in CLOSED dictionary for pathfinding
         @return: hash value
         """
         pass
 
     @abstractmethod
     def __eq__(self, other: object):
-        """ for use in state reidentification during heuristic search
+        """ for use in state reidentification during pathfinding
 
         @param other: other state
         @return: true if they are equal

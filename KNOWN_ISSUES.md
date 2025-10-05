@@ -7,4 +7,3 @@ until the Search object goes out of scope. Could be due to circular references a
 GC being slow.
 * Solver get_num_ground_rules behaves differently if self.ctl_rand.statistics is 
 looked at before self.ctl_rand.solve()
-* Neural networks with weight normalization currently cannot be used due to issue of pickling nn.Module for parallelization

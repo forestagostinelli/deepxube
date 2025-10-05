@@ -5,9 +5,8 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
-from deepxube.nnet.nnet_utils import NNetPar
-from deepxube.base.environment import Environment, Action
-from deepxube.base.heuristic import NNetType, NNetParV, NNetParQ
+from deepxube.base.environment import Environment
+from deepxube.base.heuristic import HeurNNet, NNetType, HeurNNetV
 from deepxube.utils.data_utils import sel_l
 from deepxube.nnet import nnet_utils
 
@@ -20,14 +19,12 @@ import torch.nn as nn
 @dataclass
 class TrainArgs:
     """
-    :param nnet_type: Type of neural network being trained
     :param batch_size: Batch size
     :param lr: Initial learning rate
     :param lr_d: Learning rate decay for every iteration. Learning rate is decayed according to: lr * (lr_d ^ itr)
     :param max_itrs: Maximum number of iterations
     :param display: Number of iterations to display progress. No display if 0.
     """
-    nnet_type: NNetType
     batch_size: int
     lr: float
     lr_d: float
@@ -138,15 +135,12 @@ def train_heur_nnet(nnet: nn.Module, batches: List[Tuple[List[NDArray], NDArray]
     return last_loss
 
 
-def get_single_nnet_input(env: Environment, nnet_par: NNetPar) -> List[NDArray[Any]]:
+def get_single_nnet_input(env: Environment, heur_nnet: HeurNNet) -> List[NDArray[Any]]:
     states, goals = env.get_start_goal_pairs([0])
 
-    if isinstance(nnet_par, NNetParV):
-        inputs_nnet: List[NDArray[Any]] = nnet_par.to_nnet(states, goals)
-    elif isinstance(nnet_par, NNetParQ):
-        actions: List[Action] = env.get_state_action_rand(states)
-        inputs_nnet: List[NDArray[Any]] = nnet_par.to_nnet(states, goals, [actions])
+    if isinstance(heur_nnet, HeurNNetV):
+        inputs_nnet: List[NDArray[Any]] = heur_nnet.to_np(states, goals)
     else:
-        raise ValueError(f"Unknown nnet par class {nnet_par.__class__}")
+        raise ValueError(f"Unknown heur nnet class {heur_nnet.__class__}")
 
     return inputs_nnet

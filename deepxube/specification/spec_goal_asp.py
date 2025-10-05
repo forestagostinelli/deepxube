@@ -71,8 +71,8 @@ class SpecSearchASP:
         :param path_fn: Pathfinding function
         :param refine_args: Arguments for refining models of which non-goal states are members
         :param bk_add: A file for additional background information
-        :param verbose: Verbose monte carlo search if true
-        :param viz_model: Set true to visualize each model before search
+        :param verbose: Verbose monte carlo pathfinding if true
+        :param viz_model: Set true to visualize each model before pathfinding
         :param viz_conf: Set true to visualize each conflict
         :param viz_reached: Set true to visualize reached states
         """
@@ -101,7 +101,7 @@ class SpecSearchASP:
         self.asp: Solver = self._init_asp(bk_add)
         self.times.record_time("init", time.time() - start_time)
 
-        # initialize search
+        # initialize pathfinding
         self.ub: float = np.inf
         self.specnode_q: List[Tuple[float, int, float, int, SpecNode]] = []
         self.heappush_count: int = 0
@@ -205,7 +205,7 @@ class SpecSearchASP:
         self._push_to_q(spec_nodes_to_push)
         times_i.record_time("get_conflict", time.time() - start_time)
 
-        # update states
+        # updater states
         stats_itr: OrderedDict = OrderedDict([("itr", self.step_itr), ("ub", self.ub),
                                               ("#refined", num_refined), ("#not_seen", num_not_seen),
                                               ("#reached", num_reached), ("#reached_not_goal", num_reached_not_goal),

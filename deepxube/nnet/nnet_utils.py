@@ -1,5 +1,5 @@
-from typing import List, Tuple, Optional, Callable, Any, Type
-from abc import ABC, abstractmethod
+from typing import List, Tuple, Optional, Any, Callable
+from dataclasses import dataclass
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd
 import numpy as np
 from numpy.typing import NDArray
@@ -98,78 +98,65 @@ def nnet_batched(nnet: nn.Module, inputs: List[NDArray[Any]], batch_size: Option
     return outputs
 
 
+@dataclass
+class NNetParInfo:
+    nnet_i_q: Queue
+    nnet_o_q: Queue
+    proc_id: int
+
+
 # parallel neural networks
-class NNetPar(ABC):
-    @staticmethod
-    def nnet_fn_runner(nnet_i_q: Queue, nnet_o_qs: List[Queue], model_file: str, device, on_gpu: bool, gpu_num: int,
-                       nnet: nn.Module, all_zeros: bool, clip_zero: bool,
-                       batch_size: Optional[int]):
-        if (gpu_num is not None) and on_gpu:
-            os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_num)
+def nnet_fn_runner(nnet_i_q: Queue, nnet_o_qs: List[Queue], model_file: str, device, on_gpu: bool, gpu_num: int,
+                   get_nnet: Callable[[], nn.Module], all_zeros: bool, clip_zero: bool, batch_size: Optional[int]):
+    if (gpu_num is not None) and on_gpu:
+        os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_num)
 
-        nnet = load_nnet(model_file, nnet, device=device)
-        nnet.eval()
-        nnet.to(device)
-        if on_gpu:
-            nnet = nn.DataParallel(nnet)
+    nnet: nn.Module = get_nnet()
+    nnet = load_nnet(model_file, nnet, device=device)
+    nnet.eval()
+    nnet.to(device)
+    if on_gpu:
+        nnet = nn.DataParallel(nnet)
 
-        while True:
-            # get from input q
-            inputs_nnet_shm: Optional[List[SharedNDArray]]
-            proc_id, inputs_nnet_shm = nnet_i_q.get()
-            if proc_id is None:
-                break
+    while True:
+        # get from input q
+        inputs_nnet_shm: Optional[List[SharedNDArray]]
+        proc_id, inputs_nnet_shm = nnet_i_q.get()
+        if proc_id is None:
+            break
 
-            # get outputs
-            inputs_nnet: List[NDArray] = []
-            for inputs_idx in range(len(inputs_nnet_shm)):
-                inputs_nnet.append(inputs_nnet_shm[inputs_idx].array)
+        # get outputs
+        inputs_nnet: List[NDArray] = []
+        for inputs_idx in range(len(inputs_nnet_shm)):
+            inputs_nnet.append(inputs_nnet_shm[inputs_idx].array)
 
-            outputs: NDArray[np.float64] = nnet_batched(nnet, inputs_nnet, batch_size, device)
+        outputs: NDArray[np.float64] = nnet_batched(nnet, inputs_nnet, batch_size, device)
 
-            if all_zeros:
-                outputs = outputs * 0.0
-            if clip_zero:
-                outputs = np.maximum(outputs, 0.0)
+        if all_zeros:
+            outputs = outputs * 0.0
+        if clip_zero:
+            outputs = np.maximum(outputs, 0.0)
 
-            # send outputs
-            outputs_shm: SharedNDArray = np_to_shnd(outputs)
-            nnet_o_qs[proc_id].put(outputs_shm)
+        # send outputs
+        outputs_shm: SharedNDArray = np_to_shnd(outputs)
+        nnet_o_qs[proc_id].put(outputs_shm)
 
-            for arr_shm in inputs_nnet_shm + [outputs_shm]:
-                arr_shm.close()
-
-    def __init__(self, nnet_i_q: Optional[Queue] = None, nnet_o_q: Optional[Queue] = None,
-                 proc_id: Optional[int] = None):
-        self.nnet_fn_i_q: Optional[Queue] = nnet_i_q
-        self.nnet_fn_o_q: Optional[Queue] = nnet_o_q
-        self.proc_id: Optional[int] = proc_id
-
-    @abstractmethod
-    def get_nnet_par_fn(self) -> Callable[..., Any]:
-        pass
-
-    @abstractmethod
-    def get_nnet(self) -> nn.Module:
-        pass
-
-    @abstractmethod
-    def to_nnet(self, *args) -> List[NDArray[Any]]:
-        pass
+        for arr_shm in inputs_nnet_shm + [outputs_shm]:
+            arr_shm.close()
 
 
-def start_nnet_fn_runners(nnet_par_cls: Type[NNetPar], num_procs: int, model_file: str, device, on_gpu: bool,
+def start_nnet_fn_runners(get_nnet: Callable[[], nn.Module], num_procs: int, model_file: str, device, on_gpu: bool,
                           all_zeros: bool = False, clip_zero: bool = False,
-                          batch_size: Optional[int] = None) -> Tuple[List[NNetPar], List[BaseProcess]]:
+                          batch_size: Optional[int] = None) -> Tuple[List[NNetParInfo], List[BaseProcess]]:
     ctx = get_context("spawn")
 
     nnet_i_q: Queue = ctx.Queue()
     nnet_o_qs: List[Queue] = []
-    nnet_par_l: List[NNetPar] = []
+    nnet_par_infos: List[NNetParInfo] = []
     for proc_id in range(num_procs):
         nnet_o_q: Queue = ctx.Queue(1)
         nnet_o_qs.append(nnet_o_q)
-        nnet_par_l.append(nnet_par_cls(nnet_i_q=nnet_i_q, nnet_o_q=nnet_o_q, proc_id=proc_id))
+        nnet_par_infos.append(NNetParInfo(nnet_i_q, nnet_o_q, proc_id))
 
     # initialize heuristic procs
     if ('CUDA_VISIBLE_DEVICES' in os.environ) and (len(os.environ['CUDA_VISIBLE_DEVICES']) > 0):
@@ -179,19 +166,19 @@ def start_nnet_fn_runners(nnet_par_cls: Type[NNetPar], num_procs: int, model_fil
 
     nnet_procs: List[BaseProcess] = []
     for gpu_num in gpu_nums:
-        nnet_fn_procs = ctx.Process(target=nnet_par_cls.nnet_fn_runner,
-                                    args=(nnet_i_q, nnet_o_qs, model_file, device, on_gpu, gpu_num,
-                                          nnet_par_l[0].get_nnet(), all_zeros, clip_zero, batch_size))
+        nnet_fn_procs = ctx.Process(target=nnet_fn_runner,
+                                    args=(nnet_i_q, nnet_o_qs, model_file, device, on_gpu, gpu_num, get_nnet, all_zeros,
+                                          clip_zero, batch_size))
         nnet_fn_procs.daemon = True
         nnet_fn_procs.start()
         nnet_procs.append(nnet_fn_procs)
 
-    return nnet_par_l, nnet_procs
+    return nnet_par_infos, nnet_procs
 
 
-def stop_nnet_runners(nnet_fn_procs: List[BaseProcess], nnet_par_l: List[NNetPar]):
+def stop_nnet_runners(nnet_fn_procs: List[BaseProcess], nnet_par_infos: List[NNetParInfo]):
     for _ in nnet_fn_procs:
-        nnet_par_l[0].nnet_fn_i_q.put((None, None))
+        nnet_par_infos[0].nnet_i_q.put((None, None))
 
     for heur_fn_proc in nnet_fn_procs:
         heur_fn_proc.join()

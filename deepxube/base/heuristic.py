@@ -1,13 +1,14 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from enum import Enum
-from typing import Callable, List, Any
+from typing import Callable, List, Any, TypeVar, Generic
 
 import numpy as np
 from numpy.typing import NDArray
 
 from deepxube.base.environment import State, Goal, Action
-from deepxube.nnet.nnet_utils import NNetPar
+from deepxube.nnet.nnet_utils import NNetParInfo
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd
+from torch import nn
 
 
 class NNetType(Enum):
@@ -19,23 +20,45 @@ class NNetQType(Enum):
     FIXED = 1
     DYNAMIC = 2
 
+HeurFn = Callable[..., Any]
+
+
+H = TypeVar('H', bound=HeurFn)
+
+
+class NNetPar(ABC):
+    @abstractmethod
+    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo) -> Callable[..., Any]:
+        pass
+
+
+class HeurNNet(NNetPar, Generic[H]):
+    @abstractmethod
+    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo) -> H:
+        pass
+
+    @abstractmethod
+    def get_nnet(self) -> nn.Module:
+        pass
+
+    @abstractmethod
+    def to_np(self, *args) -> List[NDArray[Any]]:
+        pass
+
 
 HeurFnV = Callable[[List[State], List[Goal]], List[float]]
 
 
-class NNetParV(NNetPar):
-    def get_nnet_par_fn(self) -> HeurFnV:
-        assert self.nnet_fn_i_q is not None
-        assert self.nnet_fn_o_q is not None
-        assert self.proc_id is not None
+class HeurNNetV(HeurNNet[HeurFnV]):
+    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo) -> HeurFnV:
         def heuristic_fn(states: List[State], goals: List[Goal]) -> List[float]:
-            inputs_nnet: List[NDArray] = self.to_nnet(states, goals)
+            inputs_nnet: List[NDArray] = self.to_np(states, goals)
             inputs_nnet_shm: List[SharedNDArray] = [np_to_shnd(inputs_nnet_i)
                                                     for input_idx, inputs_nnet_i in enumerate(inputs_nnet)]
 
-            self.nnet_fn_i_q.put((self.proc_id, inputs_nnet_shm))
+            nnet_par_info.nnet_i_q.put((nnet_par_info.proc_id, inputs_nnet_shm))
 
-            heurs_shm: SharedNDArray = self.nnet_fn_o_q.get()
+            heurs_shm: SharedNDArray = nnet_par_info.nnet_o_q.get()
             heurs: NDArray = heurs_shm.array.copy()
 
             for arr_shm in inputs_nnet_shm + [heurs_shm]:
@@ -47,7 +70,7 @@ class NNetParV(NNetPar):
         return heuristic_fn
 
     @abstractmethod
-    def to_nnet(self, states: List[State], goals: List[Goal]) -> List[NDArray[Any]]:
+    def to_np(self, states: List[State], goals: List[Goal]) -> List[NDArray[Any]]:
         pass
 
 
