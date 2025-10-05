@@ -11,7 +11,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import matplotlib.patches as patches
 
 from deepxube.nnet.pytorch_models import ResnetModel, FullyConnectedModel
-from .environment_abstract import EnvGrndAtoms, State, Action, Goal, HeurFnNNet
+from deepxube.base.environment import EnvGrndAtoms, State, Action, Goal, HeurFnNNet
 from deepxube.logic.logic_objects import Atom, Model
 from numpy.typing import NDArray
 

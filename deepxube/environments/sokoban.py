@@ -9,7 +9,7 @@ from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel, Conv2
 import numpy as np
 from numpy.typing import NDArray
 import matplotlib.pyplot as plt
-from deepxube.environments.environment_abstract import EnvGrndAtoms, State, Action, HeurFnNNet, Goal
+from deepxube.base.environment import EnvGrndAtoms, State, Action, HeurFnNNet, Goal
 from deepxube.logic.logic_objects import Atom, Model
 
 import pickle

@@ -6,7 +6,8 @@ import numpy as np
 from numpy.typing import NDArray
 
 from deepxube.nnet.nnet_utils import NNetPar
-from deepxube.environments.environment_abstract import Environment, Action, NNetType, NNetParV, NNetParQ
+from deepxube.base.environment import Environment, Action
+from deepxube.base.heuristic import NNetType, NNetParV, NNetParQ
 from deepxube.utils.data_utils import sel_l
 from deepxube.nnet import nnet_utils
 

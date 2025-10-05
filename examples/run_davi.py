@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from deepxube.environments.environment_abstract import Environment, NNetType
+from deepxube.base.heuristic import NNetType
 from deepxube.training.train_utils import TrainArgs
 from deepxube.training.train_heur import train
 from deepxube.update.updater import UpdateArgs
@@ -32,11 +32,11 @@ def main():
     parser.add_argument('--debug', action='store_true', default=False, help="")
     args = parser.parse_args()
 
-    env: Environment = get_environment(args.env)
+    env, nnet_par = get_environment(args.env)
     train_args: TrainArgs = TrainArgs(NNetType.V, args.batch_size, args.lr, args.lr_d, args.max_itrs, args.display)
     up_args: UpdateArgs = UpdateArgs(args.up_itrs, args.up_gen_itrs, args.up_procs, args.up_search_itrs,
                                      args.up_batch_size, args.up_nnet_batch_size)
-    train(env, args.step_max, args.nnet_dir, train_args, up_args, rb_past_up=args.rb, debug=args.debug)
+    train(env, nnet_par, args.step_max, args.nnet_dir, train_args, up_args, rb_past_up=args.rb, debug=args.debug)
 
 
 if __name__ == "__main__":

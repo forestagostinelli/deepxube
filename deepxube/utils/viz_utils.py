@@ -3,7 +3,7 @@ from typing import List, Union
 import numpy as np
 from matplotlib import pyplot as plt
 
-from deepxube.environments.environment_abstract import Environment, State, Goal
+from deepxube.base.environment import Environment, State, Goal
 
 
 class Quaternion:

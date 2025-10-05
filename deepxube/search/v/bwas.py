@@ -1,7 +1,7 @@
 from typing import List, Tuple, Dict, Optional, Any
-from deepxube.environments.environment_abstract import Environment, State, Goal, HeurFnV
-from deepxube.search.search import Instance
-from deepxube.search.search_v.search_v import SearchV, NodeV
+from deepxube.base.environment import Environment, State, Goal
+from deepxube.base.heuristic import HeurFnV
+from deepxube.base.search import Instance, NodeV, SearchV
 import numpy as np
 from heapq import heappush, heappop
 
@@ -94,7 +94,7 @@ class BWAS(SearchV[InstanceBWAS]):
                                                   for instance, nodes_c in zip(instances, nodes_c_by_inst)])
         path_costs: List[float] = [node.path_cost for node in nodes_c_flat]
         heuristics: List[float] = [node.heuristic for node in nodes_c_flat]
-        costs_flat: List[float] = list((np.array(weights) * np.array(path_costs)) + np.array(heuristics))
+        costs_flat: List[float] = ((np.array(weights) * np.array(path_costs)) + np.array(heuristics)).tolist()
         costs_by_inst: List[List[float]] = misc_utils.unflatten(costs_flat, split_idxs)
         self.times.record_time("cost", time.time() - start_time)
 

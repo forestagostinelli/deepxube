@@ -1,5 +1,5 @@
 from deepxube.tests.test_env import test_env
-from deepxube.environments.environment_abstract import Environment
+from deepxube.base.environment import Environment
 from deepxube.environments.env_utils import get_environment
 from argparse import ArgumentParser
 

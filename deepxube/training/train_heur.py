@@ -6,7 +6,7 @@ from deepxube.update.updater import UpdateArgs, get_update_data
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
 from deepxube.nnet.nnet_utils import NNetPar
-from deepxube.environments.environment_abstract import Environment
+from deepxube.base.environment import Environment
 
 import torch
 import torch.optim as optim
@@ -98,7 +98,7 @@ def print_update_summary(step_to_search_perf: Dict[int, SearchPerf], writer: Sum
     print_search_perf(step_to_search_perf)
 
 
-def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs, up_args: UpdateArgs,
+def train(env: Environment, nnet_par: NNetPar, step_max: int, nnet_dir: str, train_args: TrainArgs, up_args: UpdateArgs,
           rb_past_up: int = 10, debug: bool = False):
     """ Train a deep neural network heuristic (DNN) function with deep approximate value iteration (DAVI).
     A target DNN is maintained for computing the updated heuristic values. When the greedy policy improves on a fixed
@@ -112,6 +112,7 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
     - Bertsekas, D. P. & Tsitsiklis, J. N. Neuro-dynamic Programming (Athena Scientific, 1996).
 
     :param env: an Environment object
+    :param nnet_par: NNetPar object
     :param step_max: maximum number of steps to take to generate start/goal pairs
     :param nnet_dir: directory where DNN will be saved
     :param train_args: training arguments
@@ -149,7 +150,6 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
 
     # load nnet
     print("Loading nnet and status")
-    nnet_par: NNetPar = env.get_nnet(train_args.nnet_type)
     nnet, status = load_data(nnet_dir, curr_file, targ_file, nnet_par, step_max)
     nnet.to(device)
     nnet = nn.DataParallel(nnet)
@@ -175,9 +175,9 @@ def train(env: Environment, step_max: int, nnet_dir: str, train_args: TrainArgs,
         # step_prob_str: str = ', '.join([f'{step}:{status.step_probs[step]:.2E}' for step in steps_show])
         # print(f"Step probs: {step_prob_str}")
         num_gen: int = train_args.batch_size * up_args.up_gen_itrs
-        step_to_search_perf: Dict[int, SearchPerf] = get_update_data(env, step_max, status.step_probs, num_gen, up_args,
-                                                                     rb, train_args.nnet_type, targ_file, device,
-                                                                     on_gpu)
+        step_to_search_perf: Dict[int, SearchPerf] = get_update_data(env, nnet_par, step_max, status.step_probs,
+                                                                     num_gen, up_args, rb, train_args.nnet_type,
+                                                                     targ_file, device, on_gpu)
         print_update_summary(step_to_search_perf, writer, status)
         # status.update_step_probs(step_to_search_perf)
 

@@ -1,7 +1,6 @@
 from typing import List, Optional, Any, Tuple, Callable
-from deepxube.environments.environment_abstract import State, Goal
-from deepxube.search.search import Instance
-from deepxube.search.search_v.search_v import SearchV, NodeV
+from deepxube.base.environment import State, Goal
+from deepxube.base.search import Instance, NodeV, SearchV
 import numpy as np
 import random
 import time

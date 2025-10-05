@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.multiprocessing import Queue, get_context
 
-from deepxube.environments.environment_abstract import Environment, State
+from deepxube.base.environment import Environment, State
 from deepxube.nnet import nnet_utils
 from deepxube.utils.misc_utils import flatten
 import numpy as np

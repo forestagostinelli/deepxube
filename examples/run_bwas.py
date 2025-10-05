@@ -1,12 +1,11 @@
 from typing import List, Dict, Optional, Any
 
-from deepxube.environments.environment_abstract import Environment, State, Action, Goal
+from deepxube.base.environment import Environment, State, Action, Goal
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
-from deepxube.search.search import get_path
+from deepxube.base.search import get_path, NodeV
 from deepxube.search.search_utils import is_valid_soln
-from deepxube.search.search_v.bwas import BWAS
-from deepxube.search.search_v.search_v import NodeV
+from deepxube.search.v.bwas import BWAS
 from deepxube.environments.env_utils import get_environment
 import numpy as np
 from argparse import ArgumentParser

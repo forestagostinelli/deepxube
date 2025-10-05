@@ -4,7 +4,8 @@ from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel
 from deepxube.logic.logic_objects import Atom, Model
 from deepxube.visualizers.cube3_viz_simple import InteractiveCube
 from deepxube.utils.timing_utils import Times
-from .environment_abstract import EnvGrndAtoms, State, Action, Goal, NNetParV, NNetParQ, NNetQType
+from deepxube.base.environment import EnvGrndAtoms, State, Action, Goal, SupportsPDDL
+from deepxube.base.heuristic import NNetQType, NNetParV, NNetParQ
 
 import numpy as np
 import torch
@@ -192,11 +193,11 @@ def _colors_to_model(colors: NDArray[np.uint8]) -> Model:
     return frozenset(grnd_atoms)
 
 
-class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal]):
+class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal], SupportsPDDL):
     atomic_actions: List[str] = ["%s%i" % (f, n) for f in ['U', 'D', 'L', 'R', 'B', 'F'] for n in [-1, 1]]
 
-    def __init__(self, env_name: str):
-        super().__init__(env_name)
+    def __init__(self, fixed: bool):
+        super().__init__()
         self.cube_len: int = 3
         self.colors: List[str] = ['white', 'yellow', 'orange', 'red', 'blue', 'green']
         self.colors_grnd_obj: List[str] = ['w', 'y', 'o', 'r', 'b', 'g']
@@ -240,9 +241,7 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal]):
 
         self.int_to_color: NDArray[np.str_] = np.concatenate((np.array(self.colors_grnd_obj), ['k']))  # type: ignore
 
-        self.fixed_goal: bool = False
-        if self.env_name.lower() == "cube3_fixed":
-            self.fixed_goal: bool = True
+        self.fixed_goal: bool = fixed
 
     def next_state(self, states: List[Cube3State], actions: List[Cube3Action]) -> Tuple[List[Cube3State], List[float]]:
         states_np = np.stack([x.colors for x in states], axis=0)
@@ -269,10 +268,10 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal]):
         return [self.actions.copy() for _ in range(len(states))]
 
     def is_solved(self, states: List[Cube3State], goals: List[Cube3Goal]) -> List[bool]:
-        states_np = np.stack([x.colors for x in states], axis=0)
-        goals_np = np.stack([x.colors for x in goals], axis=0)
-        is_solved_np = np.all(np.logical_or(states_np == goals_np, goals_np == 6), axis=1)
-        return list(is_solved_np)
+        states_np: NDArray = np.stack([x.colors for x in states], axis=0)
+        goals_np: NDArray = np.stack([x.colors for x in goals], axis=0)
+        is_solved_np: NDArray = np.all(np.logical_or(states_np == goals_np, goals_np == 6), axis=1)
+        return is_solved_np.tolist()
 
     def state_to_model(self, states: List[Cube3State]) -> List[Model]:
         states_np = np.stack([x.colors for x in states], axis=0).astype(np.uint8)
@@ -295,12 +294,6 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal]):
 
     def model_to_goal(self, models: List[Model]) -> List[Cube3Goal]:
         return [Cube3Goal(x) for x in self._models_to_np(models)]
-
-    def get_v_nnet(self) -> Cube3NNetParV:
-        return Cube3NNetParV()
-
-    def get_q_nnet(self) -> NNetParQ:
-        return Cube3NNetParQ()
 
     def get_start_states(self, num_states: int) -> List[Cube3State]:
         assert (num_states > 0)

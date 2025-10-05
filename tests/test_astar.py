@@ -1,6 +1,6 @@
 from typing import List
 import pytest
-from deepxube.environments.environment_abstract import Environment
+from deepxube.base.environment import Environment
 from deepxube.search.astar import AStar, get_path
 from deepxube.environments.env_utils import get_environment
 from deepxube.nnet.nnet_utils import get_heuristic_fn, get_device, HeurFN_T

@@ -2,11 +2,10 @@ from typing import List, Tuple, Optional, Dict
 from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
-from deepxube.environments.environment_abstract import Environment, State, Action, Goal
-from deepxube.search.search import Instance
-from deepxube.search.search_v.search_v import SearchV
-from deepxube.search.search_v.greedy_policy import Greedy
-from deepxube.search.search_v.bwas import BWAS
+from deepxube.base.environment import Environment, State, Action, Goal
+from deepxube.base.search import Instance, SearchV
+from deepxube.search.v.greedy_policy import Greedy
+from deepxube.search.v.bwas import BWAS
 from deepxube.utils import misc_utils
 from deepxube.utils.timing_utils import Times
 from torch.multiprocessing import get_context, Queue

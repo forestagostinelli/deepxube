@@ -1,4 +1,4 @@
-from deepxube.environments.environment_abstract import Environment
+from deepxube.base.environment import Environment
 from deepxube.environments.env_utils import get_environment
 from deepxube.training.avi import Status
 
