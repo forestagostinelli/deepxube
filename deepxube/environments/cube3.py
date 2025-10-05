@@ -197,7 +197,7 @@ def _colors_to_model(colors: NDArray[np.uint8]) -> Model:
     return frozenset(grnd_atoms)
 
 
-class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal], SupportsPDDL):
+class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal], SupportsPDDL[Cube3State, Cube3Action, Cube3Goal]):
     atomic_actions: List[str] = ["%s%i" % (f, n) for f in ['U', 'D', 'L', 'R', 'B', 'F'] for n in [-1, 1]]
 
     def __init__(self, fixed: bool):

@@ -1,7 +1,7 @@
 from typing import List, Tuple, Dict, Optional, Any
 from deepxube.base.environment import Environment, State, Goal
 from deepxube.base.heuristic import HeurFnV
-from deepxube.base.pathfinding import Instance, NodeV, PathFindV
+from deepxube.base.pathfinding import Instance, NodeV, PathFindV, InstArgs
 import numpy as np
 from heapq import heappush, heappop
 
@@ -52,27 +52,33 @@ class InstanceBWAS(Instance):
         return nodes_popped
 
 
-class BWAS(PathFindV[InstanceBWAS]):
+class InstArgsBWAS(InstArgs):
+    def __init__(self, weight: float):
+        super().__init__()
+        self.weight: float = weight
+
+
+class BWAS(PathFindV[InstanceBWAS, InstArgsBWAS]):
     def __init__(self, env: Environment):
         super().__init__(env)
         self.steps: int = 0
 
     def add_instances(self, states: List[State], goals: List[Goal], heur_fn: HeurFnV,
                       inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True,
-                      weights: Optional[List[float]] = None):
+                      inst_args_l: Optional[List[InstArgsBWAS]] = None):
         start_time = time.time()
         if inst_infos is None:
             inst_infos = [None] * len(states)
-        if weights is None:
-            weights = [1.0] * len(states)
+        if inst_args_l is None:
+            inst_args_l = [InstArgsBWAS(1.0) for _ in states]
 
-        assert len(states) == len(goals) == len(inst_infos) == len(weights), "Number should be the same"
+        assert len(states) == len(goals) == len(inst_infos) == len(inst_args_l), "Number should be the same"
 
         root_nodes: List[NodeV] = self._create_root_nodes(states, goals, heur_fn, compute_init_heur)
 
         # initialize instances
-        for root_node, inst_info, weight in zip(root_nodes, inst_infos, weights):
-            self.instances.append(InstanceBWAS(root_node, inst_info, weight))
+        for root_node, inst_info, inst_args in zip(root_nodes, inst_infos, inst_args_l):
+            self.instances.append(InstanceBWAS(root_node, inst_info, inst_args.weight))
         self.times.record_time("add", time.time() - start_time)
 
     def step(self, heur_fn: HeurFnV, batch_size: int = 1,

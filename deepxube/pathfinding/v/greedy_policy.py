@@ -1,6 +1,6 @@
 from typing import List, Optional, Any, Tuple, Callable
 from deepxube.base.environment import State, Goal
-from deepxube.base.pathfinding import Instance, NodeV, PathFindV
+from deepxube.base.pathfinding import Instance, NodeV, PathFindV, InstArgs
 import numpy as np
 import random
 import time
@@ -14,22 +14,28 @@ class InstanceGrV(Instance):
         self.eps = eps
 
 
-class Greedy(PathFindV[InstanceGrV]):
+class InstArgsGr(InstArgs):
+    def __init__(self, eps: float):
+        super().__init__()
+        self.eps: float = eps
+
+
+class Greedy(PathFindV[InstanceGrV, InstArgsGr]):
     def add_instances(self, states: List[State], goals: List[Goal], heur_fn: Callable,
                       inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True,
-                      eps_l: Optional[List[float]] = None):
+                      inst_args_l: Optional[List[InstArgsGr]] = None):
         start_time = time.time()
         if inst_infos is None:
             inst_infos = [None] * len(states)
-        if eps_l is None:
-            eps_l = [0.0] * len(states)
+        if inst_args_l is None:
+            inst_args_l = [InstArgsGr(0.0) for _ in states]
 
-        assert len(states) == len(goals) == len(inst_infos) == len(eps_l), "Number should be the same"
+        assert len(states) == len(goals) == len(inst_infos) == len(inst_args_l), "Number should be the same"
 
         root_nodes: List[NodeV] = self._create_root_nodes(states, goals, heur_fn, compute_init_heur)
 
-        for root_node, inst_info, eps_inst in zip(root_nodes, inst_infos, eps_l):
-            instance: InstanceGrV = InstanceGrV(root_node, inst_info, eps_inst)
+        for root_node, inst_info, inst_args in zip(root_nodes, inst_infos, inst_args_l):
+            instance: InstanceGrV = InstanceGrV(root_node, inst_info, inst_args.eps)
             self.instances.append(instance)
         self.times.record_time("add", time.time() - start_time)
 

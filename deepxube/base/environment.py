@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Union, Optional, Set, TypeVar, Generic, Protocol
+from typing import List, Tuple, Union, Optional, Set, TypeVar, Generic
 import numpy as np
 
 from deepxube.logic.logic_objects import Atom, Model
@@ -204,30 +204,33 @@ class Environment(ABC, Generic[S, A, G]):
         return states_walk
 
 
-class SupportsPDDL(Protocol):
+class SupportsPDDL(ABC, Generic[S, A, G]):
+    @abstractmethod
     def get_pddl_domain(self) -> List[str]:
         """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using
         traiditional planners (raise NotImplementedError).
 
         :return:
         """
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def state_goal_to_pddl_inst(self, state: S, goal: G) -> List[str]:
         """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using
         traiditional planners (raise NotImplementedError).
 
         :return:
         """
-        raise NotImplementedError
+        pass
 
-    def pddl_action_to_action(self, pddl_action: str) -> Action:
+    @abstractmethod
+    def pddl_action_to_action(self, pddl_action: str) -> A:
         """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using
         traiditional planners (raise NotImplementedError).
 
         :return:
         """
-        raise NotImplementedError
+        pass
 
 
 class EnvGrndAtoms(Environment[S, A, G]):

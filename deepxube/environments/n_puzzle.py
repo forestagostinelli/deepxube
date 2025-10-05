@@ -75,20 +75,24 @@ class ProcessStates(nn.Module):
         return x
 
 
-class FCResnet(nn.Module):
+class ResnetNPuzzle(nn.Module):
     def __init__(self, input_dim: int, h1_dim: int, resnet_dim: int, num_resnet_blocks: int, out_dim: int,
                  batch_norm: bool, weight_norm: bool):
         super().__init__()
-        self.first_fc = FullyConnectedModel(input_dim, [h1_dim, resnet_dim], [batch_norm] * 2, ["RELU"] * 2,
-                                            weight_norms=[weight_norm] * 2)
-        self.resnet = ResnetModel(resnet_dim, num_resnet_blocks, out_dim, batch_norm, weight_norm=weight_norm,
-                                  layer_act="RELU")
+
+        def res_block_init() -> nn.Module:
+            return FullyConnectedModel(resnet_dim, [resnet_dim] * 2, ["RELU", "LINEAR"],
+                                       batch_norms=[batch_norm] * 2, weight_norms=[weight_norm] * 2,
+                                       group_norms=[-1] * 2)
+
+        self.heur = nn.Sequential(
+            nn.Linear(input_dim, resnet_dim),
+            ResnetModel(res_block_init, num_resnet_blocks, "RELU"),
+            nn.Linear(resnet_dim, out_dim)
+        )
 
     def forward(self, x: Tensor):
-        x = self.first_fc(x)
-        x = self.resnet(x)
-
-        return x
+        return self.heur(x)
 
 
 class NNet(HeurFnNNet):
@@ -98,7 +102,7 @@ class NNet(HeurFnNNet):
         self.state_proc = ProcessStates(state_dim, one_hot_depth)
 
         input_dim: int = state_dim * one_hot_depth * 2
-        self.heur = FCResnet(input_dim, h1_dim, resnet_dim, num_res_blocks, out_dim, batch_norm, weight_norm)
+        self.heur = ResnetNPuzzle(input_dim, h1_dim, resnet_dim, num_res_blocks, out_dim, batch_norm, weight_norm)
 
     def forward(self, states_goals_l: List[Tensor]):
         states_proc = self.state_proc(states_goals_l[0])
@@ -113,8 +117,8 @@ class NPuzzle(EnvGrndAtoms[NPState, NPAction, NPGoal]):
     moves: List[str] = ['U', 'D', 'L', 'R']
     moves_rev: List[str] = ['D', 'U', 'R', 'L']
 
-    def __init__(self, env_name: str, dim: int):
-        super().__init__(env_name)
+    def __init__(self, dim: int):
+        super().__init__()
 
         self.dim: int = dim
         self.dtype: type

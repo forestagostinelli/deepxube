@@ -51,10 +51,16 @@ class Instance(ABC):
             return self.goal_node.path_cost
 
 
+class InstArgs:
+    def __init__(self):
+        pass
+
+
 I = TypeVar('I', bound=Instance)
+IArg = TypeVar('IArg', bound=InstArgs)
 
 
-class PathFind(ABC, Generic[I]):
+class PathFind(ABC, Generic[I, IArg]):
     def __init__(self, env: Environment):
         self.env: Environment = env
         self.instances: List[I] = []
@@ -62,7 +68,8 @@ class PathFind(ABC, Generic[I]):
 
     @abstractmethod
     def add_instances(self, states: List[State], goals: List[Goal], heur_fn: Callable,
-                      inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True, **kwargs):
+                      inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True,
+                      inst_args_l: Optional[List[IArg]] = None):
         pass
 
     @abstractmethod
@@ -153,7 +160,7 @@ class NodeV(Node):
             self.parent.upper_bound_parent_path(ctg_ub + self.parent_t_cost)
 
 
-class PathFindV(PathFind[I]):
+class PathFindV(PathFind[I, IArg]):
     def __init__(self, env: Environment):
         super().__init__(env)
 
@@ -271,7 +278,7 @@ class NodeQAct:
         self.action: Action = action
 
 
-class PathFindQ(PathFind[I]):
+class PathFindQ(PathFind[I, IArg]):
     def __init__(self, env: Environment):
         super().__init__(env)
 

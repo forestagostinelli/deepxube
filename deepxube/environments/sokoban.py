@@ -161,8 +161,8 @@ def get_data_dir() -> str:
 
 class Sokoban(EnvGrndAtoms[SokobanState, SkAction, SokobanGoal]):
 
-    def __init__(self, env_name: str):
-        super().__init__(env_name)
+    def __init__(self):
+        super().__init__()
 
         self.dim: int = 10
         self.num_boxes: int = 4
