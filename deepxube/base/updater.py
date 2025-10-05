@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple, Any, TypeVar, Generic
+from typing import List, Dict, Tuple, Any
 from abc import ABC, abstractmethod
 import time
 from dataclasses import dataclass
@@ -10,10 +10,11 @@ import torch
 from numpy.typing import NDArray
 
 from deepxube.nnet.nnet_utils import NNetParInfo
-from deepxube.base.environment import Environment
+from deepxube.base.environment import Environment, State, Goal
 from deepxube.base.heuristic import HeurNNet
+from deepxube.base.heuristic import HeurNNetV
 from deepxube.nnet import nnet_utils
-from deepxube.base.pathfinding import PathFind, Instance
+from deepxube.base.pathfinding import PathFind, PathFindV, Instance
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf
 from deepxube.training.train_utils import ReplayBuffer
 from deepxube.utils.data_utils import SharedNDArray
@@ -42,10 +43,6 @@ class UpHeurArgs:
     up_search_itrs: int
     up_batch_size: int
     up_nnet_batch_size: int
-
-
-HNet = TypeVar('HNet', bound=HeurNNet)
-P = TypeVar('P', bound=PathFind)
 
 
 def get_data_from_procs(num_gen: int, from_q: Queue, to_q: Queue, procs: List[BaseProcess],
@@ -90,24 +87,28 @@ def get_data_from_procs(num_gen: int, from_q: Queue, to_q: Queue, procs: List[Ba
     max_ctg = ctgs_shm.array.max()
     print(f"Generated {format(num_gen_curr, ',')} training instances, "
           f"Replay buffer size: {format(rb.size(), ',')}")
-    print(f"Cost-to-go (mean/min/max): %.2f/%.2f/%.2f" % (mean_ctg, min_ctg, max_ctg))
+    print("Cost-to-go (mean/min/max): %.2f/%.2f/%.2f" % (mean_ctg, min_ctg, max_ctg))
     print(f"Times - {times_up.get_time_str()}")
 
     return step_to_pathperf
 
 
-class UpdateHeur(ABC, Generic[HNet, P]):
-    def __init__(self, env: Environment, heur_nnet: HNet, up_args: UpHeurArgs):
+class UpdateHeur(ABC):
+    def __init__(self, env: Environment, heur_nnet: HeurNNet, up_args: UpHeurArgs):
         self.env: Environment = env
         self.heur_nnet: HeurNNet = heur_nnet
         self.up_args: UpHeurArgs = up_args
 
     @abstractmethod
-    def get_pathfind(self) -> P:
+    def get_pathfind(self) -> PathFind:
         pass
 
     @abstractmethod
     def get_input_output_np(self, search_ret: Any) -> Tuple[List[NDArray], List[float]]:
+        pass
+
+    @abstractmethod
+    def get_input_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         pass
 
     def update_runner(self, gen_step_max: int, nnet_par_info: NNetParInfo, to_q: Queue, from_q: Queue,
@@ -121,7 +122,7 @@ class UpdateHeur(ABC, Generic[HNet, P]):
             if batch_size is None:
                 break
 
-            pathfind: P = self.get_pathfind()
+            pathfind: PathFind = self.get_pathfind()
 
             insts_rem: List[Instance] = []
             start_idx_batch: int = start_idx
@@ -227,10 +228,6 @@ class UpdateHeur(ABC, Generic[HNet, P]):
 
         return step_to_pathperf
 
-    @abstractmethod
-    def get_input_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
-        pass
-
     def _init_shared_mem(self, num_gen: int) -> Tuple[List[SharedNDArray], SharedNDArray]:
         shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = self.get_input_shapes_dtypes()
         inputs_nnet_shm: List[SharedNDArray] = []
@@ -258,3 +255,27 @@ class UpdateHeur(ABC, Generic[HNet, P]):
         assert start_idx == num_gen
 
         return to_q
+
+
+class UpdateHeurV(UpdateHeur):
+    def __init__(self, env: Environment, heur_nnet: HeurNNetV, up_args: UpHeurArgs):
+        super().__init__(env, heur_nnet, up_args)
+        self.heur_nnet: HeurNNetV = heur_nnet
+
+    @abstractmethod
+    def get_pathfind(self) -> PathFindV:
+        pass
+
+    def get_input_output_np(self, search_ret: Tuple[List[State], List[Goal], List[float]]) -> Tuple[List[NDArray], List[float]]:
+        inputs_np: List[NDArray] = self.heur_nnet.to_np(search_ret[0], search_ret[1])
+        return inputs_np, search_ret[2]
+
+    def get_input_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
+        states, goals = self.env.get_start_goal_pairs([0])
+        inputs_nnet: List[NDArray[Any]] = self.heur_nnet.to_np(states, goals)
+
+        shapes_dypes: List[Tuple[Tuple[int, ...], np.dtype]] = []
+        for inputs_nnet_i in inputs_nnet:
+            shapes_dypes.append((inputs_nnet_i[0].shape, inputs_nnet_i.dtype))
+
+        return shapes_dypes

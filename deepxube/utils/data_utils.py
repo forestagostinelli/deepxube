@@ -147,6 +147,7 @@ class SharedNDArray:
     def __repr__(self):
         return f"SharedNDArray(name={self.name}, shape={self.shape}, dtype={self.dtype})"
 
+
 def np_to_shnd(arr: NDArray) -> SharedNDArray:
     arr_shm: SharedNDArray = SharedNDArray(arr.shape, arr.dtype, None, True)
     arr_shm.array[:] = arr

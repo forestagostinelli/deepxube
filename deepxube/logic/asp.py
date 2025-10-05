@@ -103,7 +103,6 @@ class Solver:
                                              "count_model_grnd_atoms(M), M > N")
             minimize_grnd_atoms_str = "#minimize {N: count_model_grnd_atoms(N)}"
 
-
         # clingo control
         seed = int.from_bytes(os.urandom(4), 'big')
         arguments_rand = ["--models=1", "--opt-mode=ignore", "--heuristic=Domain", "--dom-mod=5,16", "--rand-prob=1",

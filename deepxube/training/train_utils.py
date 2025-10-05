@@ -1,12 +1,10 @@
 import time
-from typing import List, Tuple, Any
+from typing import List, Tuple
 from dataclasses import dataclass
 
 import numpy as np
 from numpy.typing import NDArray
 
-from deepxube.base.environment import Environment
-from deepxube.base.heuristic import HeurNNet, NNetType, HeurNNetV
 from deepxube.utils.data_utils import sel_l
 from deepxube.nnet import nnet_utils
 

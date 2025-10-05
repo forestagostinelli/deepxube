@@ -120,6 +120,7 @@ def get_path(node: Node) -> Tuple[List[State], List[Action], float]:
 class NodeV(Node):
     __slots__ = ['state', 'goal', 'path_cost', 'heuristic', 'is_solved', 'parent_action', 'parent_t_cost', 'parent',
                  'children', 't_costs', 'bellman_backup_val']
+
     def __init__(self, state: State, goal: Goal, path_cost: float, heuristic: float, is_solved: bool,
                  parent_action: Optional[Action], parent_t_cost: Optional[float], parent: Optional['NodeV']):
         super().__init__(state, goal, path_cost, heuristic, is_solved, parent_action, parent_t_cost, parent)
@@ -248,6 +249,7 @@ class PathFindV(PathFind[I]):
 class NodeQ(Node):
     __slots__ = ['state', 'goal', 'path_cost', 'heuristic', 'is_solved', 'parent_action', 'parent_t_cost', 'parent',
                  'actions_c', 'q_values']
+
     def __init__(self, state: State, goal: Goal, path_cost: float, heuristic: float, is_solved: bool,
                  parent_action: Optional[Action], parent_t_cost: Optional[float], parent: Optional['NodeQ'],
                  actions_c: List[Action], q_values: List[float]):
@@ -262,6 +264,7 @@ class NodeQ(Node):
 
 class NodeQAct:
     __slots__ = ['node', 'action']
+
     def __init__(self, node: NodeQ, action: Action):
         self.node: NodeQ = node
         self.action: Action = action

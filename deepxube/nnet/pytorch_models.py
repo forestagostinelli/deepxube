@@ -177,7 +177,6 @@ class FullyConnectedModel(nn.Module):
         return x
 
 
-
 class Conv2dModel(nn.Module):
     def _forward_unimplemented(self, *input_val: Any) -> None:
         pass

@@ -160,9 +160,9 @@ def get_update_data(env: Environment, heur_nnet: HeurNNet, step_max: int, step_p
 
     # sending index data to processes
     ctx = get_context("spawn")
-    assert num_gen % up_args.up_search_itrs == 0, (f"Number of instances to generate per for this updater {num_gen} is not "
-                                                f"divisible by the max number of pathfinding iterations to take during the "
-                                                f"updater ({up_args.up_search_itrs})")
+    assert num_gen % up_args.up_search_itrs == 0, (f"Number of instances to generate per for this updater {num_gen} is "
+                                                   f"not divisible by the max number of pathfinding iterations to take "
+                                                   f"during the updater ({up_args.up_search_itrs})")
     to_q: Queue = ctx.Queue()
     num_to_send_per: List[int] = split_evenly_w_max(num_searches, up_args.up_procs, up_args.up_batch_size)
     start_idx: int = 0
@@ -210,7 +210,7 @@ def get_update_data(env: Environment, heur_nnet: HeurNNet, step_max: int, step_p
     # get summary from processes
     step_to_search_perf: Dict[int, PathFindPerf] = dict()
     for _ in procs:
-        times_up_i, step_to_search_perf_i  = from_q.get()
+        times_up_i, step_to_search_perf_i = from_q.get()
         times_up.add_times(times_up_i)
         for step_num_perf, search_perf in step_to_search_perf_i.items():
             if step_num_perf not in step_to_search_perf.keys():
@@ -223,7 +223,7 @@ def get_update_data(env: Environment, heur_nnet: HeurNNet, step_max: int, step_p
     max_ctg = ctgs_shm.array.max()
     print(f"Generated {format(num_gen_curr, ',')} training instances, "
           f"Replay buffer size: {format(rb.size(), ',')}")
-    print(f"Cost-to-go (mean/min/max): %.2f/%.2f/%.2f" % (mean_ctg, min_ctg, max_ctg))
+    print("Cost-to-go (mean/min/max): %.2f/%.2f/%.2f" % (mean_ctg, min_ctg, max_ctg))
     print(f"Times - {times_up.get_time_str()}")
 
     # clean up

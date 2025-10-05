@@ -48,6 +48,7 @@ class Cube3NNet(nn.Module):
         self.state_proc1 = Cube3ProcessStates(state_dim, oh_depth1)
 
         input_dim: int = (state_dim * oh_depth0) + (state_dim * oh_depth1)
+
         def res_block_init() -> nn.Module:
             return FullyConnectedModel(res_dim, [res_dim] * 2, [act_fn, "LINEAR"],
                                        batch_norms=[batch_norm] * 2, weight_norms=[weight_norm] * 2,
@@ -76,6 +77,7 @@ class Cube3NNetQ(nn.Module):
         self.state_proc1 = Cube3ProcessStates(state_dim, oh_depth1)
 
         input_dim: int = (state_dim * oh_depth0) + (state_dim * oh_depth1)
+
         def res_block_init() -> nn.Module:
             return FullyConnectedModel(res_dim, [res_dim] * 2, [act_fn, "LINEAR"],
                                        batch_norms=[batch_norm] * 2, weight_norms=[weight_norm] * 2,

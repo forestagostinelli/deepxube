@@ -130,6 +130,8 @@ def print_pathfindperf(step_to_pathfindperf: Dict[int, PathFindPerf]):
                   float(np.mean(ctgs)), float(np.std(ctgs)), float(np.min(ctgs)), float(np.max(ctgs)),
                   float(np.mean(ctgs_bkup)), float(np.std(ctgs_bkup)), float(np.min(ctgs_bkup)),
                   float(np.max(ctgs_bkup))))
+
+
 """
 def search_runner(env: Environment, heur_nnet: HeurNNet, proc_id: int, search_method: str, max_solve_steps: int, data_q,
                   results_queue):

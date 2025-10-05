@@ -20,6 +20,7 @@ class NNetQType(Enum):
     FIXED = 1
     DYNAMIC = 2
 
+
 HeurFn = Callable[..., Any]
 
 
@@ -82,6 +83,7 @@ class NNetParQ(NNetPar):
         assert self.nnet_fn_i_q is not None
         assert self.nnet_fn_o_q is not None
         assert self.proc_id is not None
+
         def heuristic_fn(states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[List[float]]:
             q_vals_l: List[List[float]]
             if self.nnet_q_type is NNetQType.FIXED:
