@@ -6,36 +6,31 @@ import random
 import time
 
 
-class InstanceGrV(Instance):
-    def __init__(self, root_node: NodeV, inst_info: Any, eps: float):
-        super().__init__(root_node, inst_info)
-        self.root_node: NodeV = root_node
-        self.curr_node: NodeV = self.root_node
-        self.eps = eps
-
-
 class InstArgsGr(InstArgs):
     def __init__(self, eps: float):
         super().__init__()
         self.eps: float = eps
 
 
+class InstanceGrV(Instance[NodeV, InstArgsGr]):
+    def __init__(self, root_node: NodeV, inst_args: InstArgsGr, inst_info: Any):
+        super().__init__(root_node, inst_args, inst_info)
+        self.curr_node: NodeV = self.root_node
+
+
 class Greedy(PathFindV[InstanceGrV, InstArgsGr]):
-    def add_instances(self, states: List[State], goals: List[Goal], heur_fn: Callable,
-                      inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True,
-                      inst_args_l: Optional[List[InstArgsGr]] = None):
+    def add_instances(self, states: List[State], goals: List[Goal], heur_fn: Callable, inst_args_l: List[InstArgsGr],
+                      inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True):
         start_time = time.time()
         if inst_infos is None:
             inst_infos = [None] * len(states)
-        if inst_args_l is None:
-            inst_args_l = [InstArgsGr(0.0) for _ in states]
 
         assert len(states) == len(goals) == len(inst_infos) == len(inst_args_l), "Number should be the same"
 
         root_nodes: List[NodeV] = self._create_root_nodes(states, goals, heur_fn, compute_init_heur)
 
-        for root_node, inst_info, inst_args in zip(root_nodes, inst_infos, inst_args_l):
-            instance: InstanceGrV = InstanceGrV(root_node, inst_info, inst_args.eps)
+        for root_node, inst_args, inst_info in zip(root_nodes, inst_args_l, inst_infos):
+            instance: InstanceGrV = InstanceGrV(root_node, inst_args, inst_info)
             self.instances.append(instance)
         self.times.record_time("add", time.time() - start_time)
 
@@ -69,7 +64,7 @@ class Greedy(PathFindV[InstanceGrV, InstArgsGr]):
                 tc_p_ctg_next: List[float] = [t_cost + child.heuristic for t_cost, child in zip(t_costs, children)]
 
                 child_idx: int = int(np.argmin(tc_p_ctg_next))
-                if rand_vals[idx] < instance.eps:
+                if rand_vals[idx] < instance.inst_args.eps:
                     child_idx = random.choice(list(range(len(tc_p_ctg_next))))
                 node_next: NodeV = children[child_idx]
 

@@ -1,6 +1,6 @@
 from typing import List, Tuple, Dict
 
-from deepxube.base.updater import UpdateHeur
+from deepxube.base.updater import UpdaterHeur
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, print_pathfindperf
 from deepxube.training.train_utils import ReplayBuffer, train_heur_nnet, TrainArgs
 from deepxube.utils import data_utils
@@ -95,7 +95,7 @@ def print_update_summary(step_to_search_perf: Dict[int, PathFindPerf], writer: S
     print_pathfindperf(step_to_search_perf)
 
 
-def train(updater: UpdateHeur, step_max: int, nnet_dir: str, train_args: TrainArgs, rb_past_up: int = 10,
+def train(updater: UpdaterHeur, step_max: int, nnet_dir: str, train_args: TrainArgs, rb_past_up: int = 10,
           debug: bool = False):
     """ Train a deep neural network heuristic (DNN) function with deep approximate value iteration (DAVI).
     A target DNN is maintained for computing the updated heuristic values. When the greedy policy improves on a fixed

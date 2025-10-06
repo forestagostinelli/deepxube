@@ -2,13 +2,14 @@ from argparse import ArgumentParser
 from deepxube.base.environment import Environment
 from deepxube.training.train_utils import TrainArgs
 from deepxube.training.train_heur import train
-from deepxube.base.updater import UpHeurArgs, UpdateHeur
+from deepxube.base.updater import UpHeurArgs, UpdaterHeur
 from deepxube.updater.updater_heur import UpdateHeurBWAS
 
 
 def main():
     parser: ArgumentParser = ArgumentParser()
     parser.add_argument('--env', type=str, required=True, help="")
+    parser.add_argument('--heur_type', type=str, required=True, help="")
     parser.add_argument('--step_max', type=int, required=True, help="")
     parser.add_argument('--nnet_dir', type=str, required=True, help="")
 
@@ -36,11 +37,18 @@ def main():
                                      args.up_batch_size, args.up_nnet_batch_size)
 
     env: Environment
-    updater: UpdateHeur
+    updater: UpdaterHeur
     if (args.env == "cube3") or (args.env == "cube3_fixed"):
-        from deepxube.environments.cube3 import Cube3, Cube3NNetParV
+        from deepxube.environments.cube3 import Cube3
         env = Cube3(args.env == "cube3_fixed")
-        updater = UpdateHeurBWAS(env, Cube3NNetParV(), up_args)
+        if args.heur_type.upper() == "V":
+            from deepxube.environments.cube3 import Cube3NNetParV
+            updater = UpdateHeurBWAS(env, Cube3NNetParV(), up_args)
+        elif args.heur_type.upper() == "Q":
+            from deepxube.environments.cube3 import Cube3NNetParQ
+            updater = UpdateHeurBWQS(env, Cube3NNetParQ(), up_args)
+        else:
+            raise ValueError(f"Unknown heur type {args.heur_type}")
     else:
         raise ValueError(f"Unknown environment {args.env}")
 

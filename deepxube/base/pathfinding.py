@@ -29,13 +29,23 @@ class Node(ABC):
         pass
 
 
-class Instance(ABC):
-    def __init__(self, root_node: Node, inst_info: Any):
-        self.root_node: Node = root_node
+class InstArgs:
+    def __init__(self):
+        pass
+
+
+N = TypeVar('N', bound=Node)
+IArgs = TypeVar('IArgs', bound=InstArgs)
+
+
+class Instance(ABC, Generic[N, IArgs]):
+    def __init__(self, root_node: N, inst_args: IArgs, inst_info: Any):
+        self.root_node: N = root_node
         self.itr: int = 0  # updater with every pathfinding iteration
         self.num_nodes_generated: int = 0
+        self.inst_args: IArgs = inst_args
         self.inst_info: Any = inst_info
-        self.goal_node: Optional[Node] = None
+        self.goal_node: Optional[N] = None
 
     def has_soln(self) -> bool:
         if self.goal_node is None:
@@ -51,25 +61,18 @@ class Instance(ABC):
             return self.goal_node.path_cost
 
 
-class InstArgs:
-    def __init__(self):
-        pass
-
-
 I = TypeVar('I', bound=Instance)
-IArg = TypeVar('IArg', bound=InstArgs)
 
 
-class PathFind(ABC, Generic[I, IArg]):
+class PathFind(ABC, Generic[I, IArgs]):
     def __init__(self, env: Environment):
         self.env: Environment = env
         self.instances: List[I] = []
         self.times: Times = Times()
 
     @abstractmethod
-    def add_instances(self, states: List[State], goals: List[Goal], heur_fn: Callable,
-                      inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True,
-                      inst_args_l: Optional[List[IArg]] = None):
+    def add_instances(self, states: List[State], goals: List[Goal], heur_fn: Callable, inst_args_l: List[IArgs],
+                      inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True):
         pass
 
     @abstractmethod
@@ -160,7 +163,7 @@ class NodeV(Node):
             self.parent.upper_bound_parent_path(ctg_ub + self.parent_t_cost)
 
 
-class PathFindV(PathFind[I, IArg]):
+class PathFindV(PathFind[I, IArgs]):
     def __init__(self, env: Environment):
         super().__init__(env)
 
@@ -278,7 +281,7 @@ class NodeQAct:
         self.action: Action = action
 
 
-class PathFindQ(PathFind[I, IArg]):
+class PathFindQ(PathFind[I, IArgs]):
     def __init__(self, env: Environment):
         super().__init__(env)
 

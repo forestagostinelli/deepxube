@@ -12,15 +12,20 @@ import time
 OpenSetElem = Tuple[float, int, NodeV]
 
 
-class InstanceBWAS(Instance):
-    def __init__(self, root_node: NodeV, inst_info: Any, weight: float):
-        super().__init__(root_node, inst_info)
-        self.root_node: NodeV = root_node
+class InstArgsBWAS(InstArgs):
+    def __init__(self, batch_size: int = 1, weight: float = 1.0):
+        super().__init__()
+        self.batch_size: int = batch_size
+        self.weight: float = weight
+
+
+class InstanceBWAS(Instance[NodeV, InstArgsBWAS]):
+    def __init__(self, root_node: NodeV, inst_args: InstArgsBWAS, inst_info: Any):
+        super().__init__(root_node, inst_args, inst_info)
         self.open_set: List[OpenSetElem] = []
         self.heappush_count: int = 0
         self.closed_dict: Dict[State, float] = dict()
         self.finished: bool = False
-        self.weight: float = weight
 
         self.check_and_push([self.root_node], [self.root_node.heuristic])
 
@@ -34,8 +39,8 @@ class InstanceBWAS(Instance):
                 heappush(self.open_set, (cost, self.heappush_count, node))
                 self.heappush_count += 1
 
-    def pop_from_open(self, num_nodes: int) -> List[NodeV]:
-        num_to_pop: int = min(num_nodes, len(self.open_set))
+    def pop_from_open(self) -> List[NodeV]:
+        num_to_pop: int = min(self.inst_args.batch_size, len(self.open_set))
 
         elems_popped: List[OpenSetElem] = [heappop(self.open_set) for _ in range(num_to_pop)]
         nodes_popped: List[NodeV] = [elem_popped[2] for elem_popped in elems_popped]
@@ -46,16 +51,10 @@ class InstanceBWAS(Instance):
 
         # TODO check if elems_popped len is 0
         cost_first: float = elems_popped[0][0]
-        if (self.goal_node is not None) and ((self.weight * self.goal_node.path_cost) <= cost_first):
+        if (self.goal_node is not None) and ((self.inst_args.weight * self.goal_node.path_cost) <= cost_first):
             self.finished = True
 
         return nodes_popped
-
-
-class InstArgsBWAS(InstArgs):
-    def __init__(self, weight: float):
-        super().__init__()
-        self.weight: float = weight
 
 
 class BWAS(PathFindV[InstanceBWAS, InstArgsBWAS]):
@@ -63,31 +62,27 @@ class BWAS(PathFindV[InstanceBWAS, InstArgsBWAS]):
         super().__init__(env)
         self.steps: int = 0
 
-    def add_instances(self, states: List[State], goals: List[Goal], heur_fn: HeurFnV,
-                      inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True,
-                      inst_args_l: Optional[List[InstArgsBWAS]] = None):
+    def add_instances(self, states: List[State], goals: List[Goal], heur_fn: HeurFnV, inst_args_l: List[InstArgsBWAS],
+                      inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True):
         start_time = time.time()
         if inst_infos is None:
             inst_infos = [None] * len(states)
-        if inst_args_l is None:
-            inst_args_l = [InstArgsBWAS(1.0) for _ in states]
 
         assert len(states) == len(goals) == len(inst_infos) == len(inst_args_l), "Number should be the same"
 
         root_nodes: List[NodeV] = self._create_root_nodes(states, goals, heur_fn, compute_init_heur)
 
         # initialize instances
-        for root_node, inst_info, inst_args in zip(root_nodes, inst_infos, inst_args_l):
-            self.instances.append(InstanceBWAS(root_node, inst_info, inst_args.weight))
+        for root_node, inst_args, inst_info in zip(root_nodes, inst_args_l, inst_infos):
+            self.instances.append(InstanceBWAS(root_node, inst_args, inst_info))
         self.times.record_time("add", time.time() - start_time)
 
-    def step(self, heur_fn: HeurFnV, batch_size: int = 1,
-             verbose: bool = False) -> Tuple[List[State], List[Goal], List[float]]:
+    def step(self, heur_fn: HeurFnV, verbose: bool = False) -> Tuple[List[State], List[Goal], List[float]]:
         instances: List[InstanceBWAS] = [instance for instance in self.instances if not instance.finished]
 
         # Pop from open
         start_time = time.time()
-        nodes_by_inst_popped: List[List[NodeV]] = [instance.pop_from_open(batch_size) for instance in instances]
+        nodes_by_inst_popped: List[List[NodeV]] = [instance.pop_from_open() for instance in instances]
         self.times.record_time("pop", time.time() - start_time)
 
         # Expand nodes
@@ -96,7 +91,7 @@ class BWAS(PathFindV[InstanceBWAS, InstArgsBWAS]):
         # Get cost
         start_time = time.time()
         nodes_c_flat, _ = misc_utils.flatten(nodes_c_by_inst)
-        weights, split_idxs = misc_utils.flatten([[instance.weight] * len(nodes_c)
+        weights, split_idxs = misc_utils.flatten([[instance.inst_args.weight] * len(nodes_c)
                                                   for instance, nodes_c in zip(instances, nodes_c_by_inst)])
         path_costs: List[float] = [node.path_cost for node in nodes_c_flat]
         heuristics: List[float] = [node.heuristic for node in nodes_c_flat]
