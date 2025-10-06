@@ -335,17 +335,20 @@ class PathFindQ(PathFind[I, IArg]):
 
     def _create_root_nodes(self, states: List[State], goals: List[Goal], heur_fn: HeurFnQ,
                            compute_init_heur: bool) -> List[NodeQ]:
+        actions_c_l: List[List[Action]] = self.env.get_state_actions(states)
+        tc_p_ctgs_l: List[List[float]] = heur_fn(states, goals, actions_c_l)
+
         heuristics: List[float]
         if compute_init_heur:
-            actions_l: List[List[Action]] = self.env.get_state_actions(states)
-            heuristics = [min(x) for x in heur_fn(states, goals, actions_l)]
+            heuristics = [min(x) for x in tc_p_ctgs_l]
         else:
             heuristics = [0.0 for _ in states]
 
         root_nodes: List[NodeQ] = []
         is_solved_l: List[bool] = self.env.is_solved(states, goals)
-        for state, goal, heuristic, is_solved in zip(states, goals, heuristics, is_solved_l):
-            root_node: NodeQ = NodeQ(state, goal, 0.0, heuristic, is_solved, None, None, None)
+        for state, goal, heuristic, is_solved, actions_c, tcs_p_ctgs in zip(states, goals, heuristics, is_solved_l,
+                                                                            actions_c_l, tc_p_ctgs_l, strict=True):
+            root_node: NodeQ = NodeQ(state, goal, 0.0, heuristic, is_solved, None, None, None, actions_c, tcs_p_ctgs)
             root_nodes.append(root_node)
 
         return root_nodes
