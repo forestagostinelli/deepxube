@@ -187,7 +187,7 @@ class PathFindV(PathFind[NodeV, I, IArgs]):
         super().__init__(env)
 
     @abstractmethod
-    def step(self, heur_fn: HeurFnV) -> Tuple[List[State], List[Goal], List[float]]:
+    def step(self, heur_fn: HeurFnV) -> List[NodeV]:
         pass
 
     def expand_nodes(self, instances: List[I], nodes_by_inst: List[List[NodeV]],
@@ -305,7 +305,7 @@ class PathFindQ(PathFind[NodeQ, I, IArgs]):
         super().__init__(env)
 
     @abstractmethod
-    def step(self, heur_fn: HeurFnQ) -> Tuple[List[State], List[Goal], List[Action], List[float]]:
+    def step(self, heur_fn: HeurFnQ) -> List[NodeQ]:
         pass
 
     def expand(self, instances: List[I], node_acts_by_inst: List[List[NodeQAct]],

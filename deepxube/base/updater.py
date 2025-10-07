@@ -10,11 +10,11 @@ import torch
 from numpy.typing import NDArray
 
 from deepxube.nnet.nnet_utils import NNetParInfo
-from deepxube.base.environment import Environment, Action
+from deepxube.base.environment import Environment, State, Goal, Action
 from deepxube.base.heuristic import HeurNNet, HeurFn, HeurFnV, HeurFnQ
 from deepxube.base.heuristic import HeurNNetV, HeurNNetQ
 from deepxube.nnet import nnet_utils
-from deepxube.base.pathfinding import PathFind, PathFindV, PathFindQ, Instance, InstArgs
+from deepxube.base.pathfinding import PathFind, PathFindV, PathFindQ, Instance, InstArgs, NodeV
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf
 from deepxube.training.train_utils import ReplayBuffer
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd
@@ -146,8 +146,7 @@ class UpdaterHeur(ABC, Generic[H, P]):
         pass
 
     @abstractmethod
-    def step_get_in_out_np(self, pathfind: P, heur_fn: H,
-                           times: Times) -> Tuple[List[NDArray], List[float]]:
+    def step_get_in_out_np(self, pathfind: P, heur_fn: H, times: Times) -> Tuple[List[NDArray], List[float]]:
         pass
 
     @abstractmethod
@@ -290,10 +289,14 @@ class UpdateHeurV(UpdaterHeur[HV, PV]):
     def step_get_in_out_np(self, pathfind: PV, heur_fn: HV,
                            times: Times) -> Tuple[List[NDArray], List[float]]:
         # take a step
-        states, goals, ctgs_backup = pathfind.step(heur_fn)
+        nodes_popped: List[NodeV] = pathfind.step(heur_fn)
 
         # to np
         start_time = time.time()
+        states: List[State] = [node.state for node in nodes_popped]
+        goals: List[Goal] = [node.goal for node in nodes_popped]
+        ctgs_backup: List[float] = [node.backup() for node in nodes_popped]
+
         inputs_np: List[NDArray] = self.heur_nnet.to_np(states, goals)
         times.record_time("to_np", time.time() - start_time)
         return inputs_np, ctgs_backup

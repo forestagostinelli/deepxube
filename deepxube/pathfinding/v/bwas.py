@@ -1,7 +1,7 @@
 from typing import List, Tuple, Dict, Optional, Any
 from deepxube.base.environment import Environment, State, Goal
 from deepxube.base.heuristic import HeurFnV
-from deepxube.base.pathfinding import Instance, NodeV, PathFindV, InstArgs, N, I
+from deepxube.base.pathfinding import Instance, NodeV, PathFindV, InstArgs
 import numpy as np
 from heapq import heappush, heappop
 
@@ -62,7 +62,7 @@ class BWAS(PathFindV[InstanceBWAS, InstArgsBWAS]):
         super().__init__(env)
         self.steps: int = 0
 
-    def step(self, heur_fn: HeurFnV, verbose: bool = False) -> Tuple[List[State], List[Goal], List[float]]:
+    def step(self, heur_fn: HeurFnV, verbose: bool = False) -> List[NodeV]:
         instances: List[InstanceBWAS] = [instance for instance in self.instances if not instance.finished]
 
         # Pop from open
@@ -115,13 +115,8 @@ class BWAS(PathFindV[InstanceBWAS, InstArgsBWAS]):
             instance.itr += 1
 
         # return
-        start_time = time.time()
         nodes_popped_flat, _ = misc_utils.flatten(nodes_by_inst_popped)
-        states: List[State] = [node.state for node in nodes_popped_flat]
-        goals: List[Goal] = [node.goal for node in nodes_popped_flat]
-        ctgs_bellman: List[float] = [node.backup() for node in nodes_popped_flat]
-        self.times.record_time("bellman", time.time() - start_time)
-        return states, goals, ctgs_bellman
+        return nodes_popped_flat
 
     def remove_finished_instances(self, itr_max: int) -> List[InstanceBWAS]:
         def remove_instance_fn(inst_in: InstanceBWAS) -> bool:
