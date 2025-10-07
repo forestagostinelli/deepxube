@@ -170,17 +170,7 @@ class EnvEnumerableActs(Env[S, A, G]):
         return states_exp_l, actions_exp_l, tcs_l
 
 
-class EnvStartGoalRW(Env[S, A, G]):
-    @abstractmethod
-    def get_start_states(self, num_states: int) -> List[S]:
-        """ A method for generating start states. Should try to make this generate states that are as diverse as
-        possible so that the trained heuristic function generalizes well.
-
-        @param num_states: Number of states to get
-        @return: Generated states
-        """
-        pass
-
+class EnvGoalSampleable(Env[S, A, G]):
     @abstractmethod
     def sample_goal(self, states_start: List[S], states_goal: List[S]) -> List[G]:
         """ Given a state, return a goal that represents a set of goal states of which the given state is a member.
@@ -189,6 +179,18 @@ class EnvStartGoalRW(Env[S, A, G]):
         @param states_start: List of start states
         @param states_goal List of states from which goals will be sampled
         @return: Goals
+        """
+        pass
+
+
+class EnvStartGoalRW(EnvGoalSampleable[S, A, G]):
+    @abstractmethod
+    def get_start_states(self, num_states: int) -> List[S]:
+        """ A method for generating start states. Should try to make this generate states that are as diverse as
+        possible so that the trained heuristic function generalizes well.
+
+        @param num_states: Number of states to get
+        @return: Generated states
         """
         pass
 

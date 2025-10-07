@@ -1,5 +1,4 @@
-from typing import List, Optional, Any, Tuple, Callable
-from deepxube.base.env import State, Goal
+from typing import List, Any, Callable
 from deepxube.base.pathfinding import Instance, NodeV, PathFindV, InstArgs
 import numpy as np
 import random
@@ -19,33 +18,14 @@ class InstanceGrV(Instance[NodeV, InstArgsGr]):
 
 
 class Greedy(PathFindV[InstanceGrV, InstArgsGr]):
-    def add_instances(self, states: List[State], goals: List[Goal], heur_fn: Callable, inst_args_l: List[InstArgsGr],
-                      inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True):
-        start_time = time.time()
-        if inst_infos is None:
-            inst_infos = [None] * len(states)
-
-        assert len(states) == len(goals) == len(inst_infos) == len(inst_args_l), "Number should be the same"
-
-        root_nodes: List[NodeV] = self._create_root_nodes(states, goals, heur_fn, compute_init_heur)
-
-        for root_node, inst_args, inst_info in zip(root_nodes, inst_args_l, inst_infos):
-            instance: InstanceGrV = InstanceGrV(root_node, inst_args, inst_info)
-            self.instances.append(instance)
-        self.times.record_time("add", time.time() - start_time)
-
-    def step(self, heur_fn: Callable) -> Tuple[List[State], List[Goal], List[float]]:
+    def step(self, heur_fn: Callable) -> List[NodeV]:
         # get unsolved instances
         instances: List[InstanceGrV] = self._get_unsolved_instances()
         if len(instances) == 0:
-            return [], [], []
+            return []
 
-        self.expand_nodes(instances, [[inst.curr_node] for inst in instances], heur_fn)
-        start_time = time.time()
-        states: List[State] = [inst.curr_node.state for inst in instances]
-        goals: List[Goal] = [inst.curr_node.goal for inst in instances]
-        ctgs: List[float] = [inst.curr_node.backup() for inst in instances]
-        self.times.record_time("bellman", time.time() - start_time)
+        nodes_curr: List[NodeV] = [inst.curr_node for inst in instances]
+        self.expand_nodes(instances, [[node_curr] for node_curr in nodes_curr], heur_fn)
 
         # take action
         start_time = time.time()
@@ -72,7 +52,7 @@ class Greedy(PathFindV[InstanceGrV, InstArgsGr]):
             instance.itr += 1
         self.times.record_time("get_next", time.time() - start_time)
 
-        return states, goals, ctgs
+        return nodes_curr
 
     def remove_finished_instances(self, itr_max: int) -> List[InstanceGrV]:
         def remove_instance_fn(inst_in: InstanceGrV) -> bool:
@@ -87,3 +67,6 @@ class Greedy(PathFindV[InstanceGrV, InstArgsGr]):
     def _get_unsolved_instances(self) -> List[InstanceGrV]:
         instances_unsolved: List[InstanceGrV] = [instance for instance in self.instances if not instance.has_soln()]
         return instances_unsolved
+
+    def _get_instance(self, root_node: NodeV, inst_args: InstArgsGr, inst_info: Any) -> InstanceGrV:
+        return InstanceGrV(root_node, inst_args, inst_info)

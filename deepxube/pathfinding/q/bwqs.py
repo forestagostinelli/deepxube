@@ -10,11 +10,10 @@ OpenSetElem = Tuple[float, int, NodeQ, List[Optional[Action]], List[float]]
 
 
 class InstArgsBWQS(InstArgs):
-    def __init__(self, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0):
+    def __init__(self, batch_size: int = 1, weight: float = 1.0):
         super().__init__()
         self.batch_size: int = batch_size
         self.weight: float = weight
-        self.eps: float = eps
 
 
 class InstanceBWQS(Instance[NodeQ, InstArgsBWQS]):

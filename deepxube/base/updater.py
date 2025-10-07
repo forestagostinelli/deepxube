@@ -14,11 +14,11 @@ from deepxube.base.env import Env, State, Goal, Action, EnvEnumerableActs
 from deepxube.base.heuristic import HeurNNet, HeurFn, HeurFnV, HeurFnQ
 from deepxube.base.heuristic import HeurNNetV, HeurNNetQ
 from deepxube.nnet import nnet_utils
-from deepxube.base.pathfinding import PathFind, PathFindV, PathFindQ, Instance, InstArgs, NodeV
+from deepxube.base.pathfinding import PathFind, PathFindV, PathFindQ, Instance, InstArgs, NodeV, NodeQ
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf
 from deepxube.training.train_utils import ReplayBuffer
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd
-from deepxube.utils.misc_utils import split_evenly_w_max
+from deepxube.utils.misc_utils import split_evenly_w_max, boltzmann
 from deepxube.utils.timing_utils import Times
 
 
@@ -131,14 +131,16 @@ def _update_perf(insts_rem: List[Instance], step_to_pathperf: Dict[int, PathFind
         step_to_pathperf[step_num_inst].update_perf(inst_rem)
 
 
+E = TypeVar('E', bound=Env)
+HNet = TypeVar('HNet', bound=HeurNNet)
 H = TypeVar('H', bound=HeurFn)
 P = TypeVar('P', bound=PathFind)
 
 
-class UpdaterHeur(ABC, Generic[H, P]):
-    def __init__(self, env: Env, heur_nnet: HeurNNet, up_args: UpHeurArgs):
-        self.env: Env = env
-        self.heur_nnet: HeurNNet = heur_nnet
+class UpdaterHeur(ABC, Generic[E, HNet, H, P]):
+    def __init__(self, env: E, heur_nnet: HNet, up_args: UpHeurArgs):
+        self.env: E = env
+        self.heur_nnet: HNet = heur_nnet
         self.up_args: UpHeurArgs = up_args
 
     @abstractmethod
@@ -273,20 +275,18 @@ class UpdaterHeur(ABC, Generic[H, P]):
         return to_q
 
 
-HV = TypeVar('HV', bound=HeurFnV)
 PV = TypeVar('PV', bound=PathFindV)
 
 
-class UpdateHeurV(UpdaterHeur[HV, PV]):
+class UpdateHeurV(UpdaterHeur[EnvEnumerableActs, HeurNNetV, HeurFnV, PV]):
     def __init__(self, env: EnvEnumerableActs, heur_nnet: HeurNNetV, up_args: UpHeurArgs):
         super().__init__(env, heur_nnet, up_args)
-        self.heur_nnet: HeurNNetV = heur_nnet
 
     @abstractmethod
     def get_pathfind(self) -> PV:
         pass
 
-    def step_get_in_out_np(self, pathfind: PV, heur_fn: HV,
+    def step_get_in_out_np(self, pathfind: PV, heur_fn: HeurFnV,
                            times: Times) -> Tuple[List[NDArray], List[float]]:
         # take a step
         nodes_popped: List[NodeV] = pathfind.step(heur_fn)
@@ -312,22 +312,54 @@ class UpdateHeurV(UpdaterHeur[HV, PV]):
         return shapes_dypes
 
 
-HQ = TypeVar('HQ', bound=HeurFnQ)
 PQ = TypeVar('PQ', bound=PathFindQ)
 
 
-class UpdateHeurQ(UpdaterHeur[HQ, PQ]):
-    def __init__(self, env: Env, heur_nnet: HeurNNetQ, up_args: UpHeurArgs):
+def q_learning_backup(env: EnvEnumerableActs, states: List[State], goals: List[Goal], actions: List[Action],
+                      heur_fn: HeurFnQ) -> Tuple[List[State], List[float]]:
+    states_next, tcs = env.next_state(states, actions)
+
+    # min cost-to-go for next state
+    actions_next: List[List[Action]] = env.get_state_actions(states_next)
+    ctg_acts_next_l: List[List[float]] = heur_fn(states_next, goals, actions_next)
+    ctg_acts_next_min: List[float] = [min(ctg_acts_next) for ctg_acts_next in ctg_acts_next_l]
+
+    # backup cost-to-go
+    ctg_backups: NDArray = np.array(tcs) + np.array(ctg_acts_next_min)
+
+    is_solved: List[bool] = env.is_solved(states, goals)
+    ctg_backups = ctg_backups * np.logical_not(np.array(is_solved))
+
+    return states_next, ctg_backups.tolist()
+
+
+class UpdateHeurQ(UpdaterHeur[EnvEnumerableActs, HeurNNetQ, HeurFnQ, PQ]):
+    def __init__(self, env: EnvEnumerableActs, heur_nnet: HeurNNetQ, up_args: UpHeurArgs, temp: float):
         super().__init__(env, heur_nnet, up_args)
-        self.heur_nnet: HeurNNetQ = heur_nnet
+        self.temp: float = temp
 
     @abstractmethod
     def get_pathfind(self) -> PQ:
         pass
 
-    def step_get_in_out_np(self, pathfind: PQ, heur_fn: HQ, times: Times) -> Tuple[List[NDArray], List[float]]:
+    def step_get_in_out_np(self, pathfind: PQ, heur_fn: HeurFnQ, times: Times) -> Tuple[List[NDArray], List[float]]:
         # take a step
-        states, goals, actions, ctgs_backup = pathfind.step(heur_fn)
+        node_q_l: List[NodeQ] = pathfind.step(heur_fn)
+
+        # sample an action to take
+        states: List[State] = []
+        goals: List[Goal] = []
+        actions: List[Action] = []
+        for node_q in node_q_l:
+            states.append(node_q.state)
+            goals.append(node_q.goal)
+
+            act_probs: List[float] = boltzmann([-q_value for q_value in node_q.q_values], self.temp)
+            act_idx: int = int(np.random.multinomial(1, act_probs, size=1).argmax())
+            actions.append(node_q.actions[act_idx])
+
+        # do q-learning backup
+        ctgs_backup: List[float] = q_learning_backup(self.env, states, goals, actions, heur_fn)[1]
 
         # to_np
         start_time = time.time()

@@ -205,19 +205,19 @@ class PathFindV(PathFind[EnvEnumerableActs, NodeV, I, IArgs]):
         # Get children of nodes
         states: List[State] = [x.state for x in nodes]
 
-        states_c: List[List[State]]
-        actions_c: List[List[Action]]
+        states_next: List[List[State]]
+        actions: List[List[Action]]
         tcs: List[List[float]]
-        states_c, actions_c, tcs = self.env.expand(states)
+        states_next, actions, tcs = self.env.expand(states)
 
-        goals_c: List[List[Goal]] = [[node.goal] * len(states_c) for node, states_c in zip(nodes, states_c)]
+        goals_c: List[List[Goal]] = [[node.goal] * len(state_next) for node, state_next in zip(nodes, states_next)]
         self.times.record_time("expand", time.time() - start_time)
 
         # Get is_solved on all states at once (for speed)
         start_time = time.time()
         states_c_flat: List[State]
 
-        states_c_flat, split_idxs_c = misc_utils.flatten(states_c)
+        states_c_flat, split_idxs_c = misc_utils.flatten(states_next)
         goals_c_flat, _ = misc_utils.flatten(goals_c)
         is_solved_c_flat: List[bool] = self.env.is_solved(states_c_flat, goals_c_flat)
         is_solved_c: List[List[bool]] = misc_utils.unflatten(is_solved_c_flat, split_idxs_c)
@@ -235,10 +235,10 @@ class PathFindV(PathFind[EnvEnumerableActs, NodeV, I, IArgs]):
         for node_idx, node in enumerate(nodes):
             path_costs_c_i: NDArray = node.path_cost + np.array(tcs[node_idx])
             nodes_c_i: List[NodeV] = []
-            for c_idx in range(len(states_c[node_idx])):
-                node_c: NodeV = NodeV(states_c[node_idx][c_idx], goals_c[node_idx][c_idx], float(path_costs_c_i[c_idx]),
+            for c_idx in range(len(states_next[node_idx])):
+                node_c: NodeV = NodeV(states_next[node_idx][c_idx], goals_c[node_idx][c_idx], float(path_costs_c_i[c_idx]),
                                       heuristics_c[node_idx][c_idx], is_solved_c[node_idx][c_idx],
-                                      actions_c[node_idx][c_idx], tcs[node_idx][c_idx], node)
+                                      actions[node_idx][c_idx], tcs[node_idx][c_idx], node)
                 nodes_c_i.append(node_c)
             node.children = nodes_c_i
             node.t_costs = tcs[node_idx]
@@ -279,14 +279,14 @@ class PathFindV(PathFind[EnvEnumerableActs, NodeV, I, IArgs]):
 
 class NodeQ(Node):
     __slots__ = ['state', 'goal', 'path_cost', 'heuristic', 'is_solved', 'parent_action', 'parent_t_cost', 'parent',
-                 'actions_c', 'q_values']
+                 'actions', 'q_values']
 
     def __init__(self, state: State, goal: Goal, path_cost: float, heuristic: float, is_solved: bool,
                  parent_action: Optional[Action], parent_t_cost: Optional[float], parent: Optional['NodeQ'],
                  actions_c: List[Action], q_values: List[float]):
         super().__init__(state, goal, path_cost, heuristic, is_solved, parent_action, parent_t_cost, parent)
         self.parent: Optional[NodeQ] = parent
-        self.actions_c: List[Action] = actions_c
+        self.actions: List[Action] = actions_c
         self.q_values: List[float] = q_values
 
     def backup(self) -> float:
@@ -301,8 +301,8 @@ class NodeQAct:
         self.action: Optional[Action] = action
 
 
-class PathFindQ(PathFind[Env, NodeQ, I, IArgs]):
-    def __init__(self, env: Env):
+class PathFindQ(PathFind[EnvEnumerableActs, NodeQ, I, IArgs]):
+    def __init__(self, env: EnvEnumerableActs):
         super().__init__(env)
 
     @abstractmethod
@@ -360,8 +360,8 @@ class PathFindQ(PathFind[Env, NodeQ, I, IArgs]):
 
     def _create_root_nodes(self, states: List[State], goals: List[Goal], heur_fn: HeurFnQ,
                            compute_init_heur: bool) -> List[NodeQ]:
-        actions_c_l: List[List[Action]] = self.env.get_state_actions(states)
-        tc_p_ctgs_l: List[List[float]] = heur_fn(states, goals, actions_c_l)
+        actions_l: List[List[Action]] = self.env.get_state_actions(states)
+        tc_p_ctgs_l: List[List[float]] = heur_fn(states, goals, actions_l)
 
         heuristics: List[float]
         if compute_init_heur:
@@ -371,9 +371,9 @@ class PathFindQ(PathFind[Env, NodeQ, I, IArgs]):
 
         root_nodes: List[NodeQ] = []
         is_solved_l: List[bool] = self.env.is_solved(states, goals)
-        for state, goal, heuristic, is_solved, actions_c, tcs_p_ctgs in zip(states, goals, heuristics, is_solved_l,
-                                                                            actions_c_l, tc_p_ctgs_l, strict=True):
-            root_node: NodeQ = NodeQ(state, goal, 0.0, heuristic, is_solved, None, None, None, actions_c, tcs_p_ctgs)
+        for state, goal, heuristic, is_solved, actions, tcs_p_ctgs in zip(states, goals, heuristics, is_solved_l,
+                                                                          actions_l, tc_p_ctgs_l, strict=True):
+            root_node: NodeQ = NodeQ(state, goal, 0.0, heuristic, is_solved, None, None, None, actions, tcs_p_ctgs)
             root_nodes.append(root_node)
 
         return root_nodes
