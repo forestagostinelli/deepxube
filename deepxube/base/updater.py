@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple, Any, Optional, Generic, TypeVar
+from typing import List, Dict, Tuple, Any, Generic, TypeVar
 from abc import ABC, abstractmethod
 import time
 from dataclasses import dataclass
@@ -17,7 +17,7 @@ from deepxube.nnet import nnet_utils
 from deepxube.base.pathfinding import PathFind, PathFindV, PathFindQ, Instance, InstArgs
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf
 from deepxube.training.train_utils import ReplayBuffer
-from deepxube.utils.data_utils import SharedNDArray
+from deepxube.utils.data_utils import SharedNDArray, np_to_shnd
 from deepxube.utils.misc_utils import split_evenly_w_max
 from deepxube.utils.timing_utils import Times
 
@@ -46,30 +46,45 @@ class UpHeurArgs:
 
 
 def get_data_from_procs(num_gen: int, from_q: Queue, to_q: Queue, procs: List[BaseProcess],
-                        inputs_nnet_shm: List[SharedNDArray], ctgs_shm: SharedNDArray, rb: ReplayBuffer,
-                        start_time_gen: float) -> Dict[int, PathFindPerf]:
+                        rb: ReplayBuffer, start_time_gen: float) -> Dict[int, PathFindPerf]:
     # getting data from processes
     times_up: Times = Times()
     display_counts: NDArray[np.int_] = np.linspace(0, num_gen, 10, dtype=int)
     num_gen_curr: int = 0
+    ctgs_min: float = np.inf
+    ctgs_max: float = -np.inf
+    ctgs_mean: float = 0
     while num_gen_curr < num_gen:
-        start_idx, end_idx = from_q.get()
+        inputs_nnet_shm_get_l, ctgs_shm_get_l = from_q.get()
         start_time = time.time()
-        inputs_nnet_get: List[NDArray] = []
-        for inputs_idx in range(len(inputs_nnet_shm)):
-            inputs_nnet_get.append(inputs_nnet_shm[inputs_idx][start_idx:end_idx].copy())
-        ctgs_shm_get: NDArray = ctgs_shm[start_idx:end_idx].copy()
-        rb.add(inputs_nnet_get + [ctgs_shm_get])
-        num_gen_curr += (end_idx - start_idx)
+        for inputs_nnet_shm_get, ctgs_shm_get in zip(inputs_nnet_shm_get_l, ctgs_shm_get_l, strict=True):
+            # put to rb
+            inputs_nnet_get: List[NDArray] = []
+            for inputs_idx in range(len(inputs_nnet_shm_get)):
+                inputs_nnet_get.append(inputs_nnet_shm_get[inputs_idx].array.copy())
+            ctgs_get: NDArray = ctgs_shm_get.array.copy()
+            rb.add(inputs_nnet_get + [ctgs_get])
+
+            # status tracking
+            num_gen_curr += ctgs_get.shape[0]
+            ctgs_min = min(ctgs_get.min(), ctgs_min)
+            ctgs_max = max(ctgs_get.max(), ctgs_max)
+            ctgs_mean = ctgs_get.sum()
+
+            # unlink shared mem
+            for arr_shm in inputs_nnet_shm_get + [ctgs_shm_get]:
+                arr_shm.close()
+                arr_shm.unlink()
         times_up.record_time("rb", time.time() - start_time)
         if num_gen_curr >= min(display_counts):
             print(f"{num_gen_curr}/{num_gen} instances (%.2f%%) "
                   f"(Tot time: %.2f)" % (100 * num_gen_curr / num_gen, time.time() - start_time_gen))
             display_counts = display_counts[num_gen_curr < display_counts]
+    ctgs_mean = ctgs_mean/float(num_gen_curr)
 
     # sending stop signal
     for _ in procs:
-        to_q.put((None, None))
+        to_q.put(None)
 
     # get summary from processes
     step_to_pathperf: Dict[int, PathFindPerf] = dict()
@@ -81,28 +96,31 @@ def get_data_from_procs(num_gen: int, from_q: Queue, to_q: Queue, procs: List[Ba
                 step_to_pathperf[step_num_perf] = PathFindPerf()
             step_to_pathperf[step_num_perf] = step_to_pathperf[step_num_perf].comb_perf(pathperf)
 
-    # cost-to-go summary
-    mean_ctg = ctgs_shm.array.mean()
-    min_ctg = ctgs_shm.array.min()
-    max_ctg = ctgs_shm.array.max()
+    # summary
     print(f"Generated {format(num_gen_curr, ',')} training instances, "
           f"Replay buffer size: {format(rb.size(), ',')}")
-    print("Cost-to-go (mean/min/max): %.2f/%.2f/%.2f" % (mean_ctg, min_ctg, max_ctg))
+    print(f"Cost-to-go (mean/min/max): {ctgs_mean:.2f}/{ctgs_min:.2f}/{ctgs_max:.2f}")
     print(f"Times - {times_up.get_time_str()}")
 
     return step_to_pathperf
 
 
-def _put_to_shm(inputs_nnet_shm: List[SharedNDArray], ctgs_shm: SharedNDArray, inputs_nnet: List[NDArray],
-                ctgs_backup: List[float], start_idx: int, times: Times) -> int:
+def _put_from_q(inputs_nnet_l: List[List[NDArray]], ctgs_backup_l: List[NDArray], from_q: Queue, times: Times):
     start_time = time.time()
-    end_idx = start_idx + len(ctgs_backup)
-    for input_idx in range(len(inputs_nnet)):
-        inputs_nnet_shm[input_idx][start_idx:end_idx] = inputs_nnet[input_idx].copy()
-    ctgs_shm[start_idx:end_idx] = np.array(ctgs_backup).copy()
-    start_idx = end_idx
+
+    inputs_nnet_shm_l: List[List[SharedNDArray]] = []
+    ctgs_backup_shm_l: List[SharedNDArray] = []
+    for inputs_nnet, ctgs_backup in zip(inputs_nnet_l, ctgs_backup_l, strict=True):
+        inputs_nnet_shm_l.append([np_to_shnd(inputs_nnet_i) for inputs_nnet_i in inputs_nnet])
+        ctgs_backup_shm_l.append(np_to_shnd(ctgs_backup))
+
+    from_q.put((inputs_nnet_shm_l, ctgs_backup_shm_l))
+
+    for inputs_nnet_shm, ctgs_backup_shm in zip(inputs_nnet_shm_l, ctgs_backup_shm_l, strict=True):
+        for arr_shm in inputs_nnet_shm + [ctgs_backup_shm]:
+            arr_shm.close()
+
     times.record_time("put", time.time() - start_time)
-    return start_idx
 
 
 def _update_perf(insts_rem: List[Instance], step_to_pathperf: Dict[int, PathFindPerf]):
@@ -137,20 +155,21 @@ class UpdaterHeur(ABC, Generic[H, P]):
         pass
 
     def update_runner(self, gen_step_max: int, nnet_par_info: NNetParInfo, to_q: Queue, from_q: Queue,
-                      step_probs: NDArray, inputs_nnet_shm: List[SharedNDArray], ctgs_shm: SharedNDArray):
+                      step_probs: NDArray):
         times: Times = Times()
 
         heur_fn: H = self.heur_nnet.get_nnet_par_fn(nnet_par_info)
         step_to_pathperf: Dict[int, PathFindPerf] = dict()
         while True:
-            batch_size, start_idx = to_q.get()
+            batch_size = to_q.get()
             if batch_size is None:
                 break
 
             pathfind: P = self.get_pathfind()
 
             insts_rem: List[Instance] = []
-            start_idx_batch: int = start_idx
+            inputs_nnet_l: List[List[NDArray]] = []
+            ctgs_backup_l: List[NDArray] = []
             for _ in range(self.up_args.up_search_itrs):
                 # add instances
                 self._add_instances(pathfind, insts_rem, gen_step_max, batch_size, step_probs, heur_fn, times)
@@ -160,7 +179,8 @@ class UpdaterHeur(ABC, Generic[H, P]):
                 assert len(ctgs_backup) == batch_size
 
                 # put
-                start_idx = _put_to_shm(inputs_nnet_shm, ctgs_shm, inputs_nnet, ctgs_backup, start_idx, times)
+                inputs_nnet_l.append(inputs_nnet)
+                ctgs_backup_l.append(np.array(ctgs_backup))
 
                 # remove instances
                 insts_rem = pathfind.remove_finished_instances(self.up_args.up_search_itrs)
@@ -168,12 +188,10 @@ class UpdaterHeur(ABC, Generic[H, P]):
                 # pathfinding performance
                 _update_perf(insts_rem, step_to_pathperf)
 
-            from_q.put((start_idx_batch, start_idx))
+            _put_from_q(inputs_nnet_l, ctgs_backup_l, from_q, times)
             times.add_times(pathfind.times, path=["pathfinding"])
 
         from_q.put((times, step_to_pathperf))
-        for arr_shm in inputs_nnet_shm + [ctgs_shm]:
-            arr_shm.close()
 
     def _add_instances(self, pathfind: P, insts_rem: List[Instance], gen_step_max: int, batch_size: int,
                        step_probs: NDArray, heur_fn: H, times: Times):
@@ -218,41 +236,26 @@ class UpdaterHeur(ABC, Generic[H, P]):
                                                                       clip_zero=True,
                                                                       batch_size=self.up_args.up_nnet_batch_size)
 
-        # shared memory
-        inputs_nnet_shm, ctgs_shm = self._init_shared_mem(num_gen)
-
         # starting processes
         from_q: Queue = ctx.Queue()
         procs: List[BaseProcess] = []
         for proc_id, nnet_par_info in enumerate(nnet_par_infos):
             proc: BaseProcess = ctx.Process(target=self.update_runner, args=(step_max, nnet_par_info, to_q, from_q,
-                                                                             step_probs, inputs_nnet_shm, ctgs_shm))
+                                                                             step_probs))
             proc.daemon = True
             proc.start()
             procs.append(proc)
 
         # getting data from procs
-        step_to_pathperf: Dict[int, PathFindPerf] = get_data_from_procs(num_gen, from_q, to_q, procs, inputs_nnet_shm,
-                                                                        ctgs_shm, rb, start_time_gen)
+        step_to_pathperf: Dict[int, PathFindPerf] = get_data_from_procs(num_gen, from_q, to_q, procs, rb,
+                                                                        start_time_gen)
 
         # clean up clean up everybody do your share
         nnet_utils.stop_nnet_runners(nnet_procs, nnet_par_infos)
         for proc in procs:
             proc.join()
-        for arr_shm in inputs_nnet_shm + [ctgs_shm]:
-            arr_shm.close()
-            arr_shm.unlink()
 
         return step_to_pathperf
-
-    def _init_shared_mem(self, num_gen: int) -> Tuple[List[SharedNDArray], SharedNDArray]:
-        shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = self.get_input_shapes_dtypes()
-        inputs_nnet_shm: List[SharedNDArray] = []
-        for shape, dtype in shapes_dtypes:
-            inputs_nnet_shm.append(SharedNDArray((num_gen,) + shape, dtype, None, True))
-        ctgs_shm = SharedNDArray((num_gen,), np.float64, None, True)
-
-        return inputs_nnet_shm, ctgs_shm
 
     def _send_work_to_q(self, num_gen: int, ctx) -> Queue:
         num_searches: int = num_gen // self.up_args.up_search_itrs
@@ -264,12 +267,9 @@ class UpdaterHeur(ABC, Generic[H, P]):
                                                             f"updater ({self.up_args.up_search_itrs})")
         to_q: Queue = ctx.Queue()
         num_to_send_per: List[int] = split_evenly_w_max(num_searches, self.up_args.up_procs, self.up_args.up_batch_size)
-        start_idx: int = 0
         for num_to_send_per_i in num_to_send_per:
             if num_to_send_per_i > 0:
-                to_q.put((num_to_send_per_i, start_idx))
-                start_idx += (num_to_send_per_i * self.up_args.up_search_itrs)
-        assert start_idx == num_gen
+                to_q.put(num_to_send_per_i)
 
         return to_q
 
