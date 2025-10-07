@@ -1,7 +1,7 @@
 from typing import List, Tuple, Dict, Optional, Any
 from deepxube.base.environment import Environment, State, Goal
 from deepxube.base.heuristic import HeurFnV
-from deepxube.base.pathfinding import Instance, NodeV, PathFindV, InstArgs
+from deepxube.base.pathfinding import Instance, NodeV, PathFindV, InstArgs, N, I
 import numpy as np
 from heapq import heappush, heappop
 
@@ -61,21 +61,6 @@ class BWAS(PathFindV[InstanceBWAS, InstArgsBWAS]):
     def __init__(self, env: Environment):
         super().__init__(env)
         self.steps: int = 0
-
-    def add_instances(self, states: List[State], goals: List[Goal], heur_fn: HeurFnV, inst_args_l: List[InstArgsBWAS],
-                      inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True):
-        start_time = time.time()
-        if inst_infos is None:
-            inst_infos = [None] * len(states)
-
-        assert len(states) == len(goals) == len(inst_infos) == len(inst_args_l), "Number should be the same"
-
-        root_nodes: List[NodeV] = self._create_root_nodes(states, goals, heur_fn, compute_init_heur)
-
-        # initialize instances
-        for root_node, inst_args, inst_info in zip(root_nodes, inst_args_l, inst_infos):
-            self.instances.append(InstanceBWAS(root_node, inst_args, inst_info))
-        self.times.record_time("add", time.time() - start_time)
 
     def step(self, heur_fn: HeurFnV, verbose: bool = False) -> Tuple[List[State], List[Goal], List[float]]:
         instances: List[InstanceBWAS] = [instance for instance in self.instances if not instance.finished]
@@ -147,3 +132,6 @@ class BWAS(PathFindV[InstanceBWAS, InstArgsBWAS]):
             return False
 
         return self.remove_instances(remove_instance_fn)
+
+    def _get_instance(self, root_node: NodeV, inst_args: InstArgsBWAS, inst_info: Any) -> InstanceBWAS:
+        return InstanceBWAS(root_node, inst_args, inst_info)

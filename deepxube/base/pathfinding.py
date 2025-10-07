@@ -1,15 +1,15 @@
-import time
 from typing import Generic, List, Optional, Any, Tuple, Callable, TypeVar
 
 from numpy.typing import NDArray
 
 from deepxube.base.environment import Environment, State, Goal, Action
-from deepxube.base.heuristic import HeurFnV, HeurFnQ
+from deepxube.base.heuristic import HeurFn, HeurFnV, HeurFnQ
 from deepxube.utils import misc_utils
 from deepxube.utils.timing_utils import Times
 
 from abc import ABC, abstractmethod
 import numpy as np
+import time
 
 
 class Node(ABC):
@@ -64,16 +64,26 @@ class Instance(ABC, Generic[N, IArgs]):
 I = TypeVar('I', bound=Instance)
 
 
-class PathFind(ABC, Generic[I, IArgs]):
+class PathFind(ABC, Generic[N, I, IArgs]):
     def __init__(self, env: Environment):
         self.env: Environment = env
         self.instances: List[I] = []
         self.times: Times = Times()
 
-    @abstractmethod
-    def add_instances(self, states: List[State], goals: List[Goal], heur_fn: Callable, inst_args_l: List[IArgs],
+    def add_instances(self, states: List[State], goals: List[Goal], heur_fn: HeurFnQ, inst_args_l: List[IArgs],
                       inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True):
-        pass
+        start_time = time.time()
+        if inst_infos is None:
+            inst_infos = [None] * len(states)
+
+        assert len(states) == len(goals) == len(inst_infos) == len(inst_args_l), "Number should be the same"
+
+        root_nodes: List[N] = self._create_root_nodes(states, goals, heur_fn, compute_init_heur)
+
+        # initialize instances
+        for root_node, inst_args, inst_info in zip(root_nodes, inst_args_l, inst_infos):
+            self.instances.append(self._get_instance(root_node, inst_args, inst_info))
+        self.times.record_time("add", time.time() - start_time)
 
     @abstractmethod
     def step(self, heur_fn: Callable) -> Any:
@@ -100,6 +110,15 @@ class PathFind(ABC, Generic[I, IArgs]):
         self.instances = instances_keep
 
         return instances_remove
+
+    @abstractmethod
+    def _create_root_nodes(self, states: List[State], goals: List[Goal], heur_fn: HeurFn,
+                           compute_init_heur: bool) -> List[N]:
+        pass
+
+    @abstractmethod
+    def _get_instance(self, root_node: N, inst_args: IArgs, inst_info: Any) -> I:
+        pass
 
 
 def get_path(node: Node) -> Tuple[List[State], List[Action], float]:
@@ -163,7 +182,7 @@ class NodeV(Node):
             self.parent.upper_bound_parent_path(ctg_ub + self.parent_t_cost)
 
 
-class PathFindV(PathFind[I, IArgs]):
+class PathFindV(PathFind[NodeV, I, IArgs]):
     def __init__(self, env: Environment):
         super().__init__(env)
 
@@ -276,12 +295,12 @@ class NodeQ(Node):
 class NodeQAct:
     __slots__ = ['node', 'action']
 
-    def __init__(self, node: NodeQ, action: Action):
+    def __init__(self, node: NodeQ, action: Optional[Action]):
         self.node: NodeQ = node
-        self.action: Action = action
+        self.action: Optional[Action] = action
 
 
-class PathFindQ(PathFind[I, IArgs]):
+class PathFindQ(PathFind[NodeQ, I, IArgs]):
     def __init__(self, env: Environment):
         super().__init__(env)
 
@@ -295,6 +314,8 @@ class PathFindQ(PathFind[I, IArgs]):
         # flatten
         node_acts, split_idxs = misc_utils.flatten(node_acts_by_inst)
         nodes: List[NodeQ] = [node_act.node for node_act in node_acts]
+        for node_act in node_acts:
+            assert node_act.action is not None
         actions: List[Action] = [node_act.action for node_act in node_acts]
 
         states: List[State] = [node.state for node in nodes]
