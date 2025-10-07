@@ -45,32 +45,13 @@ G = TypeVar('G', bound=Goal)
 
 class Environment(ABC, Generic[S, A, G]):
     @abstractmethod
-    def get_start_states(self, num_states: int) -> List[S]:
-        """ A method for generating start states. Should try to make this generate states that are as diverse as
-        possible so that the trained heuristic function generalizes well.
-
-        @param num_states: Number of states to get
-        @return: Generated states
-        """
-        pass
-
-    @abstractmethod
-    def get_state_actions(self, states: List[S]) -> List[List[A]]:
-        """ Get actions applicable to each states
-
-        @param states: List of states
-        @return: Applicable actions
-        """
-        pass
-
     def get_state_action_rand(self, states: List[S]) -> List[A]:
         """ Get a random action that is applicable to the current state
 
         @param states: List of states
         @return: Applicable actions
         """
-        state_actions_l: List[List[A]] = self.get_state_actions(states)
-        return [random.choice(state_actions) for state_actions in state_actions_l]
+        pass
 
     @abstractmethod
     def next_state(self, states: List[S], actions: List[A]) -> Tuple[List[S], List[float]]:
@@ -113,28 +94,83 @@ class Environment(ABC, Generic[S, A, G]):
         """
         pass
 
+    @abstractmethod
     def get_start_goal_pairs(self, num_steps_l: List[int],
                              times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
-        # Initialize
-        if times is None:
-            times = Times()
+        """ Return start goal pairs with num_steps_l between start and goal
 
-        # Start states
-        start_time = time.time()
-        states_start: List[S] = self.get_start_states(len(num_steps_l))
-        times.record_time("get_start_states", time.time() - start_time)
+        @param num_steps_l: Number of steps to take between start and goal
+        @param times: Times that can be used to profile code
+        @return: List of start states and list of goals
+        """
+        pass
 
-        # random walk
-        start_time = time.time()
-        states_goal: List[S] = self._random_walk(states_start, num_steps_l)
-        times.record_time("random_walk", time.time() - start_time)
+    def _random_walk(self, states: List[S], num_steps_l: List[int]) -> List[S]:
+        states_walk: List[S] = [state for state in states]
 
-        # state to goal
-        start_time = time.time()
-        goals: List[G] = self.sample_goal(states_start, states_goal)
-        times.record_time("sample_goal", time.time() - start_time)
+        num_steps: NDArray[np.int_] = np.array(num_steps_l)
+        num_moves_curr: NDArray[np.int_] = np.zeros(len(states), dtype=int)
+        moves_lt: NDArray[np.bool_] = num_moves_curr < num_steps
+        while np.any(moves_lt):
+            idxs: NDArray[np.int_] = np.where(moves_lt)[0]
+            states_to_move = [states_walk[idx] for idx in idxs]
 
-        return states_start, goals
+            states_moved, _ = self.next_state_rand(states_to_move)
+
+            idx: int
+            for move_idx, idx in enumerate(idxs):
+                states_walk[idx] = states_moved[move_idx]
+
+            num_moves_curr[idxs] = num_moves_curr[idxs] + 1
+
+            moves_lt[idxs] = num_moves_curr[idxs] < num_steps[idxs]
+
+        return states_walk
+
+
+# Mixins
+class SupportsPDDL(Environment[S, A, G]):
+    @abstractmethod
+    def get_pddl_domain(self) -> List[str]:
+        """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using
+        traiditional planners (raise NotImplementedError).
+
+        :return:
+        """
+        pass
+
+    @abstractmethod
+    def state_goal_to_pddl_inst(self, state: S, goal: G) -> List[str]:
+        """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using
+        traiditional planners (raise NotImplementedError).
+
+        :return:
+        """
+        pass
+
+    @abstractmethod
+    def pddl_action_to_action(self, pddl_action: str) -> A:
+        """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using
+        traiditional planners (raise NotImplementedError).
+
+        :return:
+        """
+        pass
+
+
+class EnumerableActions(Environment[S, A, G]):
+    @abstractmethod
+    def get_state_actions(self, states: List[S]) -> List[List[A]]:
+        """ Get actions applicable to each states
+
+        @param states: List of states
+        @return: Applicable actions
+        """
+        pass
+
+    def get_state_action_rand(self, states: List[S]) -> List[A]:
+        state_actions_l: List[List[A]] = self.get_state_actions(states)
+        return [random.choice(state_actions) for state_actions in state_actions_l]
 
     def expand(self, states: List[S]) -> Tuple[List[List[S]], List[List[A]], List[List[float]]]:
         """ Generate all children for the state, assumes there is at least one child state
@@ -173,64 +209,50 @@ class Environment(ABC, Generic[S, A, G]):
 
         return states_exp_l, actions_exp_l, tcs_l
 
+
+class Visualizable(Environment[S, A, G]):
+    @abstractmethod
     def visualize(self, states: Union[List[S], List[G]]) -> NDArray[np.float64]:
-        """ Implement if visualizing states. If you are planning on visualizing states, you do not have to implement
-        this (raise NotImplementedError).
-
-        :return:
-        """
-        raise NotImplementedError
-
-    def _random_walk(self, states: List[S], num_steps_l: List[int]) -> List[S]:
-        states_walk: List[S] = [state for state in states]
-
-        num_steps: NDArray[np.int_] = np.array(num_steps_l)
-        num_moves_curr: NDArray[np.int_] = np.zeros(len(states), dtype=int)
-        moves_lt: NDArray[np.bool_] = num_moves_curr < num_steps
-        while np.any(moves_lt):
-            idxs: NDArray[np.int_] = np.where(moves_lt)[0]
-            states_to_move = [states_walk[idx] for idx in idxs]
-
-            states_moved, _ = self.next_state_rand(states_to_move)
-
-            idx: int
-            for move_idx, idx in enumerate(idxs):
-                states_walk[idx] = states_moved[move_idx]
-
-            num_moves_curr[idxs] = num_moves_curr[idxs] + 1
-
-            moves_lt[idxs] = num_moves_curr[idxs] < num_steps[idxs]
-
-        return states_walk
-
-
-class SupportsPDDL(ABC, Generic[S, A, G]):
-    @abstractmethod
-    def get_pddl_domain(self) -> List[str]:
-        """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using
-        traiditional planners (raise NotImplementedError).
+        """ Implement if visualizing states
 
         :return:
         """
         pass
 
-    @abstractmethod
-    def state_goal_to_pddl_inst(self, state: S, goal: G) -> List[str]:
-        """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using
-        traiditional planners (raise NotImplementedError).
 
-        :return:
+class StartGettable(Environment[S, A, G]):
+    @abstractmethod
+    def get_start_states(self, num_states: int) -> List[S]:
+        """ A method for generating start states. Should try to make this generate states that are as diverse as
+        possible so that the trained heuristic function generalizes well.
+
+        @param num_states: Number of states to get
+        @return: Generated states
         """
         pass
 
-    @abstractmethod
-    def pddl_action_to_action(self, pddl_action: str) -> A:
-        """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using
-        traiditional planners (raise NotImplementedError).
+    def get_start_goal_pairs(self, num_steps_l: List[int],
+                             times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
+        # Initialize
+        if times is None:
+            times = Times()
 
-        :return:
-        """
-        pass
+        # Start states
+        start_time = time.time()
+        states_start: List[S] = self.get_start_states(len(num_steps_l))
+        times.record_time("get_start_states", time.time() - start_time)
+
+        # random walk
+        start_time = time.time()
+        states_goal: List[S] = self._random_walk(states_start, num_steps_l)
+        times.record_time("random_walk", time.time() - start_time)
+
+        # state to goal
+        start_time = time.time()
+        goals: List[G] = self.sample_goal(states_start, states_goal)
+        times.record_time("sample_goal", time.time() - start_time)
+
+        return states_start, goals
 
 
 class EnvGrndAtoms(Environment[S, A, G]):

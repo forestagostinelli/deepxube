@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import List
 
 from deepxube.base.pathfinding import InstArgs
 from deepxube.base.updater import UpdateHeurV, UpdateHeurQ

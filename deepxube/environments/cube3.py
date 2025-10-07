@@ -4,7 +4,8 @@ from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel
 from deepxube.logic.logic_objects import Atom, Model
 from deepxube.visualizers.cube3_viz_simple import InteractiveCube
 from deepxube.utils.timing_utils import Times
-from deepxube.base.environment import EnvGrndAtoms, State, Action, Goal, SupportsPDDL
+from deepxube.base.environment import (EnvGrndAtoms, State, Action, Goal, SupportsPDDL, StartGettable,
+                                       EnumerableActions, Visualizable)
 from deepxube.base.heuristic import HeurNNetV, HeurNNetQFix
 
 import numpy as np
@@ -191,7 +192,9 @@ def _colors_to_model(colors: NDArray[np.uint8]) -> Model:
     return frozenset(grnd_atoms)
 
 
-class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal], SupportsPDDL[Cube3State, Cube3Action, Cube3Goal]):
+class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal], StartGettable[Cube3State, Cube3Action, Cube3Goal],
+            EnumerableActions[Cube3State, Cube3Action, Cube3Goal], SupportsPDDL[Cube3State, Cube3Action, Cube3Goal],
+            Visualizable[Cube3State, Cube3Action, Cube3Goal]):
     atomic_actions: List[str] = ["%s%i" % (f, n) for f in ['U', 'D', 'L', 'R', 'B', 'F'] for n in [-1, 1]]
 
     def __init__(self, fixed: bool):
