@@ -1,5 +1,5 @@
 from typing import List, Optional, Any, Tuple, Callable
-from deepxube.base.environment import State, Goal
+from deepxube.base.env import State, Goal
 from deepxube.base.pathfinding import Instance, NodeV, PathFindV, InstArgs
 import numpy as np
 import random

@@ -2,7 +2,7 @@ from typing import Generic, List, Optional, Any, Tuple, Callable, TypeVar
 
 from numpy.typing import NDArray
 
-from deepxube.base.environment import Environment, EnumerableActions, State, Goal, Action
+from deepxube.base.env import Env, EnvEnumerableActs, State, Goal, Action
 from deepxube.base.heuristic import HeurFn, HeurFnV, HeurFnQ
 from deepxube.utils import misc_utils
 from deepxube.utils.timing_utils import Times
@@ -62,7 +62,7 @@ class Instance(ABC, Generic[N, IArgs]):
 
 
 I = TypeVar('I', bound=Instance)
-E = TypeVar('E', bound=Environment)
+E = TypeVar('E', bound=Env)
 
 
 class PathFind(ABC, Generic[E, N, I, IArgs]):
@@ -183,8 +183,8 @@ class NodeV(Node):
             self.parent.upper_bound_parent_path(ctg_ub + self.parent_t_cost)
 
 
-class PathFindV(PathFind[EnumerableActions, NodeV, I, IArgs]):
-    def __init__(self, env: EnumerableActions):
+class PathFindV(PathFind[EnvEnumerableActs, NodeV, I, IArgs]):
+    def __init__(self, env: EnvEnumerableActs):
         super().__init__(env)
 
     @abstractmethod
@@ -301,8 +301,8 @@ class NodeQAct:
         self.action: Optional[Action] = action
 
 
-class PathFindQ(PathFind[Environment, NodeQ, I, IArgs]):
-    def __init__(self, env: Environment):
+class PathFindQ(PathFind[Env, NodeQ, I, IArgs]):
+    def __init__(self, env: Env):
         super().__init__(env)
 
     @abstractmethod

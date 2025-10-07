@@ -1,5 +1,5 @@
 from typing import List, Tuple, Dict, Optional, Any
-from deepxube.base.environment import Environment, State, Goal
+from deepxube.base.env import EnvEnumerableActs, State
 from deepxube.base.heuristic import HeurFnV
 from deepxube.base.pathfinding import Instance, NodeV, PathFindV, InstArgs
 import numpy as np
@@ -58,7 +58,7 @@ class InstanceBWAS(Instance[NodeV, InstArgsBWAS]):
 
 
 class BWAS(PathFindV[InstanceBWAS, InstArgsBWAS]):
-    def __init__(self, env: Environment):
+    def __init__(self, env: EnvEnumerableActs):
         super().__init__(env)
         self.steps: int = 0
 

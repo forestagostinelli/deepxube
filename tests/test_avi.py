@@ -1,4 +1,4 @@
-from deepxube.base.environment import Environment
+from deepxube.base.env import Env
 from deepxube.environments.env_utils import get_environment
 from deepxube.training.avi import Status
 
@@ -7,7 +7,7 @@ env_name: str = "cube3"
 
 
 def test_status():
-    env: Environment = get_environment(env_name)
+    env: Env = get_environment(env_name)
     step_max: int = 30
     num_per_step: int = 2
     status: Status = Status(env, step_max, num_per_step)

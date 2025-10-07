@@ -10,7 +10,7 @@ import torch
 from numpy.typing import NDArray
 
 from deepxube.nnet.nnet_utils import NNetParInfo
-from deepxube.base.environment import Environment, State, Goal, Action
+from deepxube.base.env import Env, State, Goal, Action, EnvEnumerableActs
 from deepxube.base.heuristic import HeurNNet, HeurFn, HeurFnV, HeurFnQ
 from deepxube.base.heuristic import HeurNNetV, HeurNNetQ
 from deepxube.nnet import nnet_utils
@@ -136,8 +136,8 @@ P = TypeVar('P', bound=PathFind)
 
 
 class UpdaterHeur(ABC, Generic[H, P]):
-    def __init__(self, env: Environment, heur_nnet: HeurNNet, up_args: UpHeurArgs):
-        self.env: Environment = env
+    def __init__(self, env: Env, heur_nnet: HeurNNet, up_args: UpHeurArgs):
+        self.env: Env = env
         self.heur_nnet: HeurNNet = heur_nnet
         self.up_args: UpHeurArgs = up_args
 
@@ -278,7 +278,7 @@ PV = TypeVar('PV', bound=PathFindV)
 
 
 class UpdateHeurV(UpdaterHeur[HV, PV]):
-    def __init__(self, env: Environment, heur_nnet: HeurNNetV, up_args: UpHeurArgs):
+    def __init__(self, env: EnvEnumerableActs, heur_nnet: HeurNNetV, up_args: UpHeurArgs):
         super().__init__(env, heur_nnet, up_args)
         self.heur_nnet: HeurNNetV = heur_nnet
 
@@ -317,7 +317,7 @@ PQ = TypeVar('PQ', bound=PathFindQ)
 
 
 class UpdateHeurQ(UpdaterHeur[HQ, PQ]):
-    def __init__(self, env: Environment, heur_nnet: HeurNNetQ, up_args: UpHeurArgs):
+    def __init__(self, env: Env, heur_nnet: HeurNNetQ, up_args: UpHeurArgs):
         super().__init__(env, heur_nnet, up_args)
         self.heur_nnet: HeurNNetQ = heur_nnet
 

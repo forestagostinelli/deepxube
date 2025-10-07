@@ -4,8 +4,8 @@ from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel
 from deepxube.logic.logic_objects import Atom, Model
 from deepxube.visualizers.cube3_viz_simple import InteractiveCube
 from deepxube.utils.timing_utils import Times
-from deepxube.base.environment import (EnvGrndAtoms, State, Action, Goal, SupportsPDDL, StartGettable,
-                                       EnumerableActions, Visualizable)
+from deepxube.base.env import (EnvGrndAtoms, State, Action, Goal, EnvSupportsPDDL, EnvStartGoalRW,
+                               EnvEnumerableActs, EnvVizable)
 from deepxube.base.heuristic import HeurNNetV, HeurNNetQFix
 
 import numpy as np
@@ -192,9 +192,8 @@ def _colors_to_model(colors: NDArray[np.uint8]) -> Model:
     return frozenset(grnd_atoms)
 
 
-class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal], StartGettable[Cube3State, Cube3Action, Cube3Goal],
-            EnumerableActions[Cube3State, Cube3Action, Cube3Goal], SupportsPDDL[Cube3State, Cube3Action, Cube3Goal],
-            Visualizable[Cube3State, Cube3Action, Cube3Goal]):
+class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal], EnvStartGoalRW[Cube3State, Cube3Action, Cube3Goal],
+            EnvEnumerableActs[Cube3State, Cube3Action, Cube3Goal], EnvVizable, EnvSupportsPDDL):
     atomic_actions: List[str] = ["%s%i" % (f, n) for f in ['U', 'D', 'L', 'R', 'B', 'F'] for n in [-1, 1]]
 
     def __init__(self, fixed: bool):
@@ -335,7 +334,7 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal], StartGettable[Cube
             return super().get_start_goal_pairs(num_steps_l, times=times)
         else:
             states_goal: List[Cube3State] = [Cube3State(self.goal_colors.copy()) for _ in num_steps_l]
-            states_start: List[Cube3State] = self._random_walk(states_goal, num_steps_l)
+            states_start: List[Cube3State] = self.random_walk(states_goal, num_steps_l)
             goals: List[Cube3Goal] = self.sample_goal(states_start, states_goal)
 
             return states_start, goals

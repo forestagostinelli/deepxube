@@ -1,6 +1,6 @@
 from typing import Optional, List, Tuple, Set, Callable, cast
 from collections import OrderedDict
-from deepxube.base.environment import EnvGrndAtoms, State, Goal, Action
+from deepxube.base.env import EnvGrndAtoms, State, Goal, Action, EnvVizable
 from deepxube.logic.asp import Spec
 from deepxube.logic.logic_objects import Clause, Model, Atom
 from deepxube.logic.logic_utils import atom_to_str
@@ -119,6 +119,7 @@ class SpecSearchASP:
         times_i = Times()
 
         # pop
+        assert isinstance(self.env, EnvVizable)
         start_time = time.time()
         node_popped: SpecNode = heappop(self.specnode_q)[4]
         if self.viz_model and (node_popped.model is not None):

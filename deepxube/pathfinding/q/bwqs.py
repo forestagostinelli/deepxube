@@ -1,6 +1,6 @@
 from typing import List, Tuple, Dict, Optional, Any
 from deepxube.base.pathfinding import Instance, NodeQ, PathFindQ, InstArgs, NodeQAct
-from deepxube.base.environment import Environment, State, Goal, Action
+from deepxube.base.env import Env, State, Goal, Action
 from deepxube.base.heuristic import HeurFnQ
 from heapq import heappush, heappop
 import time

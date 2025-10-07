@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from deepxube.base.environment import Environment
+from deepxube.base.env import Env
 from deepxube.training.train_utils import TrainArgs
 from deepxube.training.train_heur import train
 from deepxube.base.updater import UpHeurArgs, UpdaterHeur
@@ -36,7 +36,7 @@ def main():
     up_args: UpHeurArgs = UpHeurArgs(args.up_itrs, args.up_gen_itrs, args.up_procs, args.up_search_itrs,
                                      args.up_batch_size, args.up_nnet_batch_size)
 
-    env: Environment
+    env: Env
     updater: UpdaterHeur
     if (args.env == "cube3") or (args.env == "cube3_fixed"):
         from deepxube.environments.cube3 import Cube3

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Union, Optional, Set, TypeVar, Generic
+from typing import List, Tuple, Optional, Set, TypeVar, Generic, Protocol, runtime_checkable
 import numpy as np
 
 from deepxube.logic.logic_objects import Atom, Model
@@ -43,16 +43,7 @@ A = TypeVar('A', bound=Action)
 G = TypeVar('G', bound=Goal)
 
 
-class Environment(ABC, Generic[S, A, G]):
-    @abstractmethod
-    def get_state_action_rand(self, states: List[S]) -> List[A]:
-        """ Get a random action that is applicable to the current state
-
-        @param states: List of states
-        @return: Applicable actions
-        """
-        pass
-
+class Env(ABC, Generic[S, A, G]):
     @abstractmethod
     def next_state(self, states: List[S], actions: List[A]) -> Tuple[List[S], List[float]]:
         """ Get the next state and transition cost given the current state and action
@@ -60,26 +51,6 @@ class Environment(ABC, Generic[S, A, G]):
         @param states: List of states
         @param actions: List of actions to take
         @return: Next states, transition costs
-        """
-        pass
-
-    def next_state_rand(self, states: List[S]) -> Tuple[List[S], List[float]]:
-        """ Get random next state and transition cost given the current state
-
-        @param states: List of states
-        @return: Next states, transition costs
-        """
-        actions_rand: List[A] = self.get_state_action_rand(states)
-        return self.next_state(states, actions_rand)
-
-    @abstractmethod
-    def sample_goal(self, states_start: List[S], states_goal: List[S]) -> List[G]:
-        """ Given a state, return a goal that represents a set of goal states of which the given state is a member.
-        Does not have to always return the same goal.
-
-        @param states_start: List of start states
-        @param states_goal List of states from which goals will be sampled
-        @return: Goals
         """
         pass
 
@@ -105,7 +76,25 @@ class Environment(ABC, Generic[S, A, G]):
         """
         pass
 
-    def _random_walk(self, states: List[S], num_steps_l: List[int]) -> List[S]:
+    @abstractmethod
+    def get_state_action_rand(self, states: List[S]) -> List[A]:
+        """ Get a random action that is applicable to the current state
+
+        @param states: List of states
+        @return: Applicable actions
+        """
+        pass
+
+    def next_state_rand(self, states: List[S]) -> Tuple[List[S], List[float]]:
+        """ Get random next state and transition cost given the current state
+
+        @param states: List of states
+        @return: Next states, transition costs
+        """
+        actions_rand: List[A] = self.get_state_action_rand(states)
+        return self.next_state(states, actions_rand)
+
+    def random_walk(self, states: List[S], num_steps_l: List[int]) -> List[S]:
         states_walk: List[S] = [state for state in states]
 
         num_steps: NDArray[np.int_] = np.array(num_steps_l)
@@ -129,36 +118,7 @@ class Environment(ABC, Generic[S, A, G]):
 
 
 # Mixins
-class SupportsPDDL(Environment[S, A, G]):
-    @abstractmethod
-    def get_pddl_domain(self) -> List[str]:
-        """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using
-        traiditional planners (raise NotImplementedError).
-
-        :return:
-        """
-        pass
-
-    @abstractmethod
-    def state_goal_to_pddl_inst(self, state: S, goal: G) -> List[str]:
-        """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using
-        traiditional planners (raise NotImplementedError).
-
-        :return:
-        """
-        pass
-
-    @abstractmethod
-    def pddl_action_to_action(self, pddl_action: str) -> A:
-        """ Implement if using PDDL solvers, like fast-downward. Do not have to implement if not also using
-        traiditional planners (raise NotImplementedError).
-
-        :return:
-        """
-        pass
-
-
-class EnumerableActions(Environment[S, A, G]):
+class EnvEnumerableActs(Env[S, A, G]):
     @abstractmethod
     def get_state_actions(self, states: List[S]) -> List[List[A]]:
         """ Get actions applicable to each states
@@ -210,17 +170,7 @@ class EnumerableActions(Environment[S, A, G]):
         return states_exp_l, actions_exp_l, tcs_l
 
 
-class Visualizable(Environment[S, A, G]):
-    @abstractmethod
-    def visualize(self, states: Union[List[S], List[G]]) -> NDArray[np.float64]:
-        """ Implement if visualizing states
-
-        :return:
-        """
-        pass
-
-
-class StartGettable(Environment[S, A, G]):
+class EnvStartGoalRW(Env[S, A, G]):
     @abstractmethod
     def get_start_states(self, num_states: int) -> List[S]:
         """ A method for generating start states. Should try to make this generate states that are as diverse as
@@ -228,6 +178,17 @@ class StartGettable(Environment[S, A, G]):
 
         @param num_states: Number of states to get
         @return: Generated states
+        """
+        pass
+
+    @abstractmethod
+    def sample_goal(self, states_start: List[S], states_goal: List[S]) -> List[G]:
+        """ Given a state, return a goal that represents a set of goal states of which the given state is a member.
+        Does not have to always return the same goal.
+
+        @param states_start: List of start states
+        @param states_goal List of states from which goals will be sampled
+        @return: Goals
         """
         pass
 
@@ -244,7 +205,7 @@ class StartGettable(Environment[S, A, G]):
 
         # random walk
         start_time = time.time()
-        states_goal: List[S] = self._random_walk(states_start, num_steps_l)
+        states_goal: List[S] = self.random_walk(states_start, num_steps_l)
         times.record_time("random_walk", time.time() - start_time)
 
         # state to goal
@@ -255,7 +216,7 @@ class StartGettable(Environment[S, A, G]):
         return states_start, goals
 
 
-class EnvGrndAtoms(Environment[S, A, G]):
+class EnvGrndAtoms(Env[S, A, G]):
     @abstractmethod
     def state_to_model(self, states: List[S]) -> List[Model]:
         pass
@@ -337,3 +298,18 @@ class EnvGrndAtoms(Environment[S, A, G]):
         :return:
         """
         pass
+
+
+# Protocols
+@runtime_checkable
+class EnvVizable(Protocol):
+    def visualize(self, states) -> NDArray[np.float64]: ...
+
+
+@runtime_checkable
+class EnvSupportsPDDL(Protocol):
+    def get_pddl_domain(self) -> List[str]: ...
+
+    def state_goal_to_pddl_inst(self, state, goal) -> List[str]: ...
+
+    def pddl_action_to_action(self, pddl_action: str) -> Action: ...

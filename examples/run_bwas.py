@@ -1,6 +1,6 @@
 from typing import List, Dict, Optional, Any
 
-from deepxube.base.environment import Environment, State, Action, Goal
+from deepxube.base.env import Env, State, Action, Goal
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
 from deepxube.base.pathfinding import get_path, NodeV
@@ -48,7 +48,7 @@ def main():
         os.makedirs(args.results)
 
     # environment
-    env: Environment = get_environment(args.env)
+    env: Env = get_environment(args.env)
 
     # get data
     # sys.path.insert(0, '../DeepXube/deepxube/')  # TODO updater states to not need this

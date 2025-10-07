@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.multiprocessing import Queue, get_context
 
-from deepxube.base.environment import Environment, State
+from deepxube.base.env import Env, State
 from deepxube.nnet import nnet_utils
 from deepxube.utils.misc_utils import flatten
 import numpy as np
@@ -21,7 +21,7 @@ def data_runner(queue1: Queue, queue2: Queue):
         queue2.put(the)
 
 
-def test_env(env: Environment, num_states: int, step_max: int):
+def test_env(env: Env, num_states: int, step_max: int):
     torch.set_num_threads(1)
 
     # generate start/goal states

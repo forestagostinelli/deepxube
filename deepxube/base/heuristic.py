@@ -4,7 +4,7 @@ from typing import Callable, List, Any, TypeVar, Generic, cast
 import numpy as np
 from numpy.typing import NDArray
 
-from deepxube.base.environment import State, Goal, Action
+from deepxube.base.env import State, Goal, Action
 from deepxube.nnet.nnet_utils import NNetParInfo
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd
 from torch import nn
