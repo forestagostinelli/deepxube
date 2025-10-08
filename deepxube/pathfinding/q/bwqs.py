@@ -81,7 +81,6 @@ class BWQS(PathFindQ[InstanceBWQS, InstArgsBWQS]):
         self.times.record_time("pop", time.time() - start_time)
 
         # next state
-        start_time = time.time()
         nodes_next_itr0: List[List[NodeQ]] = []
         for nodeacts_popped_itr0_i in nodeacts_popped_itr0:
             for nodeact in nodeacts_popped_itr0_i:
@@ -90,7 +89,6 @@ class BWQS(PathFindQ[InstanceBWQS, InstArgsBWQS]):
         nodes_next_itrgt0: List[List[NodeQ]] = self.get_next_nodes(instances_itrgt0, nodeacts_popped_itrgt0, heur_fn)
         instances: List[InstanceBWQS] = instances_itr0 + instances_itrgt0
         nodes_next_by_inst: List[List[NodeQ]] = nodes_next_itr0 + nodes_next_itrgt0
-        self.times.record_time("next_state", time.time() - start_time)
 
         # ub
         start_time = time.time()
