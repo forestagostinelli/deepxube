@@ -3,7 +3,7 @@ from deepxube.base.env import EnvEnumerableActs
 from deepxube.training.train_utils import TrainArgs
 from deepxube.training.train_heur import train
 from deepxube.base.updater import UpHeurArgs, UpdaterHeur
-from deepxube.updater.updater_heur import UpdateHeurBWAS
+from deepxube.updater.updater_heur import UpdateHeurBWAS, UpdateHeurBWQS
 
 
 def main():
@@ -44,8 +44,22 @@ def main():
             from deepxube.environments.cube3 import Cube3NNetParV
             updater = UpdateHeurBWAS(env, Cube3NNetParV(), up_args)
         elif args.heur_type.upper() == "Q":
-            from deepxube.environments.cube3 import Cube3NNetParQ
-            updater = UpdateHeurBWQS(env, Cube3NNetParQ(), up_args)
+            from deepxube.environments.cube3 import Cube3NNetParQFix
+            """
+            from deepxube.nnet.nnet_utils import get_device, to_pytorch_input
+            device = get_device()[0]
+            heur_nnet = Cube3NNetParQFix()
+            nnet = heur_nnet.get_nnet()
+            nnet.train()
+            states, goals = env.get_start_goal_pairs([0, 10, 3, 4, 5])
+            actions = env.get_state_actions(states)
+            inputs_nnet = heur_nnet.to_np(states, goals, actions)
+            inputs_nnet_t = to_pytorch_input(inputs_nnet, device)
+            out = nnet(inputs_nnet_t)
+            breakpoint()
+            """
+
+            updater = UpdateHeurBWQS(env, Cube3NNetParQFix(), up_args, 1.0)
         else:
             raise ValueError(f"Unknown heur type {args.heur_type}")
     else:

@@ -95,8 +95,9 @@ class Cube3NNetQ(nn.Module):
         goals_proc: Tensor = self.state_proc1(states_goals_acts_l[1])
 
         x: Tensor = self.heur(torch.cat((states_proc, goals_proc), dim=1))
+        actions: Tensor = states_goals_acts_l[2].long()
 
-        breakpoint()
+        x = torch.gather(x, 1, actions)
 
         return x
 

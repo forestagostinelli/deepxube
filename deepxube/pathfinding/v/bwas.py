@@ -24,20 +24,26 @@ class InstanceBWAS(Instance[NodeV, InstArgsBWAS]):
         super().__init__(root_node, inst_args, inst_info)
         self.open_set: List[OpenSetElem] = []
         self.heappush_count: int = 0
-        self.closed_dict: Dict[State, float] = dict()
+        self.closed_dict: Dict[State, float] = {self.root_node.state: 0.0}
         self.finished: bool = False
+        self.ub: float = np.inf
+        self.lb: float = 0.0
 
-        self.check_and_push([self.root_node], [self.root_node.heuristic])
+        self.push_to_open([self.root_node], [self.root_node.heuristic])
 
-    def check_and_push(self, nodes: List[NodeV], costs: List[float]):
-        assert len(nodes) == len(costs), "should have same length"
-        for node, cost in zip(nodes, costs):
-            # check
+    def push_to_open(self, nodes: List[NodeV], costs: List[float]):
+        for node, cost in zip(nodes, costs, strict=True):
+            heappush(self.open_set, (cost, self.heappush_count, node))
+            self.heappush_count += 1
+
+    def check_closed(self, nodes: List[NodeV]) -> List[NodeV]:
+        nodes_ret: List[NodeV] = []
+        for node in nodes:
             path_cost_prev: Optional[float] = self.closed_dict.get(node.state)
             if (path_cost_prev is None) or (path_cost_prev > node.path_cost):
                 self.closed_dict[node.state] = node.path_cost
-                heappush(self.open_set, (cost, self.heappush_count, node))
-                self.heappush_count += 1
+                nodes_ret.append(node)
+        return nodes_ret
 
     def pop_from_open(self) -> List[NodeV]:
         num_to_pop: int = min(self.inst_args.batch_size, len(self.open_set))
@@ -45,13 +51,17 @@ class InstanceBWAS(Instance[NodeV, InstArgsBWAS]):
         elems_popped: List[OpenSetElem] = [heappop(self.open_set) for _ in range(num_to_pop)]
         nodes_popped: List[NodeV] = [elem_popped[2] for elem_popped in elems_popped]
 
-        for node in nodes_popped:
-            if node.is_solved and ((self.goal_node is None) or (node.path_cost < self.goal_node.path_cost)):
-                self.goal_node = node
+        if len(elems_popped) > 0:
+            cost_first: float = elems_popped[0][0]
+            self.lb = max(cost_first, self.lb)
 
-        # TODO check if elems_popped len is 0
-        cost_first: float = elems_popped[0][0]
-        if (self.goal_node is not None) and ((self.inst_args.weight * self.goal_node.path_cost) <= cost_first):
+        # keep solved nodes for training
+        for node in nodes_popped:
+            if node.is_solved and (self.ub > node.path_cost):
+                self.goal_node = node
+                self.ub = node.path_cost
+
+        if (self.goal_node is not None) and (self.lb >= (self.inst_args.weight * self.ub)):
             self.finished = True
 
         return nodes_popped
@@ -60,39 +70,43 @@ class InstanceBWAS(Instance[NodeV, InstArgsBWAS]):
 class BWAS(PathFindV[InstanceBWAS, InstArgsBWAS]):
     def __init__(self, env: EnvEnumerableActs):
         super().__init__(env)
-        self.steps: int = 0
 
     def step(self, heur_fn: HeurFnV, verbose: bool = False) -> List[NodeV]:
         instances: List[InstanceBWAS] = [instance for instance in self.instances if not instance.finished]
 
-        # Pop from open
+        # pop from open
         start_time = time.time()
-        nodes_by_inst_popped: List[List[NodeV]] = [instance.pop_from_open() for instance in instances]
+        nodes_popped_by_inst: List[List[NodeV]] = [instance.pop_from_open() for instance in instances]
         self.times.record_time("pop", time.time() - start_time)
 
-        # Expand nodes
-        nodes_c_by_inst: List[List[NodeV]] = self.expand_nodes(instances, nodes_by_inst_popped, heur_fn)
+        # expand nodes
+        nodes_c_by_inst: List[List[NodeV]] = self.expand_nodes(instances, nodes_popped_by_inst, heur_fn)
 
-        # Get cost
+        # check closed
         start_time = time.time()
-        nodes_c_flat, _ = misc_utils.flatten(nodes_c_by_inst)
+        for inst_idx, instance in enumerate(instances):
+            nodes_c_by_inst[inst_idx] = instance.check_closed(nodes_c_by_inst[inst_idx])
+        self.times.record_time("check", time.time() - start_time)
+
+        # cost
+        start_time = time.time()
+        nodes_c_flat: List[NodeV] = misc_utils.flatten(nodes_c_by_inst)[0]
         weights, split_idxs = misc_utils.flatten([[instance.inst_args.weight] * len(nodes_c)
-                                                  for instance, nodes_c in zip(instances, nodes_c_by_inst)])
+                                                  for instance, nodes_c in
+                                                  zip(instances, nodes_c_by_inst, strict=True)])
         path_costs: List[float] = [node.path_cost for node in nodes_c_flat]
         heuristics: List[float] = [node.heuristic for node in nodes_c_flat]
         costs_flat: List[float] = ((np.array(weights) * np.array(path_costs)) + np.array(heuristics)).tolist()
         costs_by_inst: List[List[float]] = misc_utils.unflatten(costs_flat, split_idxs)
         self.times.record_time("cost", time.time() - start_time)
 
-        # Check if children are in closed and push if not
+        # push to open
         start_time = time.time()
-        assert len(instances) == len(nodes_c_by_inst) == len(costs_by_inst)
-        for instance, nodes_c, costs in zip(instances, nodes_c_by_inst, costs_by_inst):
-            assert len(nodes_c) == len(costs)
-            instance.check_and_push(nodes_c, costs)
-        self.times.record_time("check_push", time.time() - start_time)
+        for instance, nodes_c, costs in zip(instances, nodes_c_by_inst, costs_by_inst, strict=True):
+            instance.push_to_open(nodes_c, costs)
+        self.times.record_time("push", time.time() - start_time)
 
-        # Print to screen
+        # verbose
         if verbose:
             if len(heuristics) > 0:
                 min_heur = float(np.min(heuristics))
@@ -104,18 +118,18 @@ class BWAS(PathFindV[InstanceBWAS, InstArgsBWAS]):
 
                 print(f"Itr: %i, Added to OPEN - Min/Max Heur(PathCost): "
                       f"%.2f(%.2f)/%.2f(%.2f), %%has_soln: {per_has_soln}, "
-                      f"%%finished: {per_finished}" % (self.steps, min_heur, min_heur_pc, max_heur, max_heur_pc))
+                      f"%%finished: {per_finished}" % (self.itr, min_heur, min_heur_pc, max_heur, max_heur_pc))
 
             print(f"Times - {self.times.get_time_str()}")
             print("")
 
-        # updater iterations
-        self.steps += 1
+        # update iterations
+        self.itr += 1
         for instance in instances:
             instance.itr += 1
 
         # return
-        nodes_popped_flat, _ = misc_utils.flatten(nodes_by_inst_popped)
+        nodes_popped_flat: List[NodeV] = misc_utils.flatten(nodes_popped_by_inst)[0]
         return nodes_popped_flat
 
     def remove_finished_instances(self, itr_max: int) -> List[InstanceBWAS]:

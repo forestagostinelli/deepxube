@@ -70,6 +70,7 @@ class PathFind(ABC, Generic[E, N, I, IArgs]):
         self.env: E = env
         self.instances: List[I] = []
         self.times: Times = Times()
+        self.itr: int = 0
 
     def add_instances(self, states: List[State], goals: List[Goal], heur_fn: HeurFnQ, inst_args_l: List[IArgs],
                       inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True):
@@ -279,26 +280,40 @@ class PathFindV(PathFind[EnvEnumerableActs, NodeV, I, IArgs]):
 
 class NodeQ(Node):
     __slots__ = ['state', 'goal', 'path_cost', 'heuristic', 'is_solved', 'parent_action', 'parent_t_cost', 'parent',
-                 'actions', 'q_values']
+                 'actions', 'q_values', 'children', 't_costs', 'bellman_backup_val']
 
     def __init__(self, state: State, goal: Goal, path_cost: float, heuristic: float, is_solved: bool,
                  parent_action: Optional[Action], parent_t_cost: Optional[float], parent: Optional['NodeQ'],
-                 actions_c: List[Action], q_values: List[float]):
+                 actions: List[Action], q_values: List[float]):
         super().__init__(state, goal, path_cost, heuristic, is_solved, parent_action, parent_t_cost, parent)
         self.parent: Optional[NodeQ] = parent
-        self.actions: List[Action] = actions_c
+        self.actions: List[Action] = actions
         self.q_values: List[float] = q_values
+        self.children: List[NodeQ] = []
+        self.t_costs: List[float] = []
+        self.bellman_backup_val: Optional[float] = None
 
     def backup(self) -> float:
-        raise NotImplementedError
+        if self.is_solved:
+            self.bellman_backup_val = 0.0
+        else:
+            if len(self.children) == 0:
+                self.bellman_backup_val = self.heuristic
+            else:
+                self.bellman_backup_val = np.inf
+                for node_c, tc in zip(self.children, self.t_costs):
+                    self.bellman_backup_val = min(self.bellman_backup_val, tc + node_c.heuristic)
+        return self.bellman_backup_val
+
 
 
 class NodeQAct:
-    __slots__ = ['node', 'action']
+    __slots__ = ['node', 'action', 'q_val']
 
-    def __init__(self, node: NodeQ, action: Optional[Action]):
+    def __init__(self, node: NodeQ, action: Optional[Action], q_val: float):
         self.node: NodeQ = node
         self.action: Optional[Action] = action
+        self.q_val: float = q_val
 
 
 class PathFindQ(PathFind[EnvEnumerableActs, NodeQ, I, IArgs]):
@@ -309,14 +324,16 @@ class PathFindQ(PathFind[EnvEnumerableActs, NodeQ, I, IArgs]):
     def step(self, heur_fn: HeurFnQ) -> List[NodeQ]:
         pass
 
-    def expand(self, instances: List[I], node_acts_by_inst: List[List[NodeQAct]],
-               heur_fn: HeurFnQ) -> List[List[NodeQ]]:
+    def get_next_nodes(self, instances: List[I], node_acts_by_inst: List[List[NodeQAct]],
+                       heur_fn: HeurFnQ) -> List[List[NodeQ]]:
+        if len(instances) == 0:
+            return []
         start_time = time.time()
         # flatten
         node_acts, split_idxs = misc_utils.flatten(node_acts_by_inst)
-        nodes: List[NodeQ] = [node_act.node for node_act in node_acts]
         for node_act in node_acts:
             assert node_act.action is not None
+        nodes: List[NodeQ] = [node_act.node for node_act in node_acts]
         actions: List[Action] = [node_act.action for node_act in node_acts]
 
         states: List[State] = [node.state for node in nodes]
@@ -324,39 +341,42 @@ class PathFindQ(PathFind[EnvEnumerableActs, NodeQ, I, IArgs]):
         path_costs: List[float] = [popped_node.path_cost for popped_node in nodes]
 
         # next states
-        states_c, tcs = self.env.next_state(states, actions)
-        path_costs_c: List[float] = (np.array(path_costs) + np.array(tcs)).tolist()
+        states_next, tcs = self.env.next_state(states, actions)
+        path_costs_next: List[float] = (np.array(path_costs) + np.array(tcs)).tolist()
         self.times.record_time("next_state", time.time() - start_time)
 
         # is solved
         start_time = time.time()
-        is_solved_c: List[bool] = self.env.is_solved(states, goals)
+        is_solved_next: List[bool] = self.env.is_solved(states, goals)
         self.times.record_time("is_solved", time.time() - start_time)
 
         # heuristic function
         start_time = time.time()
-        actions_l_c: List[List[Action]] = self.env.get_state_actions(states)
-        q_vals_c: List[List[float]] = heur_fn(states_c, goals, actions_l_c)
-        heurs_c: List[float] = [min(x) for x in q_vals_c]
+        actions_next_l: List[List[Action]] = self.env.get_state_actions(states_next)
+        q_vals_next: List[List[float]] = heur_fn(states_next, goals, actions_next_l)
+        heurs_next: List[float] = [min(x) for x in q_vals_next]
         self.times.record_time("heur", time.time() - start_time)
 
         # next nodes
         start_time = time.time()
-        nodes_c: List[NodeQ] = []
+        nodes_next: List[NodeQ] = []
         for idx in range(len(node_acts)):
-            node_c: NodeQ = NodeQ(states_c[idx], goals[idx], path_costs_c[idx], heurs_c[idx], is_solved_c[idx],
-                                  actions[idx], tcs[idx], nodes[idx], actions_l_c[idx], q_vals_c[idx])
-            nodes_c.append(node_c)
+            node_next: NodeQ = NodeQ(states_next[idx], goals[idx], path_costs_next[idx], heurs_next[idx],
+                                     is_solved_next[idx], actions[idx], tcs[idx], nodes[idx], actions_next_l[idx],
+                                     q_vals_next[idx])
+            nodes[idx].children.append(node_next)
+            nodes[idx].t_costs.append(tcs[idx])
+            nodes_next.append(node_next)
         self.times.record_time("make_nodes", time.time() - start_time)
 
         # updater instances
         start_time = time.time()
-        nodes_c_by_inst: List[List[NodeQ]] = misc_utils.unflatten(nodes_c, split_idxs)
-        for instance, nodes_c_by_inst_i in zip(instances, nodes_c_by_inst):
-            instance.num_nodes_generated += len(nodes_c_by_inst_i)
+        nodes_next_by_inst: List[List[NodeQ]] = misc_utils.unflatten(nodes_next, split_idxs)
+        for instance, nodes_next_by_inst_i in zip(instances, nodes_next_by_inst):
+            instance.num_nodes_generated += len(nodes_next_by_inst_i)
         self.times.record_time("up_inst", time.time() - start_time)
 
-        return nodes_c_by_inst
+        return nodes_next_by_inst
 
     def _create_root_nodes(self, states: List[State], goals: List[Goal], heur_fn: HeurFnQ,
                            compute_init_heur: bool) -> List[NodeQ]:
