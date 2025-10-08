@@ -88,9 +88,9 @@ def print_update_summary(step_to_search_perf: Dict[int, PathFindPerf], writer: S
     search_itrs_ave: float = float(np.mean(search_itrs_ave_l))
     print(f"%solved: {per_solved_ave:.2f}, path_costs: {path_costs_ave:.3f}, "
           f"search_itrs: {search_itrs_ave:.3f} (equally weighted across step numbers)")
-    writer.add_scalar("solved (updater)", per_solved_ave, status.itr)
-    writer.add_scalar("path_cost (updater)", path_costs_ave, status.itr)
-    writer.add_scalar("search_itrs (updater)", search_itrs_ave, status.itr)
+    writer.add_scalar("solved (update)", per_solved_ave, status.itr)
+    writer.add_scalar("path_cost (update)", path_costs_ave, status.itr)
+    writer.add_scalar("search_itrs (update)", search_itrs_ave, status.itr)
 
     print_pathfindperf(step_to_search_perf)
 
