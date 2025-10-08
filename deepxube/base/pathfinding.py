@@ -237,9 +237,10 @@ class PathFindV(PathFind[EnvEnumerableActs, NodeV, I, IArgs]):
             path_costs_c_i: NDArray = node.path_cost + np.array(tcs[node_idx])
             nodes_c_i: List[NodeV] = []
             for c_idx in range(len(states_next[node_idx])):
-                node_c: NodeV = NodeV(states_next[node_idx][c_idx], goals_c[node_idx][c_idx], float(path_costs_c_i[c_idx]),
-                                      heuristics_c[node_idx][c_idx], is_solved_c[node_idx][c_idx],
-                                      actions[node_idx][c_idx], tcs[node_idx][c_idx], node)
+                node_c: NodeV = NodeV(states_next[node_idx][c_idx], goals_c[node_idx][c_idx],
+                                      float(path_costs_c_i[c_idx]), heuristics_c[node_idx][c_idx],
+                                      is_solved_c[node_idx][c_idx], actions[node_idx][c_idx], tcs[node_idx][c_idx],
+                                      node)
                 nodes_c_i.append(node_c)
             node.children = nodes_c_i
             node.t_costs = tcs[node_idx]
