@@ -29,6 +29,8 @@ def main():
     parser.add_argument('--up_batch_size', type=int, default=1000, help="")
     parser.add_argument('--up_nnet_batch_size', type=int, default=10000, help="")
 
+    parser.add_argument('--temp', type=float, default=1.0, help="")
+
     # other
     parser.add_argument('--rb', type=int, default=1, help="")
     parser.add_argument('--debug', action='store_true', default=False, help="")
@@ -36,7 +38,6 @@ def main():
 
     up_args: UpHeurArgs = UpHeurArgs(args.up_itrs, args.up_gen_itrs, args.up_procs, args.up_search_itrs,
                                      args.up_batch_size, args.up_nnet_batch_size)
-
     updater: UpdaterHeur
     if (args.env == "cube3") or (args.env == "cube3_fixed"):
         from deepxube.environments.cube3 import Cube3
@@ -60,7 +61,7 @@ def main():
             breakpoint()
             """
 
-            updater = UpdateHeurBWQS(env, Cube3NNetParQFixOut(), up_args, 1.0)
+            updater = UpdateHeurBWQS(env, Cube3NNetParQFixOut(), up_args, args.temp)
         elif args.heur_type.upper() == "QIN":
             from deepxube.environments.cube3 import Cube3NNetParQIn
             """
@@ -76,7 +77,7 @@ def main():
             breakpoint()
             """
 
-            updater = UpdateHeurBWQS(env, Cube3NNetParQIn(), up_args, 1.0)
+            updater = UpdateHeurBWQS(env, Cube3NNetParQIn(), up_args, args.temp)
         else:
             raise ValueError(f"Unknown heur type {args.heur_type}")
     else:
