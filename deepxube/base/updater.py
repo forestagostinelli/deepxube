@@ -177,7 +177,7 @@ class UpdaterHeur(ABC, Generic[E, HNet, H, P]):
 
                 # step and to_np
                 inputs_nnet, ctgs_backup = self.step_get_in_out_np(pathfind, heur_fn, times)
-                assert len(ctgs_backup) == batch_size
+                assert len(ctgs_backup) == batch_size, f"Values were {len(ctgs_backup)} and {batch_size}"
 
                 # put
                 inputs_nnet_l.append(inputs_nnet)
