@@ -7,6 +7,7 @@ from numpy.typing import NDArray
 from deepxube.base.env import State, Goal, Action
 from deepxube.nnet.nnet_utils import NNetParInfo
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd
+from deepxube.utils import misc_utils
 from torch import nn
 
 
@@ -123,21 +124,17 @@ class HeurNNetQIn(HeurNNetQ[S, A, G], ABC):
     """
     def get_nnet_par_fn(self, nnet_par_info: NNetParInfo) -> HeurFnQ:
         def heuristic_fn(states: List[S], goals: List[G], actions_l: List[List[A]]) -> List[List[float]]:
-            action_lens_np: NDArray = np.array([len(actions) for actions in actions_l]).astype(int)
-            max_num_acts: int = int(action_lens_np.max())
-            q_vals_l: List[List[float]] = [[] for _ in states]
-            for act_idx in range(0, max_num_acts):
-                idxs_get: List[int] = np.where(action_lens_np >= (act_idx + 1))[0].tolist()
-                states_idx: List[S] = [states[idx] for idx in idxs_get]
-                goals_idx: List[G] = [goals[idx] for idx in idxs_get]
-                actions_idx: List[List[A]] = [[actions_l[idx][act_idx]] for idx in idxs_get]
-
-                inputs_nnet: List[NDArray] = self.to_np(states_idx, goals_idx, actions_idx)
-                q_vals_np_idx: NDArray = _get_nnet_par_out(inputs_nnet, nnet_par_info)[:, 0]
-                assert q_vals_np_idx.shape[0] == len(states_idx)
-                q_vals_idx: List[float] = q_vals_np_idx.astype(np.float64).tolist()
-                for idx, q_val_idx in enumerate(q_vals_idx):
-                    q_vals_l[idx].append(q_val_idx)
+            actions_flat, split_idxs = misc_utils.flatten(actions_l)
+            states_rep: List[S] = []
+            goals_rep: List[G] = []
+            for state, goal, actions in zip(states, goals, actions_l, strict=True):
+                states_rep.extend([state] * len(actions))
+                goals_rep.extend([goal] * len(actions))
+            inputs_nnet: List[NDArray] = self._to_np_one_act(states_rep, goals_rep, actions_flat)
+            q_vals_np: NDArray = _get_nnet_par_out(inputs_nnet, nnet_par_info)[:, 0]
+            assert q_vals_np.shape[0] == len(states_rep)
+            q_vals_flat: List[float] = q_vals_np.astype(np.float64).tolist()
+            q_vals_l: List[List[float]] = misc_utils.unflatten(q_vals_flat, split_idxs)
 
             return q_vals_l
 

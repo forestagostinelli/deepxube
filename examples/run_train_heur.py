@@ -18,6 +18,7 @@ def main():
     parser.add_argument('--lr', type=float, default=0.001, help="")
     parser.add_argument('--lr_d', type=float, default=0.9999993, help="")
     parser.add_argument('--max_itrs', type=int, default=1000000, help="")
+    parser.add_argument('--balance', action='store_true', default=False, help="")
     parser.add_argument('--display', type=int, default=100, help="")
 
     # updater args
@@ -81,7 +82,7 @@ def main():
     else:
         raise ValueError(f"Unknown environment {args.env}")
 
-    train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.display)
+    train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.balance, args.display)
     train(updater, args.step_max, args.nnet_dir, train_args, rb_past_up=args.rb, debug=args.debug)
 
 

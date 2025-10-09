@@ -21,12 +21,14 @@ class TrainArgs:
     :param lr: Initial learning rate
     :param lr_d: Learning rate decay for every iteration. Learning rate is decayed according to: lr * (lr_d ^ itr)
     :param max_itrs: Maximum number of iterations
+    :param balance_steps: If true, steps are balanced based on solve percentage
     :param display: Number of iterations to display progress. No display if 0.
     """
     batch_size: int
     lr: float
     lr_d: float
     max_itrs: int
+    balance_steps: bool
     display: bool
 
 

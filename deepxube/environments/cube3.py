@@ -181,7 +181,7 @@ class Cube3NNetParV(HeurNNetV[Cube3State, Cube3Goal]):
 class Cube3NNetParQFixOut(HeurNNetQFixOut[Cube3State, Cube3Action, Cube3Goal]):
     def get_nnet(self) -> nn.Module:
         state_dim: int = (3 ** 2) * 6
-        return Cube3NNetQFixOut(state_dim, 6, 7, 1000, 4, 1, True, False, -1, "RELU")
+        return Cube3NNetQFixOut(state_dim, 6, 7, 1000, 4, 12, True, False, -1, "RELU")
 
     def _to_np_fixed_acts(self, states: List[Cube3State], goals: List[Cube3Goal],
                           actions_l: List[List[Cube3Action]]) -> List[NDArray[Any]]:

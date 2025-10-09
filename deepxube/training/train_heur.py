@@ -24,14 +24,17 @@ import shutil
 
 
 class Status:
-    def __init__(self, step_max: int):
+    def __init__(self, step_max: int, balance_steps: bool):
         self.itr: int = 0
         self.update_num: int = 0
         self.step_max: int = step_max
-        # self.step_probs: NDArray = np.zeros(self.step_max + 1)
-        # self.step_probs[0] = 0.5
-        # self.step_probs[1:] = 0.5/self.step_max
-        self.step_probs: NDArray = np.ones(self.step_max + 1)/(step_max + 1)
+        self.step_probs: NDArray
+        if balance_steps:
+            self.step_probs = np.zeros(self.step_max + 1)
+            self.step_probs[0] = 0.5
+            self.step_probs[1:] = 0.5/self.step_max
+        else:
+            self.step_probs = np.ones(self.step_max + 1)/(step_max + 1)
 
     def update_step_probs(self, step_to_search_perf: Dict[int, PathFindPerf]):
         per_solved_per_step_l: List[float] = []
@@ -54,7 +57,7 @@ class Status:
 
 
 def load_data(model_dir: str, curr_file: str, targ_file: str, nnet: nn.Module,
-              step_max: int) -> Tuple[nn.Module, Status]:
+              step_max: int, train_args: TrainArgs) -> Tuple[nn.Module, Status]:
     status_file: str = "%s/status.pkl" % model_dir
     if os.path.isfile(curr_file):
         nnet = nnet_utils.load_nnet(curr_file, nnet)
@@ -66,7 +69,7 @@ def load_data(model_dir: str, curr_file: str, targ_file: str, nnet: nn.Module,
         status = pickle.load(open("%s/status.pkl" % model_dir, "rb"))
         print(f"Loaded with itr: {status.itr}, update_num: {status.update_num}")
     else:
-        status = Status(step_max)
+        status = Status(step_max, train_args.balance_steps)
         # noinspection PyTypeChecker
         pickle.dump(status, open(status_file, "wb"), protocol=-1)
 
@@ -146,7 +149,7 @@ def train(updater: UpdaterHeur, step_max: int, nnet_dir: str, train_args: TrainA
 
     # load nnet
     print("Loading nnet and status")
-    nnet, status = load_data(nnet_dir, curr_file, targ_file, nnet, step_max)
+    nnet, status = load_data(nnet_dir, curr_file, targ_file, nnet, step_max, train_args)
     nnet.to(device)
     nnet = nn.DataParallel(nnet)
 
@@ -163,16 +166,18 @@ def train(updater: UpdaterHeur, step_max: int, nnet_dir: str, train_args: TrainA
     while status.itr < train_args.max_itrs:
         # updater
         # start_time = time.time()
-        # steps_show: List[int] = list(np.unique(np.linspace(0, status.step_max, 30, dtype=int)))
-        # step_prob_str: str = ', '.join([f'{step}:{status.step_probs[step]:.2E}' for step in steps_show])
-        # print(f"Step probs: {step_prob_str}")
+        if train_args.balance_steps:
+            steps_show: List[int] = list(np.unique(np.linspace(0, status.step_max, 30, dtype=int)))
+            step_prob_str: str = ', '.join([f'{step}:{status.step_probs[step]:.2E}' for step in steps_show])
+            print(f"Step probs: {step_prob_str}")
         num_gen: int = train_args.batch_size * updater.up_args.up_gen_itrs
         all_zeros: bool = status.update_num == 0
         step_to_search_perf: Dict[int, PathFindPerf] = updater.get_update_data(targ_file, all_zeros, step_max,
                                                                                status.step_probs, num_gen, rb, device,
                                                                                on_gpu)
         print_update_summary(step_to_search_perf, writer, status)
-        # status.update_step_probs(step_to_search_perf)
+        if train_args.balance_steps:
+            status.update_step_probs(step_to_search_perf)
 
         # get batches
         print("Getting training batches")
