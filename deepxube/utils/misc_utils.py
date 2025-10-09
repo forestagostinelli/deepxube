@@ -1,4 +1,4 @@
-from typing import List, Tuple, Any, Union, Set
+from typing import List, Tuple, Any, Union, Set, cast
 import numpy as np
 import math
 import re
@@ -77,4 +77,4 @@ def boltzmann(vals: List[float], temp: float) -> List[float]:
         exp_vals_np: NDArray[np.float64] = np.exp((1.0 / temp) * (vals_np - np.max(vals_np)))
         probs_np: NDArray[np.float64] = exp_vals_np / np.sum(exp_vals_np)
 
-        return list(probs_np)
+        return cast(List[float], probs_np.tolist())
