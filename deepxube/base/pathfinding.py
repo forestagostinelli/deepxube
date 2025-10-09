@@ -347,7 +347,7 @@ class PathFindQ(PathFind[EnvEnumerableActs, NodeQ, I, IArgs]):
 
         # is solved
         start_time = time.time()
-        is_solved_next: List[bool] = self.env.is_solved(states, goals)
+        is_solved_next: List[bool] = self.env.is_solved(states_next, goals)
         self.times.record_time("is_solved", time.time() - start_time)
 
         # heuristic function

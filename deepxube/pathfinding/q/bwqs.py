@@ -92,7 +92,7 @@ class BWQS(PathFindQ[InstanceBWQS, InstArgsBWQS]):
 
         # ub
         start_time = time.time()
-        for instance, nodes_next in zip(instances, nodes_next_by_inst):
+        for instance, nodes_next in zip(instances, nodes_next_by_inst, strict=True):
             instance.update_ub(nodes_next)
         self.times.record_time("ub", time.time() - start_time)
 
@@ -153,10 +153,11 @@ class BWQS(PathFindQ[InstanceBWQS, InstArgsBWQS]):
             instance.itr += 1
 
         # return
-        nodeacts_popped_by_inst: List[List[NodeQAct]] = nodeacts_popped_itr0 + nodeacts_popped_itrgt0
-        nodesacts_popped_flat: List[NodeQAct] = misc_utils.flatten(nodeacts_popped_by_inst)[0]
-        nodes_popped_flat: List[NodeQ] = [nodeact_popped.node for nodeact_popped in nodesacts_popped_flat]
-        return nodes_popped_flat
+        # nodeacts_popped_by_inst: List[List[NodeQAct]] = nodeacts_popped_itr0 + nodeacts_popped_itrgt0
+        # nodesacts_popped_flat: List[NodeQAct] = misc_utils.flatten(nodeacts_popped_by_inst)[0]
+        # nodes_popped_flat: List[NodeQ] = [nodeact_popped.node for nodeact_popped in nodesacts_popped_flat]
+        nodes_next_flat: List[NodeQ] = misc_utils.flatten(nodes_next_by_inst)[0]
+        return nodes_next_flat
 
     def remove_finished_instances(self, itr_max: int) -> List[InstanceBWQS]:
         def remove_instance_fn(inst_in: InstanceBWQS) -> bool:
