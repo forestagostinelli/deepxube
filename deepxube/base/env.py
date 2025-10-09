@@ -45,6 +45,26 @@ G = TypeVar('G', bound=Goal)
 
 class Env(ABC, Generic[S, A, G]):
     @abstractmethod
+    def get_start_goal_pairs(self, num_steps_l: List[int],
+                             times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
+        """ Return start goal pairs with num_steps_l between start and goal
+
+        @param num_steps_l: Number of steps to take between start and goal
+        @param times: Times that can be used to profile code
+        @return: List of start states and list of goals
+        """
+        pass
+
+    @abstractmethod
+    def get_state_action_rand(self, states: List[S]) -> List[A]:
+        """ Get a random action that is applicable to the current state
+
+        @param states: List of states
+        @return: Applicable actions
+        """
+        pass
+
+    @abstractmethod
     def next_state(self, states: List[S], actions: List[A]) -> Tuple[List[S], List[float]]:
         """ Get the next state and transition cost given the current state and action
 
@@ -62,26 +82,6 @@ class Env(ABC, Generic[S, A, G]):
         @param goals: List of goals
         @return: List of booleans where the element at index i corresponds to whether or not the
         state at index i is a member of the set of goal states represented by the goal at index i
-        """
-        pass
-
-    @abstractmethod
-    def get_start_goal_pairs(self, num_steps_l: List[int],
-                             times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
-        """ Return start goal pairs with num_steps_l between start and goal
-
-        @param num_steps_l: Number of steps to take between start and goal
-        @param times: Times that can be used to profile code
-        @return: List of start states and list of goals
-        """
-        pass
-
-    @abstractmethod
-    def get_state_action_rand(self, states: List[S]) -> List[A]:
-        """ Get a random action that is applicable to the current state
-
-        @param states: List of states
-        @return: Applicable actions
         """
         pass
 

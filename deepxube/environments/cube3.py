@@ -4,8 +4,8 @@ from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel
 from deepxube.logic.logic_objects import Atom, Model
 from deepxube.visualizers.cube3_viz_simple import InteractiveCube
 from deepxube.utils.timing_utils import Times
-from deepxube.base.env import (EnvGrndAtoms, State, Action, Goal, EnvSupportsPDDL, EnvStartGoalRW,
-                               EnvEnumerableActs, EnvVizable)
+from deepxube.base.env import (EnvGrndAtoms, State, Action, Goal, EnvSupportsPDDL, EnvStartGoalRW, EnvEnumerableActs,
+                               EnvVizable)
 from deepxube.base.heuristic import HeurNNetV, HeurNNetQFixOut, HeurNNetQIn
 
 import numpy as np
@@ -204,7 +204,7 @@ class Cube3NNetParQIn(HeurNNetQIn[Cube3State, Cube3Action, Cube3Goal]):
         states_np: NDArray[np.uint8] = np.stack([state.colors for state in states], axis=0).astype(np.uint8)
         goals_np: NDArray[np.uint8] = np.stack([goal.colors for goal in goals], axis=0)
         actions_np: NDArray[np.int_] = np.array([action.action for action in actions]).astype(int)
-        actions_np = np.expand_dims(actions_np, 1).astype(np.uint8)
+        actions_np = np.expand_dims(actions_np, 1)
         return [states_np, goals_np, actions_np]
 
 

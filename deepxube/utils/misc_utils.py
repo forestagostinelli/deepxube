@@ -7,7 +7,7 @@ from numpy.typing import NDArray
 
 def flatten(data: List[List[Any]]) -> Tuple[List[Any], List[int]]:
     num_each = [len(x) for x in data]
-    split_idxs: List[int] = list(np.cumsum(num_each)[:-1])
+    split_idxs: List[int] = np.cumsum(num_each)[:-1].tolist()
 
     data_flat = [item for sublist in data for item in sublist]
 
