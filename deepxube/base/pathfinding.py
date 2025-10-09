@@ -307,7 +307,6 @@ class NodeQ(Node):
         return self.bellman_backup_val
 
 
-
 class NodeQAct:
     __slots__ = ['node', 'action', 'q_val']
 

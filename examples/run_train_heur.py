@@ -44,7 +44,7 @@ def main():
             from deepxube.environments.cube3 import Cube3NNetParV
             updater = UpdateHeurBWAS(env, Cube3NNetParV(), up_args)
         elif args.heur_type.upper() == "Q":
-            from deepxube.environments.cube3 import Cube3NNetParQFix
+            from deepxube.environments.cube3 import Cube3NNetParQFixOut
             """
             from deepxube.nnet.nnet_utils import get_device, to_pytorch_input
             device = get_device()[0]
@@ -59,7 +59,23 @@ def main():
             breakpoint()
             """
 
-            updater = UpdateHeurBWQS(env, Cube3NNetParQFix(), up_args, 1.0)
+            updater = UpdateHeurBWQS(env, Cube3NNetParQFixOut(), up_args, 1.0)
+        elif args.heur_type.upper() == "QIN":
+            from deepxube.environments.cube3 import Cube3NNetParQIn
+            """
+            from deepxube.nnet.nnet_utils import get_device, to_pytorch_input
+            device = get_device()[0]
+            heur_nnet = Cube3NNetParQIn()
+            nnet = heur_nnet.get_nnet()
+            nnet.train()
+            states, goals = env.get_start_goal_pairs([0, 10, 3, 4, 5])
+            inputs_nnet = heur_nnet.to_np(states, goals, [[x] for x in env.get_state_action_rand(states)])
+            inputs_nnet_t = to_pytorch_input(inputs_nnet, device)
+            out = nnet(inputs_nnet_t)
+            breakpoint()
+            """
+
+            updater = UpdateHeurBWQS(env, Cube3NNetParQIn(), up_args, 1.0)
         else:
             raise ValueError(f"Unknown heur type {args.heur_type}")
     else:

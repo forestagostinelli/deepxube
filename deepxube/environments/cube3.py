@@ -6,7 +6,7 @@ from deepxube.visualizers.cube3_viz_simple import InteractiveCube
 from deepxube.utils.timing_utils import Times
 from deepxube.base.env import (EnvGrndAtoms, State, Action, Goal, EnvSupportsPDDL, EnvStartGoalRW,
                                EnvEnumerableActs, EnvVizable)
-from deepxube.base.heuristic import HeurNNetV, HeurNNetQFix
+from deepxube.base.heuristic import HeurNNetV, HeurNNetQFixOut, HeurNNetQIn
 
 import numpy as np
 import torch
@@ -21,20 +21,18 @@ import re
 from numpy.typing import NDArray
 
 
-class Cube3ProcessStates(nn.Module):
-    def __init__(self, state_dim: int, one_hot_depth: int):
+class OneHot(nn.Module):
+    def __init__(self, data_dim: int, one_hot_depth: int):
         super().__init__()
-        self.state_dim: int = state_dim
+        self.data_dim: int = data_dim
         self.one_hot_depth: int = one_hot_depth
 
-    def forward(self, states_nnet: Tensor):
-        x = states_nnet
-
+    def forward(self, x: Tensor):
         # preprocess input
         if self.one_hot_depth > 0:
             x = nn.functional.one_hot(x.long(), self.one_hot_depth)
             x = x.float()
-            x = x.view(-1, self.state_dim * self.one_hot_depth)
+            x = x.view(-1, self.data_dim * self.one_hot_depth)
         else:
             x = x.float()
 
@@ -45,8 +43,8 @@ class Cube3NNet(nn.Module):
     def __init__(self, state_dim: int, oh_depth0: int, oh_depth1: int, res_dim: int, num_res_blocks: int, out_dim: int,
                  batch_norm: bool, weight_norm: bool, group_norm: int, act_fn: str):
         super().__init__()
-        self.state_proc0 = Cube3ProcessStates(state_dim, oh_depth0)
-        self.state_proc1 = Cube3ProcessStates(state_dim, oh_depth1)
+        self.state_proc0 = OneHot(state_dim, oh_depth0)
+        self.state_proc1 = OneHot(state_dim, oh_depth1)
 
         input_dim: int = (state_dim * oh_depth0) + (state_dim * oh_depth1)
 
@@ -70,12 +68,12 @@ class Cube3NNet(nn.Module):
         return x
 
 
-class Cube3NNetQ(nn.Module):
+class Cube3NNetQFixOut(nn.Module):
     def __init__(self, state_dim: int, oh_depth0: int, oh_depth1: int, res_dim: int, num_res_blocks: int, out_dim: int,
                  batch_norm: bool, weight_norm: bool, group_norm: int, act_fn: str):
         super().__init__()
-        self.state_proc0 = Cube3ProcessStates(state_dim, oh_depth0)
-        self.state_proc1 = Cube3ProcessStates(state_dim, oh_depth1)
+        self.state_proc0 = OneHot(state_dim, oh_depth0)
+        self.state_proc1 = OneHot(state_dim, oh_depth1)
 
         input_dim: int = (state_dim * oh_depth0) + (state_dim * oh_depth1)
 
@@ -98,6 +96,37 @@ class Cube3NNetQ(nn.Module):
         actions: Tensor = states_goals_acts_l[2].long()
 
         x = torch.gather(x, 1, actions)
+
+        return x
+
+
+class Cube3NNetQIn(nn.Module):
+    def __init__(self, state_dim: int, oh_depth0: int, oh_depth1: int, res_dim: int, num_res_blocks: int, out_dim: int,
+                 batch_norm: bool, weight_norm: bool, group_norm: int, act_fn: str):
+        super().__init__()
+        self.state_proc0 = OneHot(state_dim, oh_depth0)
+        self.state_proc1 = OneHot(state_dim, oh_depth1)
+        self.actions_proc = OneHot(1, 12)
+
+        input_dim: int = (state_dim * oh_depth0) + (state_dim * oh_depth1) + 12
+
+        def res_block_init() -> nn.Module:
+            return FullyConnectedModel(res_dim, [res_dim] * 2, [act_fn, "LINEAR"],
+                                       batch_norms=[batch_norm] * 2, weight_norms=[weight_norm] * 2,
+                                       group_norms=[group_norm] * 2)
+
+        self.heur = nn.Sequential(
+            nn.Linear(input_dim, res_dim),
+            ResnetModel(res_block_init, num_res_blocks, act_fn),
+            nn.Linear(res_dim, out_dim)
+        )
+
+    def forward(self, states_goals_acts_l: List[Tensor]):
+        states_proc: Tensor = self.state_proc0(states_goals_acts_l[0])
+        goals_proc: Tensor = self.state_proc1(states_goals_acts_l[1])
+        actions_proc: Tensor = self.actions_proc(states_goals_acts_l[2])
+
+        x: Tensor = self.heur(torch.cat((states_proc, goals_proc, actions_proc), dim=1))
 
         return x
 
@@ -149,20 +178,33 @@ class Cube3NNetParV(HeurNNetV[Cube3State, Cube3Goal]):
         return [states_np, goals_np]
 
 
-class Cube3NNetParQFix(HeurNNetQFix[Cube3State, Cube3Action, Cube3Goal]):
+class Cube3NNetParQFixOut(HeurNNetQFixOut[Cube3State, Cube3Action, Cube3Goal]):
     def get_nnet(self) -> nn.Module:
         state_dim: int = (3 ** 2) * 6
-        return Cube3NNetQ(state_dim, 6, 7, 1000, 4, 12, True, False, -1, "RELU")
+        return Cube3NNetQFixOut(state_dim, 6, 7, 1000, 4, 1, True, False, -1, "RELU")
 
-    def to_np(self, states: List[Cube3State], goals: List[Cube3Goal],
-              actions_l: List[List[Cube3Action]]) -> List[NDArray[Any]]:
-        assert len(set(len(actions) for actions in actions_l)) == 1, "num actions should be the same for all instances"
+    def _to_np_fixed_acts(self, states: List[Cube3State], goals: List[Cube3Goal],
+                          actions_l: List[List[Cube3Action]]) -> List[NDArray[Any]]:
         num_actions: int = len(actions_l[0])
         states_np: NDArray[np.uint8] = np.stack([state.colors for state in states], axis=0).astype(np.uint8)
         goals_np: NDArray[np.uint8] = np.stack([goal.colors for goal in goals], axis=0)
         actions_np: NDArray[np.int_] = np.zeros((len(states), num_actions)).astype(int)
         for state_idx in range(len(states)):
             actions_np[state_idx] = np.array([action.action for action in actions_l[state_idx]])
+        return [states_np, goals_np, actions_np]
+
+
+class Cube3NNetParQIn(HeurNNetQIn[Cube3State, Cube3Action, Cube3Goal]):
+    def get_nnet(self) -> nn.Module:
+        state_dim: int = (3 ** 2) * 6
+        return Cube3NNetQIn(state_dim, 6, 7, 1000, 4, 1, True, False, -1, "RELU")
+
+    def _to_np_one_act(self, states: List[Cube3State], goals: List[Cube3Goal],
+                       actions: List[Cube3Action]) -> List[NDArray[Any]]:
+        states_np: NDArray[np.uint8] = np.stack([state.colors for state in states], axis=0).astype(np.uint8)
+        goals_np: NDArray[np.uint8] = np.stack([goal.colors for goal in goals], axis=0)
+        actions_np: NDArray[np.int_] = np.array([action.action for action in actions]).astype(int)
+        actions_np = np.expand_dims(actions_np, 1)
         return [states_np, goals_np, actions_np]
 
 
