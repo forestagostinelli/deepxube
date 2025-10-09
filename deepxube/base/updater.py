@@ -296,7 +296,9 @@ class UpdateHeurV(UpdaterHeur[EnvEnumerableActs, HeurNNetV, HeurFnV, PV]):
         states: List[State] = [node.state for node in nodes_popped]
         goals: List[Goal] = [node.goal for node in nodes_popped]
         ctgs_backup: List[float] = [node.backup() for node in nodes_popped]
+        times.record_time("backup", time.time() - start_time)
 
+        start_time = time.time()
         inputs_np: List[NDArray] = self.heur_nnet.to_np(states, goals)
         times.record_time("to_np", time.time() - start_time)
         return inputs_np, ctgs_backup
@@ -316,7 +318,7 @@ PQ = TypeVar('PQ', bound=PathFindQ)
 
 
 def q_learning_backup(env: EnvEnumerableActs, states: List[State], goals: List[Goal], actions: List[Action],
-                      heur_fn: HeurFnQ) -> Tuple[List[State], List[float]]:
+                      is_solved_l: List[bool], heur_fn: HeurFnQ) -> Tuple[List[State], List[float]]:
     states_next, tcs = env.next_state(states, actions)
 
     # min cost-to-go for next state
@@ -326,9 +328,7 @@ def q_learning_backup(env: EnvEnumerableActs, states: List[State], goals: List[G
 
     # backup cost-to-go
     ctg_backups: NDArray = np.array(tcs) + np.array(ctg_acts_next_min)
-
-    is_solved: List[bool] = env.is_solved(states, goals)
-    ctg_backups = ctg_backups * np.logical_not(np.array(is_solved))
+    ctg_backups = ctg_backups * np.logical_not(np.array(is_solved_l))
 
     return states_next, ctg_backups.tolist()
 
@@ -347,19 +347,23 @@ class UpdateHeurQ(UpdaterHeur[EnvEnumerableActs, HeurNNetQ, HeurFnQ, PQ]):
         node_q_l: List[NodeQ] = pathfind.step(heur_fn)
 
         # sample an action to take
+        start_time = time.time()
         states: List[State] = []
         goals: List[Goal] = []
         actions: List[Action] = []
+        is_solved_l: List[bool] = []
         for node_q in node_q_l:
             states.append(node_q.state)
             goals.append(node_q.goal)
+            is_solved_l.append(node_q.is_solved)
 
             act_probs: List[float] = boltzmann([-q_value for q_value in node_q.q_values], self.temp)
             act_idx: int = int(np.random.multinomial(1, act_probs, size=1).argmax())
             actions.append(node_q.actions[act_idx])
 
         # do q-learning backup
-        ctgs_backup: List[float] = q_learning_backup(self.env, states, goals, actions, heur_fn)[1]
+        ctgs_backup: List[float] = q_learning_backup(self.env, states, goals, actions, is_solved_l, heur_fn)[1]
+        times.record_time("backup", time.time() - start_time)
 
         # to_np
         start_time = time.time()

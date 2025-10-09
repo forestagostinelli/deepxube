@@ -204,7 +204,7 @@ class Cube3NNetParQIn(HeurNNetQIn[Cube3State, Cube3Action, Cube3Goal]):
         states_np: NDArray[np.uint8] = np.stack([state.colors for state in states], axis=0).astype(np.uint8)
         goals_np: NDArray[np.uint8] = np.stack([goal.colors for goal in goals], axis=0)
         actions_np: NDArray[np.int_] = np.array([action.action for action in actions]).astype(int)
-        actions_np = np.expand_dims(actions_np, 1)
+        actions_np = np.expand_dims(actions_np, 1).astype(np.uint8)
         return [states_np, goals_np, actions_np]
 
 
