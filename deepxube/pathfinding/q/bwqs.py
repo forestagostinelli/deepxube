@@ -1,5 +1,5 @@
 from typing import List, Tuple, Dict, Optional, Any
-from deepxube.base.pathfinding import Instance, NodeQ, PathFindQ, InstArgs, NodeQAct
+from deepxube.base.pathfinding import Instance, NodeQ, PathFindQEnum, InstArgs, NodeQAct
 from deepxube.base.env import State
 from deepxube.base.heuristic import HeurFnQ
 from deepxube.utils import misc_utils
@@ -66,7 +66,7 @@ class InstanceBWQS(Instance[NodeQ, InstArgsBWQS]):
         return (self.goal_node is not None) and (self.lb >= (self.inst_args.weight * self.ub))
 
 
-class BWQS(PathFindQ[InstanceBWQS, InstArgsBWQS]):
+class BWQS(PathFindQEnum[InstanceBWQS, InstArgsBWQS]):
     def step(self, heur_fn: HeurFnQ, verbose: bool = False) -> List[NodeQAct]:
         # split instances by iteration
         instances_all: List[InstanceBWQS] = [instance for instance in self.instances if not instance.finished()]
