@@ -25,7 +25,6 @@ class InstanceBWAS(Instance[NodeV, InstArgsBWAS]):
         self.open_set: List[OpenSetElem] = []
         self.heappush_count: int = 0
         self.closed_dict: Dict[State, float] = {self.root_node.state: 0.0}
-        self.finished: bool = False
         self.ub: float = np.inf
         self.lb: float = 0.0
 
@@ -61,10 +60,10 @@ class InstanceBWAS(Instance[NodeV, InstArgsBWAS]):
                 self.goal_node = node
                 self.ub = node.path_cost
 
-        if (self.goal_node is not None) and (self.lb >= (self.inst_args.weight * self.ub)):
-            self.finished = True
-
         return nodes_popped
+
+    def finished(self) -> bool:
+        return (self.goal_node is not None) and (self.lb >= (self.inst_args.weight * self.ub))
 
 
 class BWAS(PathFindV[InstanceBWAS, InstArgsBWAS]):
@@ -72,7 +71,7 @@ class BWAS(PathFindV[InstanceBWAS, InstArgsBWAS]):
         super().__init__(env)
 
     def step(self, heur_fn: HeurFnV, verbose: bool = False) -> List[NodeV]:
-        instances: List[InstanceBWAS] = [instance for instance in self.instances if not instance.finished]
+        instances: List[InstanceBWAS] = [instance for instance in self.instances if not instance.finished()]
 
         # pop from open
         start_time = time.time()
@@ -134,7 +133,7 @@ class BWAS(PathFindV[InstanceBWAS, InstArgsBWAS]):
 
     def remove_finished_instances(self, itr_max: int) -> List[InstanceBWAS]:
         def remove_instance_fn(inst_in: InstanceBWAS) -> bool:
-            if inst_in.finished:
+            if inst_in.finished():
                 return True
             if inst_in.itr >= itr_max:
                 return True

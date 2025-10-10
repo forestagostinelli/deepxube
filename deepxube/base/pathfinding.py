@@ -1,4 +1,4 @@
-from typing import Generic, List, Optional, Any, Tuple, Callable, TypeVar
+from typing import Generic, List, Optional, Any, Tuple, Callable, TypeVar, Dict
 
 from numpy.typing import NDArray
 
@@ -59,6 +59,10 @@ class Instance(ABC, Generic[N, IArgs]):
         else:
             assert self.goal_node is not None
             return self.goal_node.path_cost
+
+    @abstractmethod
+    def finished(self) -> bool:
+        pass
 
 
 I = TypeVar('I', bound=Instance)
@@ -281,7 +285,7 @@ class PathFindV(PathFind[EnvEnumerableActs, NodeV, I, IArgs]):
 
 class NodeQ(Node):
     __slots__ = ['state', 'goal', 'path_cost', 'heuristic', 'is_solved', 'parent_action', 'parent_t_cost', 'parent',
-                 'actions', 'q_values', 'children', 't_costs', 'bellman_backup_val']
+                 'actions', 'q_values', 'act_dict', 'bellman_backup_val']
 
     def __init__(self, state: State, goal: Goal, path_cost: float, heuristic: float, is_solved: bool,
                  parent_action: Optional[Action], parent_t_cost: Optional[float], parent: Optional['NodeQ'],
@@ -290,21 +294,27 @@ class NodeQ(Node):
         self.parent: Optional[NodeQ] = parent
         self.actions: List[Action] = actions
         self.q_values: List[float] = q_values
-        self.children: List[NodeQ] = []
-        self.t_costs: List[float] = []
+        self.act_dict: Dict[Action, Tuple[float, NodeQ]] = dict()
         self.bellman_backup_val: Optional[float] = None
 
     def backup(self) -> float:
         if self.is_solved:
             self.bellman_backup_val = 0.0
         else:
-            if len(self.children) == 0:
+            if len(self.act_dict) == 0:
                 self.bellman_backup_val = self.heuristic
             else:
                 self.bellman_backup_val = np.inf
-                for node_c, tc in zip(self.children, self.t_costs):
-                    self.bellman_backup_val = min(self.bellman_backup_val, tc + node_c.heuristic)
+                for tc, node_next in self.act_dict.values():
+                    self.bellman_backup_val = min(self.bellman_backup_val, tc + node_next.heuristic)
         return self.bellman_backup_val
+
+    def backup_act(self, action: Action) -> float:
+        if self.is_solved:
+            return 0.0
+        else:
+            tc, node_next = self.act_dict[action]
+            return tc + min(node_next.q_values)
 
 
 class NodeQAct:
@@ -321,7 +331,7 @@ class PathFindQ(PathFind[EnvEnumerableActs, NodeQ, I, IArgs]):
         super().__init__(env)
 
     @abstractmethod
-    def step(self, heur_fn: HeurFnQ) -> List[NodeQ]:
+    def step(self, heur_fn: HeurFnQ) -> List[NodeQAct]:
         pass
 
     def get_next_nodes(self, instances: List[I], node_acts_by_inst: List[List[NodeQAct]],
@@ -364,8 +374,7 @@ class PathFindQ(PathFind[EnvEnumerableActs, NodeQ, I, IArgs]):
             node_next: NodeQ = NodeQ(states_next[idx], goals[idx], path_costs_next[idx], heurs_next[idx],
                                      is_solved_next[idx], actions[idx], tcs[idx], nodes[idx], actions_next_l[idx],
                                      q_vals_next[idx])
-            nodes[idx].children.append(node_next)
-            nodes[idx].t_costs.append(tcs[idx])
+            nodes[idx].act_dict[actions[idx]] = (tcs[idx], node_next)
             nodes_next.append(node_next)
         self.times.record_time("make_nodes", time.time() - start_time)
 

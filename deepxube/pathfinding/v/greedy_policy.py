@@ -16,6 +16,9 @@ class InstanceGrV(Instance[NodeV, InstArgsGr]):
         super().__init__(root_node, inst_args, inst_info)
         self.curr_node: NodeV = self.root_node
 
+    def finished(self) -> bool:
+        return self.has_soln()
+
 
 class Greedy(PathFindV[InstanceGrV, InstArgsGr]):
     def step(self, heur_fn: Callable) -> List[NodeV]:

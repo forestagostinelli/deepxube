@@ -28,9 +28,22 @@ class State(ABC):
         pass
 
 
-# TODO make hash and eq method for action required
 class Action(ABC):
-    pass
+    @abstractmethod
+    def __hash__(self):
+        """ For use in backup for Q* search
+        @return: hash value
+        """
+        pass
+
+    @abstractmethod
+    def __eq__(self, other: object):
+        """ for use in backup for Q* search
+
+        @param other: other state
+        @return: true if they are equal
+        """
+        pass
 
 
 # TODO make hash and eq method for goal required

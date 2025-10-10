@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple, Any, Generic, TypeVar
+from typing import List, Dict, Tuple, Any, Generic, TypeVar, Optional
 from abc import ABC, abstractmethod
 import time
 from dataclasses import dataclass
@@ -14,12 +14,13 @@ from deepxube.base.env import Env, State, Goal, Action, EnvEnumerableActs
 from deepxube.base.heuristic import HeurNNet, HeurFn, HeurFnV, HeurFnQ
 from deepxube.base.heuristic import HeurNNetV, HeurNNetQ
 from deepxube.nnet import nnet_utils
-from deepxube.base.pathfinding import PathFind, PathFindV, PathFindQ, Instance, InstArgs, NodeV, NodeQ
+from deepxube.base.pathfinding import PathFind, PathFindV, PathFindQ, Instance, InstArgs, NodeV, NodeQ, NodeQAct
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf
 from deepxube.training.train_utils import ReplayBuffer
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd
-from deepxube.utils.misc_utils import split_evenly_w_max, boltzmann
+from deepxube.utils.misc_utils import split_evenly_w_max
 from deepxube.utils.timing_utils import Times
+import random
 
 
 @dataclass
@@ -46,7 +47,7 @@ class UpHeurArgs:
 
 
 def get_data_from_procs(num_gen: int, from_q: Queue, to_q: Queue, procs: List[BaseProcess],
-                        rb: ReplayBuffer, start_time_gen: float) -> Dict[int, PathFindPerf]:
+                        rb: ReplayBuffer, start_time_gen: float) -> Tuple[Dict[int, PathFindPerf], float, float, float]:
     # getting data from processes
     times_up: Times = Times()
     display_counts: NDArray[np.int_] = np.linspace(0, num_gen, 10, dtype=int)
@@ -102,7 +103,7 @@ def get_data_from_procs(num_gen: int, from_q: Queue, to_q: Queue, procs: List[Ba
     print(f"Cost-to-go (mean/min/max): {ctgs_mean:.2f}/{ctgs_min:.2f}/{ctgs_max:.2f}")
     print(f"Times - {times_up.get_time_str()}")
 
-    return step_to_pathperf
+    return step_to_pathperf, ctgs_mean, ctgs_min, ctgs_max
 
 
 def _put_from_q(inputs_nnet_l: List[List[NDArray]], ctgs_backup_l: List[NDArray], from_q: Queue, times: Times):
@@ -225,7 +226,8 @@ class UpdaterHeur(ABC, Generic[E, HNet, H, P]):
         pass
 
     def get_update_data(self, heur_file: str, all_zeros: bool, step_max: int, step_probs: NDArray, num_gen: int,
-                        rb: ReplayBuffer, device: torch.device, on_gpu: bool) -> Dict[int, PathFindPerf]:
+                        rb: ReplayBuffer, device: torch.device,
+                        on_gpu: bool) -> Tuple[Dict[int, PathFindPerf], float, float, float]:
         start_time_gen = time.time()
         # put work information on to_q
         ctx = get_context("spawn")
@@ -248,15 +250,15 @@ class UpdaterHeur(ABC, Generic[E, HNet, H, P]):
             procs.append(proc)
 
         # getting data from procs
-        step_to_pathperf: Dict[int, PathFindPerf] = get_data_from_procs(num_gen, from_q, to_q, procs, rb,
-                                                                        start_time_gen)
+        step_to_pathperf, ctgs_mean, ctgs_min, ctgs_max = get_data_from_procs(num_gen, from_q, to_q, procs, rb,
+                                                                              start_time_gen)
 
         # clean up clean up everybody do your share
         nnet_utils.stop_nnet_runners(nnet_procs, nnet_par_infos)
         for proc in procs:
             proc.join()
 
-        return step_to_pathperf
+        return step_to_pathperf, ctgs_mean, ctgs_min, ctgs_max
 
     def _send_work_to_q(self, num_gen: int, ctx) -> Queue:
         num_searches: int = num_gen // self.up_args.up_search_itrs
@@ -344,26 +346,34 @@ class UpdateHeurQ(UpdaterHeur[EnvEnumerableActs, HeurNNetQ, HeurFnQ, PQ]):
 
     def step_get_in_out_np(self, pathfind: PQ, heur_fn: HeurFnQ, times: Times) -> Tuple[List[NDArray], List[float]]:
         # take a step
-        node_q_l: List[NodeQ] = pathfind.step(heur_fn)
+        nodeqacts: List[NodeQAct] = pathfind.step(heur_fn)
 
-        # sample an action to take
-        start_time = time.time()
+        # get backup for node_q_acts with actions that are not none
         states: List[State] = []
         goals: List[Goal] = []
         actions: List[Action] = []
-        is_solved_l: List[bool] = []
-        for node_q in node_q_l:
-            states.append(node_q.state)
-            goals.append(node_q.goal)
-            is_solved_l.append(node_q.is_solved)
+        ctgs_backup: List[float] = []
+        node_q_l_up: List[NodeQ] = []
+        for nodeq_act in nodeqacts:
+            action: Optional[Action] = nodeq_act.action
+            node_q: NodeQ = nodeq_act.node
+            if action is not None:
+                ctg_backup: float = node_q.backup_act(action)
+                states.append(node_q.state)
+                goals.append(node_q.goal)
+                actions.append(action)
+                ctgs_backup.append(ctg_backup)
+            else:
+                node_q_l_up.append(node_q)
 
-            act_probs: List[float] = boltzmann([-q_value for q_value in node_q.q_values], self.temp)
-            act_idx: int = int(np.random.multinomial(1, act_probs, size=1).argmax())
-            actions.append(node_q.actions[act_idx])
-
-        # do q-learning backup
-        ctgs_backup: List[float] = q_learning_backup(self.env, states, goals, actions, is_solved_l, heur_fn)[1]
-        times.record_time("backup", time.time() - start_time)
+        # get backup of initial node_q_act with random action
+        start_time = time.time()
+        states_up, goals_up, actions_up, ctgs_backup_up = self.update_any_action(node_q_l_up, heur_fn)
+        states.extend(states_up)
+        goals.extend(goals_up)
+        actions.extend(actions_up)
+        ctgs_backup.extend(ctgs_backup_up)
+        times.record_time("backup_1st", time.time() - start_time)
 
         # to_np
         start_time = time.time()
@@ -381,3 +391,25 @@ class UpdateHeurQ(UpdaterHeur[EnvEnumerableActs, HeurNNetQ, HeurFnQ, PQ]):
             shapes_dypes.append((inputs_nnet_i[0].shape, inputs_nnet_i.dtype))
 
         return shapes_dypes
+
+    def update_any_action(self, node_q_l: List[NodeQ],
+                          heur_fn: HeurFnQ) -> Tuple[List[State], List[Goal], List[Action], List[float]]:
+        if len(node_q_l) == 0:
+            return [], [], [], []
+        states: List[State] = []
+        goals: List[Goal] = []
+        actions: List[Action] = []
+        is_solved_l: List[bool] = []
+        for node_q in node_q_l:
+            states.append(node_q.state)
+            goals.append(node_q.goal)
+
+            # act_probs: List[float] = boltzmann([-q_value for q_value in node_q.q_values], self.temp)
+            # act_idx: int = int(np.random.multinomial(1, act_probs, size=1).argmax())
+            actions.append(random.choice(node_q.actions))
+            is_solved_l.append(node_q.is_solved)
+
+        # do q-learning backup
+        ctgs_backup: List[float] = q_learning_backup(self.env, states, goals, actions, is_solved_l, heur_fn)[1]
+
+        return states, goals, actions, ctgs_backup

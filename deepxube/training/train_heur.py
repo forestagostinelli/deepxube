@@ -172,9 +172,13 @@ def train(updater: UpdaterHeur, step_max: int, nnet_dir: str, train_args: TrainA
             print(f"Step probs: {step_prob_str}")
         num_gen: int = train_args.batch_size * updater.up_args.up_gen_itrs
         all_zeros: bool = status.update_num == 0
-        step_to_search_perf: Dict[int, PathFindPerf] = updater.get_update_data(targ_file, all_zeros, step_max,
-                                                                               status.step_probs, num_gen, rb, device,
-                                                                               on_gpu)
+        step_to_search_perf, ctgs_mean, ctgs_min, ctgs_max = updater.get_update_data(targ_file, all_zeros, step_max,
+                                                                                     status.step_probs, num_gen, rb,
+                                                                                     device, on_gpu)
+        writer.add_scalar("ctgs (mean)", ctgs_mean, status.itr)
+        writer.add_scalar("ctgs (min)", ctgs_min, status.itr)
+        writer.add_scalar("ctgs (max)", ctgs_max, status.itr)
+
         print_update_summary(step_to_search_perf, writer, status)
         if train_args.balance_steps:
             status.update_step_probs(step_to_search_perf)
