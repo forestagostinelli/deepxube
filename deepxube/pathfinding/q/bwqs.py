@@ -1,6 +1,8 @@
-from typing import List, Tuple, Dict, Optional, Any
-from deepxube.base.pathfinding import Instance, NodeQ, PathFindQEnum, InstArgs, NodeQAct
-from deepxube.base.env import State
+from abc import ABC
+from typing import List, Tuple, Dict, Optional, Any, TypeVar
+from deepxube.base.env import Env, EnvEnumerableActs
+from deepxube.base.pathfinding import Instance, NodeQ, PathFindQ, InstArgs, NodeQAct
+from deepxube.base.env import State, Goal, Action
 from deepxube.utils import misc_utils
 from heapq import heappush, heappop
 import numpy as np
@@ -65,7 +67,10 @@ class InstanceBWQS(Instance[NodeQ, InstArgsBWQS]):
         return (self.goal_node is not None) and (self.lb >= (self.inst_args.weight * self.ub))
 
 
-class BWQS(PathFindQEnum[InstanceBWQS, InstArgsBWQS]):
+E = TypeVar('E', bound=Env)
+
+
+class BWQS(PathFindQ[E, InstanceBWQS, InstArgsBWQS], ABC):
     def step(self, verbose: bool = False) -> List[NodeQAct]:
         # split instances by iteration
         instances_all: List[InstanceBWQS] = [instance for instance in self.instances if not instance.finished()]
@@ -169,3 +174,8 @@ class BWQS(PathFindQEnum[InstanceBWQS, InstArgsBWQS]):
 
     def _get_instance(self, root_node: NodeQ, inst_args: InstArgsBWQS, inst_info: Any) -> InstanceBWQS:
         return InstanceBWQS(root_node, inst_args, inst_info)
+
+
+class BWQSEnum(BWQS[EnvEnumerableActs]):
+    def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
+        return self.env.get_state_actions(states)

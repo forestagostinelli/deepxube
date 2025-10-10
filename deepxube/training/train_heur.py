@@ -2,7 +2,7 @@ from typing import List, Tuple, Dict, Type
 
 from deepxube.base.env import Env
 from deepxube.base.updater import Update, UpHeurArgs
-from deepxube.base.heuristic import HeurNNet
+from deepxube.base.heuristic import NNetPar
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf
 from deepxube.training.train_utils import ReplayBuffer, train_heur_nnet, TrainArgs
 from deepxube.utils import data_utils
@@ -78,7 +78,7 @@ def load_data(model_dir: str, curr_file: str, targ_file: str, nnet: nn.Module,
     return nnet, status
 
 
-def train(heur_nnet: HeurNNet, env: Env, update_cls: Type[Update], step_max: int, nnet_dir: str,
+def train(heur_nnet: NNetPar, env: Env, update_cls: Type[Update], step_max: int, nnet_dir: str,
           update_args: UpHeurArgs, train_args: TrainArgs, rb_past_up: int = 10, debug: bool = False):
     """ Train a deep neural network heuristic (DNN) function with deep approximate value iteration (DAVI).
     A target DNN is maintained for computing the updated heuristic values. When the greedy policy improves on a fixed

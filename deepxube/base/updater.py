@@ -11,7 +11,7 @@ from numpy.typing import NDArray
 
 from deepxube.nnet.nnet_utils import NNetParInfo
 from deepxube.base.env import Env, State, Goal, Action, EnvEnumerableActs
-from deepxube.base.heuristic import HeurNNet, HeurFn, HeurFnV, HeurFnQ, HeurNNetV, HeurNNetQ
+from deepxube.base.heuristic import NNetPar, NNetCallable, HeurFnV, HeurFnQ, HeurNNetV, HeurNNetQ
 from deepxube.base.pathfinding import PathFind, PathFindV, PathFindQ, Instance, InstArgs, NodeV, NodeQ, NodeQAct
 from deepxube.nnet import nnet_utils
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, print_pathfindperf
@@ -139,8 +139,8 @@ def _update_perf(insts_rem: List[Instance], step_to_pathperf: Dict[int, PathFind
 
 
 E = TypeVar('E', bound=Env)
-HNet = TypeVar('HNet', bound=HeurNNet)
-H = TypeVar('H', bound=HeurFn)
+HNet = TypeVar('HNet', bound=NNetPar)
+H = TypeVar('H', bound=NNetCallable)
 P = TypeVar('P', bound=PathFind)
 
 
@@ -380,7 +380,7 @@ class UpdateHeurQ(UpdateHeur[E, HeurNNetQ[State, Action, Goal], HeurFnQ[State, G
         return shapes_dypes
 
     @abstractmethod
-    def get_state_actions(self, states: List[State]) -> List[List[Action]]:
+    def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
         pass
 
     def q_learning_backup(self, states: List[State], goals: List[Goal], actions: List[Action],
@@ -389,7 +389,7 @@ class UpdateHeurQ(UpdateHeur[E, HeurNNetQ[State, Action, Goal], HeurFnQ[State, G
         states_next, tcs = self.env.next_state(states, actions)
 
         # min cost-to-go for next state
-        actions_next: List[List[Action]] = self.get_state_actions(states_next)
+        actions_next: List[List[Action]] = self.get_state_actions(states_next, goals)
         ctg_acts_next_l: List[List[float]] = self.heur_fn(states_next, goals, actions_next)
         ctg_acts_next_min: List[float] = [min(ctg_acts_next) for ctg_acts_next in ctg_acts_next_l]
 
@@ -459,5 +459,5 @@ class UpdateHeurQ(UpdateHeur[E, HeurNNetQ[State, Action, Goal], HeurFnQ[State, G
 
 
 class UpdateHeurQEnum(UpdateHeurQ[EnvEnumerableActs, PQ], ABC):
-    def get_state_actions(self, states: List[State]) -> List[List[Action]]:
+    def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
         return self.env.get_state_actions(states)

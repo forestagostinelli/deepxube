@@ -1,9 +1,9 @@
 from typing import Tuple
 from deepxube.base.env import Env
-from deepxube.base.heuristic import HeurNNet
+from deepxube.base.heuristic import NNetPar
 
 
-def get_environment(env_name: str) -> Tuple[Env, HeurNNet]:
+def get_environment(env_name: str) -> Tuple[Env, NNetPar]:
     env_name = env_name.lower()
 
     if (env_name == "cube3") or (env_name == "cube3_fixed"):

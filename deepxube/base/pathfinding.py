@@ -360,7 +360,7 @@ class PathFindQ(PathFind[E, NodeQ, I, IArgs]):
 
         # heuristic function
         start_time = time.time()
-        actions_next_l: List[List[Action]] = self.get_state_actions(states_next)
+        actions_next_l: List[List[Action]] = self.get_state_actions(states_next, goals)
         q_vals_next: List[List[float]] = self.heur_fn(states_next, goals, actions_next_l)
         heurs_next: List[float] = [min(x) for x in q_vals_next]
         self.times.record_time("heur", time.time() - start_time)
@@ -386,11 +386,11 @@ class PathFindQ(PathFind[E, NodeQ, I, IArgs]):
         return nodes_next_by_inst
 
     @abstractmethod
-    def get_state_actions(self, states: List[State]) -> List[List[Action]]:
+    def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
         pass
 
     def _create_root_nodes(self, states: List[State], goals: List[Goal], compute_init_heur: bool) -> List[NodeQ]:
-        actions_l: List[List[Action]] = self.get_state_actions(states)
+        actions_l: List[List[Action]] = self.get_state_actions(states, goals)
         tc_p_ctgs_l: List[List[float]] = self.heur_fn(states, goals, actions_l)
 
         heuristics: List[float]
@@ -410,5 +410,5 @@ class PathFindQ(PathFind[E, NodeQ, I, IArgs]):
 
 
 class PathFindQEnum(PathFindQ[EnvEnumerableActs, I, IArgs], ABC):
-    def get_state_actions(self, states: List[State]) -> List[List[Action]]:
+    def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
         return self.env.get_state_actions(states)

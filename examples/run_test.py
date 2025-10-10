@@ -1,5 +1,5 @@
 from deepxube.base.env import Env
-from deepxube.base.heuristic import HeurNNet
+from deepxube.base.heuristic import NNetPar
 from deepxube.tests.test_env import test
 from argparse import ArgumentParser
 
@@ -15,7 +15,7 @@ def main():
     if (args.env == "cube3") or (args.env == "cube3_fixed"):
         from deepxube.environments.cube3 import Cube3
         env: Env = Cube3(args.env == "cube3_fixed")
-        heur_nnet: HeurNNet
+        heur_nnet: NNetPar
         if args.heur_type.upper() == "V":
             from deepxube.environments.cube3 import Cube3NNetParV
             heur_nnet = Cube3NNetParV()

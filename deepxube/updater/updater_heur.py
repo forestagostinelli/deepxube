@@ -3,7 +3,7 @@ from typing import List
 from deepxube.base.pathfinding import InstArgs
 from deepxube.base.updater import UpdateHeurV, UpdateHeurQEnum
 from deepxube.pathfinding.v.bwas import BWAS, InstArgsBWAS
-from deepxube.pathfinding.q.bwqs import BWQS, InstArgsBWQS
+from deepxube.pathfinding.q.bwqs import BWQSEnum, InstArgsBWQS
 
 
 class UpdateHeurBWAS(UpdateHeurV[BWAS]):
@@ -15,10 +15,10 @@ class UpdateHeurBWAS(UpdateHeurV[BWAS]):
         return [InstArgsBWAS() for _ in range(num)]
 
 
-class UpdateHeurBWQS(UpdateHeurQEnum[BWQS]):
-    def get_pathfind(self) -> BWQS:
+class UpdateHeurBWQSEnum(UpdateHeurQEnum[BWQSEnum]):
+    def get_pathfind(self) -> BWQSEnum:
         assert self.heur_fn is not None
-        return BWQS(self.env, self.heur_fn)
+        return BWQSEnum(self.env, self.heur_fn)
 
     def _get_inst_args(self, num: int) -> List[InstArgs]:
         return [InstArgsBWQS() for _ in range(num)]

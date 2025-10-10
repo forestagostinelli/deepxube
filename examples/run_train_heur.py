@@ -4,8 +4,8 @@ from deepxube.base.env import EnvEnumerableActs
 from deepxube.training.train_utils import TrainArgs
 from deepxube.training.train_heur import train
 from deepxube.base.updater import UpHeurArgs, Update
-from deepxube.updater.updater_heur import UpdateHeurBWAS, UpdateHeurBWQS
-from deepxube.base.heuristic import HeurNNet
+from deepxube.updater.updater_heur import UpdateHeurBWAS, UpdateHeurBWQSEnum
+from deepxube.base.heuristic import NNetPar
 
 
 def main():
@@ -43,7 +43,7 @@ def main():
     updater: Update
     env: EnvEnumerableActs
     update_cls: Type[Update]
-    heur_nnet: HeurNNet
+    heur_nnet: NNetPar
     if (args.env == "cube3") or (args.env == "cube3_fixed"):
         from deepxube.environments.cube3 import Cube3
         env = Cube3(args.env == "cube3_fixed")
@@ -67,7 +67,7 @@ def main():
             breakpoint()
             """
             heur_nnet = Cube3NNetParQFixOut()
-            update_cls = UpdateHeurBWQS
+            update_cls = UpdateHeurBWQSEnum
         elif args.heur_type.upper() == "QIN":
             from deepxube.environments.cube3 import Cube3NNetParQIn
             """
@@ -84,7 +84,7 @@ def main():
             """
 
             heur_nnet = Cube3NNetParQIn()
-            update_cls = UpdateHeurBWQS
+            update_cls = UpdateHeurBWQSEnum
         else:
             raise ValueError(f"Unknown heur type {args.heur_type}")
     else:

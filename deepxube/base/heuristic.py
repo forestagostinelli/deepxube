@@ -12,29 +12,19 @@ import torch
 from torch import nn
 
 
-HeurFn = Callable[..., Any]
+NNetCallable = Callable[..., Any]
 
 
-H = TypeVar('H', bound=HeurFn)
+NNetFn = TypeVar('NNetFn', bound=NNetCallable)
 
 
-class NNetPar(ABC):
+class NNetPar(ABC, Generic[NNetFn]):
     @abstractmethod
-    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device) -> Callable[..., Any]:
+    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device) -> NNetFn:
         pass
 
     @abstractmethod
-    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo) -> Callable[..., Any]:
-        pass
-
-
-class HeurNNet(NNetPar, Generic[H]):
-    @abstractmethod
-    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device) -> H:
-        pass
-
-    @abstractmethod
-    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo) -> H:
+    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo) -> NNetFn:
         pass
 
     @abstractmethod
@@ -67,7 +57,7 @@ G = TypeVar('G', bound=Goal)
 HeurFnV = Callable[[List[S], List[G]], List[float]]
 
 
-class HeurNNetV(HeurNNet[HeurFnV], Generic[S, G]):
+class HeurNNetV(NNetPar[HeurFnV], Generic[S, G]):
     def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device) -> HeurFnV:
         nnet.eval()
 
@@ -96,7 +86,7 @@ A = TypeVar('A', bound=Action)
 HeurFnQ = Callable[[List[S], List[G], List[List[A]]], List[List[float]]]
 
 
-class HeurNNetQ(HeurNNet[HeurFnQ], Generic[S, A, G]):
+class HeurNNetQ(NNetPar[HeurFnQ], Generic[S, A, G]):
     @abstractmethod
     def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device) -> HeurFnQ:
         pass
