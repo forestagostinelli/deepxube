@@ -178,14 +178,14 @@ def test(env: Env, heur_nnet: HeurNNet, num_states: int, step_max: int):
         test_envenumerableacts(env, states)
 
     test_heur_nnet(heur_nnet, states, goals, actions)
-    search: BWQS = BWQS(env)
     nnet, device = init_nnet(heur_nnet)
-    nnet.eval()
     heur_fn = heur_nnet.get_nnet_fn(nnet, None, device)
-    search.add_instances([states[0]], [goals[0]], heur_fn, [InstArgsBWQS()])
+    search: BWQS = BWQS(env, heur_fn)
+    nnet.eval()
+    search.add_instances([states[0]], [goals[0]], [InstArgsBWQS()])
     instance = search.instances[0]
     while any([not instance.finished() for instance in search.instances]):
-        node_q_acts = search.step(heur_fn)
+        node_q_acts = search.step()
         for node_q_act in node_q_acts:
             node_q = node_q_act.node
             print(node_q.state)

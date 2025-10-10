@@ -1,4 +1,4 @@
-from typing import List, Any, Callable
+from typing import List, Any
 from deepxube.base.pathfinding import Instance, NodeV, PathFindV, InstArgs
 import numpy as np
 import random
@@ -21,14 +21,14 @@ class InstanceGrV(Instance[NodeV, InstArgsGr]):
 
 
 class Greedy(PathFindV[InstanceGrV, InstArgsGr]):
-    def step(self, heur_fn: Callable) -> List[NodeV]:
+    def step(self) -> List[NodeV]:
         # get unsolved instances
         instances: List[InstanceGrV] = self._get_unsolved_instances()
         if len(instances) == 0:
             return []
 
         nodes_curr: List[NodeV] = [inst.curr_node for inst in instances]
-        self.expand_nodes(instances, [[node_curr] for node_curr in nodes_curr], heur_fn)
+        self.expand_nodes(instances, [[node_curr] for node_curr in nodes_curr])
 
         # take action
         start_time = time.time()

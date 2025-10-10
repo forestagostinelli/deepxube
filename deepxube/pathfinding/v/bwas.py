@@ -1,6 +1,5 @@
 from typing import List, Tuple, Dict, Optional, Any
-from deepxube.base.env import EnvEnumerableActs, State
-from deepxube.base.heuristic import HeurFnV
+from deepxube.base.env import State
 from deepxube.base.pathfinding import Instance, NodeV, PathFindV, InstArgs
 import numpy as np
 from heapq import heappush, heappop
@@ -67,10 +66,7 @@ class InstanceBWAS(Instance[NodeV, InstArgsBWAS]):
 
 
 class BWAS(PathFindV[InstanceBWAS, InstArgsBWAS]):
-    def __init__(self, env: EnvEnumerableActs):
-        super().__init__(env)
-
-    def step(self, heur_fn: HeurFnV, verbose: bool = False) -> List[NodeV]:
+    def step(self, verbose: bool = False) -> List[NodeV]:
         instances: List[InstanceBWAS] = [instance for instance in self.instances if not instance.finished()]
 
         # pop from open
@@ -79,7 +75,7 @@ class BWAS(PathFindV[InstanceBWAS, InstArgsBWAS]):
         self.times.record_time("pop", time.time() - start_time)
 
         # expand nodes
-        nodes_c_by_inst: List[List[NodeV]] = self.expand_nodes(instances, nodes_popped_by_inst, heur_fn)
+        nodes_c_by_inst: List[List[NodeV]] = self.expand_nodes(instances, nodes_popped_by_inst)
 
         # check closed
         start_time = time.time()

@@ -1,7 +1,6 @@
 from typing import List, Tuple, Dict, Optional, Any
 from deepxube.base.pathfinding import Instance, NodeQ, PathFindQEnum, InstArgs, NodeQAct
 from deepxube.base.env import State
-from deepxube.base.heuristic import HeurFnQ
 from deepxube.utils import misc_utils
 from heapq import heappush, heappop
 import numpy as np
@@ -67,7 +66,7 @@ class InstanceBWQS(Instance[NodeQ, InstArgsBWQS]):
 
 
 class BWQS(PathFindQEnum[InstanceBWQS, InstArgsBWQS]):
-    def step(self, heur_fn: HeurFnQ, verbose: bool = False) -> List[NodeQAct]:
+    def step(self, verbose: bool = False) -> List[NodeQAct]:
         # split instances by iteration
         instances_all: List[InstanceBWQS] = [instance for instance in self.instances if not instance.finished()]
         instances_itr0: List[InstanceBWQS] = [instance for instance in instances_all if instance.itr == 0]
@@ -85,7 +84,7 @@ class BWQS(PathFindQEnum[InstanceBWQS, InstArgsBWQS]):
             for nodeact in nodeacts_popped_itr0_i:
                 assert nodeact.action is None
             nodes_next_itr0.append([nodeact.node for nodeact in nodeacts_popped_itr0_i])
-        nodes_next_itrgt0: List[List[NodeQ]] = self.get_next_nodes(instances_itrgt0, nodeacts_popped_itrgt0, heur_fn)
+        nodes_next_itrgt0: List[List[NodeQ]] = self.get_next_nodes(instances_itrgt0, nodeacts_popped_itrgt0)
         instances: List[InstanceBWQS] = instances_itr0 + instances_itrgt0
         nodes_next_by_inst: List[List[NodeQ]] = nodes_next_itr0 + nodes_next_itrgt0
         # nodes_next_flat: List[NodeQ] = misc_utils.flatten(nodes_next_by_inst)[0]

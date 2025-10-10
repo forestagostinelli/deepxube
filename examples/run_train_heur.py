@@ -1,9 +1,11 @@
+from typing import Type
 from argparse import ArgumentParser
 from deepxube.base.env import EnvEnumerableActs
 from deepxube.training.train_utils import TrainArgs
 from deepxube.training.train_heur import train
-from deepxube.base.updater import UpHeurArgs, UpdaterHeur
+from deepxube.base.updater import UpHeurArgs, Update
 from deepxube.updater.updater_heur import UpdateHeurBWAS, UpdateHeurBWQS
+from deepxube.base.heuristic import HeurNNet
 
 
 def main():
@@ -38,13 +40,17 @@ def main():
 
     up_args: UpHeurArgs = UpHeurArgs(args.up_itrs, args.up_gen_itrs, args.up_procs, args.up_search_itrs,
                                      args.up_batch_size, args.up_nnet_batch_size)
-    updater: UpdaterHeur
+    updater: Update
+    env: EnvEnumerableActs
+    update_cls: Type[Update]
+    heur_nnet: HeurNNet
     if (args.env == "cube3") or (args.env == "cube3_fixed"):
         from deepxube.environments.cube3 import Cube3
-        env: EnvEnumerableActs = Cube3(args.env == "cube3_fixed")
+        env = Cube3(args.env == "cube3_fixed")
         if args.heur_type.upper() == "V":
             from deepxube.environments.cube3 import Cube3NNetParV
-            updater = UpdateHeurBWAS(env, Cube3NNetParV(), up_args)
+            heur_nnet = Cube3NNetParV()
+            update_cls = UpdateHeurBWAS
         elif args.heur_type.upper() == "Q":
             from deepxube.environments.cube3 import Cube3NNetParQFixOut
             """
@@ -60,8 +66,8 @@ def main():
             out = nnet(inputs_nnet_t)
             breakpoint()
             """
-
-            updater = UpdateHeurBWQS(env, Cube3NNetParQFixOut(), up_args, args.temp)
+            heur_nnet = Cube3NNetParQFixOut()
+            update_cls = UpdateHeurBWQS
         elif args.heur_type.upper() == "QIN":
             from deepxube.environments.cube3 import Cube3NNetParQIn
             """
@@ -77,14 +83,16 @@ def main():
             breakpoint()
             """
 
-            updater = UpdateHeurBWQS(env, Cube3NNetParQIn(), up_args, args.temp)
+            heur_nnet = Cube3NNetParQIn()
+            update_cls = UpdateHeurBWQS
         else:
             raise ValueError(f"Unknown heur type {args.heur_type}")
     else:
         raise ValueError(f"Unknown environment {args.env}")
 
     train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.balance, args.display)
-    train(updater, args.step_max, args.nnet_dir, train_args, rb_past_up=args.rb, debug=args.debug)
+    train(heur_nnet, env, update_cls, args.step_max, args.nnet_dir, up_args, train_args, rb_past_up=args.rb,
+          debug=args.debug)
 
 
 if __name__ == "__main__":
