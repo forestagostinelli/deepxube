@@ -138,7 +138,7 @@ def _update_perf(insts_rem: List[Instance], step_to_pathperf: Dict[int, PathFind
         step_to_pathperf[step_num_inst].update_perf(inst_rem)
 
 
-E = TypeVar('E', bound=Env[State, Action, Goal])
+E = TypeVar('E', bound=Env)
 HNet = TypeVar('HNet', bound=HeurNNet)
 H = TypeVar('H', bound=HeurFn)
 P = TypeVar('P', bound=PathFind)
@@ -334,8 +334,7 @@ class UpdateHeur(Update[E, HNet, H, P], ABC):
 PV = TypeVar('PV', bound=PathFindV)
 
 
-class UpdateHeurV(UpdateHeur[EnvEnumerableActs[State, Action, Goal], HeurNNetV[State, Goal], HeurFnV[State, Goal], PV],
-                  ABC):
+class UpdateHeurV(UpdateHeur[EnvEnumerableActs, HeurNNetV[State, Goal], HeurFnV[State, Goal], PV], ABC):
     @staticmethod
     def get_input_shapes_dtypes(env: EnvEnumerableActs, heur_nnet: HeurNNetV) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = env.get_start_goal_pairs([0])
@@ -367,7 +366,7 @@ class UpdateHeurV(UpdateHeur[EnvEnumerableActs[State, Action, Goal], HeurNNetV[S
 PQ = TypeVar('PQ', bound=PathFindQ)
 
 
-class UpdateHeurQ(UpdateHeur[E, HeurNNetQ[State, Action, Goal], HeurFnQ[State, Action, Goal], PQ], ABC):
+class UpdateHeurQ(UpdateHeur[E, HeurNNetQ[State, Action, Goal], HeurFnQ[State, Goal, Action], PQ], ABC):
     @staticmethod
     def get_input_shapes_dtypes(env: E, heur_nnet: HeurNNetQ) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = env.get_start_goal_pairs([0])
@@ -459,6 +458,6 @@ class UpdateHeurQ(UpdateHeur[E, HeurNNetQ[State, Action, Goal], HeurFnQ[State, A
         return states, goals, actions, ctgs_backup
 
 
-class UpdateHeurQEnum(UpdateHeurQ[EnvEnumerableActs[State, Action, Goal], PQ], ABC):
+class UpdateHeurQEnum(UpdateHeurQ[EnvEnumerableActs, PQ], ABC):
     def get_state_actions(self, states: List[State]) -> List[List[Action]]:
         return self.env.get_state_actions(states)
