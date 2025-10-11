@@ -36,7 +36,7 @@ class NNetPar(ABC, Generic[NNetFn]):
         pass
 
 
-def _get_nnet_par_out(inputs_nnet: List[NDArray], nnet_par_info: NNetParInfo) -> NDArray:
+def get_nnet_par_out(inputs_nnet: List[NDArray], nnet_par_info: NNetParInfo) -> NDArray:
     inputs_nnet_shm: List[SharedNDArray] = [np_to_shnd(inputs_nnet_i)
                                             for input_idx, inputs_nnet_i in enumerate(inputs_nnet)]
 
@@ -71,7 +71,7 @@ class HeurNNetV(NNetPar[HeurFnV], Generic[S, G]):
     def get_nnet_par_fn(self, nnet_par_info: NNetParInfo) -> HeurFnV:
         def heuristic_fn(states: List[S], goals: List[G]) -> List[float]:
             inputs_nnet: List[NDArray] = self.to_np(states, goals)
-            heurs: NDArray[np.float64] = _get_nnet_par_out(inputs_nnet, nnet_par_info)
+            heurs: NDArray[np.float64] = get_nnet_par_out(inputs_nnet, nnet_par_info)
 
             return cast(List[float], heurs[:, 0].astype(np.float64).tolist())
 
@@ -117,7 +117,7 @@ class HeurNNetQFixOut(HeurNNetQ[S, A, G], ABC):
     def get_nnet_par_fn(self, nnet_par_info: NNetParInfo) -> HeurFnQ:
         def heuristic_fn(states: List[S], goals: List[G], actions_l: List[List[A]]) -> List[List[float]]:
             inputs_nnet: List[NDArray] = self._get_input(states, goals, actions_l)
-            q_vals_np: NDArray[np.float64] = _get_nnet_par_out(inputs_nnet, nnet_par_info)
+            q_vals_np: NDArray[np.float64] = get_nnet_par_out(inputs_nnet, nnet_par_info)
             return self._get_output(states, q_vals_np)
 
         return heuristic_fn
@@ -163,7 +163,7 @@ class HeurNNetQIn(HeurNNetQ[S, A, G], ABC):
     def get_nnet_par_fn(self, nnet_par_info: NNetParInfo) -> HeurFnQ:
         def heuristic_fn(states: List[S], goals: List[G], actions_l: List[List[A]]) -> List[List[float]]:
             inputs_nnet, states_rep, split_idxs = self._get_input(states, goals, actions_l)
-            q_vals_np: NDArray = _get_nnet_par_out(inputs_nnet, nnet_par_info)
+            q_vals_np: NDArray = get_nnet_par_out(inputs_nnet, nnet_par_info)
             return self._get_output(states_rep, q_vals_np, split_idxs)
 
         return heuristic_fn
