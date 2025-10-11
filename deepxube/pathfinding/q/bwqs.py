@@ -1,8 +1,7 @@
 from abc import ABC
 from typing import List, Tuple, Dict, Optional, Any, TypeVar
-from deepxube.base.env import Env, EnvEnumerableActs
+from deepxube.base.env import Env, EnvEnumerableActs, State, Goal, Action
 from deepxube.base.pathfinding import Instance, NodeQ, PathFindQ, InstArgs, NodeQAct
-from deepxube.base.env import State, Goal, Action
 from deepxube.utils import misc_utils
 from heapq import heappush, heappop
 import numpy as np
@@ -177,5 +176,7 @@ class BWQS(PathFindQ[E, InstanceBWQS, InstArgsBWQS], ABC):
 
 
 class BWQSEnum(BWQS[EnvEnumerableActs]):
-    def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
-        return self.env.get_state_actions(states)
+    def get_qvals_acts(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[float]], List[List[Action]]]:
+        actions_l: List[List[Action]] = self.env.get_state_actions(states)
+        qvals_l: List[List[float]] = self.heur_fn(states, goals, actions_l)
+        return qvals_l, actions_l
