@@ -360,8 +360,7 @@ class PathFindQ(PathFind[E, NodeQ, I, IArgs]):
 
         # heuristic function
         start_time = time.time()
-        actions_next_l: List[List[Action]] = self.get_state_actions(states_next, goals)
-        q_vals_next: List[List[float]] = self.heur_fn(states_next, goals, actions_next_l)
+        q_vals_next, actions_next_l = self.get_qvals_acts(states_next, goals)
         heurs_next: List[float] = [min(x) for x in q_vals_next]
         self.times.record_time("heur", time.time() - start_time)
 
@@ -386,29 +385,23 @@ class PathFindQ(PathFind[E, NodeQ, I, IArgs]):
         return nodes_next_by_inst
 
     @abstractmethod
-    def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
+    def get_qvals_acts(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[float]], List[List[Action]]]:
         pass
 
     def _create_root_nodes(self, states: List[State], goals: List[Goal], compute_init_heur: bool) -> List[NodeQ]:
-        actions_l: List[List[Action]] = self.get_state_actions(states, goals)
-        tc_p_ctgs_l: List[List[float]] = self.heur_fn(states, goals, actions_l)
+        qvals_l, actions_l = self.get_qvals_acts(states, goals)
 
         heuristics: List[float]
         if compute_init_heur:
-            heuristics = [min(x) for x in tc_p_ctgs_l]
+            heuristics = [min(x) for x in qvals_l]
         else:
             heuristics = [0.0 for _ in states]
 
         root_nodes: List[NodeQ] = []
         is_solved_l: List[bool] = self.env.is_solved(states, goals)
-        for state, goal, heuristic, is_solved, actions, tcs_p_ctgs in zip(states, goals, heuristics, is_solved_l,
-                                                                          actions_l, tc_p_ctgs_l, strict=True):
-            root_node: NodeQ = NodeQ(state, goal, 0.0, heuristic, is_solved, None, None, None, actions, tcs_p_ctgs)
+        for state, goal, heuristic, is_solved, actions, qvals in zip(states, goals, heuristics, is_solved_l,
+                                                                     actions_l, qvals_l, strict=True):
+            root_node: NodeQ = NodeQ(state, goal, 0.0, heuristic, is_solved, None, None, None, actions, qvals)
             root_nodes.append(root_node)
 
         return root_nodes
-
-
-class PathFindQEnum(PathFindQ[EnvEnumerableActs, I, IArgs], ABC):
-    def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
-        return self.env.get_state_actions(states)
