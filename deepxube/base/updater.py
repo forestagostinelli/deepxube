@@ -21,7 +21,6 @@ from deepxube.utils.misc_utils import split_evenly_w_max
 from deepxube.utils.timing_utils import Times
 
 from torch.utils.tensorboard import SummaryWriter
-import random
 
 
 @dataclass
@@ -380,21 +379,19 @@ class UpdateHeurQ(UpdateHeur[E, HeurNNetQ[State, Action, Goal], HeurFnQ[State, G
         return shapes_dypes
 
     @abstractmethod
-    def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
+    def get_qvals(self, states: List[State], goals: List[Goal]) -> List[List[float]]:
         pass
 
     def q_learning_backup(self, states: List[State], goals: List[Goal], actions: List[Action],
                           is_solved_l: List[bool]) -> Tuple[List[State], List[float]]:
-        assert self.heur_fn is not None
         states_next, tcs = self.env.next_state(states, actions)
 
         # min cost-to-go for next state
-        actions_next: List[List[Action]] = self.get_state_actions(states_next, goals)
-        ctg_acts_next_l: List[List[float]] = self.heur_fn(states_next, goals, actions_next)
-        ctg_acts_next_min: List[float] = [min(ctg_acts_next) for ctg_acts_next in ctg_acts_next_l]
+        qvals_next_l: List[List[float]] = self.get_qvals(states_next, goals)
+        qvals_next_min: List[float] = [min(qvals_next) for qvals_next in qvals_next_l]
 
         # backup cost-to-go
-        ctg_backups: NDArray = np.array(tcs) + np.array(ctg_acts_next_min)
+        ctg_backups: NDArray = np.array(tcs) + np.array(qvals_next_min)
         ctg_backups = ctg_backups * np.logical_not(np.array(is_solved_l))
 
         return states_next, ctg_backups.tolist()
@@ -441,7 +438,6 @@ class UpdateHeurQ(UpdateHeur[E, HeurNNetQ[State, Action, Goal], HeurFnQ[State, G
             return [], [], [], []
         states: List[State] = []
         goals: List[Goal] = []
-        actions: List[Action] = []
         is_solved_l: List[bool] = []
         for node_q in node_q_l:
             states.append(node_q.state)
@@ -449,8 +445,10 @@ class UpdateHeurQ(UpdateHeur[E, HeurNNetQ[State, Action, Goal], HeurFnQ[State, G
 
             # act_probs: List[float] = boltzmann([-q_value for q_value in node_q.q_values], self.temp)
             # act_idx: int = int(np.random.multinomial(1, act_probs, size=1).argmax())
-            actions.append(random.choice(node_q.actions))
+            # actions.append(random.choice(node_q.actions))
             is_solved_l.append(node_q.is_solved)
+
+        actions: List[Action] = self.env.get_state_action_rand(states)
 
         # do q-learning backup
         ctgs_backup: List[float] = self.q_learning_backup(states, goals, actions, is_solved_l)[1]
@@ -459,5 +457,9 @@ class UpdateHeurQ(UpdateHeur[E, HeurNNetQ[State, Action, Goal], HeurFnQ[State, G
 
 
 class UpdateHeurQEnum(UpdateHeurQ[EnvEnumerableActs, PQ], ABC):
-    def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
-        return self.env.get_state_actions(states)
+    def get_qvals(self, states: List[State], goals: List[Goal]) -> List[List[float]]:
+        assert self.heur_fn is not None
+        actions_next: List[List[Action]] = self.env.get_state_actions(states)
+        qvals: List[List[float]] = self.heur_fn(states, goals, actions_next)
+
+        return qvals
