@@ -241,6 +241,7 @@ class Update(ABC, Generic[E, HNet, H, P]):
             for _ in range(self.up_args.up_search_itrs):
                 # add instances
                 self._add_instances(pathfind, insts_rem, gen_step_max, batch_size, step_probs, times)
+                assert len(pathfind.instances) == batch_size, f"Values were {len(pathfind.instances)} and {batch_size}"
 
                 # step and to_np
                 inputs_nnet, ctgs_backup = self.step_get_in_out_np(pathfind, times)
@@ -399,6 +400,7 @@ class UpdateHeurQ(UpdateHeur[E, HeurNNetQ[State, Action, Goal], HeurFnQ[State, G
     def step_get_in_out_np(self, pathfind: PQ, times: Times) -> Tuple[List[NDArray], List[float]]:
         # take a step
         nodeqacts: List[NodeQAct] = pathfind.step()
+        assert len(nodeqacts) == len(pathfind.instances), f"Values were {len(nodeqacts)} and {pathfind.instances}"
 
         # get backup for node_q_acts with actions that are not none
         states: List[State] = []
@@ -425,6 +427,8 @@ class UpdateHeurQ(UpdateHeur[E, HeurNNetQ[State, Action, Goal], HeurFnQ[State, G
         goals.extend(goals_up)
         actions.extend(actions_up)
         ctgs_backup.extend(ctgs_backup_up)
+        assert len(states) == len(goals) == len(actions) == len(ctgs_backup), \
+            f"Values were {len(states)}, {len(goals)}, {len(actions)}, {len(ctgs_backup)}, "
         times.record_time("backup_1st", time.time() - start_time)
 
         # to_np
