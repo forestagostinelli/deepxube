@@ -76,7 +76,7 @@ def load_data(model_dir: str, curr_file: str, targ_file: str, nnet: nn.Module,
     return nnet, status
 
 
-def train(updater: UpdateHeur, step_max: int, nnet_dir: str, train_args: TrainArgs, rb_past_up: int = 10,
+def train(updater: UpdateHeur, step_max: int, nnet_dir: str, train_args: TrainArgs, rb_past_up: int = 1,
           debug: bool = False):
     """ Train a deep neural network heuristic (DNN) function with deep approximate value iteration (DAVI).
     A target DNN is maintained for computing the updated heuristic values. When the greedy policy improves on a fixed
