@@ -306,7 +306,6 @@ class Update(ABC, Generic[E, HNet, H, N, Inst, P]):
     def _add_instances(self, pathfind: P, insts_rem: List[Inst], gen_step_max: int, batch_size: int,
                        step_probs: NDArray, times: Times):
         if (len(pathfind.instances) == 0) or (len(insts_rem) > 0):
-            times_states: Times = Times()
             # get steps generate
             start_time = time.time()
             steps_gen: List[int]
@@ -314,28 +313,22 @@ class Update(ABC, Generic[E, HNet, H, N, Inst, P]):
                 steps_gen = list(np.random.choice(gen_step_max + 1, size=batch_size, p=step_probs))
             else:
                 steps_gen = [int(inst.inst_info[0]) for inst in insts_rem]
-            times_states.record_time("steps_gen", time.time() - start_time)
+            times.record_time("steps_gen", time.time() - start_time)
 
             # get instance information and kwargs
             start_time = time.time()
             inst_infos: List[Tuple[int]] = [(step_gen,) for step_gen in steps_gen]
             times.record_time("inst_info", time.time() - start_time)
 
-            # get states/goals
-            states_gen, goals_gen = self.env.get_start_goal_pairs(steps_gen, times=times_states)
-            times.add_times(times_states, ["get_states"])
-
-            # root nodes
-            root_nodes: List[N] = pathfind.create_root_nodes(states_gen, goals_gen, compute_init_heur=True)
+            instances: List[Inst] = self._get_instances(pathfind, steps_gen, inst_infos, times)
 
             # add instances
             start_time = time.time()
-            instances: List[Inst] = self._get_instances(root_nodes, inst_infos)
             pathfind.add_instances(instances)
             times.record_time("inst_add", time.time() - start_time)
 
     @abstractmethod
-    def _get_instances(self, root_nodes: List[N], inst_infos: List[Any]) -> List[Inst]:
+    def _get_instances(self, pathfind: P, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[Inst]:
         pass
 
 
@@ -397,6 +390,15 @@ class UpdateHeurV(UpdateHeur[EnvEnumerableActs, HeurNNetV[State, Goal], HeurFnV[
         inputs_np: List[NDArray] = self.heur_nnet.to_np(states, goals)
         times.record_time("to_np", time.time() - start_time)
         return inputs_np, ctgs_backup
+
+    def _get_root_nodes(self, pathfind: PV, steps_gen: List[int], times: Times) -> List[NodeV]:
+        # get states/goals
+        times_states: Times = Times()
+        states_gen, goals_gen = self.env.get_start_goal_pairs(steps_gen, times=times_states)
+        times.add_times(times_states, ["get_states"])
+
+        # root nodes
+        return pathfind.create_root_nodes(states_gen, goals_gen, compute_init_heur=True)
 
 
 PQ = TypeVar('PQ', bound=PathFindQ)
@@ -493,6 +495,15 @@ class UpdateHeurQ(UpdateHeur[E, HeurNNetQ[State, Action, Goal], HeurFnQ[State, G
         ctgs_backup: List[float] = self.q_learning_backup(states, goals, actions, is_solved_l)[1]
 
         return states, goals, actions, ctgs_backup
+
+    def _get_root_nodes(self, pathfind: PQ, steps_gen: List[int], times: Times) -> List[NodeQ]:
+        # get states/goals
+        times_states: Times = Times()
+        states_gen, goals_gen = self.env.get_start_goal_pairs(steps_gen, times=times_states)
+        times.add_times(times_states, ["get_states"])
+
+        # root nodes
+        return pathfind.create_root_nodes(states_gen, goals_gen, compute_init_heur=True)
 
 
 class UpdateHeurQEnum(UpdateHeurQ[EnvEnumerableActs, Inst, PQ], ABC):

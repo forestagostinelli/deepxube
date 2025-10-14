@@ -98,10 +98,6 @@ class PathFind(ABC, Generic[E, N, I]):
 
         return instances_remove
 
-    @abstractmethod
-    def create_root_nodes(self, states: List[State], goals: List[Goal], compute_init_heur: bool = True) -> List[N]:
-        pass
-
 
 def get_path(node: Node) -> Tuple[List[State], List[Action], float]:
     """ Gets path from the start state to the goal state associated with the input node
