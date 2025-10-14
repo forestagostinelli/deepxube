@@ -11,7 +11,7 @@ from numpy.typing import NDArray
 
 from deepxube.nnet.nnet_utils import NNetParInfo
 from deepxube.base.env import Env, State, Goal, Action, EnvEnumerableActs
-from deepxube.base.heuristic import NNetPar, NNetCallable, HeurFnV, HeurFnQ, HeurNNetV, HeurNNetQ
+from deepxube.base.heuristic import HeurNNet, NNetCallable, HeurFnV, HeurFnQ, HeurNNetV, HeurNNetQ
 from deepxube.base.pathfinding import PathFind, PathFindV, PathFindQ, Instance, Node, NodeV, NodeQ, NodeQAct
 from deepxube.nnet import nnet_utils
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, print_pathfindperf
@@ -131,7 +131,7 @@ def _put_from_q(inputs_nnet_l: List[List[NDArray]], ctgs_backup_l: List[NDArray]
 
 
 E = TypeVar('E', bound=Env)
-HNet = TypeVar('HNet', bound=NNetPar)
+HNet = TypeVar('HNet', bound=HeurNNet)
 H = TypeVar('H', bound=NNetCallable)
 N = TypeVar('N', bound=Node)
 Inst = TypeVar('Inst', bound=Instance)

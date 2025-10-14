@@ -6,7 +6,7 @@ from deepxube.visualizers.cube3_viz_simple import InteractiveCube
 from deepxube.utils.timing_utils import Times
 from deepxube.base.env import (EnvGrndAtoms, State, Action, Goal, EnvSupportsPDDL, EnvStartGoalRW, EnvEnumerableActs,
                                EnvVizable)
-from deepxube.base.heuristic import HeurNNetV, HeurNNetQFixOut, HeurNNetQIn
+from deepxube.base.heuristic import HeurNNetModule, HeurNNetV, HeurNNetQFixOut, HeurNNetQIn
 
 import numpy as np
 import torch
@@ -39,7 +39,7 @@ class OneHot(nn.Module):
         return x
 
 
-class Cube3NNet(nn.Module):
+class Cube3NNet(HeurNNetModule):
     def __init__(self, state_dim: int, oh_depth0: int, oh_depth1: int, res_dim: int, num_res_blocks: int, out_dim: int,
                  batch_norm: bool, weight_norm: bool, group_norm: int, act_fn: str):
         super().__init__()
@@ -68,7 +68,7 @@ class Cube3NNet(nn.Module):
         return x
 
 
-class Cube3NNetQFixOut(nn.Module):
+class Cube3NNetQFixOut(HeurNNetModule):
     def __init__(self, state_dim: int, oh_depth0: int, oh_depth1: int, res_dim: int, num_res_blocks: int, out_dim: int,
                  batch_norm: bool, weight_norm: bool, group_norm: int, act_fn: str):
         super().__init__()
@@ -100,7 +100,7 @@ class Cube3NNetQFixOut(nn.Module):
         return x
 
 
-class Cube3NNetQIn(nn.Module):
+class Cube3NNetQIn(HeurNNetModule):
     def __init__(self, state_dim: int, oh_depth0: int, oh_depth1: int, res_dim: int, num_res_blocks: int, out_dim: int,
                  batch_norm: bool, weight_norm: bool, group_norm: int, act_fn: str):
         super().__init__()
@@ -168,7 +168,7 @@ class Cube3Action(Action):
 
 
 class Cube3NNetParV(HeurNNetV[Cube3State, Cube3Goal]):
-    def get_nnet(self) -> nn.Module:
+    def get_nnet(self) -> HeurNNetModule:
         state_dim: int = (3 ** 2) * 6
         return Cube3NNet(state_dim, 6, 7, 1000, 4, 1, True, False, -1, "RELU")
 
@@ -179,7 +179,7 @@ class Cube3NNetParV(HeurNNetV[Cube3State, Cube3Goal]):
 
 
 class Cube3NNetParQFixOut(HeurNNetQFixOut[Cube3State, Cube3Action, Cube3Goal]):
-    def get_nnet(self) -> nn.Module:
+    def get_nnet(self) -> HeurNNetModule:
         state_dim: int = (3 ** 2) * 6
         return Cube3NNetQFixOut(state_dim, 6, 7, 1000, 4, 12, True, False, -1, "RELU")
 
@@ -195,7 +195,7 @@ class Cube3NNetParQFixOut(HeurNNetQFixOut[Cube3State, Cube3Action, Cube3Goal]):
 
 
 class Cube3NNetParQIn(HeurNNetQIn[Cube3State, Cube3Action, Cube3Goal]):
-    def get_nnet(self) -> nn.Module:
+    def get_nnet(self) -> HeurNNetModule:
         state_dim: int = (3 ** 2) * 6
         return Cube3NNetQIn(state_dim, 6, 7, 1000, 4, 1, True, False, -1, "RELU")
 

@@ -9,7 +9,7 @@ from deepxube.nnet.nnet_utils import NNetParInfo, nnet_batched
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd
 from deepxube.utils import misc_utils
 import torch
-from torch import nn
+from torch import nn, Tensor
 
 
 NNetCallable = Callable[..., Any]
@@ -36,6 +36,18 @@ class NNetPar(ABC, Generic[NNetFn]):
         pass
 
 
+class HeurNNetModule(nn.Module, ABC):
+    @abstractmethod
+    def forward(self, inputs: List[Tensor]):
+        pass
+
+
+class HeurNNet(NNetPar[NNetFn]):
+    @abstractmethod
+    def get_nnet(self) -> HeurNNetModule:
+        pass
+
+
 def get_nnet_par_out(inputs_nnet: List[NDArray], nnet_par_info: NNetParInfo) -> NDArray:
     inputs_nnet_shm: List[SharedNDArray] = [np_to_shnd(inputs_nnet_i)
                                             for input_idx, inputs_nnet_i in enumerate(inputs_nnet)]
@@ -57,7 +69,7 @@ G = TypeVar('G', bound=Goal)
 HeurFnV = Callable[[List[S], List[G]], List[float]]
 
 
-class HeurNNetV(NNetPar[HeurFnV], Generic[S, G]):
+class HeurNNetV(HeurNNet[HeurFnV], Generic[S, G]):
     def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device) -> HeurFnV:
         nnet.eval()
 
@@ -86,7 +98,7 @@ A = TypeVar('A', bound=Action)
 HeurFnQ = Callable[[List[S], List[G], List[List[A]]], List[List[float]]]
 
 
-class HeurNNetQ(NNetPar[HeurFnQ], Generic[S, A, G]):
+class HeurNNetQ(HeurNNet[HeurFnQ], Generic[S, A, G]):
     @abstractmethod
     def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device) -> HeurFnQ:
         pass
