@@ -26,7 +26,7 @@ For any issues, you can create a GitHub issue or contact Forest Agostinelli (for
 See [INSTALL.md](INSTALL.md) for more details
 
 ## Examples
-### Using DeepXube to train a heuristic function for the Rubik's cube.
+### Using DeepXube to train a heuristic function for the Rubik's cube (this part is not yet pip installable, but will be soon)
 ```
 from deepxube.base.env import EnvEnumerableActs
 from deepxube.base.updater import UpHeurArgs, UpdateHeur
