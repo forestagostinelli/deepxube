@@ -45,14 +45,14 @@ def main():
     update_cls: Type[Update]
     heur_nnet: NNetPar
     if (args.env == "cube3") or (args.env == "cube3_fixed"):
-        from deepxube.environments.cube3 import Cube3
+        from deepxube.implementations.cube3 import Cube3
         env = Cube3(args.env == "cube3_fixed")
         if args.heur_type.upper() == "V":
-            from deepxube.environments.cube3 import Cube3NNetParV
+            from deepxube.implementations.cube3 import Cube3NNetParV
             heur_nnet = Cube3NNetParV()
             update_cls = UpdateHeurBWAS
         elif args.heur_type.upper() == "Q":
-            from deepxube.environments.cube3 import Cube3NNetParQFixOut
+            from deepxube.implementations.cube3 import Cube3NNetParQFixOut
             """
             from deepxube.nnet.nnet_utils import get_device, to_pytorch_input
             device = get_device()[0]
@@ -69,7 +69,7 @@ def main():
             heur_nnet = Cube3NNetParQFixOut()
             update_cls = UpdateHeurBWQSEnum
         elif args.heur_type.upper() == "QIN":
-            from deepxube.environments.cube3 import Cube3NNetParQIn
+            from deepxube.implementations.cube3 import Cube3NNetParQIn
             """
             from deepxube.nnet.nnet_utils import get_device, to_pytorch_input
             device = get_device()[0]

@@ -1,7 +1,7 @@
 from abc import ABC
 from typing import List, Tuple, Dict, Optional, Any, TypeVar
 from deepxube.base.env import Env, EnvEnumerableActs, State, Goal, Action
-from deepxube.base.pathfinding import Instance, NodeQ, PathFindQ, InstArgs, NodeQAct
+from deepxube.base.pathfinding import Instance, NodeQ, PathFindQ, NodeQAct
 from deepxube.utils import misc_utils
 from heapq import heappush, heappop
 import numpy as np
@@ -11,21 +11,16 @@ import time
 OpenSetElem = Tuple[float, int, NodeQAct]
 
 
-class InstArgsBWQS(InstArgs):
-    def __init__(self, batch_size: int = 1, weight: float = 1.0):
-        super().__init__()
-        self.batch_size: int = batch_size
-        self.weight: float = weight
-
-
-class InstanceBWQS(Instance[NodeQ, InstArgsBWQS]):
-    def __init__(self, root_node: NodeQ, inst_args: InstArgsBWQS, inst_info: Any):
-        super().__init__(root_node, inst_args, inst_info)
+class InstanceBWQS(Instance[NodeQ]):
+    def __init__(self, root_node: NodeQ, batch_size: int, weight: float, inst_info: Any):
+        super().__init__(root_node, inst_info)
         self.open_set: List[OpenSetElem] = []
         self.heappush_count: int = 0
         self.closed_dict: Dict[State, float] = {}
         self.ub: float = np.inf
         self.lb: float = 0.0
+        self.batch_size: int = batch_size
+        self.weight: float = weight
 
         self.push_to_open([NodeQAct(self.root_node, None, self.root_node.heuristic)], [self.root_node.heuristic])
 
@@ -44,7 +39,7 @@ class InstanceBWQS(Instance[NodeQ, InstArgsBWQS]):
         return nodes_ret
 
     def pop_from_open(self) -> List[NodeQAct]:
-        num_to_pop: int = min(self.inst_args.batch_size, len(self.open_set))
+        num_to_pop: int = min(self.batch_size, len(self.open_set))
 
         elems_popped: List[OpenSetElem] = [heappop(self.open_set) for _ in range(num_to_pop)]
         nodeacts_popped: List[NodeQAct] = [elem_popped[2] for elem_popped in elems_popped]
@@ -63,13 +58,13 @@ class InstanceBWQS(Instance[NodeQ, InstArgsBWQS]):
                 self.ub = node.path_cost
 
     def finished(self) -> bool:
-        return (self.goal_node is not None) and (self.lb >= (self.inst_args.weight * self.ub))
+        return (self.goal_node is not None) and (self.lb >= (self.weight * self.ub))
 
 
 E = TypeVar('E', bound=Env)
 
 
-class BWQS(PathFindQ[E, InstanceBWQS, InstArgsBWQS], ABC):
+class BWQS(PathFindQ[E, InstanceBWQS], ABC):
     def step(self, verbose: bool = False) -> List[NodeQAct]:
         # split instances by iteration
         instances_all: List[InstanceBWQS] = [instance for instance in self.instances if not instance.finished()]
@@ -117,7 +112,7 @@ class BWQS(PathFindQ[E, InstanceBWQS, InstArgsBWQS], ABC):
             nodeacts_next_by_inst.append(nodeacts_next)
 
         nodeacts_next_flat: List[NodeQAct] = misc_utils.flatten(nodeacts_next_by_inst)[0]
-        weights, split_idxs = misc_utils.flatten([[instance.inst_args.weight] * len(nodeacts_next)
+        weights, split_idxs = misc_utils.flatten([[instance.weight] * len(nodeacts_next)
                                                   for instance, nodeacts_next in
                                                   zip(instances, nodeacts_next_by_inst, strict=True)])
         path_costs: List[float] = [nodeact.node.path_cost for nodeact in nodeacts_next_flat]
@@ -170,9 +165,6 @@ class BWQS(PathFindQ[E, InstanceBWQS, InstArgsBWQS], ABC):
             return False
 
         return self.remove_instances(remove_instance_fn)
-
-    def _get_instance(self, root_node: NodeQ, inst_args: InstArgsBWQS, inst_info: Any) -> InstanceBWQS:
-        return InstanceBWQS(root_node, inst_args, inst_info)
 
 
 class BWQSEnum(BWQS[EnvEnumerableActs]):

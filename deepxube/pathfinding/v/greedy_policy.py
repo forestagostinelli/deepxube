@@ -1,26 +1,21 @@
 from typing import List, Any
-from deepxube.base.pathfinding import Instance, NodeV, PathFindV, InstArgs
+from deepxube.base.pathfinding import Instance, NodeV, PathFindV
 import numpy as np
 import random
 import time
 
 
-class InstArgsGr(InstArgs):
-    def __init__(self, eps: float):
-        super().__init__()
-        self.eps: float = eps
-
-
-class InstanceGrV(Instance[NodeV, InstArgsGr]):
-    def __init__(self, root_node: NodeV, inst_args: InstArgsGr, inst_info: Any):
-        super().__init__(root_node, inst_args, inst_info)
+class InstanceGrV(Instance[NodeV]):
+    def __init__(self, root_node: NodeV, eps: float, inst_info: Any):
+        super().__init__(root_node, inst_info)
         self.curr_node: NodeV = self.root_node
+        self.eps: float = eps
 
     def finished(self) -> bool:
         return self.has_soln()
 
 
-class Greedy(PathFindV[InstanceGrV, InstArgsGr]):
+class Greedy(PathFindV[InstanceGrV]):
     def step(self) -> List[NodeV]:
         # get unsolved instances
         instances: List[InstanceGrV] = self._get_unsolved_instances()
@@ -47,7 +42,7 @@ class Greedy(PathFindV[InstanceGrV, InstArgsGr]):
                 tc_p_ctg_next: List[float] = [t_cost + child.heuristic for t_cost, child in zip(t_costs, children)]
 
                 child_idx: int = int(np.argmin(tc_p_ctg_next))
-                if rand_vals[idx] < instance.inst_args.eps:
+                if rand_vals[idx] < instance.eps:
                     child_idx = random.choice(list(range(len(tc_p_ctg_next))))
                 node_next: NodeV = children[child_idx]
 
@@ -70,6 +65,3 @@ class Greedy(PathFindV[InstanceGrV, InstArgsGr]):
     def _get_unsolved_instances(self) -> List[InstanceGrV]:
         instances_unsolved: List[InstanceGrV] = [instance for instance in self.instances if not instance.has_soln()]
         return instances_unsolved
-
-    def _get_instance(self, root_node: NodeV, inst_args: InstArgsGr, inst_info: Any) -> InstanceGrV:
-        return InstanceGrV(root_node, inst_args, inst_info)

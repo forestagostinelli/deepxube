@@ -2,7 +2,7 @@ from typing import List
 import pytest
 from deepxube.base.env import Env
 from deepxube.pathfinding.astar import AStar, get_path
-from deepxube.environments.env_utils import get_environment
+from deepxube.implementations.env_utils import get_environment
 from deepxube.nnet.nnet_utils import get_heuristic_fn, get_device, HeurFN_T
 from deepxube.pathfinding.pathfinding_utils import is_valid_soln
 

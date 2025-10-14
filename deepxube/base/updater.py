@@ -12,7 +12,7 @@ from numpy.typing import NDArray
 from deepxube.nnet.nnet_utils import NNetParInfo
 from deepxube.base.env import Env, State, Goal, Action, EnvEnumerableActs
 from deepxube.base.heuristic import NNetPar, NNetCallable, HeurFnV, HeurFnQ, HeurNNetV, HeurNNetQ
-from deepxube.base.pathfinding import PathFind, PathFindV, PathFindQ, Instance, InstArgs, NodeV, NodeQ, NodeQAct
+from deepxube.base.pathfinding import PathFind, PathFindV, PathFindQ, Instance, Node, NodeV, NodeQ, NodeQAct
 from deepxube.nnet import nnet_utils
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, print_pathfindperf
 from deepxube.training.train_utils import ReplayBuffer
@@ -129,21 +129,23 @@ def _put_from_q(inputs_nnet_l: List[List[NDArray]], ctgs_backup_l: List[NDArray]
     times.record_time("put", time.time() - start_time)
 
 
-def _update_perf(insts_rem: List[Instance], step_to_pathperf: Dict[int, PathFindPerf]):
-    for inst_rem in insts_rem:
-        step_num_inst: int = int(inst_rem.inst_info[0])
-        if step_num_inst not in step_to_pathperf.keys():
-            step_to_pathperf[step_num_inst] = PathFindPerf()
-        step_to_pathperf[step_num_inst].update_perf(inst_rem)
-
-
 E = TypeVar('E', bound=Env)
 HNet = TypeVar('HNet', bound=NNetPar)
 H = TypeVar('H', bound=NNetCallable)
+N = TypeVar('N', bound=Node)
+Inst = TypeVar('Inst', bound=Instance)
 P = TypeVar('P', bound=PathFind)
 
 
-class Update(ABC, Generic[E, HNet, H, P]):
+class Update(ABC, Generic[E, HNet, H, N, Inst, P]):
+    @staticmethod
+    def _update_perf(insts_rem: List[Inst], step_to_pathperf: Dict[int, PathFindPerf]):
+        for inst_rem in insts_rem:
+            step_num_inst: int = int(inst_rem.inst_info[0])
+            if step_num_inst not in step_to_pathperf.keys():
+                step_to_pathperf[step_num_inst] = PathFindPerf()
+            step_to_pathperf[step_num_inst].update_perf(inst_rem)
+
     @staticmethod
     def _send_work_to_q(up_args: UpHeurArgs, num_gen: int, ctx) -> Queue:
         num_searches: int = num_gen // up_args.up_search_itrs
@@ -181,9 +183,14 @@ class Update(ABC, Generic[E, HNet, H, P]):
             if per_solved_i > 0.0:
                 path_cost_ave_l.append(path_cost_ave_i)
                 search_itrs_ave_l.append(search_itrs_ave_i)
+
+        path_costs_ave: float = 0.0
+        search_itrs_ave: float = 0.0
+        if len(path_cost_ave_l) > 0:
+            path_costs_ave: float = float(np.mean(path_cost_ave_l))
+            search_itrs_ave: float = float(np.mean(search_itrs_ave_l))
+
         per_solved_ave: float = float(np.mean(per_solved_l))
-        path_costs_ave: float = float(np.mean(path_cost_ave_l))
-        search_itrs_ave: float = float(np.mean(search_itrs_ave_l))
         print(f"%solved: {per_solved_ave:.2f}, path_costs: {path_costs_ave:.3f}, "
               f"search_itrs: {search_itrs_ave:.3f} (equally weighted across step numbers)")
         writer.add_scalar("solved (update)", per_solved_ave, train_itr)
@@ -235,7 +242,7 @@ class Update(ABC, Generic[E, HNet, H, P]):
 
             pathfind: P = self.get_pathfind()
 
-            insts_rem: List[Instance] = []
+            insts_rem: List[Inst] = []
             inputs_nnet_l: List[List[NDArray]] = []
             ctgs_backup_l: List[NDArray] = []
             for _ in range(self.up_args.up_search_itrs):
@@ -255,14 +262,14 @@ class Update(ABC, Generic[E, HNet, H, P]):
                 insts_rem = pathfind.remove_finished_instances(self.up_args.up_search_itrs)
 
                 # pathfinding performance
-                _update_perf(insts_rem, step_to_pathperf)
+                self._update_perf(insts_rem, step_to_pathperf)
 
             _put_from_q(inputs_nnet_l, ctgs_backup_l, from_q, times)
             times.add_times(pathfind.times, path=["pathfinding"])
 
         from_q.put((times, step_to_pathperf))
 
-    def _add_instances(self, pathfind: P, insts_rem: List[Instance], gen_step_max: int, batch_size: int,
+    def _add_instances(self, pathfind: P, insts_rem: List[Inst], gen_step_max: int, batch_size: int,
                        step_probs: NDArray, times: Times):
         if (len(pathfind.instances) == 0) or (len(insts_rem) > 0):
             times_states: Times = Times()
@@ -275,25 +282,30 @@ class Update(ABC, Generic[E, HNet, H, P]):
                 steps_gen = [int(inst.inst_info[0]) for inst in insts_rem]
             times_states.record_time("steps_gen", time.time() - start_time)
 
-            # generate states
-            states_gen, goals_gen = self.env.get_start_goal_pairs(steps_gen, times=times_states)
-            times.add_times(times_states, ["get_states"])
-
             # get instance information and kwargs
             start_time = time.time()
             inst_infos: List[Tuple[int]] = [(step_gen,) for step_gen in steps_gen]
             times.record_time("inst_info", time.time() - start_time)
 
+            # get states/goals
+            states_gen, goals_gen = self.env.get_start_goal_pairs(steps_gen, times=times_states)
+            times.add_times(times_states, ["get_states"])
+
+            # root nodes
+            root_nodes: List[N] = pathfind.create_root_nodes(states_gen, goals_gen, compute_init_heur=True)
+
             # add instances
-            pathfind.add_instances(states_gen, goals_gen, self._get_inst_args(len(states_gen)), inst_infos=inst_infos,
-                                   compute_init_heur=True)
+            start_time = time.time()
+            instances: List[Inst] = self._get_instances(root_nodes, inst_infos)
+            pathfind.add_instances(instances)
+            times.record_time("inst_add", time.time() - start_time)
 
     @abstractmethod
-    def _get_inst_args(self, num: int) -> List[InstArgs]:
+    def _get_instances(self, root_nodes: List[N], inst_infos: List[Any]) -> List[Inst]:
         pass
 
 
-class UpdateHeur(Update[E, HNet, H, P], ABC):
+class UpdateHeur(Update[E, HNet, H, N, Inst, P], ABC):
     def initialize_fns(self):
         self.heur_fn = self.heur_nnet.get_nnet_par_fn(self.heur_nnet_par_info)
 
@@ -334,7 +346,7 @@ class UpdateHeur(Update[E, HNet, H, P], ABC):
 PV = TypeVar('PV', bound=PathFindV)
 
 
-class UpdateHeurV(UpdateHeur[EnvEnumerableActs, HeurNNetV[State, Goal], HeurFnV[State, Goal], PV], ABC):
+class UpdateHeurV(UpdateHeur[EnvEnumerableActs, HeurNNetV[State, Goal], HeurFnV[State, Goal], NodeV, Inst, PV], ABC):
     @staticmethod
     def get_input_shapes_dtypes(env: EnvEnumerableActs, heur_nnet: HeurNNetV) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = env.get_start_goal_pairs([0])
@@ -366,7 +378,7 @@ class UpdateHeurV(UpdateHeur[EnvEnumerableActs, HeurNNetV[State, Goal], HeurFnV[
 PQ = TypeVar('PQ', bound=PathFindQ)
 
 
-class UpdateHeurQ(UpdateHeur[E, HeurNNetQ[State, Action, Goal], HeurFnQ[State, Goal, Action], PQ], ABC):
+class UpdateHeurQ(UpdateHeur[E, HeurNNetQ[State, Action, Goal], HeurFnQ[State, Goal, Action], NodeQ, Inst, PQ], ABC):
     @staticmethod
     def get_input_shapes_dtypes(env: E, heur_nnet: HeurNNetQ) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = env.get_start_goal_pairs([0])
@@ -460,7 +472,7 @@ class UpdateHeurQ(UpdateHeur[E, HeurNNetQ[State, Action, Goal], HeurFnQ[State, G
         return states, goals, actions, ctgs_backup
 
 
-class UpdateHeurQEnum(UpdateHeurQ[EnvEnumerableActs, PQ], ABC):
+class UpdateHeurQEnum(UpdateHeurQ[EnvEnumerableActs, Inst, PQ], ABC):
     def get_qvals(self, states: List[State], goals: List[Goal]) -> List[List[float]]:
         assert self.heur_fn is not None
         actions_next: List[List[Action]] = self.env.get_state_actions(states)

@@ -6,7 +6,7 @@ from deepxube.nnet import nnet_utils
 from deepxube.base.pathfinding import get_path, NodeV
 from deepxube.pathfinding.pathfinding_utils import is_valid_soln
 from deepxube.pathfinding.v.bwas import BWAS
-from deepxube.environments.env_utils import get_environment
+from deepxube.implementations.env_utils import get_environment
 import numpy as np
 from argparse import ArgumentParser
 import torch

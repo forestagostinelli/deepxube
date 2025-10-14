@@ -6,9 +6,10 @@ from torch.multiprocessing import Queue, get_context
 
 from deepxube.base.env import Env, EnvEnumerableActs, EnvStartGoalRW, State, Goal, Action
 from deepxube.base.heuristic import NNetPar, HeurNNetV, NNetCallable, HeurNNetQ
+from deepxube.base.pathfinding import NodeQ
 from deepxube.nnet import nnet_utils
 from deepxube.utils.misc_utils import flatten
-from deepxube.pathfinding.q.bwqs import BWQSEnum, InstArgsBWQS
+from deepxube.pathfinding.q.bwqs import BWQSEnum, InstanceBWQS
 import numpy as np
 
 import time
@@ -182,7 +183,11 @@ def test(env: Env, heur_nnet: NNetPar, num_states: int, step_max: int):
     heur_fn = heur_nnet.get_nnet_fn(nnet, None, device)
     search: BWQSEnum = BWQSEnum(env, heur_fn)
     nnet.eval()
-    search.add_instances([states[0]], [goals[0]], [InstArgsBWQS()])
+    root_nodes: List[NodeQ] = search.create_root_nodes([states[0]], [goals[0]], compute_init_heur=True)
+    instances: List[InstanceBWQS] = []
+    for root_node in root_nodes:
+        instances.append(InstanceBWQS(root_node, 1, 1.0, None))
+    search.add_instances(instances)
     instance = search.instances[0]
     while any([not instance.finished() for instance in search.instances]):
         node_q_acts = search.step()

@@ -1,6 +1,6 @@
 from typing import List, Tuple, Dict, Optional, Any
 from deepxube.base.env import State
-from deepxube.base.pathfinding import Instance, NodeV, PathFindV, InstArgs
+from deepxube.base.pathfinding import Instance, NodeV, PathFindV
 import numpy as np
 from heapq import heappush, heappop
 
@@ -11,21 +11,16 @@ import time
 OpenSetElem = Tuple[float, int, NodeV]
 
 
-class InstArgsBWAS(InstArgs):
-    def __init__(self, batch_size: int = 1, weight: float = 1.0):
-        super().__init__()
-        self.batch_size: int = batch_size
-        self.weight: float = weight
-
-
-class InstanceBWAS(Instance[NodeV, InstArgsBWAS]):
-    def __init__(self, root_node: NodeV, inst_args: InstArgsBWAS, inst_info: Any):
-        super().__init__(root_node, inst_args, inst_info)
+class InstanceBWAS(Instance[NodeV]):
+    def __init__(self, root_node: NodeV, batch_size: int, weight: float, inst_info: Any):
+        super().__init__(root_node, inst_info)
         self.open_set: List[OpenSetElem] = []
         self.heappush_count: int = 0
         self.closed_dict: Dict[State, float] = {self.root_node.state: 0.0}
         self.ub: float = np.inf
         self.lb: float = 0.0
+        self.batch_size: int = batch_size
+        self.weight: float = weight
 
         self.push_to_open([self.root_node], [self.root_node.heuristic])
 
@@ -44,7 +39,7 @@ class InstanceBWAS(Instance[NodeV, InstArgsBWAS]):
         return nodes_ret
 
     def pop_from_open(self) -> List[NodeV]:
-        num_to_pop: int = min(self.inst_args.batch_size, len(self.open_set))
+        num_to_pop: int = min(self.batch_size, len(self.open_set))
 
         elems_popped: List[OpenSetElem] = [heappop(self.open_set) for _ in range(num_to_pop)]
         nodes_popped: List[NodeV] = [elem_popped[2] for elem_popped in elems_popped]
@@ -62,10 +57,10 @@ class InstanceBWAS(Instance[NodeV, InstArgsBWAS]):
         return nodes_popped
 
     def finished(self) -> bool:
-        return (self.goal_node is not None) and (self.lb >= (self.inst_args.weight * self.ub))
+        return (self.goal_node is not None) and (self.lb >= (self.weight * self.ub))
 
 
-class BWAS(PathFindV[InstanceBWAS, InstArgsBWAS]):
+class BWAS(PathFindV[InstanceBWAS]):
     def step(self, verbose: bool = False) -> List[NodeV]:
         instances: List[InstanceBWAS] = [instance for instance in self.instances if not instance.finished()]
 
@@ -86,7 +81,7 @@ class BWAS(PathFindV[InstanceBWAS, InstArgsBWAS]):
         # cost
         start_time = time.time()
         nodes_c_flat: List[NodeV] = misc_utils.flatten(nodes_c_by_inst)[0]
-        weights, split_idxs = misc_utils.flatten([[instance.inst_args.weight] * len(nodes_c)
+        weights, split_idxs = misc_utils.flatten([[instance.weight] * len(nodes_c)
                                                   for instance, nodes_c in
                                                   zip(instances, nodes_c_by_inst, strict=True)])
         path_costs: List[float] = [node.path_cost for node in nodes_c_flat]
@@ -136,6 +131,3 @@ class BWAS(PathFindV[InstanceBWAS, InstArgsBWAS]):
             return False
 
         return self.remove_instances(remove_instance_fn)
-
-    def _get_instance(self, root_node: NodeV, inst_args: InstArgsBWAS, inst_info: Any) -> InstanceBWAS:
-        return InstanceBWAS(root_node, inst_args, inst_info)

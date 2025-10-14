@@ -29,21 +29,14 @@ class Node(ABC):
         pass
 
 
-class InstArgs:
-    def __init__(self):
-        pass
-
-
 N = TypeVar('N', bound=Node)
-IArgs = TypeVar('IArgs', bound=InstArgs)
 
 
-class Instance(ABC, Generic[N, IArgs]):
-    def __init__(self, root_node: N, inst_args: IArgs, inst_info: Any):
+class Instance(ABC, Generic[N]):
+    def __init__(self, root_node: N, inst_info: Any):
         self.root_node: N = root_node
         self.itr: int = 0  # updater with every pathfinding iteration
         self.num_nodes_generated: int = 0
-        self.inst_args: IArgs = inst_args
         self.inst_info: Any = inst_info
         self.goal_node: Optional[N] = None
 
@@ -69,27 +62,15 @@ I = TypeVar('I', bound=Instance)
 E = TypeVar('E', bound=Env)
 
 
-class PathFind(ABC, Generic[E, N, I, IArgs]):
+class PathFind(ABC, Generic[E, N, I]):
     def __init__(self, env: E):
         self.env: E = env
         self.instances: List[I] = []
         self.times: Times = Times()
         self.itr: int = 0
 
-    def add_instances(self, states: List[State], goals: List[Goal], inst_args_l: List[IArgs],
-                      inst_infos: Optional[List[Any]] = None, compute_init_heur: bool = True):
-        start_time = time.time()
-        if inst_infos is None:
-            inst_infos = [None] * len(states)
-
-        assert len(states) == len(goals) == len(inst_infos) == len(inst_args_l), "Number should be the same"
-
-        root_nodes: List[N] = self._create_root_nodes(states, goals, compute_init_heur)
-
-        # initialize instances
-        for root_node, inst_args, inst_info in zip(root_nodes, inst_args_l, inst_infos):
-            self.instances.append(self._get_instance(root_node, inst_args, inst_info))
-        self.times.record_time("add", time.time() - start_time)
+    def add_instances(self, instances: List[I]):
+        self.instances.extend(instances)
 
     @abstractmethod
     def step(self) -> Any:
@@ -118,11 +99,7 @@ class PathFind(ABC, Generic[E, N, I, IArgs]):
         return instances_remove
 
     @abstractmethod
-    def _create_root_nodes(self, states: List[State], goals: List[Goal], compute_init_heur: bool) -> List[N]:
-        pass
-
-    @abstractmethod
-    def _get_instance(self, root_node: N, inst_args: IArgs, inst_info: Any) -> I:
+    def create_root_nodes(self, states: List[State], goals: List[Goal], compute_init_heur: bool = True) -> List[N]:
         pass
 
 
@@ -174,7 +151,7 @@ class NodeV(Node):
                 assert self.t_costs is not None
 
                 self.bellman_backup_val = np.inf
-                for node_c, tc in zip(self.children, self.t_costs):
+                for node_c, tc in zip(self.children, self.t_costs, strict=True):
                     self.bellman_backup_val = min(self.bellman_backup_val, tc + node_c.heuristic)
 
         return self.bellman_backup_val
@@ -187,7 +164,7 @@ class NodeV(Node):
             self.parent.upper_bound_parent_path(ctg_ub + self.parent_t_cost)
 
 
-class PathFindV(PathFind[EnvEnumerableActs, NodeV, I, IArgs]):
+class PathFindV(PathFind[EnvEnumerableActs, NodeV, I]):
     def __init__(self, env: EnvEnumerableActs, heur_fn: HeurFnV):
         super().__init__(env)
         self.heur_fn: HeurFnV = heur_fn
@@ -214,7 +191,8 @@ class PathFindV(PathFind[EnvEnumerableActs, NodeV, I, IArgs]):
         tcs: List[List[float]]
         states_next, actions, tcs = self.env.expand(states)
 
-        goals_c: List[List[Goal]] = [[node.goal] * len(state_next) for node, state_next in zip(nodes, states_next)]
+        goals_c: List[List[Goal]] = [[node.goal] * len(state_next) for node, state_next in
+                                     zip(nodes, states_next, strict=True)]
         self.times.record_time("expand", time.time() - start_time)
 
         # Get is_solved on all states at once (for speed)
@@ -258,14 +236,15 @@ class PathFindV(PathFind[EnvEnumerableActs, NodeV, I, IArgs]):
         for nodes_c_by_inst_state_i in nodes_c_by_inst_state:
             nodes_c_by_inst.append(misc_utils.flatten(nodes_c_by_inst_state_i)[0])
 
-        for instance, nodes_c_by_inst_i in zip(instances, nodes_c_by_inst):
+        for instance, nodes_c_by_inst_i in zip(instances, nodes_c_by_inst, strict=True):
             instance.num_nodes_generated += len(nodes_c_by_inst_i)
 
         self.times.record_time("up_inst", time.time() - start_time)
 
         return nodes_c_by_inst
 
-    def _create_root_nodes(self, states: List[State], goals: List[Goal], compute_init_heur: bool) -> List[NodeV]:
+    def create_root_nodes(self, states: List[State], goals: List[Goal], compute_init_heur: bool = True) -> List[NodeV]:
+        start_time = time.time()
         heuristics: List[float]
         if compute_init_heur:
             heuristics = self.heur_fn(states, goals)
@@ -274,9 +253,10 @@ class PathFindV(PathFind[EnvEnumerableActs, NodeV, I, IArgs]):
 
         root_nodes: List[NodeV] = []
         is_solved_l: List[bool] = self.env.is_solved(states, goals)
-        for state, goal, heuristic, is_solved in zip(states, goals, heuristics, is_solved_l):
+        for state, goal, heuristic, is_solved in zip(states, goals, heuristics, is_solved_l, strict=True):
             root_node: NodeV = NodeV(state, goal, 0.0, heuristic, is_solved, None, None, None)
             root_nodes.append(root_node)
+        self.times.record_time("root", time.time() - start_time)
 
         return root_nodes
 
@@ -324,7 +304,7 @@ class NodeQAct:
         self.q_val: float = q_val
 
 
-class PathFindQ(PathFind[E, NodeQ, I, IArgs]):
+class PathFindQ(PathFind[E, NodeQ, I]):
     def __init__(self, env: E, heur_fn: HeurFnQ):
         super().__init__(env)
         self.heur_fn: HeurFnQ = heur_fn
@@ -378,7 +358,7 @@ class PathFindQ(PathFind[E, NodeQ, I, IArgs]):
         # updater instances
         start_time = time.time()
         nodes_next_by_inst: List[List[NodeQ]] = misc_utils.unflatten(nodes_next, split_idxs)
-        for instance, nodes_next_by_inst_i in zip(instances, nodes_next_by_inst):
+        for instance, nodes_next_by_inst_i in zip(instances, nodes_next_by_inst, strict=True):
             instance.num_nodes_generated += len(nodes_next_by_inst_i)
         self.times.record_time("up_inst", time.time() - start_time)
 
@@ -388,7 +368,8 @@ class PathFindQ(PathFind[E, NodeQ, I, IArgs]):
     def get_qvals_acts(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[float]], List[List[Action]]]:
         pass
 
-    def _create_root_nodes(self, states: List[State], goals: List[Goal], compute_init_heur: bool) -> List[NodeQ]:
+    def create_root_nodes(self, states: List[State], goals: List[Goal], compute_init_heur: bool = True) -> List[NodeQ]:
+        start_time = time.time()
         qvals_l, actions_l = self.get_qvals_acts(states, goals)
 
         heuristics: List[float]
@@ -403,5 +384,6 @@ class PathFindQ(PathFind[E, NodeQ, I, IArgs]):
                                                                      actions_l, qvals_l, strict=True):
             root_node: NodeQ = NodeQ(state, goal, 0.0, heuristic, is_solved, None, None, None, actions, qvals)
             root_nodes.append(root_node)
+        self.times.record_time("root", time.time() - start_time)
 
         return root_nodes
