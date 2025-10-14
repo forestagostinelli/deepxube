@@ -1,8 +1,6 @@
-from typing import List, Tuple, Dict, Type
+from typing import List, Tuple, Dict
 
-from deepxube.base.env import Env
-from deepxube.base.updater import Update, UpHeurArgs
-from deepxube.base.heuristic import NNetPar
+from deepxube.base.updater import UpdateHeur
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf
 from deepxube.training.train_utils import ReplayBuffer, train_heur_nnet, TrainArgs
 from deepxube.utils import data_utils
@@ -78,8 +76,8 @@ def load_data(model_dir: str, curr_file: str, targ_file: str, nnet: nn.Module,
     return nnet, status
 
 
-def train(heur_nnet: NNetPar, env: Env, update_cls: Type[Update], step_max: int, nnet_dir: str,
-          update_args: UpHeurArgs, train_args: TrainArgs, rb_past_up: int = 10, debug: bool = False):
+def train(updater: UpdateHeur, step_max: int, nnet_dir: str, train_args: TrainArgs, rb_past_up: int = 10,
+          debug: bool = False):
     """ Train a deep neural network heuristic (DNN) function with deep approximate value iteration (DAVI).
     A target DNN is maintained for computing the updated heuristic values. When the greedy policy improves on a fixed
     test set, the target DNN is updated to be the current DNN. The number of steps taken for testing the greedy policy
@@ -91,20 +89,17 @@ def train(heur_nnet: NNetPar, env: Env, update_cls: Type[Update], step_max: int,
     Nature Machine Intelligence 1.8 (2019): 356-363.
     - Bertsekas, D. P. & Tsitsiklis, J. N. Neuro-dynamic Programming (Athena Scientific, 1996).
 
-    :param heur_nnet: heuristic network
-    :param env: environment
-    :param update_cls: an Updater object
+    :param updater: an Updater object
     :param step_max: maximum number of steps to take to generate start/goal pairs
     :param nnet_dir: directory where DNN will be saved
     :param train_args: training arguments
-    :param update_args: update arguments
     :param rb_past_up: amount of data generated from previous updates to keep in replay buffer. Total replay buffer size
     will then be train_args.batch_size * up_args.up_gen_itrs * rb_past_up
     :param debug: Turns off logging to make typing during breakpoints easier
     :return: None
     """
     # Initialization
-    nnet: nn.Module = heur_nnet.get_nnet()
+    nnet: nn.Module = updater.heur_nnet.get_nnet()
     targ_file: str = f"{nnet_dir}/target.pt"
     curr_file = f"{nnet_dir}/current.pt"
     output_save_loc = "%s/output.txt" % nnet_dir
@@ -119,7 +114,7 @@ def train(heur_nnet: NNetPar, env: Env, update_cls: Type[Update], step_max: int,
     # Print basic info
     # print("HOST: %s" % os.uname()[1])
     print(f"Train args: {train_args}")
-    print(f"Update args: {update_args}")
+    print(f"Update args: {updater.up_args}")
     if 'SLURM_JOB_ID' in os.environ:
         print("SLURM JOB ID: %s" % os.environ['SLURM_JOB_ID'])
 
@@ -137,10 +132,10 @@ def train(heur_nnet: NNetPar, env: Env, update_cls: Type[Update], step_max: int,
     nnet = nn.DataParallel(nnet)
 
     # initialize replay buffer
-    shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = update_cls.get_input_shapes_dtypes(env, heur_nnet)
+    shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = updater.get_input_shapes_dtypes()
     rb_shapes: List[Tuple[int, ...]] = [x[0] for x in shapes_dtypes] + [tuple()]
     rb_dtypes: List[np.dtype] = [x[1] for x in shapes_dtypes] + [np.dtype(np.float64)]
-    rb: ReplayBuffer = ReplayBuffer(train_args.batch_size * update_args.up_gen_itrs * rb_past_up, rb_shapes,
+    rb: ReplayBuffer = ReplayBuffer(train_args.batch_size * updater.up_args.up_gen_itrs * rb_past_up, rb_shapes,
                                     rb_dtypes)
 
     # training
@@ -153,13 +148,12 @@ def train(heur_nnet: NNetPar, env: Env, update_cls: Type[Update], step_max: int,
             steps_show: List[int] = list(np.unique(np.linspace(0, status.step_max, 30, dtype=int)))
             step_prob_str: str = ', '.join([f'{step}:{status.step_probs[step]:.2E}' for step in steps_show])
             print(f"Step probs: {step_prob_str}")
-        num_gen: int = train_args.batch_size * update_args.up_gen_itrs
-        all_zeros: bool = status.update_num == 0
-        step_to_search_perf = update_cls.get_update_data(env, heur_nnet, targ_file, all_zeros, update_args, step_max,
-                                                         status.step_probs, num_gen, rb, device, on_gpu, writer,
-                                                         status.itr)
+        num_gen: int = train_args.batch_size * updater.up_args.up_gen_itrs
+        updater.set_heur_file(targ_file)
+        step_to_search_perf = updater.get_update_data(step_max, status.step_probs, num_gen, rb, device, on_gpu, writer,
+                                                      status.itr)
 
-        update_cls.print_update_summary(step_to_search_perf, writer, status.itr)
+        updater.print_update_summary(step_to_search_perf, writer, status.itr)
         if train_args.balance_steps:
             status.update_step_probs(step_to_search_perf)
 
@@ -167,7 +161,7 @@ def train(heur_nnet: NNetPar, env: Env, update_cls: Type[Update], step_max: int,
         print("Getting training batches")
         start_time = time.time()
         batches: List[Tuple[List[NDArray], NDArray]] = []
-        for _ in range(update_args.up_itrs):
+        for _ in range(updater.up_args.up_itrs):
             arrays_samp: List[NDArray] = rb.sample(train_args.batch_size)
             inputs_batch_np: List[NDArray] = arrays_samp[:-1]
             ctgs_batch_np: NDArray = np.expand_dims(arrays_samp[-1].astype(np.float32), 1)

@@ -20,6 +20,7 @@ from deepxube.utils.data_utils import SharedNDArray, np_to_shnd
 from deepxube.utils.misc_utils import split_evenly_w_max
 from deepxube.utils.timing_utils import Times
 
+import copy
 from torch.utils.tensorboard import SummaryWriter
 
 
@@ -187,8 +188,8 @@ class Update(ABC, Generic[E, HNet, H, N, Inst, P]):
         path_costs_ave: float = 0.0
         search_itrs_ave: float = 0.0
         if len(path_cost_ave_l) > 0:
-            path_costs_ave: float = float(np.mean(path_cost_ave_l))
-            search_itrs_ave: float = float(np.mean(search_itrs_ave_l))
+            path_costs_ave = float(np.mean(path_cost_ave_l))
+            search_itrs_ave = float(np.mean(search_itrs_ave_l))
 
         per_solved_ave: float = float(np.mean(per_solved_l))
         print(f"%solved: {per_solved_ave:.2f}, path_costs: {path_costs_ave:.3f}, "
@@ -199,24 +200,57 @@ class Update(ABC, Generic[E, HNet, H, N, Inst, P]):
 
         print_pathfindperf(step_to_search_perf)
 
-    @staticmethod
-    @abstractmethod
-    def get_input_shapes_dtypes(env: E, heur_nnet: HNet) -> List[Tuple[Tuple[int, ...], np.dtype]]:
-        pass
-
-    @classmethod
-    @abstractmethod
-    def get_update_data(cls, env: E, heur_nnet: HNet, heur_file: str, all_zeros: bool, up_args: UpHeurArgs,
-                        step_max: int, step_probs: NDArray, num_gen: int, rb: ReplayBuffer, device: torch.device,
-                        on_gpu: bool, writer: SummaryWriter, train_itr: int) -> Dict[int, PathFindPerf]:
-        pass
-
-    def __init__(self, env: E, heur_nnet: HNet, heur_nnet_par_info: NNetParInfo, up_args: UpHeurArgs):
+    def __init__(self, env: E, up_args: UpHeurArgs):
         self.env: E = env
-        self.heur_nnet: HNet = heur_nnet
-        self.heur_nnet_par_info: NNetParInfo = heur_nnet_par_info
-        self.heur_fn: Optional[H] = None
         self.up_args: UpHeurArgs = up_args
+
+    def get_update_data(self, step_max: int, step_probs: NDArray, num_gen: int, rb: ReplayBuffer,
+                        device: torch.device, on_gpu: bool, writer: SummaryWriter,
+                        train_itr: int) -> Dict[int, PathFindPerf]:
+        start_time_gen = time.time()
+        # put work information on to_q
+        ctx = get_context("spawn")
+        to_q: Queue = self._send_work_to_q(self.up_args, num_gen, ctx)
+
+        # parallel heuristic functions
+        nnet_par_infos_l, nnet_procs_l = self.get_nnet_fn_runners(device, on_gpu, train_itr)
+
+        # start updater procs
+        updaters: List[Update] = [copy.copy(self) for _ in range(self.up_args.up_procs)]
+        for proc_itr, updater in enumerate(updaters):
+            updater.set_nnet_par_info([nnet_par_infos[proc_itr] for nnet_par_infos in nnet_par_infos_l])
+
+        from_q: Queue = ctx.Queue()
+        procs: List[BaseProcess] = []
+        for updater in updaters:
+            proc: BaseProcess = ctx.Process(target=updater.update_runner, args=(step_max, to_q, from_q, step_probs))
+            proc.daemon = True
+            proc.start()
+            procs.append(proc)
+
+        # getting data from procs
+        step_to_pathperf = get_data_from_procs(num_gen, from_q, to_q, procs, rb, start_time_gen, writer, train_itr)
+
+        # clean up clean up everybody do your share
+        for nnet_procs, nnet_par_infos in zip(nnet_procs_l, nnet_par_infos_l, strict=True):
+            nnet_utils.stop_nnet_runners(nnet_procs, nnet_par_infos)
+        for proc in procs:
+            proc.join()
+
+        return step_to_pathperf
+
+    @abstractmethod
+    def get_input_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
+        pass
+
+    @abstractmethod
+    def set_nnet_par_info(self, nnet_par_info_l: List[NNetParInfo]):
+        pass
+
+    @abstractmethod
+    def get_nnet_fn_runners(self, device: torch.device, on_gpu: bool,
+                            train_itr: int) -> Tuple[List[List[NNetParInfo]], List[List[BaseProcess]]]:
+        pass
 
     @abstractmethod
     def initialize_fns(self):
@@ -306,51 +340,41 @@ class Update(ABC, Generic[E, HNet, H, N, Inst, P]):
 
 
 class UpdateHeur(Update[E, HNet, H, N, Inst, P], ABC):
+    def __init__(self, env: E, up_args: UpHeurArgs, heur_nnet: HNet):
+        super().__init__(env, up_args)
+        self.env: E = env
+        self.heur_nnet: HNet = heur_nnet
+        self.heur_file: Optional[str] = None
+        self.heur_nnet_par_info: Optional[NNetParInfo] = None
+        self.heur_fn: Optional[H] = None
+        self.up_args: UpHeurArgs = up_args
+
+    def set_heur_file(self, heur_file: str):
+        self.heur_file = heur_file
+
+    def set_nnet_par_info(self, nnet_par_info_l: List[NNetParInfo]):
+        assert len(nnet_par_info_l) == 1
+        self.heur_nnet_par_info = nnet_par_info_l[0]
+
     def initialize_fns(self):
+        assert self.heur_nnet_par_info is not None
         self.heur_fn = self.heur_nnet.get_nnet_par_fn(self.heur_nnet_par_info)
 
-    @classmethod
-    def get_update_data(cls, env: E, heur_nnet: HNet, heur_file: str, all_zeros: bool, up_args: UpHeurArgs,
-                        step_max: int, step_probs: NDArray, num_gen: int, rb: ReplayBuffer, device: torch.device,
-                        on_gpu: bool, writer: SummaryWriter, train_itr: int) -> Dict[int, PathFindPerf]:
-        start_time_gen = time.time()
-        # put work information on to_q
-        ctx = get_context("spawn")
-        to_q: Queue = cls._send_work_to_q(up_args, num_gen, ctx)
-
-        # parallel heuristic functions
-        nnet_par_infos, nnet_procs = cls.get_heur_fn_runners(heur_nnet, heur_file, up_args, device, on_gpu, all_zeros)
-
-        # start updater procs
-        updaters: List[UpdateHeur] = [cls(env, heur_nnet, nnet_par_info, up_args) for nnet_par_info in nnet_par_infos]
-
-        from_q: Queue = ctx.Queue()
-        procs: List[BaseProcess] = []
-        for updater in updaters:
-            proc: BaseProcess = ctx.Process(target=updater.update_runner, args=(step_max, to_q, from_q, step_probs))
-            proc.daemon = True
-            proc.start()
-            procs.append(proc)
-
-        # getting data from procs
-        step_to_pathperf = get_data_from_procs(num_gen, from_q, to_q, procs, rb, start_time_gen, writer, train_itr)
-
-        # clean up clean up everybody do your share
-        nnet_utils.stop_nnet_runners(nnet_procs, nnet_par_infos)
-        for proc in procs:
-            proc.join()
-
-        return step_to_pathperf
+    def get_nnet_fn_runners(self, device: torch.device, on_gpu: bool,
+                            train_itr: int) -> Tuple[List[List[NNetParInfo]], List[List[BaseProcess]]]:
+        assert self.heur_file is not None
+        nnet_par_infos, nnet_procs = self.get_heur_fn_runners(self.heur_nnet, self.heur_file, self.up_args, device,
+                                                              on_gpu, train_itr == 0)
+        return [nnet_par_infos], [nnet_procs]
 
 
 PV = TypeVar('PV', bound=PathFindV)
 
 
 class UpdateHeurV(UpdateHeur[EnvEnumerableActs, HeurNNetV[State, Goal], HeurFnV[State, Goal], NodeV, Inst, PV], ABC):
-    @staticmethod
-    def get_input_shapes_dtypes(env: EnvEnumerableActs, heur_nnet: HeurNNetV) -> List[Tuple[Tuple[int, ...], np.dtype]]:
-        states, goals = env.get_start_goal_pairs([0])
-        inputs_nnet: List[NDArray[Any]] = heur_nnet.to_np(states, goals)
+    def get_input_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
+        states, goals = self.env.get_start_goal_pairs([0])
+        inputs_nnet: List[NDArray[Any]] = self.heur_nnet.to_np(states, goals)
 
         shapes_dypes: List[Tuple[Tuple[int, ...], np.dtype]] = []
         for inputs_nnet_i in inputs_nnet:
@@ -379,11 +403,10 @@ PQ = TypeVar('PQ', bound=PathFindQ)
 
 
 class UpdateHeurQ(UpdateHeur[E, HeurNNetQ[State, Action, Goal], HeurFnQ[State, Goal, Action], NodeQ, Inst, PQ], ABC):
-    @staticmethod
-    def get_input_shapes_dtypes(env: E, heur_nnet: HeurNNetQ) -> List[Tuple[Tuple[int, ...], np.dtype]]:
-        states, goals = env.get_start_goal_pairs([0])
-        actions: List[Action] = env.get_state_action_rand(states)
-        inputs_nnet: List[NDArray[Any]] = heur_nnet.to_np(states, goals, [[action] for action in actions])
+    def get_input_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
+        states, goals = self.env.get_start_goal_pairs([0])
+        actions: List[Action] = self.env.get_state_action_rand(states)
+        inputs_nnet: List[NDArray[Any]] = self.heur_nnet.to_np(states, goals, [[action] for action in actions])
 
         shapes_dypes: List[Tuple[Tuple[int, ...], np.dtype]] = []
         for inputs_nnet_i in inputs_nnet:
