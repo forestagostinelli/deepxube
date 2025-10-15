@@ -32,13 +32,13 @@ class NNetPar(ABC, Generic[NNetFn]):
         pass
 
     @abstractmethod
-    def to_np(self, *args) -> List[NDArray[Any]]:
+    def to_np(self, *args: Any) -> List[NDArray[Any]]:
         pass
 
 
 class HeurNNetModule(nn.Module, ABC):
     @abstractmethod
-    def forward(self, inputs: List[Tensor]):
+    def forward(self, inputs: List[Tensor]) -> Tensor:
         pass
 
 
@@ -154,7 +154,7 @@ class HeurNNetQFixOut(HeurNNetQ[S, A, G], ABC):
         return q_vals_l
 
     @staticmethod
-    def _check_same_num_acts(actions_l: List[List[A]]):
+    def _check_same_num_acts(actions_l: List[List[A]]) -> None:
         assert len(set(len(actions) for actions in actions_l)) == 1, "num actions should be the same for all instances"
 
 

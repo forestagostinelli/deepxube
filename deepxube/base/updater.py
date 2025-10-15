@@ -2,8 +2,9 @@ from typing import List, Dict, Tuple, Any, Generic, TypeVar, Optional
 from abc import ABC, abstractmethod
 import time
 from dataclasses import dataclass
-from multiprocessing import Queue, get_context
+from multiprocessing import Queue
 from multiprocessing.process import BaseProcess
+from multiprocessing.context import SpawnContext  # noqa
 
 import numpy as np
 import torch
@@ -22,6 +23,7 @@ from deepxube.utils.timing_utils import Times
 
 import copy
 from torch.utils.tensorboard import SummaryWriter
+from torch.multiprocessing import get_context
 
 
 @dataclass
@@ -112,7 +114,7 @@ def get_data_from_procs(num_gen: int, from_q: Queue, to_q: Queue, procs: List[Ba
     return step_to_pathperf
 
 
-def _put_from_q(inputs_nnet_l: List[List[NDArray]], ctgs_backup_l: List[NDArray], from_q: Queue, times: Times):
+def _put_from_q(inputs_nnet_l: List[List[NDArray]], ctgs_backup_l: List[NDArray], from_q: Queue, times: Times) -> None:
     start_time = time.time()
 
     inputs_nnet_shm_l: List[List[SharedNDArray]] = []
@@ -140,7 +142,7 @@ P = TypeVar('P', bound=PathFind)
 
 class Update(ABC, Generic[E, HNet, H, N, Inst, P]):
     @staticmethod
-    def _update_perf(insts_rem: List[Inst], step_to_pathperf: Dict[int, PathFindPerf]):
+    def _update_perf(insts_rem: List[Inst], step_to_pathperf: Dict[int, PathFindPerf]) -> None:
         for inst_rem in insts_rem:
             step_num_inst: int = int(inst_rem.inst_info[0])
             if step_num_inst not in step_to_pathperf.keys():
@@ -148,7 +150,7 @@ class Update(ABC, Generic[E, HNet, H, N, Inst, P]):
             step_to_pathperf[step_num_inst].update_perf(inst_rem)
 
     @staticmethod
-    def _send_work_to_q(up_args: UpHeurArgs, num_gen: int, ctx) -> Queue:
+    def _send_work_to_q(up_args: UpHeurArgs, num_gen: int, ctx: SpawnContext) -> Queue:
         num_searches: int = num_gen // up_args.up_search_itrs
         print(f"Generating {format(num_gen, ',')} training instances with {format(num_searches, ',')} searches")
 
@@ -174,7 +176,8 @@ class Update(ABC, Generic[E, HNet, H, N, Inst, P]):
         return nnet_par_infos, nnet_procs
 
     @staticmethod
-    def print_update_summary(step_to_search_perf: Dict[int, PathFindPerf], writer: SummaryWriter, train_itr: int):
+    def print_update_summary(step_to_search_perf: Dict[int, PathFindPerf], writer: SummaryWriter,
+                             train_itr: int) -> None:
         per_solved_l: List[float] = []
         path_cost_ave_l: List[float] = []
         search_itrs_ave_l: List[float] = []
@@ -244,7 +247,7 @@ class Update(ABC, Generic[E, HNet, H, N, Inst, P]):
         pass
 
     @abstractmethod
-    def set_nnet_par_info(self, nnet_par_info_l: List[NNetParInfo]):
+    def set_nnet_par_info(self, nnet_par_info_l: List[NNetParInfo]) -> None:
         pass
 
     @abstractmethod
@@ -253,7 +256,7 @@ class Update(ABC, Generic[E, HNet, H, N, Inst, P]):
         pass
 
     @abstractmethod
-    def initialize_fns(self):
+    def initialize_fns(self) -> None:
         pass
 
     @abstractmethod
@@ -264,7 +267,7 @@ class Update(ABC, Generic[E, HNet, H, N, Inst, P]):
     def step_get_in_out_np(self, pathfind: P, times: Times) -> Tuple[List[NDArray], List[float]]:
         pass
 
-    def update_runner(self, gen_step_max: int, to_q: Queue, from_q: Queue, step_probs: NDArray):
+    def update_runner(self, gen_step_max: int, to_q: Queue, from_q: Queue, step_probs: NDArray) -> None:
         times: Times = Times()
 
         self.initialize_fns()
@@ -304,7 +307,7 @@ class Update(ABC, Generic[E, HNet, H, N, Inst, P]):
         from_q.put((times, step_to_pathperf))
 
     def _add_instances(self, pathfind: P, insts_rem: List[Inst], gen_step_max: int, batch_size: int,
-                       step_probs: NDArray, times: Times):
+                       step_probs: NDArray, times: Times) -> None:
         if (len(pathfind.instances) == 0) or (len(insts_rem) > 0):
             # get steps generate
             start_time = time.time()
@@ -342,14 +345,14 @@ class UpdateHeur(Update[E, HNet, H, N, Inst, P], ABC):
         self.heur_fn: Optional[H] = None
         self.up_args: UpHeurArgs = up_args
 
-    def set_heur_file(self, heur_file: str):
+    def set_heur_file(self, heur_file: str) -> None:
         self.heur_file = heur_file
 
-    def set_nnet_par_info(self, nnet_par_info_l: List[NNetParInfo]):
+    def set_nnet_par_info(self, nnet_par_info_l: List[NNetParInfo]) -> None:
         assert len(nnet_par_info_l) == 1
         self.heur_nnet_par_info = nnet_par_info_l[0]
 
-    def initialize_fns(self):
+    def initialize_fns(self) -> None:
         assert self.heur_nnet_par_info is not None
         self.heur_fn = self.heur_nnet.get_nnet_par_fn(self.heur_nnet_par_info)
 
@@ -481,6 +484,7 @@ class UpdateHeurQ(UpdateHeur[E, HeurNNetQ[State, Action, Goal], HeurFnQ[State, G
         goals: List[Goal] = []
         is_solved_l: List[bool] = []
         for node_q in node_q_l:
+            assert node_q.is_solved is not None
             states.append(node_q.state)
             goals.append(node_q.goal)
 

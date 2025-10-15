@@ -24,7 +24,7 @@ class InstanceBWQS(Instance[NodeQ]):
 
         self.push_to_open([NodeQAct(self.root_node, None, self.root_node.heuristic)], [self.root_node.heuristic])
 
-    def push_to_open(self, nodeacts: List[NodeQAct], costs: List[float]):
+    def push_to_open(self, nodeacts: List[NodeQAct], costs: List[float]) -> None:
         for nodeact, cost in zip(nodeacts, costs, strict=True):
             heappush(self.open_set, (cost, self.heappush_count, nodeact))
             self.heappush_count += 1
@@ -50,9 +50,10 @@ class InstanceBWQS(Instance[NodeQ]):
 
         return nodeacts_popped
 
-    def update_ub(self, nodes: List[NodeQ]):
+    def update_ub(self, nodes: List[NodeQ]) -> None:
         # keep solved nodes for training
         for node in nodes:
+            assert node.is_solved is not None
             if node.is_solved and (self.ub > node.path_cost):
                 self.goal_node = node
                 self.ub = node.path_cost

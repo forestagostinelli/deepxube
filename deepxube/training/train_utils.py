@@ -50,7 +50,7 @@ class ReplayBuffer:
 
         print(f"Replay buffer initialized. Time: {time.time() - start_time}")
 
-    def add(self, arrays_add: List[NDArray]):
+    def add(self, arrays_add: List[NDArray]) -> None:
         self.curr_size = min(self.curr_size + arrays_add[0].shape[0], self.max_size)
         assert len(self.arrays) > 0, "Replay buffer should have at least one array."
         self._add_circular(arrays_add)
@@ -65,11 +65,11 @@ class ReplayBuffer:
     def size(self) -> int:
         return self.curr_size
 
-    def clear(self):
+    def clear(self) -> None:
         self.curr_size = 0
         self.add_idx = 0
 
-    def _add_circular(self, arrays_add: List[NDArray]):
+    def _add_circular(self, arrays_add: List[NDArray]) -> None:
         start_idx: int = 0
         num_add: int = arrays_add[0].shape[0]
         assert len(self.arrays) == len(arrays_add), "should have same number of arrays"
@@ -87,8 +87,8 @@ class ReplayBuffer:
                 self.add_idx = 0
 
 
-def train_heur_nnet(nnet: nn.Module, batches: List[Tuple[List[NDArray], NDArray]], optimizer: Optimizer, criterion,
-                    device: torch.device, train_itr: int, train_args: TrainArgs) -> float:
+def train_heur_nnet(nnet: nn.Module, batches: List[Tuple[List[NDArray], NDArray]], optimizer: Optimizer,
+                    criterion: nn.Module, device: torch.device, train_itr: int, train_args: TrainArgs) -> float:
     # initialize status tracking
     start_time = time.time()
 

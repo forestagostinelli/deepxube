@@ -32,7 +32,7 @@ def parse_literal(lit_str: str) -> Literal:
     return literal
 
 
-def replace_anon_vars(lit: Literal, all_lits: List[Literal]):
+def replace_anon_vars(lit: Literal, all_lits: List[Literal]) -> Literal:
     all_args: Set[str] = set()
     for lit2 in [lit] + all_lits:
         all_args.update(lit2.arguments)

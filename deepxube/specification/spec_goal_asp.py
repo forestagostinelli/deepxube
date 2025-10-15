@@ -115,7 +115,7 @@ class SpecSearchASP:
 
         self.step_itr: int = 0
 
-    def step(self):
+    def step(self) -> None:
         times_i = Times()
 
         # pop
@@ -350,7 +350,7 @@ class SpecSearchASP:
 
         return models_conflict
 
-    def _push_to_q(self, spec_nodes: List[SpecNode]):
+    def _push_to_q(self, spec_nodes: List[SpecNode]) -> None:
         for spec_node in spec_nodes:
             priority: float
             if spec_node.model is None:

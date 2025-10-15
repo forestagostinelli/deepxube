@@ -36,7 +36,7 @@ class Status:
         else:
             self.step_probs = np.ones(self.step_max + 1)/(step_max + 1)
 
-    def update_step_probs(self, step_to_search_perf: Dict[int, PathFindPerf]):
+    def update_step_probs(self, step_to_search_perf: Dict[int, PathFindPerf]) -> None:
         per_solved_per_step_l: List[float] = []
         for step in range(self.step_max + 1):
             if step not in step_to_search_perf.keys():
@@ -77,7 +77,7 @@ def load_data(model_dir: str, curr_file: str, targ_file: str, nnet: nn.Module,
 
 
 def train(updater: UpdateHeur, step_max: int, nnet_dir: str, train_args: TrainArgs, rb_past_up: int = 1,
-          debug: bool = False):
+          debug: bool = False) -> None:
     """ Train a deep neural network heuristic (DNN) function with deep approximate value iteration (DAVI).
     A target DNN is maintained for computing the updated heuristic values. When the greedy policy improves on a fixed
     test set, the target DNN is updated to be the current DNN. The number of steps taken for testing the greedy policy
@@ -109,7 +109,7 @@ def train(updater: UpdateHeur, step_max: int, nnet_dir: str, train_args: TrainAr
         os.makedirs(nnet_dir)
 
     if not debug:
-        sys.stdout = data_utils.Logger(output_save_loc, "a")  # type: ignore
+        sys.stdout = data_utils.Logger(output_save_loc, "a")
 
     # Print basic info
     # print("HOST: %s" % os.uname()[1])

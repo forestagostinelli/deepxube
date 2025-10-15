@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Optional, Set, TypeVar, Generic, Protocol, runtime_checkable
+from typing import List, Tuple, Optional, Set, TypeVar, Generic, Protocol, runtime_checkable, Union
 import numpy as np
+from clingo.solving import Model as ModelCl
 
 from deepxube.logic.logic_objects import Atom, Model
 from deepxube.utils import misc_utils
@@ -12,14 +13,14 @@ from numpy.typing import NDArray
 
 class State(ABC):
     @abstractmethod
-    def __hash__(self):
+    def __hash__(self) -> int:
         """ For use in CLOSED dictionary for pathfinding
         @return: hash value
         """
         pass
 
     @abstractmethod
-    def __eq__(self, other: object):
+    def __eq__(self, other: object) -> bool:
         """ for use in state reidentification during pathfinding
 
         @param other: other state
@@ -30,14 +31,14 @@ class State(ABC):
 
 class Action(ABC):
     @abstractmethod
-    def __hash__(self):
+    def __hash__(self) -> int:
         """ For use in backup for Q* search
         @return: hash value
         """
         pass
 
     @abstractmethod
-    def __eq__(self, other: object):
+    def __eq__(self, other: object) -> bool:
         """ for use in backup for Q* search
 
         @param other: other state
@@ -297,7 +298,7 @@ class EnvGrndAtoms(Env[S, A, G]):
         pass
 
     @abstractmethod
-    def on_model(self, m) -> Model:
+    def on_model(self, m: ModelCl) -> Model:
         """ Process results from clingo
 
         :param m:
@@ -318,13 +319,13 @@ class EnvGrndAtoms(Env[S, A, G]):
 # Protocols
 @runtime_checkable
 class EnvVizable(Protocol):
-    def visualize(self, states) -> NDArray[np.float64]: ...
+    def visualize(self, states: List[Union[State, Goal]]) -> NDArray[np.float64]: ...
 
 
 @runtime_checkable
 class EnvSupportsPDDL(Protocol):
     def get_pddl_domain(self) -> List[str]: ...
 
-    def state_goal_to_pddl_inst(self, state, goal) -> List[str]: ...
+    def state_goal_to_pddl_inst(self, state: State, goal: Goal) -> List[str]: ...
 
     def pddl_action_to_action(self, pddl_action: str) -> Action: ...

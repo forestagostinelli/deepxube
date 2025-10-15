@@ -1,4 +1,4 @@
-from typing import List, Any, Tuple, Optional
+from typing import List, Any, Tuple, Optional, Type
 
 import sys
 
@@ -7,7 +7,7 @@ import queue
 import os
 import shutil
 import numpy as np
-from numpy.typing import NDArray
+from numpy.typing import NDArray, ArrayLike
 
 from multiprocessing import shared_memory
 from multiprocessing.shared_memory import SharedMemory
@@ -19,13 +19,13 @@ class Logger(object):
         self.log = open(filename, mode)
         self.echo: bool = echo
 
-    def write(self, message):
+    def write(self, message: str) -> None:
         if self.echo:
             self.terminal.write(message)
         self.log.write(message)
         self.log.flush()
 
-    def flush(self):
+    def flush(self) -> None:
         pass
 
 
@@ -58,7 +58,7 @@ def get_in_order(q: Queue, num: int) -> List[Any]:
     return ret_vals
 
 
-def copy_dir_files(src_dir: str, dest_dir: str):
+def copy_dir_files(src_dir: str, dest_dir: str) -> None:
     src_files: List[str] = os.listdir(src_dir)
     for file_name in src_files:
         full_file_name: str = os.path.join(src_dir, file_name)
@@ -98,7 +98,7 @@ class SharedNDArray:
     Pickleable: can be sent through multiprocessing.Queue.
     """
 
-    def __init__(self, shape: Tuple[int, ...], dtype, name: Optional[str], create: bool):
+    def __init__(self, shape: Tuple[int, ...], dtype: np.dtype, name: Optional[str], create: bool):
         self.shape = tuple(shape)
         self.dtype = np.dtype(dtype)
 
@@ -128,7 +128,7 @@ class SharedNDArray:
         self.shm.unlink()
 
     # --- Pickling support ---
-    def __reduce__(self):
+    def __reduce__(self) -> Tuple[Type, Tuple[Tuple[int, ...], np.dtype, str, bool]]:
         """
         When pickled, only send (shape, dtype, name).
         Receiving process reattaches with create=False.
@@ -136,16 +136,16 @@ class SharedNDArray:
         return self.__class__, (self.shape, self.dtype, self.shm.name, False)
 
     # --- Convenience ---
-    def __getitem__(self, key):
+    def __getitem__(self, key: Any) -> NDArray:
         return self.array[key]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Any, value: ArrayLike) -> None:
         self.array[key] = value
 
-    def __array__(self):
+    def __array__(self) -> NDArray:
         return self.array
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"SharedNDArray(name={self.name}, shape={self.shape}, dtype={self.dtype})"
 
 

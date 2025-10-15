@@ -16,14 +16,14 @@ def is_valid_soln(state: State, goal: Goal, soln: List[Action], env: Env) -> boo
 
 @dataclass
 class PathFindPerf:
-    def __init__(self):
+    def __init__(self) -> None:
         self.is_solved_l: List[bool] = []
         self.path_costs: List[float] = []
         self.search_itrs_l: List[int] = []
         self.ctgs: List[float] = []
         self.ctgs_bkup: List[float] = []
 
-    def update_perf(self, instance: Instance):
+    def update_perf(self, instance: Instance) -> None:
         self.is_solved_l.append(instance.has_soln())
         self.ctgs.append(instance.root_node.heuristic)
         self.ctgs_bkup.append(instance.root_node.backup())
@@ -58,7 +58,7 @@ class PathFindPerf:
         return f"%solved: {per_solved:.2f}, path_costs: {path_cost_ave:.3f}, search_itrs: {search_itrs_ave:.3f}"
 
 
-def print_pathfindperf(step_to_pathfindperf: Dict[int, PathFindPerf]):
+def print_pathfindperf(step_to_pathfindperf: Dict[int, PathFindPerf]) -> None:
     steps: List[int] = list(step_to_pathfindperf.keys())
     steps = sorted(steps)
     step_show_idxs: List[int] = list(np.unique(np.linspace(0, len(steps) - 1, 30, dtype=int)))

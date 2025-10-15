@@ -2,14 +2,14 @@ from typing import List, Dict, Optional
 from collections import OrderedDict
 
 
-def add_times(times: OrderedDict[str, float], times_to_add: OrderedDict[str, float]):
+def add_times(times: OrderedDict[str, float], times_to_add: OrderedDict[str, float]) -> None:
     for key, value in times_to_add.items():
         if key not in times:
             times[key] = 0.0
         times[key] += value
 
 
-def add_counts(counts: OrderedDict[str, int], counts_to_add: OrderedDict[str, int]):
+def add_counts(counts: OrderedDict[str, int], counts_to_add: OrderedDict[str, int]) -> None:
     for key, value in counts_to_add.items():
         if key not in counts:
             counts[key] = 0
@@ -31,8 +31,7 @@ def init_counts(time_names: List[str]) -> OrderedDict[str, int]:
 
 
 class Times:
-
-    def __init__(self, time_names: Optional[List[str]] = None):
+    def __init__(self, time_names: Optional[List[str]] = None) -> None:
         if time_names is None:
             time_names = []
 
@@ -42,7 +41,7 @@ class Times:
         self.sub_times: Dict[str, Times] = dict()
         self.sub_counts: Dict[str, int] = dict()
 
-    def record_time(self, time_name: str, time_elapsed: float, path: Optional[List[str]] = None):
+    def record_time(self, time_name: str, time_elapsed: float, path: Optional[List[str]] = None) -> None:
         if (path is not None) and (len(path) > 0):
             path_0: str = path.pop(0)
             if path_0 not in self.sub_times:
@@ -59,7 +58,7 @@ class Times:
             self.times[time_name] += time_elapsed
             self.counts[time_name] += 1
 
-    def add_times(self, time: 'Times', path: Optional[List[str]] = None):
+    def add_times(self, time: 'Times', path: Optional[List[str]] = None) -> None:
         if (path is not None) and (len(path) > 0):
             path_0: str = path.pop(0)
             if path_0 not in self.sub_times:
@@ -78,7 +77,7 @@ class Times:
                 self.sub_times[sub_time_name].add_times(time.sub_times[sub_time_name])
                 self.sub_counts[sub_time_name] += sum(time.sub_times[sub_time_name].counts.values())
 
-    def reset_times(self):
+    def reset_times(self) -> None:
         for key in self.times.keys():
             self.times[key] = 0.0
             self.counts[key] = 0
@@ -109,8 +108,8 @@ class Times:
 
         return time_str
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.get_time_str()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()

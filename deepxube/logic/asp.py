@@ -2,6 +2,7 @@ from typing import List, Optional, Set, Tuple, Dict, Callable, Any
 from deepxube.logic.logic_objects import Clause, Literal, Atom, Model
 from deepxube.logic.logic_utils import copy_clause_with_new_head, atom_to_str
 from clingo.solving import SolveHandle
+from clingo.solving import Model as ModelCl
 
 import random
 import os
@@ -14,7 +15,7 @@ def model_to_body(model: Model) -> str:
     return ','.join([atom_to_str(atom) for atom in model])
 
 
-def on_model_var_vals(m) -> frozenset[str]:
+def on_model_var_vals(m: ModelCl) -> frozenset[str]:
     return frozenset(str(x) for x in m.symbols(shown=True))
 
 
@@ -186,7 +187,7 @@ class Solver:
 
         return len(models_ret) > 0
 
-    def sample_minimal_model(self, spec: Spec, model: Model, on_model) -> Model:
+    def sample_minimal_model(self, spec: Spec, model: Model, on_model: Callable[[ModelCl], Model]) -> Model:
         models_min: List[Model] = []
         atoms_false: List[Atom] = [atom for atom in self.ground_atoms if atom not in model]
         spec_min: Spec = Spec(atoms_false=atoms_false)
@@ -195,7 +196,7 @@ class Solver:
 
         return random.choice(models_min)
 
-    def sample_minimal_model_old(self, spec: Spec, model: Model):
+    def sample_minimal_model_old(self, spec: Spec, model: Model) -> Model:
         atoms_l = list(model)
         random.shuffle(atoms_l)
         atoms_true: Set[Atom] = set(atoms_l)

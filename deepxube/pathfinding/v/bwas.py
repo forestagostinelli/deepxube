@@ -24,7 +24,7 @@ class InstanceBWAS(Instance[NodeV]):
 
         self.push_to_open([self.root_node], [self.root_node.heuristic])
 
-    def push_to_open(self, nodes: List[NodeV], costs: List[float]):
+    def push_to_open(self, nodes: List[NodeV], costs: List[float]) -> None:
         for node, cost in zip(nodes, costs, strict=True):
             heappush(self.open_set, (cost, self.heappush_count, node))
             self.heappush_count += 1
@@ -48,13 +48,15 @@ class InstanceBWAS(Instance[NodeV]):
             cost_first: float = elems_popped[0][0]
             self.lb = max(cost_first, self.lb)
 
+        return nodes_popped
+
+    def update_ub(self, nodes: List[NodeV]) -> None:
         # keep solved nodes for training
-        for node in nodes_popped:
+        for node in nodes:
+            assert node.is_solved is not None
             if node.is_solved and (self.ub > node.path_cost):
                 self.goal_node = node
                 self.ub = node.path_cost
-
-        return nodes_popped
 
     def finished(self) -> bool:
         return (self.goal_node is not None) and (self.lb >= (self.weight * self.ub))
@@ -68,6 +70,18 @@ class BWAS(PathFindV[InstanceBWAS]):
         start_time = time.time()
         nodes_popped_by_inst: List[List[NodeV]] = [instance.pop_from_open() for instance in instances]
         self.times.record_time("pop", time.time() - start_time)
+
+        # check is solved
+        start_time = time.time()
+        nodes_popped_flat: List[NodeV] = misc_utils.flatten(nodes_popped_by_inst)[0]
+        self.set_is_solved(nodes_popped_flat)
+        self.times.record_time("is_solved", time.time() - start_time)
+
+        # ub
+        start_time = time.time()
+        for instance, nodes_popped in zip(instances, nodes_popped_by_inst, strict=True):
+            instance.update_ub(nodes_popped)
+        self.times.record_time("ub", time.time() - start_time)
 
         # expand nodes
         nodes_c_by_inst: List[List[NodeV]] = self.expand_nodes(instances, nodes_popped_by_inst)
@@ -119,7 +133,6 @@ class BWAS(PathFindV[InstanceBWAS]):
             instance.itr += 1
 
         # return
-        nodes_popped_flat: List[NodeV] = misc_utils.flatten(nodes_popped_by_inst)[0]
         return nodes_popped_flat
 
     def remove_finished_instances(self, itr_max: int) -> List[InstanceBWAS]:

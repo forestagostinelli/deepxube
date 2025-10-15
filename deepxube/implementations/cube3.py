@@ -11,6 +11,7 @@ from deepxube.base.heuristic import HeurNNetModule, HeurNNetV, HeurNNetQFixOut, 
 import numpy as np
 import torch
 from torch import nn, Tensor
+from clingo.solving import Model as ModelCl
 
 from random import randrange
 
@@ -22,12 +23,12 @@ from numpy.typing import NDArray
 
 
 class OneHot(nn.Module):
-    def __init__(self, data_dim: int, one_hot_depth: int):
+    def __init__(self, data_dim: int, one_hot_depth: int) -> None:
         super().__init__()
         self.data_dim: int = data_dim
         self.one_hot_depth: int = one_hot_depth
 
-    def forward(self, x: Tensor):
+    def forward(self, x: Tensor) -> Tensor:
         # preprocess input
         if self.one_hot_depth > 0:
             x = nn.functional.one_hot(x.long(), self.one_hot_depth)
@@ -59,7 +60,7 @@ class Cube3NNet(HeurNNetModule):
             nn.Linear(res_dim, out_dim)
         )
 
-    def forward(self, states_goals_l: List[Tensor]):
+    def forward(self, states_goals_l: List[Tensor]) -> Tensor:
         states_proc = self.state_proc0(states_goals_l[0])
         goals_proc = self.state_proc1(states_goals_l[1])
 
@@ -88,7 +89,7 @@ class Cube3NNetQFixOut(HeurNNetModule):
             nn.Linear(res_dim, out_dim)
         )
 
-    def forward(self, states_goals_acts_l: List[Tensor]):
+    def forward(self, states_goals_acts_l: List[Tensor]) -> Tensor:
         states_proc: Tensor = self.state_proc0(states_goals_acts_l[0])
         goals_proc: Tensor = self.state_proc1(states_goals_acts_l[1])
 
@@ -121,7 +122,7 @@ class Cube3NNetQIn(HeurNNetModule):
             nn.Linear(res_dim, out_dim)
         )
 
-    def forward(self, states_goals_acts_l: List[Tensor]):
+    def forward(self, states_goals_acts_l: List[Tensor]) -> Tensor:
         states_proc: Tensor = self.state_proc0(states_goals_acts_l[0])
         goals_proc: Tensor = self.state_proc1(states_goals_acts_l[1])
         actions_proc: Tensor = self.actions_proc(states_goals_acts_l[2])
@@ -134,11 +135,11 @@ class Cube3NNetQIn(HeurNNetModule):
 class Cube3State(State):
     __slots__ = ['colors', 'hash']
 
-    def __init__(self, colors: NDArray[np.uint8]):
+    def __init__(self, colors: NDArray[np.uint8]) -> None:
         self.colors: NDArray[np.uint8] = colors
         self.hash: Optional[int] = None
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         if self.hash is None:
             self.hash = hash(self.colors.tobytes())
         return self.hash
@@ -155,13 +156,13 @@ class Cube3Goal(Goal):
 
 
 class Cube3Action(Action):
-    def __init__(self, action: int):
+    def __init__(self, action: int) -> None:
         self.action = action
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return self.action
 
-    def __eq__(self, other: object):
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, Cube3Action):
             return self.action == other.action
         return NotImplemented
@@ -282,7 +283,7 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal], EnvStartGoalRW[Cub
         self.rotate_idxs_new, self.rotate_idxs_old = self._compute_rotation_idxs(self.cube_len, self.atomic_actions)
         self.actions: List[Cube3Action] = [Cube3Action(x) for x in range(self.num_actions)]
 
-        self.int_to_color: NDArray[np.str_] = np.concatenate((np.array(self.colors_grnd_obj), ['k']))  # type: ignore
+        self.int_to_color: NDArray[np.str_] = np.concatenate((np.array(self.colors_grnd_obj), ['k']))
 
         self.fixed_goal: bool = fixed
 
@@ -624,7 +625,7 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal], EnvStartGoalRW[Cub
         # return ["{ at_idx(Col, I) : color(Col), index(I) } 54"]
         return ground_atoms
 
-    def on_model(self, m) -> Model:
+    def on_model(self, m: ModelCl) -> Model:
         symbs_set: Set[str] = set(str(x) for x in m.symbols(shown=True))
         symbs: List[str] = [misc_utils.remove_all_whitespace(symb) for symb in symbs_set]
 
@@ -668,7 +669,9 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal], EnvStartGoalRW[Cub
 
         return pddl_str.split("\n")
 
-    def state_goal_to_pddl_inst(self, state: Cube3State, goal: Cube3Goal) -> List[str]:
+    def state_goal_to_pddl_inst(self, state: State, goal: Goal) -> List[str]:
+        if (not isinstance(state, Cube3State)) or (not isinstance(goal, Cube3Goal)):
+            raise NotImplementedError
         model: Model = self.goal_to_model([goal])[0]
         inst_l: List[str] = ["(define(problem cube3inst)", "(:domain cube3)"]
         idx_objects: str = ' '.join([f"i{idx}" for idx in range(self.num_stickers)])
@@ -694,7 +697,7 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal], EnvStartGoalRW[Cub
         assert match is not None
         return self.actions[int(match.group(1))]
 
-    def visualize(self, states: Union[List[Cube3State], List[Cube3Goal]]) -> NDArray[np.float64]:
+    def visualize(self, states: List[Union[State, Goal]]) -> NDArray[np.float64]:
         # initialize
         fig = plt.figure(figsize=(.64, .64))
         viz = InteractiveCube(3, self.get_start_states(1)[0].colors)
@@ -714,7 +717,7 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal], EnvStartGoalRW[Cub
                 model: Model = self.goal_to_model([state])[0]
                 viz.new_state(self._models_to_np([model])[0])
             else:
-                raise ValueError(f"Unknown input type {type(state)}")
+                raise NotImplementedError
 
             viz.set_rot(0)
             canvas.draw()
@@ -774,7 +777,7 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal], EnvStartGoalRW[Cub
             rotate_idxs_new[move] = np.array([], dtype=int)
             rotate_idxs_old[move] = np.array([], dtype=int)
 
-            colors = np.zeros((6, cube_len, cube_len), dtype=np.int64)
+            colors: NDArray = np.zeros((6, cube_len, cube_len), dtype=np.int64)
             colors_new = np.copy(colors)
 
             # WHITE:0, YELLOW:1, BLUE:2, GREEN:3, ORANGE: 4, RED: 5
@@ -817,8 +820,8 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal], EnvStartGoalRW[Cub
                 for idxNew, idxOld in zip(idxs_new, idxs_old):
                     flat_idx_new: int = int(np.ravel_multi_index((face, idxNew[0], idxNew[1]), colors_new.shape))
                     flat_idx_old: int = int(np.ravel_multi_index((face, idxOld[0], idxOld[1]), colors.shape))
-                    rotate_idxs_new[move] = np.concatenate((rotate_idxs_new[move], [flat_idx_new]))  # type: ignore
-                    rotate_idxs_old[move] = np.concatenate((rotate_idxs_old[move], [flat_idx_old]))  # type: ignore
+                    rotate_idxs_new[move] = np.concatenate((rotate_idxs_new[move], [flat_idx_new]))
+                    rotate_idxs_old[move] = np.concatenate((rotate_idxs_old[move], [flat_idx_old]))
 
             # Rotate adjacent faces
             face_idxs = adj_idxs[face]
@@ -832,7 +835,7 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal], EnvStartGoalRW[Cub
                 for idxNew, idxOld in zip(idxs_new, idxs_old):
                     flat_idx_new = int(np.ravel_multi_index((face_to, idxNew[0], idxNew[1]), colors_new.shape))
                     flat_idx_old = int(np.ravel_multi_index((face_from, idxOld[0], idxOld[1]), colors.shape))
-                    rotate_idxs_new[move] = np.concatenate((rotate_idxs_new[move], [flat_idx_new]))  # type: ignore
-                    rotate_idxs_old[move] = np.concatenate((rotate_idxs_old[move], [flat_idx_old]))  # type: ignore
+                    rotate_idxs_new[move] = np.concatenate((rotate_idxs_new[move], [flat_idx_new]))
+                    rotate_idxs_old[move] = np.concatenate((rotate_idxs_old[move], [flat_idx_old]))
 
         return rotate_idxs_new, rotate_idxs_old

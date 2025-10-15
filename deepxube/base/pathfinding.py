@@ -13,13 +13,13 @@ import time
 
 
 class Node(ABC):
-    def __init__(self, state: State, goal: Goal, path_cost: float, heuristic: float, is_solved: bool,
+    def __init__(self, state: State, goal: Goal, path_cost: float, heuristic: float, is_solved: Optional[bool],
                  parent_action: Optional[Action], parent_t_cost: Optional[float], parent: Optional['Node']):
         self.state: State = state
         self.goal: Goal = goal
         self.path_cost: float = path_cost
         self.heuristic: float = heuristic
-        self.is_solved: bool = is_solved
+        self.is_solved: Optional[bool] = is_solved
         self.parent_action: Optional[Action] = parent_action
         self.parent_t_cost: Optional[float] = parent_t_cost
         self.parent: Optional[Node] = parent
@@ -69,7 +69,7 @@ class PathFind(ABC, Generic[E, N, I]):
         self.times: Times = Times()
         self.itr: int = 0
 
-    def add_instances(self, instances: List[I]):
+    def add_instances(self, instances: List[I]) -> None:
         self.instances.extend(instances)
 
     @abstractmethod
@@ -128,7 +128,7 @@ class NodeV(Node):
     __slots__ = ['state', 'goal', 'path_cost', 'heuristic', 'is_solved', 'parent_action', 'parent_t_cost', 'parent',
                  'children', 't_costs', 'bellman_backup_val']
 
-    def __init__(self, state: State, goal: Goal, path_cost: float, heuristic: float, is_solved: bool,
+    def __init__(self, state: State, goal: Goal, path_cost: float, heuristic: float, is_solved: Optional[bool],
                  parent_action: Optional[Action], parent_t_cost: Optional[float], parent: Optional['NodeV']):
         super().__init__(state, goal, path_cost, heuristic, is_solved, parent_action, parent_t_cost, parent)
         self.parent: Optional[NodeV] = parent
@@ -152,7 +152,7 @@ class NodeV(Node):
 
         return self.bellman_backup_val
 
-    def upper_bound_parent_path(self, ctg_ub: float):
+    def upper_bound_parent_path(self, ctg_ub: float) -> None:
         assert self.bellman_backup_val is not None
         self.bellman_backup_val = min(self.bellman_backup_val, ctg_ub)
         if self.parent is not None:
@@ -239,6 +239,17 @@ class PathFindV(PathFind[EnvEnumerableActs, NodeV, I]):
 
         return nodes_c_by_inst
 
+    def set_is_solved(self, nodes: List[NodeV]) -> None:
+        states: List[State] = []
+        goals: List[Goal] = []
+        for node in nodes:
+            states.append(node.state)
+            goals.append(node.goal)
+
+        is_solved_l: List[bool] = self.env.is_solved(states, goals)
+        for node, is_solved in zip(nodes, is_solved_l, strict=True):
+            node.is_solved = is_solved
+
     def create_root_nodes(self, states: List[State], goals: List[Goal], compute_init_heur: bool = True) -> List[NodeV]:
         start_time = time.time()
         heuristics: List[float]
@@ -261,7 +272,7 @@ class NodeQ(Node):
     __slots__ = ['state', 'goal', 'path_cost', 'heuristic', 'is_solved', 'parent_action', 'parent_t_cost', 'parent',
                  'actions', 'q_values', 'act_dict', 'bellman_backup_val']
 
-    def __init__(self, state: State, goal: Goal, path_cost: float, heuristic: float, is_solved: bool,
+    def __init__(self, state: State, goal: Goal, path_cost: float, heuristic: float, is_solved: Optional[bool],
                  parent_action: Optional[Action], parent_t_cost: Optional[float], parent: Optional['NodeQ'],
                  actions: List[Action], q_values: List[float]):
         super().__init__(state, goal, path_cost, heuristic, is_solved, parent_action, parent_t_cost, parent)

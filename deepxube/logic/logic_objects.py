@@ -34,19 +34,19 @@ class Literal:
         tup: Tuple[str, int, bool] = (self.predicate, len(self.arguments), self.positive)
         return tup
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.to_code()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()
 
 
 class VarNode:
-    def __init__(self):
+    def __init__(self) -> None:
         self.rep: int = 0
         self.neighbors: List[VarNode] = []
 
-    def add_neighbor(self, neighbor):
+    def add_neighbor(self, neighbor: 'VarNode') -> None:
         self.neighbors.append(neighbor)
 
 
@@ -60,15 +60,15 @@ class LitNode:
         for _ in range(len(arguments)):
             self.var_nodes.append(VarNode())
 
-    def prop_up(self):
+    def prop_up(self) -> None:
         self.rep = hash((self.predicate, self.in_body) + tuple(x.rep for x in self.var_nodes))
 
-    def prop_down(self):
+    def prop_down(self) -> None:
         for var_idx, var_node in enumerate(self.var_nodes):
             var_node.rep = hash((self.rep, var_idx))
 
 
-def prop_across(var_nodes: List[VarNode]):
+def prop_across(var_nodes: List[VarNode]) -> None:
     reps_new: List[int] = []
     for var_node in var_nodes:
         rep_new: int = sum([x.rep for x in var_node.neighbors])
@@ -144,8 +144,8 @@ class Clause:
 
         return lit_pred_dict
 
-    def theta_sub(self, other, subs_prev: Optional[Dict[str, str]] = None, negate_l: Optional[List[bool]] = None,
-                  subs_forbid: Optional[Dict[str, List[str]]] = None,
+    def theta_sub(self, other: 'Clause', subs_prev: Optional[Dict[str, str]] = None,
+                  negate_l: Optional[List[bool]] = None, subs_forbid: Optional[Dict[str, List[str]]] = None,
                   ignore_head: bool = False) -> Optional[Dict[str, str]]:
         # Initialize
         if ignore_head:
@@ -180,7 +180,7 @@ class Clause:
 
         return theta_sub_lits(lits_self, name_to_lit_other, negate_l, subs_prev, subs_forbid)
 
-    def __str__(self):
+    def __str__(self) -> str:
         if len(self.body) > 0:
             # return (
             #    f'{self.head.to_code()}:- '
@@ -195,10 +195,10 @@ class Clause:
 
         # return self.to_code()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         if self.hash is not None:
             return self.hash
 
@@ -244,7 +244,10 @@ class Clause:
 
         return self.hash
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Clause):
+            return NotImplemented
+
         # assuming no repeats
         if (self.head is None) != (other.head is None):
             return False

@@ -14,7 +14,7 @@ from multiprocessing.process import BaseProcess
 
 
 # training
-def to_pytorch_input(states_nnet: List[NDArray[Any]], device) -> List[Tensor]:
+def to_pytorch_input(states_nnet: List[NDArray[Any]], device: torch.device) -> List[Tensor]:
     states_nnet_tensors = []
     for tensor_np in states_nnet:
         tensor = torch.tensor(tensor_np, device=device)
@@ -106,8 +106,9 @@ class NNetParInfo:
 
 
 # parallel neural networks
-def nnet_fn_runner(nnet_i_q: Queue, nnet_o_qs: List[Queue], model_file: str, device, on_gpu: bool, gpu_num: int,
-                   get_nnet: Callable[[], nn.Module], all_zeros: bool, clip_zero: bool, batch_size: Optional[int]):
+def nnet_fn_runner(nnet_i_q: Queue, nnet_o_qs: List[Queue], model_file: str, device: torch.device, on_gpu: bool,
+                   gpu_num: int, get_nnet: Callable[[], nn.Module], all_zeros: bool, clip_zero: bool,
+                   batch_size: Optional[int]) -> None:
     if (gpu_num is not None) and on_gpu:
         os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_num)
 
@@ -145,8 +146,8 @@ def nnet_fn_runner(nnet_i_q: Queue, nnet_o_qs: List[Queue], model_file: str, dev
             arr_shm.close()
 
 
-def start_nnet_fn_runners(get_nnet: Callable[[], nn.Module], num_procs: int, model_file: str, device, on_gpu: bool,
-                          all_zeros: bool = False, clip_zero: bool = False,
+def start_nnet_fn_runners(get_nnet: Callable[[], nn.Module], num_procs: int, model_file: str, device: torch.device,
+                          on_gpu: bool, all_zeros: bool = False, clip_zero: bool = False,
                           batch_size: Optional[int] = None) -> Tuple[List[NNetParInfo], List[BaseProcess]]:
     ctx = get_context("spawn")
 
@@ -176,7 +177,7 @@ def start_nnet_fn_runners(get_nnet: Callable[[], nn.Module], num_procs: int, mod
     return nnet_par_infos, nnet_procs
 
 
-def stop_nnet_runners(nnet_fn_procs: List[BaseProcess], nnet_par_infos: List[NNetParInfo]):
+def stop_nnet_runners(nnet_fn_procs: List[BaseProcess], nnet_par_infos: List[NNetParInfo]) -> None:
     for _ in nnet_fn_procs:
         nnet_par_infos[0].nnet_i_q.put((None, None))
 

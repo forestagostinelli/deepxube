@@ -35,7 +35,7 @@ class SPLASH(nn.Module):
         else:
             raise ValueError("Unknown init %s" % init)
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         output: Tensor = torch.zeros_like(x)
 
         # output for x > 0
@@ -67,23 +67,23 @@ class SPLASH1(nn.Module):
         else:
             raise ValueError("Unknown init %s" % init)
 
-    def forward(self, x: Tensor):
+    def forward(self, x: Tensor) -> Tensor:
         x = (self.coeff_right * nn.functional.relu(x)) - (self.coeff_left * nn.functional.relu(-x)) + self.output_bias
 
         return x
 
 
 class LinearAct(nn.Module):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.dummy = 1
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         self.dummy = 1  # so PyCharm does not complain
         return x
 
 
-def get_act_fn(act: str):
+def get_act_fn(act: str) -> nn.Module:
     act = act.upper()
     if act == "RELU":
         return nn.ReLU()
@@ -117,7 +117,7 @@ class ResnetModel(nn.Module):
             self.blocks.append(module_list)
             self.act_fns.append(get_act_fn(act_fn))
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         # resnet blocks
         module_list: nn.Module
         for module_list, act_fn in zip(self.blocks, self.act_fns):
@@ -168,7 +168,7 @@ class FullyConnectedModel(nn.Module):
 
             input_dim = dim
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         x = x.float()
 
         module_list: nn.Module
@@ -233,7 +233,7 @@ class Conv2dModel(nn.Module):
 
             chan_in = chan_out
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         x = x.float()
 
         module_list: nn.Module

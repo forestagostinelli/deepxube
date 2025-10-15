@@ -36,7 +36,7 @@ class InteractiveCube(plt.Axes):  # type: ignore
     base_sticker_centroid = np.array([[0, 0, 1 + stickerthickness]])
 
     def __init__(self, n, colors: NDArray, view=(0, 0, 10),
-                 fig=None, **kwargs):
+                 fig=None, **kwargs) -> None:
         self.colors: NDArray = colors
 
         # Define rotation angles and axes for the six sides of the cube
@@ -104,7 +104,7 @@ class InteractiveCube(plt.Axes):  # type: ignore
         self._draw_cube()
         # self._initialize_widgets()
 
-    def set_rot(self, rot: int):
+    def set_rot(self, rot: int) -> None:
         if rot == 0:
             self._current_rot = Quaternion.from_v_theta((-0.53180525,  0.83020462,  0.16716299), 0.95063829)
         elif rot == 1:
@@ -112,7 +112,7 @@ class InteractiveCube(plt.Axes):  # type: ignore
 
         self._draw_cube()
 
-    def _initialize_arrays(self):
+    def _initialize_arrays(self) -> None:
         # initialize centroids, faces, and stickers.  We start with a
         # base for each one, and then translate & rotate them into position.
 
