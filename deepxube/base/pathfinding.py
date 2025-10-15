@@ -98,6 +98,17 @@ class PathFind(ABC, Generic[E, N, I]):
 
         return instances_remove
 
+    def set_is_solved(self, nodes: List[N]) -> None:
+        states: List[State] = []
+        goals: List[Goal] = []
+        for node in nodes:
+            states.append(node.state)
+            goals.append(node.goal)
+
+        is_solved_l: List[bool] = self.env.is_solved(states, goals)
+        for node, is_solved in zip(nodes, is_solved_l, strict=True):
+            node.is_solved = is_solved
+
 
 def get_path(node: Node) -> Tuple[List[State], List[Action], float]:
     """ Gets path from the start state to the goal state associated with the input node
@@ -182,24 +193,23 @@ class PathFindV(PathFind[EnvEnumerableActs, NodeV, I]):
         # Get children of nodes
         states: List[State] = [x.state for x in nodes]
 
-        states_next: List[List[State]]
+        states_c_l: List[List[State]]
         actions: List[List[Action]]
         tcs: List[List[float]]
-        states_next, actions, tcs = self.env.expand(states)
+        states_c_l, actions, tcs = self.env.expand(states)
 
-        goals_c: List[List[Goal]] = [[node.goal] * len(state_next) for node, state_next in
-                                     zip(nodes, states_next, strict=True)]
+        goals_c: List[List[Goal]] = [[node.goal] * len(state_c) for node, state_c in
+                                     zip(nodes, states_c_l, strict=True)]
+        states_c_flat: List[State]
+        states_c_flat, split_idxs_c = misc_utils.flatten(states_c_l)
+        goals_c_flat, _ = misc_utils.flatten(goals_c)
         self.times.record_time("expand", time.time() - start_time)
 
         # Get is_solved on all states at once (for speed)
-        start_time = time.time()
-        states_c_flat: List[State]
-
-        states_c_flat, split_idxs_c = misc_utils.flatten(states_next)
-        goals_c_flat, _ = misc_utils.flatten(goals_c)
-        is_solved_c_flat: List[bool] = self.env.is_solved(states_c_flat, goals_c_flat)
-        is_solved_c: List[List[bool]] = misc_utils.unflatten(is_solved_c_flat, split_idxs_c)
-        self.times.record_time("is_solved", time.time() - start_time)
+        # start_time = time.time()
+        # is_solved_c_flat: List[bool] = self.env.is_solved(states_c_flat, goals_c_flat)
+        # is_solved_c: List[List[bool]] = misc_utils.unflatten(is_solved_c_flat, split_idxs_c)
+        # self.times.record_time("is_solved", time.time() - start_time)
 
         # heuristic function
         start_time = time.time()
@@ -213,11 +223,10 @@ class PathFindV(PathFind[EnvEnumerableActs, NodeV, I]):
         for node_idx, node in enumerate(nodes):
             path_costs_c_i: NDArray = node.path_cost + np.array(tcs[node_idx])
             nodes_c_i: List[NodeV] = []
-            for c_idx in range(len(states_next[node_idx])):
-                node_c: NodeV = NodeV(states_next[node_idx][c_idx], goals_c[node_idx][c_idx],
+            for c_idx in range(len(states_c_l[node_idx])):
+                node_c: NodeV = NodeV(states_c_l[node_idx][c_idx], goals_c[node_idx][c_idx],
                                       float(path_costs_c_i[c_idx]), heuristics_c[node_idx][c_idx],
-                                      is_solved_c[node_idx][c_idx], actions[node_idx][c_idx], tcs[node_idx][c_idx],
-                                      node)
+                                      None, actions[node_idx][c_idx], tcs[node_idx][c_idx], node)
                 nodes_c_i.append(node_c)
             node.children = nodes_c_i
             node.t_costs = tcs[node_idx]
@@ -238,17 +247,6 @@ class PathFindV(PathFind[EnvEnumerableActs, NodeV, I]):
         self.times.record_time("up_inst", time.time() - start_time)
 
         return nodes_c_by_inst
-
-    def set_is_solved(self, nodes: List[NodeV]) -> None:
-        states: List[State] = []
-        goals: List[Goal] = []
-        for node in nodes:
-            states.append(node.state)
-            goals.append(node.goal)
-
-        is_solved_l: List[bool] = self.env.is_solved(states, goals)
-        for node, is_solved in zip(nodes, is_solved_l, strict=True):
-            node.is_solved = is_solved
 
     def create_root_nodes(self, states: List[State], goals: List[Goal], compute_init_heur: bool = True) -> List[NodeV]:
         start_time = time.time()
