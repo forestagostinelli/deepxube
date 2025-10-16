@@ -1,6 +1,7 @@
-from typing import List, Tuple, Dict, Optional, Any
-from deepxube.base.env import State
-from deepxube.base.pathfinding import Instance, NodeV, PathFindV
+from abc import ABC
+from typing import List, Tuple, Dict, Optional, Any, TypeVar
+from deepxube.base.env import Env, EnvEnumerableActs, State
+from deepxube.base.pathfinding import Instance, NodeV, PathFindV, PathFindVExpandEnum
 import numpy as np
 from heapq import heappush, heappop
 
@@ -62,7 +63,10 @@ class InstanceBWAS(Instance[NodeV]):
         return (self.goal_node is not None) and (self.lb >= (self.weight * self.ub))
 
 
-class BWAS(PathFindV[InstanceBWAS]):
+E = TypeVar('E', bound=Env)
+
+
+class BWAS(PathFindV[E, InstanceBWAS], ABC):
     def step(self, verbose: bool = False) -> List[NodeV]:
         instances: List[InstanceBWAS] = [instance for instance in self.instances if not instance.finished()]
 
@@ -144,3 +148,7 @@ class BWAS(PathFindV[InstanceBWAS]):
             return False
 
         return self.remove_instances(remove_instance_fn)
+
+
+class BWASEnum(BWAS[EnvEnumerableActs], PathFindVExpandEnum[InstanceBWAS]):
+    pass

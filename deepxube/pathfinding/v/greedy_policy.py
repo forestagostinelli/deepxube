@@ -1,5 +1,5 @@
 from typing import List, Any
-from deepxube.base.pathfinding import Instance, NodeV, PathFindV
+from deepxube.base.pathfinding import Instance, NodeV, PathFindVExpandEnum
 import numpy as np
 import random
 import time
@@ -15,7 +15,7 @@ class InstanceGrV(Instance[NodeV]):
         return self.has_soln()
 
 
-class Greedy(PathFindV[InstanceGrV]):
+class Greedy(PathFindVExpandEnum[InstanceGrV]):
     def step(self) -> List[NodeV]:
         # get unsolved instances
         instances: List[InstanceGrV] = self._get_unsolved_instances()

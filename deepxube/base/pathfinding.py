@@ -2,7 +2,7 @@ from typing import Generic, List, Optional, Any, Tuple, Callable, TypeVar, Dict
 
 from numpy.typing import NDArray
 
-from deepxube.base.env import Env, EnvEnumerableActs, State, Goal, Action
+from deepxube.base.env import Env, State, Goal, Action, EnvEnumerableActs
 from deepxube.base.heuristic import HeurFnV, HeurFnQ
 from deepxube.utils import misc_utils
 from deepxube.utils.timing_utils import Times
@@ -171,8 +171,8 @@ class NodeV(Node):
             self.parent.upper_bound_parent_path(ctg_ub + self.parent_t_cost)
 
 
-class PathFindV(PathFind[EnvEnumerableActs, NodeV, I]):
-    def __init__(self, env: EnvEnumerableActs, heur_fn: HeurFnV):
+class PathFindV(PathFind[E, NodeV, I]):
+    def __init__(self, env: E, heur_fn: HeurFnV):
         super().__init__(env)
         self.heur_fn: HeurFnV = heur_fn
 
@@ -192,11 +192,12 @@ class PathFindV(PathFind[EnvEnumerableActs, NodeV, I]):
 
         # Get children of nodes
         states: List[State] = [x.state for x in nodes]
+        goals: List[Goal] = [x.goal for x in nodes]
 
         states_c_l: List[List[State]]
         actions: List[List[Action]]
         tcs: List[List[float]]
-        states_c_l, actions, tcs = self.env.expand(states)
+        states_c_l, actions, tcs = self.expand(states, goals)
 
         goals_c: List[List[Goal]] = [[node.goal] * len(state_c) for node, state_c in
                                      zip(nodes, states_c_l, strict=True)]
@@ -264,6 +265,18 @@ class PathFindV(PathFind[EnvEnumerableActs, NodeV, I]):
         self.times.record_time("root", time.time() - start_time)
 
         return root_nodes
+
+    @abstractmethod
+    def expand(self, states: List[State],
+               goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
+        pass
+
+
+# mixins
+class PathFindVExpandEnum(PathFindV[EnvEnumerableActs, I], ABC):
+    def expand(self, states: List[State],
+               goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
+        return self.env.expand(states)
 
 
 class NodeQ(Node):
