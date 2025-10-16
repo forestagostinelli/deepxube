@@ -1,18 +1,19 @@
 from typing import List, Any
 
+from deepxube.base.env import EnvEnumerableActs
 from deepxube.base.pathfinding import NodeV, NodeQ
 from deepxube.base.updater import UpdateHeurV, UpdateHeurQEnum
-from deepxube.pathfinding.v.bwas import BWAS, InstanceBWAS
+from deepxube.pathfinding.v.bwas import BWASEnum, InstanceBWAS
 from deepxube.utils.timing_utils import Times
 from deepxube.pathfinding.q.bwqs import BWQSEnum, InstanceBWQS
 
 
-class UpdateHeurBWAS(UpdateHeurV[InstanceBWAS, BWAS]):
-    def get_pathfind(self) -> BWAS:
+class UpdateHeurBWASEnum(UpdateHeurV[EnvEnumerableActs, InstanceBWAS, BWASEnum]):
+    def get_pathfind(self) -> BWASEnum:
         assert self.heur_fn is not None
-        return BWAS(self.env, self.heur_fn)
+        return BWASEnum(self.env, self.heur_fn)
 
-    def _get_instances(self, pathfind: BWAS, steps_gen: List[int], inst_infos: List[Any],
+    def _get_instances(self, pathfind: BWASEnum, steps_gen: List[int], inst_infos: List[Any],
                        times: Times) -> List[InstanceBWAS]:
         root_nodes: List[NodeV] = self._get_root_nodes(pathfind, steps_gen, times)
         return [InstanceBWAS(root_node, 1, 1.0, inst_info) for root_node, inst_info in

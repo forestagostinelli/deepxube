@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 from deepxube.training.train_utils import TrainArgs
 from deepxube.training.train_heur import train
 from deepxube.base.updater import UpHeurArgs, UpdateHeur
-from deepxube.updater.updaters import UpdateHeurBWAS, UpdateHeurBWQSEnum
+from deepxube.updater.updaters import UpdateHeurBWASEnum, UpdateHeurBWQSEnum
 
 
 def main():
@@ -43,7 +43,7 @@ def main():
         env = Cube3(args.env == "cube3_fixed")
         if args.heur_type.upper() == "V":
             from deepxube.implementations.cube3 import Cube3NNetParV
-            updater = UpdateHeurBWAS(env, up_args, Cube3NNetParV())
+            updater = UpdateHeurBWASEnum(env, up_args, Cube3NNetParV())
         elif args.heur_type.upper() == "Q":
             from deepxube.implementations.cube3 import Cube3NNetParQFixOut
             """

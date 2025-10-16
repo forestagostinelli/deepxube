@@ -12,6 +12,7 @@ import torch
 from torch import Tensor
 from torch.optim.optimizer import Optimizer
 import torch.nn as nn
+from torch.utils.tensorboard import SummaryWriter
 
 
 @dataclass
@@ -85,6 +86,25 @@ class ReplayBuffer:
             self.add_idx = add_idx_end
             if self.add_idx == self.max_size:
                 self.add_idx = 0
+
+
+def ctgs_summary(ctgs_l: List[NDArray], writer: SummaryWriter, itr: int) -> None:
+    ctgs_min: float = np.inf
+    ctgs_max: float = -np.inf
+    ctgs_mean: float = 0
+
+    num_tot: int = 0
+    for ctgs in ctgs_l:
+        ctgs_min = min(ctgs.min(), ctgs_min)
+        ctgs_max = max(ctgs.max(), ctgs_max)
+        ctgs_mean = ctgs.sum()
+        num_tot += ctgs.shape[0]
+    ctgs_mean = ctgs_mean/float(num_tot)
+
+    print(f"Cost-to-go (mean/min/max): {ctgs_mean:.2f}/{ctgs_min:.2f}/{ctgs_max:.2f}")
+    writer.add_scalar("ctgs (mean)", ctgs_mean, itr)
+    writer.add_scalar("ctgs (min)", ctgs_min, itr)
+    writer.add_scalar("ctgs (max)", ctgs_max, itr)
 
 
 def train_heur_nnet(nnet: nn.Module, batches: List[Tuple[List[NDArray], NDArray]], optimizer: Optimizer,
