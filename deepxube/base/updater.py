@@ -206,6 +206,10 @@ class Update(ABC, Generic[E, N, Inst, P]):
         assert nnet_name in self.nnet_file_dict.keys(), f"{nnet_name} not in dict"
         self.nnet_par_info_dict[nnet_name] = nnet_par_info
 
+    def add_nnet_par(self, nnet_name: str, nnet_par: NNetPar) -> None:
+        assert nnet_name not in self.nnet_par_dict.keys(), f"{nnet_name} already in dict"
+        self.nnet_par_dict[nnet_name] = nnet_par
+
     def get_update_data(self, step_max: int, step_probs: List[int], num_gen: int, device: torch.device, on_gpu: bool,
                         update_num: int) -> Tuple[List[List[NDArray]], Dict[int, PathFindPerf]]:
         self.set_update_num(update_num)
@@ -340,7 +344,7 @@ class UpdateHeur(Update[E, N, Inst, P], Generic[E, N, Inst, P, HNet, H]):
         return 'heur'
 
     def set_heur_nnet(self, heur_nnet: HNet) -> None:
-        self.nnet_par_dict[self.heur_name()] = heur_nnet
+        self.add_nnet_par(self.heur_name(), heur_nnet)
 
     def set_heur_file(self, heur_file: str) -> None:
         self.nnet_file_dict[self.heur_name()] = heur_file
@@ -349,7 +353,7 @@ class UpdateHeur(Update[E, N, Inst, P], Generic[E, N, Inst, P, HNet, H]):
         return cast(HNet, self.nnet_par_dict[self.heur_name()])
 
     def get_heur_fn(self) -> H:
-        return cast(H, self.nnet_fn_dict['heur'])
+        return cast(H, self.nnet_fn_dict[self.heur_name()])
 
     @abstractmethod
     def get_pathfind(self) -> P:

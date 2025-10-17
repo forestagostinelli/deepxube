@@ -41,8 +41,7 @@ def main():
     env = Cube3(True)
     if args.heur_type.upper() == "V":
         from deepxube.implementations.cube3 import Cube3NNetParV, Cube3NNetParQIn
-        updater = UpdateHeurBWASEnum(env, up_args)
-        updater.set_heur_nnet(Cube3NNetParV())
+        updater = UpdateHeurBWASEnum(env, up_args, Cube3NNetParV())
     elif args.heur_type.upper() == "Q":
         from deepxube.implementations.cube3 import Cube3NNetParQFixOut
         """
@@ -58,8 +57,7 @@ def main():
         out = nnet(inputs_nnet_t)
         breakpoint()
         """
-        updater = UpdateHeurBWQSEnum(env, up_args)
-        updater.set_heur_nnet(Cube3NNetParQFixOut())
+        updater = UpdateHeurBWQSEnum(env, up_args, Cube3NNetParQFixOut())
     elif args.heur_type.upper() == "QIN":
         from deepxube.implementations.cube3 import Cube3NNetParQIn
         """
@@ -74,8 +72,7 @@ def main():
         out = nnet(inputs_nnet_t)
         breakpoint()
         """
-        updater = UpdateHeurBWQSEnum(env, up_args)
-        updater.set_heur_nnet(Cube3NNetParQIn())
+        updater = UpdateHeurBWQSEnum(env, up_args, Cube3NNetParQIn())
     else:
         raise ValueError(f"Unknown heur type {args.heur_type}")
 

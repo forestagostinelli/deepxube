@@ -1,14 +1,19 @@
 from typing import List, Any
 
 from deepxube.base.env import EnvEnumerableActs
+from deepxube.base.heuristic import HeurNNetV, HeurNNetQ
 from deepxube.base.pathfinding import NodeV, NodeQ
-from deepxube.base.updater import UpdateHeurV, UpdateHeurQEnum
+from deepxube.base.updater import UpdateHeurV, UpdateHeurQEnum, UpArgs
 from deepxube.pathfinding.v.bwas import BWASEnum, InstanceBWAS
 from deepxube.utils.timing_utils import Times
 from deepxube.pathfinding.q.bwqs import BWQSEnum, InstanceBWQS
 
 
 class UpdateHeurBWASEnum(UpdateHeurV[EnvEnumerableActs, InstanceBWAS, BWASEnum]):
+    def __init__(self, env: EnvEnumerableActs, up_args: UpArgs, heur_nnet: HeurNNetV):
+        super().__init__(env, up_args)
+        self.set_heur_nnet(heur_nnet)
+
     def get_pathfind(self) -> BWASEnum:
         return BWASEnum(self.env, self.get_heur_fn())
 
@@ -20,6 +25,10 @@ class UpdateHeurBWASEnum(UpdateHeurV[EnvEnumerableActs, InstanceBWAS, BWASEnum])
 
 
 class UpdateHeurBWQSEnum(UpdateHeurQEnum[InstanceBWQS, BWQSEnum]):
+    def __init__(self, env: EnvEnumerableActs, up_args: UpArgs, heur_nnet: HeurNNetQ):
+        super().__init__(env, up_args)
+        self.set_heur_nnet(heur_nnet)
+
     def get_pathfind(self) -> BWQSEnum:
         return BWQSEnum(self.env, self.get_heur_fn())
 
