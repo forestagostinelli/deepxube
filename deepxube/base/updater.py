@@ -384,6 +384,7 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV
     def step_get_in_out_np(self, pathfind: PV, times: Times) -> List[NDArray]:
         # take a step
         nodes_popped: List[NodeV] = pathfind.step()
+        assert len(nodes_popped) == len(pathfind.instances), f"Values were {len(nodeqacts)} and {pathfind.instances}"
 
         # to np
         start_time = time.time()
