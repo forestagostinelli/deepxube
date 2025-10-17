@@ -338,7 +338,7 @@ HNet = TypeVar('HNet', bound=HeurNNet)
 H = TypeVar('H', bound=NNetCallable)
 
 
-class UpdateHeur(Update[E, N, Inst, P], Generic[E, N, Inst, P, HNet, H]):
+class UpdateHasHeur(Update[E, N, Inst, P], Generic[E, N, Inst, P, HNet, H]):
     @staticmethod
     def heur_name() -> str:
         return 'heur'
@@ -358,6 +358,10 @@ class UpdateHeur(Update[E, N, Inst, P], Generic[E, N, Inst, P, HNet, H]):
     @abstractmethod
     def get_pathfind(self) -> P:
         pass
+
+
+class UpdateHeur(UpdateHasHeur[E, N, Inst, P, HNet, H], ABC):
+    pass
 
 
 PV = TypeVar('PV', bound=PathFindV)
