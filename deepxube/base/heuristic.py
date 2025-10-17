@@ -32,10 +32,6 @@ class NNetPar(ABC, Generic[NNetFn]):
     def get_nnet(self) -> nn.Module:
         pass
 
-    @abstractmethod
-    def to_np(self, *args: Any) -> List[NDArray[Any]]:
-        pass
-
 
 class HeurNNetModule(nn.Module, ABC):
     @abstractmethod
