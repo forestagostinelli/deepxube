@@ -20,11 +20,12 @@ NNetFn = TypeVar('NNetFn', bound=NNetCallable)
 
 class NNetPar(ABC, Generic[NNetFn]):
     @abstractmethod
-    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device) -> NNetFn:
+    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device,
+                    update_num: Optional[int]) -> NNetFn:
         pass
 
     @abstractmethod
-    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo) -> NNetFn:
+    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> NNetFn:
         pass
 
     @abstractmethod
@@ -70,22 +71,30 @@ HeurFnV = Callable[[List[S], List[G]], List[float]]
 
 
 class HeurNNetV(HeurNNet[HeurFnV], Generic[S, G]):
-    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device) -> HeurFnV:
+    @staticmethod
+    def _get_output(heurs: NDArray[np.float64], update_num: Optional[int]) -> List[float]:
+        heurs = np.maximum(heurs[:, 0], 0)
+        if (update_num is not None) and (update_num == 0):
+            heurs = heurs * 0
+        return cast(List[float], heurs.astype(np.float64).tolist())
+
+    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device,
+                    update_num: Optional[int]) -> HeurFnV:
         nnet.eval()
 
         def heuristic_fn(states: List[S], goals: List[G]) -> List[float]:
             inputs_nnet: List[NDArray] = self.to_np(states, goals)
             heurs: NDArray[np.float64] = nnet_batched(nnet, inputs_nnet, batch_size, device)
 
-            return cast(List[float], heurs[:, 0].astype(np.float64).tolist())
+            return self._get_output(heurs, update_num)
         return heuristic_fn
 
-    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo) -> HeurFnV:
+    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> HeurFnV:
         def heuristic_fn(states: List[S], goals: List[G]) -> List[float]:
             inputs_nnet: List[NDArray] = self.to_np(states, goals)
             heurs: NDArray[np.float64] = get_nnet_par_out(inputs_nnet, nnet_par_info)
 
-            return cast(List[float], heurs[:, 0].astype(np.float64).tolist())
+            return self._get_output(heurs, update_num)
 
         return heuristic_fn
 
@@ -100,11 +109,12 @@ HeurFnQ = Callable[[List[S], List[G], List[List[A]]], List[List[float]]]
 
 class HeurNNetQ(HeurNNet[HeurFnQ], Generic[S, A, G]):
     @abstractmethod
-    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device) -> HeurFnQ:
+    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device,
+                    update_num: Optional[int]) -> HeurFnQ:
         pass
 
     @abstractmethod
-    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo) -> HeurFnQ:
+    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> HeurFnQ:
         pass
 
     @abstractmethod
@@ -116,21 +126,22 @@ class HeurNNetQFixOut(HeurNNetQ[S, A, G], ABC):
     """ DQN with a fixed output shape
 
     """
-    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device) -> HeurFnQ:
+    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device,
+                    update_num: Optional[int]) -> HeurFnQ:
         nnet.eval()
 
         def heuristic_fn(states: List[S], goals: List[G], actions_l: List[List[A]]) -> List[List[float]]:
             inputs_nnet: List[NDArray] = self._get_input(states, goals, actions_l)
             q_vals_np: NDArray[np.float64] = nnet_batched(nnet, inputs_nnet, batch_size, device)
-            return self._get_output(states, q_vals_np)
+            return self._get_output(states, q_vals_np, update_num)
 
         return heuristic_fn
 
-    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo) -> HeurFnQ:
+    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> HeurFnQ:
         def heuristic_fn(states: List[S], goals: List[G], actions_l: List[List[A]]) -> List[List[float]]:
             inputs_nnet: List[NDArray] = self._get_input(states, goals, actions_l)
             q_vals_np: NDArray[np.float64] = get_nnet_par_out(inputs_nnet, nnet_par_info)
-            return self._get_output(states, q_vals_np)
+            return self._get_output(states, q_vals_np, update_num)
 
         return heuristic_fn
 
@@ -147,8 +158,11 @@ class HeurNNetQFixOut(HeurNNetQ[S, A, G], ABC):
         return inputs_nnet
 
     @staticmethod
-    def _get_output(states: List[S], q_vals_np: NDArray[np.float64]) -> List[List[float]]:
+    def _get_output(states: List[S], q_vals_np: NDArray[np.float64], update_num: Optional[int]) -> List[List[float]]:
         assert q_vals_np.shape[0] == len(states)
+        q_vals_np = np.maximum(q_vals_np, 0)
+        if (update_num is not None) and (update_num == 0):
+            q_vals_np = q_vals_np * 0
         q_vals_l: List[List[float]] = [q_vals_np[state_idx].astype(np.float64).tolist() for state_idx in
                                        range(len(states))]
         return q_vals_l
@@ -162,21 +176,22 @@ class HeurNNetQIn(HeurNNetQ[S, A, G], ABC):
     """ DQN that takes a single action as input
 
     """
-    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device) -> HeurFnQ:
+    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device,
+                    update_num: Optional[int]) -> HeurFnQ:
         nnet.eval()
 
         def heuristic_fn(states: List[S], goals: List[G], actions_l: List[List[A]]) -> List[List[float]]:
             inputs_nnet, states_rep, split_idxs = self._get_input(states, goals, actions_l)
             q_vals_np: NDArray = nnet_batched(nnet, inputs_nnet, batch_size, device)
-            return self._get_output(states_rep, q_vals_np, split_idxs)
+            return self._get_output(states_rep, q_vals_np, split_idxs, update_num)
 
         return heuristic_fn
 
-    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo) -> HeurFnQ:
+    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> HeurFnQ:
         def heuristic_fn(states: List[S], goals: List[G], actions_l: List[List[A]]) -> List[List[float]]:
             inputs_nnet, states_rep, split_idxs = self._get_input(states, goals, actions_l)
             q_vals_np: NDArray = get_nnet_par_out(inputs_nnet, nnet_par_info)
-            return self._get_output(states_rep, q_vals_np, split_idxs)
+            return self._get_output(states_rep, q_vals_np, split_idxs, update_num)
 
         return heuristic_fn
 
@@ -202,8 +217,13 @@ class HeurNNetQIn(HeurNNetQ[S, A, G], ABC):
         return inputs_nnet, states_rep, split_idxs
 
     @staticmethod
-    def _get_output(states_rep: List[S], q_vals_np: NDArray[np.float64], split_idxs: List[int]) -> List[List[float]]:
+    def _get_output(states_rep: List[S], q_vals_np: NDArray[np.float64], split_idxs: List[int],
+                    update_num: Optional[int]) -> List[List[float]]:
         assert q_vals_np.shape[0] == len(states_rep)
-        q_vals_flat: List[float] = q_vals_np[:, 0].astype(np.float64).tolist()
+        q_vals_np = np.maximum(q_vals_np[:, 0], 0)
+        if (update_num is not None) and (update_num == 0):
+            q_vals_np = q_vals_np * 0
+
+        q_vals_flat: List[float] = q_vals_np.astype(np.float64).tolist()
         q_vals_l: List[List[float]] = misc_utils.unflatten(q_vals_flat, split_idxs)
         return q_vals_l

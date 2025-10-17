@@ -10,8 +10,7 @@ from deepxube.pathfinding.q.bwqs import BWQSEnum, InstanceBWQS
 
 class UpdateHeurBWASEnum(UpdateHeurV[EnvEnumerableActs, InstanceBWAS, BWASEnum]):
     def get_pathfind(self) -> BWASEnum:
-        assert self.heur_fn is not None
-        return BWASEnum(self.env, self.heur_fn)
+        return BWASEnum(self.env, self.get_heur_fn())
 
     def _get_instances(self, pathfind: BWASEnum, steps_gen: List[int], inst_infos: List[Any],
                        times: Times) -> List[InstanceBWAS]:
@@ -22,8 +21,7 @@ class UpdateHeurBWASEnum(UpdateHeurV[EnvEnumerableActs, InstanceBWAS, BWASEnum])
 
 class UpdateHeurBWQSEnum(UpdateHeurQEnum[InstanceBWQS, BWQSEnum]):
     def get_pathfind(self) -> BWQSEnum:
-        assert self.heur_fn is not None
-        return BWQSEnum(self.env, self.heur_fn)
+        return BWQSEnum(self.env, self.get_heur_fn())
 
     def _get_instances(self, pathfind: BWQSEnum, steps_gen: List[int], inst_infos: List[Any],
                        times: Times) -> List[InstanceBWQS]:

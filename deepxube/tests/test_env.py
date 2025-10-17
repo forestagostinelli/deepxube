@@ -158,7 +158,7 @@ def test_heur_nnet(heur_nnet: NNetPar, states: List[State], goals: List[Goal], a
     # initialize nnet
     nnet, device = init_nnet(heur_nnet)
     print("")
-    heur_fn: NNetCallable = heur_nnet.get_nnet_fn(nnet, None, device)
+    heur_fn: NNetCallable = heur_nnet.get_nnet_fn(nnet, None, device, None)
     heur_fn_out(heur_nnet, heur_fn, states, goals, actions)
 
     # nnet heuristic

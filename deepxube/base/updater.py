@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple, Any, Generic, TypeVar, Optional
+from typing import List, Dict, Tuple, Any, Generic, TypeVar, Optional, cast
 from abc import ABC, abstractmethod
 import time
 from dataclasses import dataclass
@@ -12,7 +12,7 @@ from numpy.typing import NDArray
 
 from deepxube.nnet.nnet_utils import NNetParInfo
 from deepxube.base.env import Env, State, Goal, Action, EnvEnumerableActs
-from deepxube.base.heuristic import HeurNNet, NNetCallable, HeurFnV, HeurFnQ, HeurNNetV, HeurNNetQ
+from deepxube.base.heuristic import NNetPar, HeurNNet, NNetCallable, HeurFnV, HeurFnQ, HeurNNetV, HeurNNetQ
 from deepxube.base.pathfinding import PathFind, PathFindV, PathFindQ, Instance, Node, NodeV, NodeQ, NodeQAct
 from deepxube.nnet import nnet_utils
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, print_pathfindperf
@@ -26,7 +26,7 @@ from torch.multiprocessing import get_context
 
 
 @dataclass
-class UpHeurArgs:
+class UpArgs:
     """ Each time an instance is solved, a new one is created with the same number of steps to maintain training data
     balance.
 
@@ -116,14 +116,20 @@ def _put_from_q(data_l: List[List[NDArray]], from_q: Queue, times: Times) -> Non
 
 
 E = TypeVar('E', bound=Env)
-HNet = TypeVar('HNet', bound=HeurNNet)
-H = TypeVar('H', bound=NNetCallable)
 N = TypeVar('N', bound=Node)
 Inst = TypeVar('Inst', bound=Instance)
 P = TypeVar('P', bound=PathFind)
 
 
-class Update(ABC, Generic[E, HNet, H, N, Inst, P]):
+class Update(ABC, Generic[E, N, Inst, P]):
+    @staticmethod
+    def get_nnet_fn_runners(nnet_par: NNetPar, nnet_file: str, up_args: UpArgs, device: torch.device,
+                            on_gpu: bool) -> Tuple[List[NNetParInfo], List[BaseProcess]]:
+        nnet_par_infos, nnet_procs = nnet_utils.start_nnet_fn_runners(nnet_par.get_nnet, up_args.up_procs, nnet_file,
+                                                                      device, on_gpu,
+                                                                      batch_size=up_args.up_nnet_batch_size)
+        return nnet_par_infos, nnet_procs
+
     @staticmethod
     def _update_perf(insts_rem: List[Inst], step_to_pathperf: Dict[int, PathFindPerf]) -> None:
         for inst_rem in insts_rem:
@@ -133,7 +139,7 @@ class Update(ABC, Generic[E, HNet, H, N, Inst, P]):
             step_to_pathperf[step_num_inst].update_perf(inst_rem)
 
     @staticmethod
-    def _send_work_to_q(up_args: UpHeurArgs, num_gen: int, ctx: SpawnContext) -> Queue:
+    def _send_work_to_q(up_args: UpArgs, num_gen: int, ctx: SpawnContext) -> Queue:
         num_searches: int = num_gen // up_args.up_search_itrs
         print(f"Generating {format(num_gen, ',')} training instances with {format(num_searches, ',')} searches")
 
@@ -148,15 +154,6 @@ class Update(ABC, Generic[E, HNet, H, N, Inst, P]):
                 to_q.put(num_to_send_per_i)
 
         return to_q
-
-    @staticmethod
-    def get_heur_fn_runners(heur_nnet: HNet, heur_file: str, up_args: UpHeurArgs, device: torch.device, on_gpu: bool,
-                            all_zeros: bool) -> Tuple[List[NNetParInfo], List[BaseProcess]]:
-        nnet_par_infos, nnet_procs = nnet_utils.start_nnet_fn_runners(heur_nnet.get_nnet, up_args.up_procs,
-                                                                      heur_file, device, on_gpu, all_zeros=all_zeros,
-                                                                      clip_zero=True,
-                                                                      batch_size=up_args.up_nnet_batch_size)
-        return nnet_par_infos, nnet_procs
 
     @staticmethod
     def print_update_summary(step_to_search_perf: Dict[int, PathFindPerf], writer: SummaryWriter,
@@ -186,24 +183,46 @@ class Update(ABC, Generic[E, HNet, H, N, Inst, P]):
 
         print_pathfindperf(step_to_search_perf)
 
-    def __init__(self, env: E, up_args: UpHeurArgs):
+    def __init__(self, env: E, up_args: UpArgs):
         self.env: E = env
-        self.up_args: UpHeurArgs = up_args
+        self.up_args: UpArgs = up_args
+        self.update_num: Optional[int] = None
+        self.nnet_par_dict: Dict[str, NNetPar] = dict()
+        self.nnet_file_dict: Dict[str, str] = dict()
+        self.nnet_par_info_dict: Dict[str, NNetParInfo] = dict()
+        self.nnet_fn_dict: Dict[str, NNetCallable] = dict()
+
+    def get_nnet_fn_runner_dict(self, device: torch.device,
+                                on_gpu: bool) -> Dict[str, Tuple[List[NNetParInfo], List[BaseProcess]]]:
+        nnet_runner_dict: Dict[str, Tuple[List[NNetParInfo], List[BaseProcess]]] = dict()
+        for nnet_name, nnet_par in self.nnet_par_dict.items():
+            nnet_file: str = self.nnet_file_dict[nnet_name]
+            nnet_par_infos, nnet_procs = self.get_nnet_fn_runners(nnet_par, nnet_file, self.up_args, device, on_gpu)
+            nnet_runner_dict[nnet_name] = (nnet_par_infos, nnet_procs)
+        return nnet_runner_dict
+
+    def set_nnet_par_info(self, nnet_name: str, nnet_par_info: NNetParInfo) -> None:
+        assert nnet_name in self.nnet_par_dict.keys(), f"{nnet_name} not in dict"
+        assert nnet_name in self.nnet_file_dict.keys(), f"{nnet_name} not in dict"
+        self.nnet_par_info_dict[nnet_name] = nnet_par_info
 
     def get_update_data(self, step_max: int, step_probs: List[int], num_gen: int, device: torch.device, on_gpu: bool,
-                        train_itr: int) -> Tuple[List[List[NDArray]], Dict[int, PathFindPerf]]:
+                        update_num: int) -> Tuple[List[List[NDArray]], Dict[int, PathFindPerf]]:
+        self.set_update_num(update_num)
         start_time_gen = time.time()
         # put work information on to_q
         ctx = get_context("spawn")
         to_q: Queue = self._send_work_to_q(self.up_args, num_gen, ctx)
 
         # parallel heuristic functions
-        nnet_par_infos_l, nnet_procs_l = self.get_nnet_fn_runners(device, on_gpu, train_itr)
+        nnet_runner_dict: Dict[str, Tuple[List[NNetParInfo], List[BaseProcess]]] = self.get_nnet_fn_runner_dict(device,
+                                                                                                                on_gpu)
 
         # start updater procs
         updaters: List[Update] = [copy.copy(self) for _ in range(self.up_args.up_procs)]
         for proc_itr, updater in enumerate(updaters):
-            updater.set_nnet_par_info([nnet_par_infos[proc_itr] for nnet_par_infos in nnet_par_infos_l])
+            for nnet_name in nnet_runner_dict.keys():
+                updater.set_nnet_par_info(nnet_name, nnet_runner_dict[nnet_name][0][proc_itr])
 
         from_q: Queue = ctx.Queue()
         procs: List[BaseProcess] = []
@@ -217,28 +236,21 @@ class Update(ABC, Generic[E, HNet, H, N, Inst, P]):
         data_l, step_to_pathperf = get_data_from_procs(num_gen, from_q, to_q, procs, start_time_gen)
 
         # clean up clean up everybody do your share
-        for nnet_procs, nnet_par_infos in zip(nnet_procs_l, nnet_par_infos_l, strict=True):
+        for nnet_par_infos, nnet_procs in nnet_runner_dict.values():
             nnet_utils.stop_nnet_runners(nnet_procs, nnet_par_infos)
         for proc in procs:
             proc.join()
 
         return data_l, step_to_pathperf
 
+    def initialize_fns(self) -> None:
+        for nnet_name in self.nnet_par_dict.keys():
+            nnet: NNetPar = self.nnet_par_dict[nnet_name]
+            nnet_par_info: NNetParInfo = self.nnet_par_info_dict[nnet_name]
+            self.nnet_fn_dict[nnet_name] = nnet.get_nnet_par_fn(nnet_par_info, self.update_num)
+
     @abstractmethod
     def get_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
-        pass
-
-    @abstractmethod
-    def set_nnet_par_info(self, nnet_par_info_l: List[NNetParInfo]) -> None:
-        pass
-
-    @abstractmethod
-    def get_nnet_fn_runners(self, device: torch.device, on_gpu: bool,
-                            train_itr: int) -> Tuple[List[List[NNetParInfo]], List[List[BaseProcess]]]:
-        pass
-
-    @abstractmethod
-    def initialize_fns(self) -> None:
         pass
 
     @abstractmethod
@@ -248,6 +260,9 @@ class Update(ABC, Generic[E, HNet, H, N, Inst, P]):
     @abstractmethod
     def step_get_in_out_np(self, pathfind: P, times: Times) -> List[NDArray]:
         pass
+
+    def set_update_num(self, update_num: Optional[int]) -> None:
+        self.update_num = update_num
 
     def update_runner(self, gen_step_max: int, to_q: Queue, from_q: Queue, step_probs: List[int]) -> None:
         times: Times = Times()
@@ -315,42 +330,39 @@ class Update(ABC, Generic[E, HNet, H, N, Inst, P]):
         pass
 
 
-class UpdateHeur(Update[E, HNet, H, N, Inst, P], ABC):
-    def __init__(self, env: E, up_args: UpHeurArgs, heur_nnet: HNet):
-        super().__init__(env, up_args)
-        self.env: E = env
-        self.heur_nnet: HNet = heur_nnet
-        self.heur_file: Optional[str] = None
-        self.heur_nnet_par_info: Optional[NNetParInfo] = None
-        self.heur_fn: Optional[H] = None
-        self.up_args: UpHeurArgs = up_args
+HNet = TypeVar('HNet', bound=HeurNNet)
+H = TypeVar('H', bound=NNetCallable)
+
+
+class UpdateHeur(Update[E, N, Inst, P], Generic[E, N, Inst, P, HNet, H]):
+    @staticmethod
+    def heur_name() -> str:
+        return 'heur'
+
+    def set_heur_nnet(self, heur_nnet: HNet) -> None:
+        self.nnet_par_dict[self.heur_name()] = heur_nnet
 
     def set_heur_file(self, heur_file: str) -> None:
-        self.heur_file = heur_file
+        self.nnet_file_dict[self.heur_name()] = heur_file
 
-    def set_nnet_par_info(self, nnet_par_info_l: List[NNetParInfo]) -> None:
-        assert len(nnet_par_info_l) == 1
-        self.heur_nnet_par_info = nnet_par_info_l[0]
+    def get_heur_nnet(self) -> HNet:
+        return cast(HNet, self.nnet_par_dict[self.heur_name()])
 
-    def initialize_fns(self) -> None:
-        assert self.heur_nnet_par_info is not None
-        self.heur_fn = self.heur_nnet.get_nnet_par_fn(self.heur_nnet_par_info)
+    def get_heur_fn(self) -> H:
+        return cast(H, self.nnet_fn_dict['heur'])
 
-    def get_nnet_fn_runners(self, device: torch.device, on_gpu: bool,
-                            train_itr: int) -> Tuple[List[List[NNetParInfo]], List[List[BaseProcess]]]:
-        assert self.heur_file is not None
-        nnet_par_infos, nnet_procs = self.get_heur_fn_runners(self.heur_nnet, self.heur_file, self.up_args, device,
-                                                              on_gpu, train_itr == 0)
-        return [nnet_par_infos], [nnet_procs]
+    @abstractmethod
+    def get_pathfind(self) -> P:
+        pass
 
 
 PV = TypeVar('PV', bound=PathFindV)
 
 
-class UpdateHeurV(UpdateHeur[E, HeurNNetV[State, Goal], HeurFnV[State, Goal], NodeV, Inst, PV], ABC):
+class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV[State, Goal]], ABC):
     def get_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.env.get_start_goal_pairs([0])
-        inputs_nnet: List[NDArray[Any]] = self.heur_nnet.to_np(states, goals)
+        inputs_nnet: List[NDArray[Any]] = self.get_heur_nnet().to_np(states, goals)
 
         shapes_dypes: List[Tuple[Tuple[int, ...], np.dtype]] = []
         for inputs_nnet_i in inputs_nnet:
@@ -371,7 +383,7 @@ class UpdateHeurV(UpdateHeur[E, HeurNNetV[State, Goal], HeurFnV[State, Goal], No
         times.record_time("backup", time.time() - start_time)
 
         start_time = time.time()
-        inputs_np: List[NDArray] = self.heur_nnet.to_np(states, goals)
+        inputs_np: List[NDArray] = self.get_heur_nnet().to_np(states, goals)
         times.record_time("to_np", time.time() - start_time)
         return inputs_np + [np.array(ctgs_backup)]
 
@@ -388,11 +400,11 @@ class UpdateHeurV(UpdateHeur[E, HeurNNetV[State, Goal], HeurFnV[State, Goal], No
 PQ = TypeVar('PQ', bound=PathFindQ)
 
 
-class UpdateHeurQ(UpdateHeur[E, HeurNNetQ[State, Action, Goal], HeurFnQ[State, Goal, Action], NodeQ, Inst, PQ], ABC):
+class UpdateHeurQ(UpdateHeur[E, NodeQ, Inst, PQ, HeurNNetQ[State, Action, Goal], HeurFnQ[State, Goal, Action]], ABC):
     def get_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.env.get_start_goal_pairs([0])
         actions: List[Action] = self.env.get_state_action_rand(states)
-        inputs_nnet: List[NDArray[Any]] = self.heur_nnet.to_np(states, goals, [[action] for action in actions])
+        inputs_nnet: List[NDArray[Any]] = self.get_heur_nnet().to_np(states, goals, [[action] for action in actions])
 
         shapes_dypes: List[Tuple[Tuple[int, ...], np.dtype]] = []
         for inputs_nnet_i in inputs_nnet:
@@ -455,7 +467,7 @@ class UpdateHeurQ(UpdateHeur[E, HeurNNetQ[State, Action, Goal], HeurFnQ[State, G
 
         # to_np
         start_time = time.time()
-        inputs_np: List[NDArray] = self.heur_nnet.to_np(states, goals, [[action] for action in actions])
+        inputs_np: List[NDArray] = self.get_heur_nnet().to_np(states, goals, [[action] for action in actions])
         times.record_time("to_np", time.time() - start_time)
         return inputs_np + [np.array(ctgs_backup)]
 
@@ -494,8 +506,7 @@ class UpdateHeurQ(UpdateHeur[E, HeurNNetQ[State, Action, Goal], HeurFnQ[State, G
 
 class UpdateHeurQEnum(UpdateHeurQ[EnvEnumerableActs, Inst, PQ], ABC):
     def get_qvals(self, states: List[State], goals: List[Goal]) -> List[List[float]]:
-        assert self.heur_fn is not None
         actions_next: List[List[Action]] = self.env.get_state_actions(states)
-        qvals: List[List[float]] = self.heur_fn(states, goals, actions_next)
+        qvals: List[List[float]] = self.get_heur_fn()(states, goals, actions_next)
 
         return qvals

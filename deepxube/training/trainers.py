@@ -22,7 +22,7 @@ class TrainHeur:
     def __init__(self, updater: UpdateHeur, nnet_file: str, device: torch.device, on_gpu: bool, writer: SummaryWriter,
                  train_args: TrainArgs, rb_past_up: int) -> None:
         self.updater: UpdateHeur = updater
-        self.nnet: nn.Module = updater.heur_nnet.get_nnet()
+        self.nnet: nn.Module = updater.get_heur_nnet().get_nnet()
         self.nnet_file = nnet_file
         self.writer: SummaryWriter = writer
         self.train_args: TrainArgs = train_args
@@ -46,11 +46,11 @@ class TrainHeur:
         self.optimizer: Optimizer = optim.Adam(self.nnet.parameters(), lr=self.train_args.lr)
         self.criterion = nn.MSELoss()
 
-    def update_step(self, step_max: int, step_probs: List[int], itr: int) -> Dict[int, PathFindPerf]:
+    def update_step(self, step_max: int, step_probs: List[int], itr: int, update_num: int) -> Dict[int, PathFindPerf]:
         num_gen: int = self.train_args.batch_size * self.updater.up_args.up_gen_itrs
         self.updater.set_heur_file(self.nnet_file)
         data_l, step_to_search_perf = self.updater.get_update_data(step_max, step_probs, num_gen, self.device,
-                                                                   self.on_gpu, itr)
+                                                                   self.on_gpu, update_num)
         ctgs_l: List[NDArray] = [data[-1] for data in data_l]
         ctgs_summary(ctgs_l, self.writer, itr)
         self.updater.print_update_summary(step_to_search_perf, self.writer, itr)

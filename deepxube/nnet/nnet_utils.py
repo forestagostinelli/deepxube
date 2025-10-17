@@ -107,8 +107,7 @@ class NNetParInfo:
 
 # parallel neural networks
 def nnet_fn_runner(nnet_i_q: Queue, nnet_o_qs: List[Queue], model_file: str, device: torch.device, on_gpu: bool,
-                   gpu_num: int, get_nnet: Callable[[], nn.Module], all_zeros: bool, clip_zero: bool,
-                   batch_size: Optional[int]) -> None:
+                   gpu_num: int, get_nnet: Callable[[], nn.Module], batch_size: Optional[int]) -> None:
     if (gpu_num is not None) and on_gpu:
         os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_num)
 
@@ -133,11 +132,6 @@ def nnet_fn_runner(nnet_i_q: Queue, nnet_o_qs: List[Queue], model_file: str, dev
 
         outputs: NDArray[np.float64] = nnet_batched(nnet, inputs_nnet, batch_size, device)
 
-        if all_zeros:
-            outputs = outputs * 0.0
-        if clip_zero:
-            outputs = np.maximum(outputs, 0.0)
-
         # send outputs
         outputs_shm: SharedNDArray = np_to_shnd(outputs)
         nnet_o_qs[proc_id].put(outputs_shm)
@@ -147,7 +141,7 @@ def nnet_fn_runner(nnet_i_q: Queue, nnet_o_qs: List[Queue], model_file: str, dev
 
 
 def start_nnet_fn_runners(get_nnet: Callable[[], nn.Module], num_procs: int, model_file: str, device: torch.device,
-                          on_gpu: bool, all_zeros: bool = False, clip_zero: bool = False,
+                          on_gpu: bool,
                           batch_size: Optional[int] = None) -> Tuple[List[NNetParInfo], List[BaseProcess]]:
     ctx = get_context("spawn")
 
@@ -168,8 +162,8 @@ def start_nnet_fn_runners(get_nnet: Callable[[], nn.Module], num_procs: int, mod
     nnet_procs: List[BaseProcess] = []
     for gpu_num in gpu_nums:
         nnet_fn_procs = ctx.Process(target=nnet_fn_runner,
-                                    args=(nnet_i_q, nnet_o_qs, model_file, device, on_gpu, gpu_num, get_nnet, all_zeros,
-                                          clip_zero, batch_size))
+                                    args=(nnet_i_q, nnet_o_qs, model_file, device, on_gpu, gpu_num, get_nnet,
+                                          batch_size))
         nnet_fn_procs.daemon = True
         nnet_fn_procs.start()
         nnet_procs.append(nnet_fn_procs)

@@ -123,7 +123,7 @@ def train(updater: UpdateHeur, step_max: int, nnet_dir: str, train_args: TrainAr
 
         # train
         step_to_search_perf: Dict[int, PathFindPerf] = train_heur.update_step(step_max, status.step_probs.tolist(),
-                                                                              status.itr)
+                                                                              status.itr, status.update_num)
         if train_args.balance_steps:
             status.update_step_probs(step_to_search_perf)
 
