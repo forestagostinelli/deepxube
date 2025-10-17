@@ -215,6 +215,8 @@ class PathFindV(PathFind[E, NodeV, I]):
         # heuristic function
         start_time = time.time()
         heuristics_c_flat: List[float] = self.heur_fn(states_c_flat, goals_c_flat)
+        assert len(heuristics_c_flat) == len(states_c_flat) == len(goals_c_flat), \
+            f"{len(heuristics_c_flat)}, {len(states_c_flat)}, {len(goals_c_flat)}"
         heuristics_c: List[List[float]] = misc_utils.unflatten(heuristics_c_flat, split_idxs_c)
         self.times.record_time("heur", time.time() - start_time)
 

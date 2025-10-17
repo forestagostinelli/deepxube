@@ -204,6 +204,7 @@ class Update(ABC, Generic[E, N, Inst, P]):
     def set_nnet_par_info(self, nnet_name: str, nnet_par_info: NNetParInfo) -> None:
         assert nnet_name in self.nnet_par_dict.keys(), f"{nnet_name} not in dict"
         assert nnet_name in self.nnet_file_dict.keys(), f"{nnet_name} not in dict"
+        assert nnet_name not in self.nnet_par_info_dict.keys(), f"{nnet_name} already in dict"
         self.nnet_par_info_dict[nnet_name] = nnet_par_info
 
     def add_nnet_par(self, nnet_name: str, nnet_par: NNetPar) -> None:
@@ -223,7 +224,8 @@ class Update(ABC, Generic[E, N, Inst, P]):
                                                                                                                 on_gpu)
 
         # start updater procs
-        updaters: List[Update] = [copy.copy(self) for _ in range(self.up_args.up_procs)]
+        # TODO implement safer copy?
+        updaters: List[Update] = [copy.deepcopy(self) for _ in range(self.up_args.up_procs)]
         for proc_itr, updater in enumerate(updaters):
             for nnet_name in nnet_runner_dict.keys():
                 updater.set_nnet_par_info(nnet_name, nnet_runner_dict[nnet_name][0][proc_itr])
