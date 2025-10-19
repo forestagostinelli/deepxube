@@ -101,7 +101,6 @@ class BWQS(PathFindQ[E, InstanceBWQS], ABC):
             nodes_next_by_inst[inst_idx] = instance.check_closed(nodes_next_by_inst[inst_idx])
         self.times.record_time("check", time.time() - start_time)
 
-        # costs
         start_time = time.time()
         nodeacts_next_by_inst: List[List[NodeQAct]] = []
 
@@ -111,7 +110,10 @@ class BWQS(PathFindQ[E, InstanceBWQS], ABC):
                 for action, q_val in zip(node.actions, node.q_values, strict=True):
                     nodeacts_next.append(NodeQAct(node, action, q_val))
             nodeacts_next_by_inst.append(nodeacts_next)
+        self.times.record_time("nodeacts", time.time() - start_time)
 
+        # costs
+        start_time = time.time()
         nodeacts_next_flat: List[NodeQAct] = misc_utils.flatten(nodeacts_next_by_inst)[0]
         weights, split_idxs = misc_utils.flatten([[instance.weight] * len(nodeacts_next)
                                                   for instance, nodeacts_next in
@@ -120,7 +122,6 @@ class BWQS(PathFindQ[E, InstanceBWQS], ABC):
         heuristics: List[float] = [nodeact.q_val for nodeact in nodeacts_next_flat]
         costs_flat: List[float] = ((np.array(weights) * np.array(path_costs)) + np.array(heuristics)).tolist()
         costs_by_inst: List[List[float]] = misc_utils.unflatten(costs_flat, split_idxs)
-
         self.times.record_time("cost", time.time() - start_time)
 
         # push to open

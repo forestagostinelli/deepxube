@@ -5,32 +5,11 @@ import numpy as np
 from numpy.typing import NDArray
 
 from deepxube.base.env import State, Goal, Action
-from deepxube.nnet.nnet_utils import NNetParInfo, nnet_batched
+from deepxube.nnet.nnet_utils import NNetParInfo, nnet_batched, NNetFn, NNetPar
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd
 from deepxube.utils import misc_utils
 import torch
 from torch import nn, Tensor
-
-
-NNetCallable = Callable[..., Any]
-
-
-NNetFn = TypeVar('NNetFn', bound=NNetCallable)
-
-
-class NNetPar(ABC, Generic[NNetFn]):
-    @abstractmethod
-    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device,
-                    update_num: Optional[int]) -> NNetFn:
-        pass
-
-    @abstractmethod
-    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> NNetFn:
-        pass
-
-    @abstractmethod
-    def get_nnet(self) -> nn.Module:
-        pass
 
 
 class HeurNNetModule(nn.Module, ABC):

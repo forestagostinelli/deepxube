@@ -5,7 +5,8 @@ import torch.nn as nn
 from torch.multiprocessing import Queue, get_context
 
 from deepxube.base.env import Env, EnvEnumerableActs, EnvStartGoalRW, State, Goal, Action
-from deepxube.base.heuristic import NNetPar, HeurNNetV, NNetCallable, HeurNNetQ
+from deepxube.base.heuristic import HeurNNetV, HeurNNetQ
+from deepxube.nnet.nnet_utils import NNetCallable, NNetPar
 from deepxube.nnet import nnet_utils
 from deepxube.utils.misc_utils import flatten
 import numpy as np

@@ -1,3 +1,7 @@
+### USAGE:
+# python run_train_heur.py --heur_type V --step_max 100 --nnet_dir models/cube3_v/ --batch_size 10000 --up_itrs 1000 --up_gen_itrs 1000 --up_procs 48 --up_search_itrs 200
+# python run_train_heur.py --heur_type Q --step_max 100 --nnet_dir models/cube3_q/ --batch_size 10000 --up_itrs 1000 --up_gen_itrs 1000 --up_procs 48 --up_search_itrs 200
+# python run_train_heur.py --heur_type QIn --step_max 100 --nnet_dir models/cube3_qin/ --batch_size 10000 --up_itrs 1000 --up_gen_itrs 1000 --up_procs 48 --up_search_itrs 200
 from argparse import ArgumentParser
 from deepxube.training.train_utils import TrainArgs
 from deepxube.training.train_heur import train
@@ -25,7 +29,7 @@ def main():
     parser.add_argument('--up_gen_itrs', type=int, default=1000, help="")
     parser.add_argument('--up_procs', type=int, default=1, help="")
     parser.add_argument('--up_search_itrs', type=int, default=200, help="")
-    parser.add_argument('--up_batch_size', type=int, default=1000, help="")
+    parser.add_argument('--up_batch_size', type=int, default=100, help="")
     parser.add_argument('--up_nnet_batch_size', type=int, default=10000, help="")
 
     parser.add_argument('--temp', type=float, default=1.0, help="")
@@ -44,34 +48,9 @@ def main():
         updater = UpdateHeurBWASEnum(env, up_args, Cube3NNetParV())
     elif args.heur_type.upper() == "Q":
         from deepxube.implementations.cube3 import Cube3NNetParQFixOut
-        """
-        from deepxube.nnet.nnet_utils import get_device, to_pytorch_input
-        device = get_device()[0]
-        heur_nnet = Cube3NNetParQFix()
-        nnet = heur_nnet.get_nnet()
-        nnet.train()
-        states, goals = env.get_start_goal_pairs([0, 10, 3, 4, 5])
-        actions = env.get_state_actions(states)
-        inputs_nnet = heur_nnet.to_np(states, goals, actions)
-        inputs_nnet_t = to_pytorch_input(inputs_nnet, device)
-        out = nnet(inputs_nnet_t)
-        breakpoint()
-        """
         updater = UpdateHeurBWQSEnum(env, up_args, Cube3NNetParQFixOut())
     elif args.heur_type.upper() == "QIN":
         from deepxube.implementations.cube3 import Cube3NNetParQIn
-        """
-        from deepxube.nnet.nnet_utils import get_device, to_pytorch_input
-        device = get_device()[0]
-        heur_nnet = Cube3NNetParQIn()
-        nnet = heur_nnet.get_nnet()
-        nnet.train()
-        states, goals = env.get_start_goal_pairs([0, 10, 3, 4, 5])
-        inputs_nnet = heur_nnet.to_np(states, goals, [[x] for x in env.get_state_action_rand(states)])
-        inputs_nnet_t = to_pytorch_input(inputs_nnet, device)
-        out = nnet(inputs_nnet_t)
-        breakpoint()
-        """
         updater = UpdateHeurBWQSEnum(env, up_args, Cube3NNetParQIn())
     else:
         raise ValueError(f"Unknown heur type {args.heur_type}")

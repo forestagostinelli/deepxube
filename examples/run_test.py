@@ -1,5 +1,5 @@
 from deepxube.base.env import Env
-from deepxube.base.heuristic import NNetPar
+from deepxube.nnet.nnet_utils import NNetPar
 from deepxube.tests.test_env import test
 from argparse import ArgumentParser
 

@@ -1,4 +1,5 @@
-from typing import List, Tuple, Optional, Any, Callable
+from abc import ABC, abstractmethod
+from typing import List, Tuple, Optional, Any, Callable, TypeVar, Generic
 from dataclasses import dataclass
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd
 import numpy as np
@@ -177,3 +178,22 @@ def stop_nnet_runners(nnet_fn_procs: List[BaseProcess], nnet_par_infos: List[NNe
 
     for heur_fn_proc in nnet_fn_procs:
         heur_fn_proc.join()
+
+
+NNetCallable = Callable[..., Any]
+NNetFn = TypeVar('NNetFn', bound=NNetCallable)
+
+
+class NNetPar(ABC, Generic[NNetFn]):
+    @abstractmethod
+    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device,
+                    update_num: Optional[int]) -> NNetFn:
+        pass
+
+    @abstractmethod
+    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> NNetFn:
+        pass
+
+    @abstractmethod
+    def get_nnet(self) -> nn.Module:
+        pass

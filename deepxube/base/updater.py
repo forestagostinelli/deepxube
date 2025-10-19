@@ -10,9 +10,9 @@ import numpy as np
 import torch
 from numpy.typing import NDArray
 
-from deepxube.nnet.nnet_utils import NNetParInfo
+from deepxube.nnet.nnet_utils import NNetParInfo, NNetCallable, NNetPar
 from deepxube.base.env import Env, State, Goal, Action, EnvEnumerableActs
-from deepxube.base.heuristic import NNetPar, HeurNNet, NNetCallable, HeurFnV, HeurFnQ, HeurNNetV, HeurNNetQ
+from deepxube.base.heuristic import HeurNNet, HeurFnV, HeurFnQ, HeurNNetV, HeurNNetQ
 from deepxube.base.pathfinding import PathFind, PathFindV, PathFindQ, Instance, Node, NodeV, NodeQ, NodeQAct
 from deepxube.nnet import nnet_utils
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, print_pathfindperf
@@ -189,6 +189,9 @@ class Update(ABC, Generic[E, N, Inst, P]):
         self.update_num: Optional[int] = None
         self.nnet_par_dict: Dict[str, NNetPar] = dict()
         self.nnet_file_dict: Dict[str, str] = dict()
+        for nnet_name, nnet_file, nnet_par in env.get_nnet_pars():
+            self.add_nnet_par(nnet_name, nnet_par)
+            self.set_nnet_file(nnet_name, nnet_file)
         self.nnet_par_info_dict: Dict[str, NNetParInfo] = dict()
         self.nnet_fn_dict: Dict[str, NNetCallable] = dict()
 
@@ -210,6 +213,10 @@ class Update(ABC, Generic[E, N, Inst, P]):
     def add_nnet_par(self, nnet_name: str, nnet_par: NNetPar) -> None:
         assert nnet_name not in self.nnet_par_dict.keys(), f"{nnet_name} already in dict"
         self.nnet_par_dict[nnet_name] = nnet_par
+
+    def set_nnet_file(self, nnet_name: str, nnet_file: str) -> None:
+        assert nnet_name in self.nnet_par_dict.keys(), f"{nnet_name} should already be in dict, but it is not"
+        self.nnet_file_dict[nnet_name] = nnet_file
 
     def get_update_data(self, step_max: int, step_probs: List[int], num_gen: int, device: torch.device, on_gpu: bool,
                         update_num: int) -> Tuple[List[List[NDArray]], Dict[int, PathFindPerf]]:
@@ -254,6 +261,7 @@ class Update(ABC, Generic[E, N, Inst, P]):
             nnet: NNetPar = self.nnet_par_dict[nnet_name]
             nnet_par_info: NNetParInfo = self.nnet_par_info_dict[nnet_name]
             self.nnet_fn_dict[nnet_name] = nnet.get_nnet_par_fn(nnet_par_info, self.update_num)
+        self.env.set_nnet_fns(self.nnet_fn_dict)
 
     @abstractmethod
     def get_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
@@ -349,7 +357,7 @@ class UpdateHasHeur(Update[E, N, Inst, P], Generic[E, N, Inst, P, HNet, H]):
         self.add_nnet_par(self.heur_name(), heur_nnet)
 
     def set_heur_file(self, heur_file: str) -> None:
-        self.nnet_file_dict[self.heur_name()] = heur_file
+        self.set_nnet_file(self.heur_name(), heur_file)
 
     def get_heur_nnet(self) -> HNet:
         return cast(HNet, self.nnet_par_dict[self.heur_name()])

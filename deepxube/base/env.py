@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Optional, Set, TypeVar, Generic, Protocol, runtime_checkable, Union
+from typing import List, Tuple, Optional, Set, TypeVar, Generic, Protocol, runtime_checkable, Union, Dict
 import numpy as np
 from clingo.solving import Model as ModelCl
 
 from deepxube.logic.logic_objects import Atom, Model
 from deepxube.utils import misc_utils
+from deepxube.nnet.nnet_utils import NNetPar, NNetCallable
 from deepxube.utils.timing_utils import Times
 import random
 import time
@@ -58,6 +59,9 @@ G = TypeVar('G', bound=Goal)
 
 
 class Env(ABC, Generic[S, A, G]):
+    def __init__(self) -> None:
+        self.nnet_pars: List[Tuple[str, str, NNetPar]] = []
+
     @abstractmethod
     def get_start_goal_pairs(self, num_steps_l: List[int],
                              times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
@@ -97,6 +101,12 @@ class Env(ABC, Generic[S, A, G]):
         @return: List of booleans where the element at index i corresponds to whether or not the
         state at index i is a member of the set of goal states represented by the goal at index i
         """
+        pass
+
+    def get_nnet_pars(self) -> List[Tuple[str, str, NNetPar]]:
+        return self.nnet_pars
+
+    def set_nnet_fns(self, nnet_fn_dict: Dict[str, NNetCallable]) -> None:
         pass
 
     def next_state_rand(self, states: List[S]) -> Tuple[List[S], List[float]]:
