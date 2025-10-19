@@ -5,8 +5,8 @@ import torch.nn as nn
 from torch.multiprocessing import Queue, get_context
 
 from deepxube.base.env import Env, EnvEnumerableActs, EnvStartGoalRW, State, Goal, Action
-from deepxube.base.heuristic import HeurNNetV, HeurNNetQ
-from deepxube.nnet.nnet_utils import NNetCallable, NNetPar
+from deepxube.base.heuristic import HeurNNet, HeurNNetV, HeurNNetQ
+from deepxube.nnet.nnet_utils import NNetCallable
 from deepxube.nnet import nnet_utils
 from deepxube.utils.misc_utils import flatten
 import numpy as np
@@ -118,7 +118,7 @@ def test_envenumerableacts(env: EnvEnumerableActs, states: List[State]) -> None:
           f"in %s seconds (%.2f/second)" % (len(states), elapsed_time, states_per_sec))
 
 
-def init_nnet(heur_nnet: NNetPar) -> Tuple[nn.Module, torch.device]:
+def init_nnet(heur_nnet: HeurNNet) -> Tuple[nn.Module, torch.device]:
     on_gpu: bool
     device: torch.device
     device, devices, on_gpu = nnet_utils.get_device()
@@ -132,7 +132,7 @@ def init_nnet(heur_nnet: NNetPar) -> Tuple[nn.Module, torch.device]:
     return nnet, device
 
 
-def heur_fn_out(heur_nnet: NNetPar, heur_fn: NNetCallable, states: List[State], goals: List[Goal],
+def heur_fn_out(heur_nnet: HeurNNet, heur_fn: NNetCallable, states: List[State], goals: List[Goal],
                 actions: List[Action]) -> None:
     if isinstance(heur_nnet, HeurNNetV):
         heur_fn(states, goals)
@@ -142,7 +142,7 @@ def heur_fn_out(heur_nnet: NNetPar, heur_fn: NNetCallable, states: List[State], 
         raise ValueError(f"Unknown heur fn class {heur_fn}")
 
 
-def test_heur_nnet(heur_nnet: NNetPar, states: List[State], goals: List[Goal], actions: List[Action]) -> None:
+def test_heur_nnet(heur_nnet: HeurNNet, states: List[State], goals: List[Goal], actions: List[Action]) -> None:
     # nnet format
     start_time = time.time()
     if isinstance(heur_nnet, HeurNNetV):
@@ -171,7 +171,7 @@ def test_heur_nnet(heur_nnet: NNetPar, states: List[State], goals: List[Goal], a
     print("Computed heuristic for %i states in %s seconds (%.2f/second)" % (len(states), nnet_time, states_per_sec))
 
 
-def test(env: Env, heur_nnet: NNetPar, num_states: int, step_max: int) -> None:
+def test(env: Env, heur_nnet: HeurNNet, num_states: int, step_max: int) -> None:
     states, goals, actions = test_env(env, num_states, step_max)
     if isinstance(env, EnvStartGoalRW):
         test_envstartgoalrw(env, num_states)

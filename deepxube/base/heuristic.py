@@ -5,8 +5,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from deepxube.base.env import State, Goal, Action
-from deepxube.nnet.nnet_utils import NNetParInfo, nnet_batched, NNetFn, NNetPar
-from deepxube.utils.data_utils import SharedNDArray, np_to_shnd
+from deepxube.nnet.nnet_utils import NNetParInfo, nnet_batched, NNetFn, NNetPar, get_nnet_par_out
 from deepxube.utils import misc_utils
 import torch
 from torch import nn, Tensor
@@ -22,22 +21,6 @@ class HeurNNet(NNetPar[NNetFn]):
     @abstractmethod
     def get_nnet(self) -> HeurNNetModule:
         pass
-
-
-def get_nnet_par_out(inputs_nnet: List[NDArray], nnet_par_info: NNetParInfo) -> NDArray:
-    inputs_nnet_shm: List[SharedNDArray] = [np_to_shnd(inputs_nnet_i)
-                                            for input_idx, inputs_nnet_i in enumerate(inputs_nnet)]
-
-    nnet_par_info.nnet_i_q.put((nnet_par_info.proc_id, inputs_nnet_shm))
-
-    out_shm: SharedNDArray = nnet_par_info.nnet_o_q.get()
-    out: NDArray = out_shm.array.copy()
-
-    for arr_shm in inputs_nnet_shm + [out_shm]:
-        arr_shm.close()
-        arr_shm.unlink()
-
-    return out
 
 
 S = TypeVar('S', bound=State)
