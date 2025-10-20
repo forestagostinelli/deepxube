@@ -36,5 +36,9 @@ class UpdateHeurBWQSEnum(UpdateHeurQEnum[InstanceBWQS, BWQSEnum]):
     def _get_instances(self, pathfind: BWQSEnum, steps_gen: List[int], inst_infos: List[Any],
                        times: Times) -> List[InstanceBWQS]:
         root_nodes: List[NodeQ] = self._get_root_nodes(pathfind, steps_gen, times)
-        return [InstanceBWQS(root_node, 1, 1.0, self.eps, inst_info) for root_node, inst_info in
+        eps: float = self.eps
+        if self.update_num == 0:
+            eps = 1.0
+
+        return [InstanceBWQS(root_node, 1, 1.0, eps, inst_info) for root_node, inst_info in
                 zip(root_nodes, inst_infos, strict=True)]
