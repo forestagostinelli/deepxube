@@ -184,7 +184,7 @@ class PathFindV(PathFind[E, NodeV, I]):
         self.heur_fn: HeurFnV = heur_fn
 
     @abstractmethod
-    def step(self) -> List[NodeV]:
+    def step(self, verbose: bool = False) -> List[NodeV]:
         pass
 
     def expand_nodes(self, instances: List[I], nodes_by_inst: List[List[NodeV]]) -> List[List[NodeV]]:
@@ -336,7 +336,7 @@ class PathFindQ(PathFind[E, NodeQ, I]):
         self.heur_fn: HeurFnQ = heur_fn
 
     @abstractmethod
-    def step(self) -> List[NodeQAct]:
+    def step(self, verbose: bool = False) -> List[NodeQAct]:
         pass
 
     def get_next_nodes(self, instances: List[I], node_acts_by_inst: List[List[NodeQAct]]) -> List[List[NodeQ]]:

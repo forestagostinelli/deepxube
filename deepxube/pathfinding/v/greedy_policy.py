@@ -16,7 +16,7 @@ class InstanceGrV(Instance[NodeV]):
 
 
 class Greedy(PathFindVExpandEnum[InstanceGrV]):
-    def step(self) -> List[NodeV]:
+    def step(self, verbose: bool = False) -> List[NodeV]:
         # get unsolved instances
         instances: List[InstanceGrV] = self._get_unsolved_instances()
         if len(instances) == 0:
