@@ -32,7 +32,7 @@ def main():
     parser.add_argument('--up_batch_size', type=int, default=100, help="")
     parser.add_argument('--up_nnet_batch_size', type=int, default=10000, help="")
 
-    parser.add_argument('--temp', type=float, default=1.0, help="")
+    parser.add_argument('--eps', type=float, default=0.1, help="")
 
     # other
     parser.add_argument('--rb', type=int, default=1, help="")
@@ -48,10 +48,10 @@ def main():
         updater = UpdateHeurBWASEnum(env, up_args, Cube3NNetParV())
     elif args.heur_type.upper() == "Q":
         from deepxube.implementations.cube3 import Cube3NNetParQFixOut
-        updater = UpdateHeurBWQSEnum(env, up_args, Cube3NNetParQFixOut())
+        updater = UpdateHeurBWQSEnum(env, up_args, Cube3NNetParQFixOut(), args.eps)
     elif args.heur_type.upper() == "QIN":
         from deepxube.implementations.cube3 import Cube3NNetParQIn
-        updater = UpdateHeurBWQSEnum(env, up_args, Cube3NNetParQIn())
+        updater = UpdateHeurBWQSEnum(env, up_args, Cube3NNetParQIn(), args.eps)
     else:
         raise ValueError(f"Unknown heur type {args.heur_type}")
 
