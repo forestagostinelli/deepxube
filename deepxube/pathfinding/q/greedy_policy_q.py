@@ -71,8 +71,6 @@ class GreedyPolicyQ(PathFindQ[E, InstanceGrPolQ], ABC):
             assert len(nodes_next) == 1
             instance.curr_node = nodes_next[0]
 
-        self.times.record_time("", time.time() - start_time)
-
         self.itr += 1
         for instance in instances:
             instance.itr += 1
