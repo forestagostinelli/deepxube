@@ -20,6 +20,7 @@ class Greedy(PathFindVExpandEnum[InstanceGrV]):
         # get unsolved instances
         instances: List[InstanceGrV] = self._get_unsolved_instances()
         if len(instances) == 0:
+            self.itr += 1  # TODO make more elegant
             return []
 
         nodes_curr: List[NodeV] = [inst.curr_node for inst in instances]

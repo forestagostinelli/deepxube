@@ -4,6 +4,7 @@ from deepxube.base.env import Env, EnvEnumerableActs
 from deepxube.base.heuristic import HeurNNetV, HeurNNetQ
 from deepxube.base.pathfinding import NodeV, NodeQ
 from deepxube.base.updater import UpdateHeurV, UpdateHeurQEnum, UpArgs
+from deepxube.pathfinding.q.greedy_policy_q import InstanceGrPolQ, GreedyPolicyQEnum
 from deepxube.pathfinding.v.bwas import BWASEnum, InstanceBWAS
 from deepxube.pathfinding.v.step_len_supervised_v import StepLenSupV, InstanceStepLenSup
 from deepxube.utils.timing_utils import Times
@@ -54,4 +55,22 @@ class UpdateHeurBWQSEnum(UpdateHeurQEnum[InstanceBWQS, BWQSEnum]):
         root_nodes: List[NodeQ] = self._get_root_nodes(pathfind, steps_gen, times)
 
         return [InstanceBWQS(root_node, 1, 1.0, self.eps, inst_info) for root_node, inst_info in
+                zip(root_nodes, inst_infos, strict=True)]
+
+
+class UpdateHeurGrPolEnum(UpdateHeurQEnum[InstanceGrPolQ, GreedyPolicyQEnum]):
+    def __init__(self, env: EnvEnumerableActs, up_args: UpArgs, heur_nnet: HeurNNetQ, temp: float, eps: float):
+        super().__init__(env, up_args)
+        self.set_heur_nnet(heur_nnet)
+        self.temp: float = temp
+        self.eps: float = eps
+
+    def get_pathfind(self) -> GreedyPolicyQEnum:
+        return GreedyPolicyQEnum(self.env, self.get_heur_fn())
+
+    def _get_instances(self, pathfind: GreedyPolicyQEnum, steps_gen: List[int], inst_infos: List[Any],
+                       times: Times) -> List[InstanceGrPolQ]:
+        root_nodes: List[NodeQ] = self._get_root_nodes(pathfind, steps_gen, times)
+
+        return [InstanceGrPolQ(root_node, self.temp, self.eps, inst_info) for root_node, inst_info in
                 zip(root_nodes, inst_infos, strict=True)]

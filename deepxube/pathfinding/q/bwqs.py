@@ -1,8 +1,8 @@
 import random
 from abc import ABC
 from typing import List, Tuple, Dict, Optional, Any, TypeVar
-from deepxube.base.env import Env, EnvEnumerableActs, State, Goal, Action
-from deepxube.base.pathfinding import Instance, NodeQ, PathFindQ, NodeQAct
+from deepxube.base.env import Env, EnvEnumerableActs, State
+from deepxube.base.pathfinding import Instance, NodeQ, PathFindQ, NodeQAct, PathFindQExpandEnum
 from deepxube.utils import misc_utils
 from heapq import heappush, heappop, heapify
 import numpy as np
@@ -98,6 +98,12 @@ class BWQS(PathFindQ[E, InstanceBWQS], ABC):
         nodes_next_by_inst: List[List[NodeQ]] = nodes_next_itr0 + nodes_next_itrgt0
         # nodes_next_flat: List[NodeQ] = misc_utils.flatten(nodes_next_by_inst)[0]
 
+        # is solved
+        start_time = time.time()
+        nodes_next_flat: List[NodeQ] = misc_utils.flatten(nodes_next_by_inst)[0]
+        self.set_is_solved(nodes_next_flat)
+        self.times.record_time("is_solved", time.time() - start_time)
+
         # ub
         start_time = time.time()
         for instance, nodes_next in zip(instances, nodes_next_by_inst, strict=True):
@@ -168,8 +174,5 @@ class BWQS(PathFindQ[E, InstanceBWQS], ABC):
         return nodesacts_popped_flat
 
 
-class BWQSEnum(BWQS[EnvEnumerableActs]):
-    def get_qvals_acts(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[float]], List[List[Action]]]:
-        actions_l: List[List[Action]] = self.env.get_state_actions(states)
-        qvals_l: List[List[float]] = self.heur_fn(states, goals, actions_l)
-        return qvals_l, actions_l
+class BWQSEnum(BWQS[EnvEnumerableActs], PathFindQExpandEnum[InstanceBWQS]):
+    pass

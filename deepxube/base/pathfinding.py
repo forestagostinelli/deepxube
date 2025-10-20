@@ -302,6 +302,7 @@ class NodeQ(Node):
         self.bellman_backup_val: Optional[float] = None
 
     def backup(self) -> float:
+        assert self.is_solved is not None
         if self.is_solved:
             self.bellman_backup_val = 0.0
         else:
@@ -314,6 +315,7 @@ class NodeQ(Node):
         return self.bellman_backup_val
 
     def backup_act(self, action: Action) -> float:
+        assert self.is_solved is not None
         if self.is_solved:
             return 0.0
         else:
@@ -360,9 +362,9 @@ class PathFindQ(PathFind[E, NodeQ, I]):
         self.times.record_time("next_state", time.time() - start_time)
 
         # is solved
-        start_time = time.time()
-        is_solved_next: List[bool] = self.env.is_solved(states_next, goals)
-        self.times.record_time("is_solved", time.time() - start_time)
+        # start_time = time.time()
+        # is_solved_next: List[bool] = self.env.is_solved(states_next, goals)
+        # self.times.record_time("is_solved", time.time() - start_time)
 
         # heuristic function
         start_time = time.time()
@@ -375,7 +377,7 @@ class PathFindQ(PathFind[E, NodeQ, I]):
         nodes_next: List[NodeQ] = []
         for idx in range(len(node_acts)):
             node_next: NodeQ = NodeQ(states_next[idx], goals[idx], path_costs_next[idx], heurs_next[idx],
-                                     is_solved_next[idx], actions[idx], tcs[idx], nodes[idx], actions_next_l[idx],
+                                     None, actions[idx], tcs[idx], nodes[idx], actions_next_l[idx],
                                      q_vals_next[idx])
             nodes[idx].act_dict[actions[idx]] = (tcs[idx], node_next)
             nodes_next.append(node_next)
@@ -405,11 +407,16 @@ class PathFindQ(PathFind[E, NodeQ, I]):
             heuristics = [0.0 for _ in states]
 
         root_nodes: List[NodeQ] = []
-        is_solved_l: List[bool] = self.env.is_solved(states, goals)
-        for state, goal, heuristic, is_solved, actions, qvals in zip(states, goals, heuristics, is_solved_l,
-                                                                     actions_l, qvals_l, strict=True):
-            root_node: NodeQ = NodeQ(state, goal, 0.0, heuristic, is_solved, None, None, None, actions, qvals)
+        for state, goal, heuristic, actions, qvals in zip(states, goals, heuristics, actions_l, qvals_l, strict=True):
+            root_node: NodeQ = NodeQ(state, goal, 0.0, heuristic, None, None, None, None, actions, qvals)
             root_nodes.append(root_node)
         self.times.record_time("root", time.time() - start_time)
 
         return root_nodes
+
+
+class PathFindQExpandEnum(PathFindQ[EnvEnumerableActs, I], ABC):
+    def get_qvals_acts(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[float]], List[List[Action]]]:
+        actions_l: List[List[Action]] = self.env.get_state_actions(states)
+        qvals_l: List[List[float]] = self.heur_fn(states, goals, actions_l)
+        return qvals_l, actions_l

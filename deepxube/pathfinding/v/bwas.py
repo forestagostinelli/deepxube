@@ -69,13 +69,16 @@ E = TypeVar('E', bound=Env)
 class BWAS(PathFindV[E, InstanceBWAS], ABC):
     def step(self, verbose: bool = False) -> List[NodeV]:
         instances: List[InstanceBWAS] = [instance for instance in self.instances if not instance.finished()]
+        if len(instances) == 0:
+            self.itr += 1  # TODO make more elegant
+            return []
 
         # pop from open
         start_time = time.time()
         nodes_popped_by_inst: List[List[NodeV]] = [instance.pop_from_open() for instance in instances]
         self.times.record_time("pop", time.time() - start_time)
 
-        # check is solved
+        # is solved
         start_time = time.time()
         nodes_popped_flat: List[NodeV] = misc_utils.flatten(nodes_popped_by_inst)[0]
         self.set_is_solved(nodes_popped_flat)
@@ -122,7 +125,7 @@ class BWAS(PathFindV[E, InstanceBWAS], ABC):
                 max_heur = float(np.max(heuristics))
                 max_heur_pc = float(path_costs[np.argmax(heuristics)])
                 per_has_soln: float = 100.0 * float(np.mean([inst.has_soln() for inst in instances]))
-                per_finished: float = 100.0 * float(np.mean([inst.finished for inst in instances]))
+                per_finished: float = 100.0 * float(np.mean([inst.finished() for inst in instances]))
 
                 print(f"Itr: %i, Added to OPEN - Min/Max Heur(PathCost): "
                       f"%.2f(%.2f)/%.2f(%.2f), %%has_soln: {per_has_soln}, "
