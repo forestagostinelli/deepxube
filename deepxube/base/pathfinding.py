@@ -362,9 +362,9 @@ class PathFindQ(PathFind[E, NodeQ, I]):
         self.times.record_time("next_state", time.time() - start_time)
 
         # is solved
-        start_time = time.time()
-        is_solved_next: List[bool] = self.env.is_solved(states_next, goals)
-        self.times.record_time("is_solved", time.time() - start_time)
+        # start_time = time.time()
+        # is_solved_next: List[bool] = self.env.is_solved(states_next, goals)
+        # self.times.record_time("is_solved", time.time() - start_time)
 
         # heuristic function
         start_time = time.time()
@@ -407,8 +407,7 @@ class PathFindQ(PathFind[E, NodeQ, I]):
             heuristics = [0.0 for _ in states]
 
         root_nodes: List[NodeQ] = []
-        is_solved_l: List[bool] = self.env.is_solved(states, goals)
-        for state, goal, heuristic, actions, is_solved, qvals in zip(states, goals, heuristics, actions_l, is_solved_l, qvals_l, strict=True):
+        for state, goal, heuristic, actions, qvals in zip(states, goals, heuristics, actions_l, qvals_l, strict=True):
             root_node: NodeQ = NodeQ(state, goal, 0.0, heuristic, None, None, None, None, actions, qvals)
             root_nodes.append(root_node)
         self.times.record_time("root", time.time() - start_time)
