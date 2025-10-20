@@ -10,7 +10,7 @@ from deepxube.base.heuristic import HeurNNetQ
 from deepxube.training.train_utils import TrainArgs
 from deepxube.training.train_heur import train
 from deepxube.base.updater import UpArgs, UpdateHeur
-from deepxube.updater.updaters import UpdateHeurBWASEnum, UpdateHeurBWQSEnum, UpdateHeurGrPolEnum, UpdateHeurStepLenSup
+from deepxube.updater.updaters import UpdateHeurBWASEnum, UpdateHeurBWQSEnum, UpdateHeurGrPolQEnum, UpdateHeurStepLenSup
 from deepxube.implementations.cube3 import Cube3
 
 
@@ -68,7 +68,7 @@ def main():
             raise ValueError("")
 
         if args.greedy:
-            updater = UpdateHeurGrPolEnum(env, up_args, nnet_par, args.temp, args.eps)
+            updater = UpdateHeurGrPolQEnum(env, up_args, nnet_par, args.temp, args.eps)
         else:
             updater = UpdateHeurBWQSEnum(env, up_args, nnet_par, args.eps)
     else:

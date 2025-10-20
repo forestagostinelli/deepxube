@@ -58,7 +58,7 @@ class UpdateHeurBWQSEnum(UpdateHeurQEnum[InstanceBWQS, BWQSEnum]):
                 zip(root_nodes, inst_infos, strict=True)]
 
 
-class UpdateHeurGrPolEnum(UpdateHeurQEnum[InstanceGrPolQ, GreedyPolicyQEnum]):
+class UpdateHeurGrPolQEnum(UpdateHeurQEnum[InstanceGrPolQ, GreedyPolicyQEnum]):
     def __init__(self, env: EnvEnumerableActs, up_args: UpArgs, heur_nnet: HeurNNetQ, temp: float, eps: float):
         super().__init__(env, up_args)
         self.set_heur_nnet(heur_nnet)
