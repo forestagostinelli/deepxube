@@ -29,7 +29,7 @@ class InstanceGrPolQ(Instance[NodeQ]):
 class GreedyPolicyQ(PathFindQ[E, InstanceGrPolQ], ABC):
     def step(self, verbose: bool = False) -> List[NodeQAct]:
         # get unsolved instances
-        instances: List[InstanceGrPolQ] = self._get_unsolved_instances()
+        instances: List[InstanceGrPolQ] = [instance for instance in self.instances if not instance.finished()]
         if len(instances) == 0:
             self.itr += 1  # TODO make more elegant
             return []
@@ -78,10 +78,6 @@ class GreedyPolicyQ(PathFindQ[E, InstanceGrPolQ], ABC):
             instance.itr += 1
 
         return nodeq_acts
-
-    def _get_unsolved_instances(self) -> List[InstanceGrPolQ]:
-        instances_unsolved: List[InstanceGrPolQ] = [instance for instance in self.instances if not instance.has_soln()]
-        return instances_unsolved
 
 
 class GreedyPolicyQEnum(GreedyPolicyQ[EnvEnumerableActs], PathFindQExpandEnum[InstanceGrPolQ]):
