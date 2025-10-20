@@ -1,14 +1,14 @@
 from typing import List, Any
-from deepxube.base.pathfinding import Instance, NodeV, PathFindVExpandEnum
+from deepxube.base.pathfinding import Instance, NodeQ, PathFindVExpandEnum
 import numpy as np
 import random
 import time
 
 
-class InstanceGrV(Instance[NodeV]):
-    def __init__(self, root_node: NodeV, eps: float, inst_info: Any):
+class InstanceGrV(Instance[NodeQ]):
+    def __init__(self, root_node: NodeQ, eps: float, inst_info: Any):
         super().__init__(root_node, inst_info)
-        self.curr_node: NodeV = self.root_node
+        self.curr_node: NodeQ = self.root_node
         self.eps: float = eps
 
     def finished(self) -> bool:

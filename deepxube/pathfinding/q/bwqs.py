@@ -167,16 +167,6 @@ class BWQS(PathFindQ[E, InstanceBWQS], ABC):
         # nodes_popped_flat: List[NodeQ] = [nodeact_popped.node for nodeact_popped in nodesacts_popped_flat]
         return nodesacts_popped_flat
 
-    def remove_finished_instances(self, itr_max: int) -> List[InstanceBWQS]:
-        def remove_instance_fn(inst_in: InstanceBWQS) -> bool:
-            if inst_in.finished():
-                return True
-            if inst_in.itr >= itr_max:
-                return True
-            return False
-
-        return self.remove_instances(remove_instance_fn)
-
 
 class BWQSEnum(BWQS[EnvEnumerableActs]):
     def get_qvals_acts(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[float]], List[List[Action]]]:

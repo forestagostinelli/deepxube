@@ -76,9 +76,15 @@ class PathFind(ABC, Generic[E, N, I]):
     def step(self) -> Any:
         pass
 
-    @abstractmethod
     def remove_finished_instances(self, itr_max: int) -> List[I]:
-        pass
+        def remove_instance_fn(inst_in: Instance) -> bool:
+            if inst_in.finished():
+                return True
+            if inst_in.itr >= itr_max:
+                return True
+            return False
+
+        return self.remove_instances(remove_instance_fn)
 
     def remove_instances(self, test_rem: Callable[[I], bool]) -> List[I]:
         """ Remove instances
@@ -148,6 +154,7 @@ class NodeV(Node):
         self.bellman_backup_val: Optional[float] = None
 
     def backup(self) -> float:
+        assert self.is_solved is not None
         if self.is_solved:
             self.bellman_backup_val = 0.0
         else:
@@ -260,9 +267,8 @@ class PathFindV(PathFind[E, NodeV, I]):
             heuristics = [0.0 for _ in states]
 
         root_nodes: List[NodeV] = []
-        is_solved_l: List[bool] = self.env.is_solved(states, goals)
-        for state, goal, heuristic, is_solved in zip(states, goals, heuristics, is_solved_l, strict=True):
-            root_node: NodeV = NodeV(state, goal, 0.0, heuristic, is_solved, None, None, None)
+        for state, goal, heuristic in zip(states, goals, heuristics, strict=True):
+            root_node: NodeV = NodeV(state, goal, 0.0, heuristic, None, None, None, None)
             root_nodes.append(root_node)
         self.times.record_time("root", time.time() - start_time)
 

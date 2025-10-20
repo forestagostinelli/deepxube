@@ -139,16 +139,6 @@ class BWAS(PathFindV[E, InstanceBWAS], ABC):
         # return
         return nodes_popped_flat
 
-    def remove_finished_instances(self, itr_max: int) -> List[InstanceBWAS]:
-        def remove_instance_fn(inst_in: InstanceBWAS) -> bool:
-            if inst_in.finished():
-                return True
-            if inst_in.itr >= itr_max:
-                return True
-            return False
-
-        return self.remove_instances(remove_instance_fn)
-
 
 class BWASEnum(BWAS[EnvEnumerableActs], PathFindVExpandEnum[InstanceBWAS]):
     pass
