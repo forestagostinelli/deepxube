@@ -97,7 +97,7 @@ def ctgs_summary(ctgs_l: List[NDArray], writer: SummaryWriter, itr: int) -> None
     for ctgs in ctgs_l:
         ctgs_min = min(ctgs.min(), ctgs_min)
         ctgs_max = max(ctgs.max(), ctgs_max)
-        ctgs_mean = ctgs.sum()
+        ctgs_mean += ctgs.sum()
         num_tot += ctgs.shape[0]
     ctgs_mean = ctgs_mean/float(num_tot)
 
