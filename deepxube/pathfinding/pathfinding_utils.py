@@ -58,6 +58,28 @@ class PathFindPerf:
         return f"%solved: {per_solved:.2f}, path_costs: {path_cost_ave:.3f}, search_itrs: {search_itrs_ave:.3f}"
 
 
+def get_eq_weighted_perf(step_to_search_perf: Dict[int, PathFindPerf]) -> Tuple[float, float, float]:
+    per_solved_l: List[float] = []
+    path_cost_ave_l: List[float] = []
+    search_itrs_ave_l: List[float] = []
+    for search_perf in step_to_search_perf.values():
+        per_solved_i, path_cost_ave_i, search_itrs_ave_i = search_perf.stats()
+        per_solved_l.append(per_solved_i)
+        if per_solved_i > 0.0:
+            path_cost_ave_l.append(path_cost_ave_i)
+            search_itrs_ave_l.append(search_itrs_ave_i)
+
+    path_costs_ave: float = 0.0
+    search_itrs_ave: float = 0.0
+    if len(path_cost_ave_l) > 0:
+        path_costs_ave = float(np.mean(path_cost_ave_l))
+        search_itrs_ave = float(np.mean(search_itrs_ave_l))
+
+    per_solved_ave: float = float(np.mean(per_solved_l))
+
+    return per_solved_ave, path_costs_ave, search_itrs_ave
+
+
 def print_pathfindperf(step_to_pathfindperf: Dict[int, PathFindPerf]) -> None:
     steps: List[int] = list(step_to_pathfindperf.keys())
     steps = sorted(steps)

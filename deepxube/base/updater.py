@@ -15,7 +15,7 @@ from deepxube.base.env import Env, State, Goal, Action, EnvEnumerableActs
 from deepxube.base.heuristic import HeurNNet, HeurFnV, HeurFnQ, HeurNNetV, HeurNNetQ
 from deepxube.base.pathfinding import PathFind, PathFindV, PathFindQ, Instance, Node, NodeV, NodeQ, NodeQAct
 from deepxube.nnet import nnet_utils
-from deepxube.pathfinding.pathfinding_utils import PathFindPerf, print_pathfindperf
+from deepxube.pathfinding.pathfinding_utils import PathFindPerf, get_eq_weighted_perf, print_pathfindperf
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd
 from deepxube.utils.misc_utils import split_evenly_w_max
 from deepxube.utils.timing_utils import Times
@@ -158,23 +158,7 @@ class Update(ABC, Generic[E, N, Inst, P]):
     @staticmethod
     def print_update_summary(step_to_search_perf: Dict[int, PathFindPerf], writer: SummaryWriter,
                              train_itr: int) -> None:
-        per_solved_l: List[float] = []
-        path_cost_ave_l: List[float] = []
-        search_itrs_ave_l: List[float] = []
-        for search_perf in step_to_search_perf.values():
-            per_solved_i, path_cost_ave_i, search_itrs_ave_i = search_perf.stats()
-            per_solved_l.append(per_solved_i)
-            if per_solved_i > 0.0:
-                path_cost_ave_l.append(path_cost_ave_i)
-                search_itrs_ave_l.append(search_itrs_ave_i)
-
-        path_costs_ave: float = 0.0
-        search_itrs_ave: float = 0.0
-        if len(path_cost_ave_l) > 0:
-            path_costs_ave = float(np.mean(path_cost_ave_l))
-            search_itrs_ave = float(np.mean(search_itrs_ave_l))
-
-        per_solved_ave: float = float(np.mean(per_solved_l))
+        per_solved_ave, path_costs_ave, search_itrs_ave = get_eq_weighted_perf(step_to_search_perf)
         print(f"%solved: {per_solved_ave:.2f}, path_costs: {path_costs_ave:.3f}, "
               f"search_itrs: {search_itrs_ave:.3f} (equally weighted across step numbers)")
         writer.add_scalar("solved (update)", per_solved_ave, train_itr)
