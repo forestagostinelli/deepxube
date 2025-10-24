@@ -58,9 +58,11 @@ class GreedyPolicyQ(PathFindQ[E, InstanceGrPolQ], ABC):
             next_idx: int
             if random.random() < instance.eps:
                 next_idx = random.randrange(0, len(actions))
-            else:
+            elif instance.temp > 0:
                 probs: List[float] = boltzmann((-np.array(q_vals)).tolist(), instance.temp)
                 next_idx = int(np.random.multinomial(1, np.array(probs)).argmax())
+            else:
+                next_idx = int(np.argmin(q_vals))
             nodeq_acts.append(NodeQAct(node, actions[next_idx], q_vals[next_idx]))
 
         self.times.record_time("samp_acts", time.time() - start_time)
