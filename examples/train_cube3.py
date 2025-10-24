@@ -28,6 +28,7 @@ def main():
     parser.add_argument('--lr_d', type=float, default=0.9999993, help="")
     parser.add_argument('--max_itrs', type=int, default=1000000, help="")
     parser.add_argument('--balance', action='store_true', default=False, help="")
+    parser.add_argument('--targ_up_searches', type=int, default=0, help="")
     parser.add_argument('--display', type=int, default=100, help="")
 
     # updater args
@@ -74,7 +75,8 @@ def main():
     else:
         raise ValueError(f"Unknown heur type {args.heur_type}")
 
-    train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.balance, args.display)
+    train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.balance,
+                                      args.targ_up_searches, args.display)
     train(updater, args.step_max, args.nnet_dir, train_args, rb_past_up=args.rb, debug=args.debug)
 
 

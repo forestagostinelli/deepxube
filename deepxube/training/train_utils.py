@@ -23,6 +23,8 @@ class TrainArgs:
     :param lr_d: Learning rate decay for every iteration. Learning rate is decayed according to: lr * (lr_d ^ itr)
     :param max_itrs: Maximum number of iterations
     :param balance_steps: If true, steps are balanced based on solve percentage
+    :param targ_up_searches: If > 0, do a greedy search with updater for minimum given number of searches to test
+    if target network should be updated. Otherwise, it will be updated automatically.
     :param display: Number of iterations to display progress. No display if 0.
     """
     batch_size: int
@@ -30,6 +32,7 @@ class TrainArgs:
     lr_d: float
     max_itrs: int
     balance_steps: bool
+    targ_up_searches: int
     display: bool
 
 
