@@ -176,9 +176,9 @@ class TrainHeur:
         updater_greedy: UpdateHeur
         heur_nnet: HeurNNet = self.updater.get_heur_nnet()
         if isinstance(heur_nnet, HeurNNetV):
-            updater_greedy = UpdateHeurGrPolVEnum(self.updater.env, self.updater.up_args, heur_nnet, 0.0)
+            updater_greedy = UpdateHeurGrPolVEnum(self.updater.env, self.updater.up_args, False, heur_nnet, 0.0)
         elif isinstance(heur_nnet, HeurNNetQ):
-            updater_greedy = UpdateHeurGrPolQEnum(self.updater.env, self.updater.up_args, heur_nnet, 0.0, 0.0)
+            updater_greedy = UpdateHeurGrPolQEnum(self.updater.env, self.updater.up_args, False, heur_nnet, 0.0, 0.0)
         else:
             raise ValueError(f"Unknown heuristic function type {heur_nnet}")
 

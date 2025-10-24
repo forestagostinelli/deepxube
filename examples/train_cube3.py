@@ -56,7 +56,7 @@ def main():
         if args.sup:
             updater = UpdateHeurStepLenSup(env, up_args, Cube3NNetParV())
         else:
-            updater = UpdateHeurBWASEnum(env, up_args, Cube3NNetParV())
+            updater = UpdateHeurBWASEnum(env, up_args, True, Cube3NNetParV())
     elif (args.heur_type.upper() == "Q") or (args.heur_type.upper() == "QIN"):
         nnet_par: HeurNNetQ
         if args.heur_type.upper() == "Q":
@@ -69,9 +69,9 @@ def main():
             raise ValueError("")
 
         if args.greedy:
-            updater = UpdateHeurGrPolQEnum(env, up_args, nnet_par, args.temp, args.eps)
+            updater = UpdateHeurGrPolQEnum(env, up_args, True, nnet_par, args.temp, args.eps)
         else:
-            updater = UpdateHeurBWQSEnum(env, up_args, nnet_par, args.eps)
+            updater = UpdateHeurBWQSEnum(env, up_args, True, nnet_par, args.eps)
     else:
         raise ValueError(f"Unknown heur type {args.heur_type}")
 

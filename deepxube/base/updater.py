@@ -355,7 +355,9 @@ class UpdateHasHeur(Update[E, N, Inst, P], Generic[E, N, Inst, P, HNet, H]):
 
 
 class UpdateHeur(UpdateHasHeur[E, N, Inst, P, HNet, H], ABC):
-    pass
+    def __init__(self, env: E, up_args: UpArgs, ub_heur_solns: bool):
+        super().__init__(env, up_args)
+        self.ub_heur_solns: bool = ub_heur_solns
 
 
 PV = TypeVar('PV', bound=PathFindV)
@@ -382,7 +384,19 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV
         start_time = time.time()
         states: List[State] = [node.state for node in nodes_popped]
         goals: List[Goal] = [node.goal for node in nodes_popped]
-        ctgs_backup: List[float] = [node.backup() for node in nodes_popped]
+
+        for node in nodes_popped:
+            node.backup()
+        if self.ub_heur_solns:
+            for node in nodes_popped:
+                assert node.is_solved is not None
+                if node.is_solved:
+                    node.upper_bound_parent_path(0.0)
+
+        ctgs_backup: List[float] = []
+        for node in nodes_popped:
+            assert node.bellman_backup_val is not None
+            ctgs_backup.append(node.bellman_backup_val)
         times.record_time("backup", time.time() - start_time)
 
         start_time = time.time()
