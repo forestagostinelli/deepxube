@@ -155,6 +155,9 @@ class NodeV(Node):
 
     def backup(self) -> float:
         assert self.is_solved is not None
+        if self.bellman_backup_val is not None:
+            return self.bellman_backup_val  # TODO, could lead to problems for dynamic search algs?
+
         if self.is_solved:
             self.bellman_backup_val = 0.0
         else:
