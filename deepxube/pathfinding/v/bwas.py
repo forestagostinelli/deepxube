@@ -128,7 +128,7 @@ class BWAS(PathFindV[E, InstanceBWAS], ABC):
                 per_finished: float = 100.0 * float(np.mean([inst.finished() for inst in instances]))
 
                 print(f"Itr: %i, Added to OPEN - Min/Max Heur(PathCost): "
-                      f"%.2f(%.2f)/%.2f(%.2f), %%has_soln: {per_has_soln}, "
+                      f"%.2E(%.2f)/%.2E(%.2f), %%has_soln: {per_has_soln}, "
                       f"%%finished: {per_finished}" % (self.itr, min_heur, min_heur_pc, max_heur, max_heur_pc))
 
             print(f"Times - {self.times.get_time_str()}")

@@ -63,6 +63,22 @@ class GreedyPolicyVEnum(PathFindVExpandEnum[InstanceGrPolV]):
 
             instance.curr_node = node_next
             instance.itr += 1
+
+        if verbose:
+            heuristics: List[float] = [node.heuristic for node in nodes_curr]
+            path_costs: List[float] = [node.path_cost for node in nodes_curr]
+            min_heur = float(np.min(heuristics))
+            min_heur_pc = float(path_costs[np.argmin(heuristics)])
+            max_heur = float(np.max(heuristics))
+            max_heur_pc = float(path_costs[np.argmax(heuristics)])
+            per_has_soln: float = 100.0 * float(np.mean([inst.has_soln() for inst in instances]))
+            per_finished: float = 100.0 * float(np.mean([inst.finished() for inst in instances]))
+
+            print(f"Itr: %i, Added to OPEN - Min/Max Heur(PathCost): "
+                  f"%.2E(%.2f)/%.2E(%.2f), %%has_soln: {per_has_soln}, "
+                  f"%%finished: {per_finished}" % (self.itr, min_heur, min_heur_pc, max_heur, max_heur_pc))
+
+        self.itr += 1
         self.times.record_time("get_next", time.time() - start_time)
 
         return nodes_curr
