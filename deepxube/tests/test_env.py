@@ -75,8 +75,6 @@ def test_env(env: Env, num_states: int, step_max: int) -> Tuple[List[State], Lis
     proc.start()
     print("Process start time: %.2f" % (time.time() - start_time))
 
-    queue1.put(env)
-
     start_time = time.time()
     queue1.put(env)
     print("Environment send time: %s" % (time.time() - start_time))
