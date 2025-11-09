@@ -103,7 +103,7 @@ def print_pathfindperf(step_to_pathfindperf: Dict[int, PathFindPerf]) -> None:
         # Print results
         print(f"Steps: %i, %%Solved: %.2f, avgItrs: {avg_itrs:.2f}, avgPathCosts: {avg_path_costs:.2f}, "
               f"CTG Mean(Std/Min/Max): %.2f(%.2f/%.2f/%.2f), CTG_Backup: %.2f("
-              "%.2f/%.2f/%.2f)" % (
+              f"%.2f/%.2f/%.2f), Num: {ctgs.shape[0]}" % (
                   step_show, per_solved,
                   float(np.mean(ctgs)), float(np.std(ctgs)), float(np.min(ctgs)), float(np.max(ctgs)),
                   float(np.mean(ctgs_bkup)), float(np.std(ctgs_bkup)), float(np.min(ctgs_bkup)),

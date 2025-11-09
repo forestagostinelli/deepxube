@@ -305,10 +305,10 @@ class Update(ABC, Generic[E, N, Inst, P]):
             # get steps generate
             start_time = time.time()
             steps_gen: List[int]
-            if len(pathfind.instances) == 0:
-                steps_gen = list(np.random.choice(gen_step_max + 1, size=batch_size, p=np.array(step_probs)))
-            else:
+            if len(insts_rem) > 0:
                 steps_gen = [int(inst.inst_info[0]) for inst in insts_rem]
+            else:
+                steps_gen = np.random.choice(gen_step_max + 1, size=batch_size, p=np.array(step_probs)).tolist()
             times.record_time("steps_gen", time.time() - start_time)
 
             # get instance information and kwargs
