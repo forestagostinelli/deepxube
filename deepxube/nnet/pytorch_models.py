@@ -185,13 +185,16 @@ class Conv2dModel(nn.Module):
         pass
 
     def __init__(self, chan_in: int, channel_sizes: List[int], kernel_sizes: List[int], paddings: List[int],
-                 layer_batch_norms: List[bool], layer_acts: List[str], strides: Optional[List[int]] = None,
+                 layer_acts: List[str], batch_norms: Optional[List[bool]] = None, strides: Optional[List[int]] = None,
                  transpose: bool = False, weight_norms: Optional[List[bool]] = None,
                  dropouts: Optional[List[float]] = None):
         super().__init__()
         self.layers: nn.ModuleList = nn.ModuleList()
         if strides is None:
             strides = [1] * len(channel_sizes)
+
+        if batch_norms is None:
+            batch_norms = [False] * len(channel_sizes)
 
         if weight_norms is None:
             weight_norms = [False] * len(channel_sizes)
@@ -201,7 +204,7 @@ class Conv2dModel(nn.Module):
 
         # layers
         for chan_out, kernel_size, padding, batch_norm, act, stride, weight_norm, dropout in \
-                zip(channel_sizes, kernel_sizes, paddings, layer_batch_norms, layer_acts, strides, weight_norms,
+                zip(channel_sizes, kernel_sizes, paddings, batch_norms, layer_acts, strides, weight_norms,
                     dropouts):
 
             module_list = nn.ModuleList()
