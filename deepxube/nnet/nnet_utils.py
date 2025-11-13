@@ -34,6 +34,7 @@ def get_device() -> Tuple[torch.device, List[int], bool]:
         device = torch.device("cuda:%i" % 0)
         devices = [int(x) for x in os.environ['CUDA_VISIBLE_DEVICES'].split(",")]
         on_gpu = True
+        torch.set_num_threads(1)
     else:
         torch.set_num_threads(8)
 
@@ -113,6 +114,7 @@ def nnet_fn_runner(nnet_i_q: Queue, nnet_o_qs: List[Queue], model_file: str, dev
     if (gpu_num is not None) and on_gpu:
         os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_num)
 
+    torch.set_num_threads(1)
     nnet: nn.Module = get_nnet()
     nnet = load_nnet(model_file, nnet, device=device)
     nnet.eval()
