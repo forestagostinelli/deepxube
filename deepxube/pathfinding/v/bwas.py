@@ -45,9 +45,10 @@ class InstanceBWAS(Instance[NodeV]):
         elems_popped: List[OpenSetElem] = [heappop(self.open_set) for _ in range(num_to_pop)]
         nodes_popped: List[NodeV] = [elem_popped[2] for elem_popped in elems_popped]
 
-        if len(elems_popped) > 0:
-            cost_first: float = elems_popped[0][0]
-            self.lb = max(cost_first, self.lb)
+        assert len(elems_popped) > 0
+
+        cost_first: float = elems_popped[0][0]
+        self.lb = max(cost_first, self.lb)
 
         return nodes_popped
 
@@ -60,7 +61,9 @@ class InstanceBWAS(Instance[NodeV]):
                 self.ub = node.path_cost
 
     def finished(self) -> bool:
-        return (self.goal_node is not None) and (self.lb >= (self.weight * self.ub))
+        case1: bool = (self.goal_node is not None) and (self.lb >= (self.weight * self.ub))
+        case2: bool = len(self.open_set) == 0
+        return case1 or case2
 
 
 E = TypeVar('E', bound=Env)
