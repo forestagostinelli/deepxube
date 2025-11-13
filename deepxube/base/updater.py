@@ -378,7 +378,8 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV
     def step_get_in_out_np(self, pathfind: PV, times: Times) -> List[NDArray]:
         # take a step
         nodes_popped: List[NodeV] = pathfind.step()
-        assert len(nodes_popped) == len(pathfind.instances), f"Values were {len(nodes_popped)} and {pathfind.instances}"
+        assert len(nodes_popped) == len(pathfind.instances), (f"Values were {len(nodes_popped)} and "
+                                                              f"{len(pathfind.instances)}")
 
         # to np
         start_time = time.time()
@@ -451,7 +452,7 @@ class UpdateHeurQ(UpdateHeur[E, NodeQ, Inst, PQ, HeurNNetQ[State, Action, Goal],
     def step_get_in_out_np(self, pathfind: PQ, times: Times) -> List[NDArray]:
         # take a step
         nodeqacts: List[NodeQAct] = pathfind.step()
-        assert len(nodeqacts) == len(pathfind.instances), f"Values were {len(nodeqacts)} and {pathfind.instances}"
+        assert len(nodeqacts) == len(pathfind.instances), f"Values were {len(nodeqacts)} and {len(pathfind.instances)}"
 
         # get backup for node_q_acts with actions that are not none
         states: List[State] = []
