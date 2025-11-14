@@ -7,6 +7,24 @@ from torch.nn.utils import parametrizations
 import numpy as np
 
 
+class OneHot(nn.Module):
+    def __init__(self, data_dim: int, one_hot_depth: int) -> None:
+        super().__init__()
+        self.data_dim: int = data_dim
+        self.one_hot_depth: int = one_hot_depth
+
+    def forward(self, x: Tensor) -> Tensor:
+        # preprocess input
+        if self.one_hot_depth > 0:
+            x = nn.functional.one_hot(x.long(), self.one_hot_depth)
+            x = x.float()
+            x = x.view(-1, self.data_dim * self.one_hot_depth)
+        else:
+            x = x.float()
+
+        return x
+
+
 class SPLASH(nn.Module):
     def __init__(self, num_hinges: int = 5, init: str = "RELU"):
         super().__init__()
