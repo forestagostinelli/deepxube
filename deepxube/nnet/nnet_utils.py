@@ -119,8 +119,8 @@ def nnet_fn_runner(nnet_i_q: Queue, nnet_o_qs: List[Queue], model_file: str, dev
     nnet = load_nnet(model_file, nnet, device=device)
     nnet.eval()
     nnet.to(device)
-    if on_gpu:
-        nnet = nn.DataParallel(nnet)
+    # if on_gpu:
+    #    nnet = nn.DataParallel(nnet)
 
     while True:
         # get from input q

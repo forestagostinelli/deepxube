@@ -39,8 +39,10 @@ def main():
     parser.add_argument('--up_batch_size', type=int, default=100, help="")
     parser.add_argument('--up_nnet_batch_size', type=int, default=10000, help="")
 
+    parser.add_argument('--backup', type=int, default=1, help="")
+
     parser.add_argument('--temp', type=float, default=1, help="")
-    parser.add_argument('--eps', type=float, default=0.1, help="")
+    parser.add_argument('--eps', type=float, default=0.0, help="")
 
     # other
     parser.add_argument('--rb', type=int, default=1, help="")
@@ -56,7 +58,7 @@ def main():
         if args.sup:
             updater = UpdateHeurStepLenSup(env, up_args, Cube3NNetParV())
         else:
-            updater = UpdateHeurBWASEnum(env, up_args, True, Cube3NNetParV())
+            updater = UpdateHeurBWASEnum(env, up_args, False, args.backup, Cube3NNetParV())
     elif (args.heur_type.upper() == "Q") or (args.heur_type.upper() == "QIN"):
         nnet_par: HeurNNetQ
         if args.heur_type.upper() == "Q":

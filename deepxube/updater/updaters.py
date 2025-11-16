@@ -14,7 +14,7 @@ from deepxube.pathfinding.q.bwqs import BWQSEnum, InstanceBWQS
 
 class UpdateHeurStepLenSup(UpdateHeurV[Env, InstanceStepLenSup, StepLenSupV]):
     def __init__(self, env: EnvEnumerableActs, up_args: UpArgs, heur_nnet: HeurNNetV):
-        super().__init__(env, up_args, False)
+        super().__init__(env, up_args, False, 1)
         self.set_heur_nnet(heur_nnet)
 
     def get_pathfind(self) -> StepLenSupV:
@@ -28,9 +28,9 @@ class UpdateHeurStepLenSup(UpdateHeurV[Env, InstanceStepLenSup, StepLenSupV]):
 
 
 class UpdateHeurBWASEnum(UpdateHeurV[EnvEnumerableActs, InstanceBWAS, BWASEnum]):
-    def __init__(self, env: EnvEnumerableActs, up_args: UpArgs, ub_heur_soln: bool, heur_nnet: HeurNNetV,
+    def __init__(self, env: EnvEnumerableActs, up_args: UpArgs, ub_heur_soln: bool, backup: int, heur_nnet: HeurNNetV,
                  weight: float = 1.0):
-        super().__init__(env, up_args, ub_heur_soln)
+        super().__init__(env, up_args, ub_heur_soln, backup)
         self.set_heur_nnet(heur_nnet)
         self.weight: float = weight
 
@@ -45,8 +45,9 @@ class UpdateHeurBWASEnum(UpdateHeurV[EnvEnumerableActs, InstanceBWAS, BWASEnum])
 
 
 class UpdateHeurGrPolVEnum(UpdateHeurV[EnvEnumerableActs, InstanceGrPolV, GreedyPolicyVEnum]):
-    def __init__(self, env: EnvEnumerableActs, up_args: UpArgs, ub_heur_soln: bool, heur_nnet: HeurNNetV, eps: float):
-        super().__init__(env, up_args, ub_heur_soln)
+    def __init__(self, env: EnvEnumerableActs, up_args: UpArgs, ub_heur_soln: bool, backup: int, heur_nnet: HeurNNetV,
+                 eps: float):
+        super().__init__(env, up_args, ub_heur_soln, backup)
         self.set_heur_nnet(heur_nnet)
         self.eps: float = eps
 

@@ -152,6 +152,7 @@ class NodeV(Node):
         self.children: Optional[List[NodeV]] = None
         self.t_costs: Optional[List[float]] = None
         self.bellman_backup_val: Optional[float] = None
+        self.tree_backup_val: Optional[float] = None
 
     def backup(self) -> float:
         assert self.is_solved is not None
@@ -173,6 +174,22 @@ class NodeV(Node):
 
         return self.bellman_backup_val
 
+    def tree_backup(self) -> float:
+        if self.is_solved:
+            self.tree_backup_val = 0.0
+        else:
+            assert self.heuristic is not None
+            if (self.children is None) or (len(self.children) == 0):
+                self.tree_backup_val = max(self.heuristic, 0.0)
+            else:
+                assert self.children is not None
+                assert self.t_costs is not None
+                self.tree_backup_val = np.inf
+                for node_c, tc in zip(self.children, self.t_costs, strict=True):
+                    self.tree_backup_val = min(self.tree_backup_val, tc + node_c.tree_backup())
+
+        return self.tree_backup_val
+
     def upper_bound_parent_path(self, ctg_ub: float) -> None:
         assert self.bellman_backup_val is not None
         self.bellman_backup_val = min(self.bellman_backup_val, ctg_ub)
@@ -182,6 +199,18 @@ class NodeV(Node):
 
 
 class PathFindV(PathFind[E, NodeV, I]):
+    @staticmethod
+    def get_expanded_nodes(root_node: NodeV) -> List[NodeV]:
+        popped_nodes: List[NodeV] = []
+        fifo: List[NodeV] = [root_node]
+        while len(fifo) > 0:
+            node: NodeV = fifo.pop(0)
+            if node.children is not None:
+                popped_nodes.append(node)
+                for child in node.children:
+                    fifo.append(child)
+        return popped_nodes
+
     def __init__(self, env: E, heur_fn: HeurFnV):
         super().__init__(env)
         self.heur_fn: HeurFnV = heur_fn

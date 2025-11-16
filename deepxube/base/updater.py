@@ -256,7 +256,11 @@ class Update(ABC, Generic[E, N, Inst, P]):
         pass
 
     @abstractmethod
-    def step_get_in_out_np(self, pathfind: P, times: Times) -> List[NDArray]:
+    def step(self, pathfind: P, times: Times) -> None:
+        pass
+
+    @abstractmethod
+    def get_instance_data(self, instances: List[Inst], times: Times) -> List[NDArray]:
         pass
 
     def set_update_num(self, update_num: Optional[int]) -> None:
@@ -281,18 +285,19 @@ class Update(ABC, Generic[E, N, Inst, P]):
                 self._add_instances(pathfind, insts_rem, gen_step_max, batch_size, step_probs, times)
                 assert len(pathfind.instances) == batch_size, f"Values were {len(pathfind.instances)} and {batch_size}"
 
-                # step and to_np
-                data = self.step_get_in_out_np(pathfind, times)
-                assert data[0].shape[0] == batch_size, f"Values were {data[0].shape[0]} and {batch_size}"
-
-                # put
-                data_l.append(data)
+                # step
+                self.step(pathfind, times)
 
                 # remove instances
                 insts_rem = pathfind.remove_finished_instances(self.up_args.up_search_itrs)
+                if len(insts_rem) > 0:
+                    data_l.append(self.get_instance_data(insts_rem, times))
 
                 # pathfinding performance
                 self._update_perf(insts_rem, step_to_pathperf)
+
+            if len(pathfind.instances) > 0:
+                data_l.append(self.get_instance_data(pathfind.instances, times))
 
             _put_from_q(data_l, from_q, times)
             times.add_times(pathfind.times, path=["pathfinding"])
@@ -364,6 +369,10 @@ PV = TypeVar('PV', bound=PathFindV)
 
 
 class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV[State, Goal]], ABC):
+    def __init__(self, env: E, up_args: UpArgs, ub_heur_solns: bool, backup: int):
+        super().__init__(env, up_args, ub_heur_solns)
+        self.backup: int = backup
+
     def get_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.env.get_start_goal_pairs([0])
         inputs_nnet: List[NDArray[Any]] = self.get_heur_nnet().to_np(states, goals)
@@ -375,30 +384,46 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV
 
         return shapes_dypes
 
-    def step_get_in_out_np(self, pathfind: PV, times: Times) -> List[NDArray]:
+    def step(self, pathfind: PV, times: Times) -> None:
         # take a step
         nodes_popped: List[NodeV] = pathfind.step()
         assert len(nodes_popped) == len(pathfind.instances), (f"Values were {len(nodes_popped)} and "
                                                               f"{len(pathfind.instances)}")
 
-        # to np
-        start_time = time.time()
-        states: List[State] = [node.state for node in nodes_popped]
-        goals: List[Goal] = [node.goal for node in nodes_popped]
-
-        for node in nodes_popped:
-            node.backup()
-        if self.ub_heur_solns:
-            for node in nodes_popped:
-                assert node.is_solved is not None
-                if node.is_solved:
-                    node.upper_bound_parent_path(0.0)
-
+    def get_instance_data(self, instances: List[Inst], times: Times) -> List[NDArray]:
+        states: List[State] = []
+        goals: List[Goal] = []
         ctgs_backup: List[float] = []
-        for node in nodes_popped:
-            assert node.bellman_backup_val is not None
-            ctgs_backup.append(node.bellman_backup_val)
-        times.record_time("backup", time.time() - start_time)
+        for instance in instances:
+            root_node: NodeV = instance.root_node
+            start_time = time.time()
+            nodes_popped: List[NodeV] = self.get_pathfind().get_expanded_nodes(root_node)
+            states.extend([node.state for node in nodes_popped])
+            goals.extend([node.goal for node in nodes_popped])
+            times.record_time("get_popped", time.time() - start_time)
+
+            start_time = time.time()
+            if self.backup == 1:
+                for node in nodes_popped:
+                    node.backup()
+                if self.ub_heur_solns:
+                    for node in nodes_popped:
+                        assert node.is_solved is not None
+                        if node.is_solved:
+                            node.upper_bound_parent_path(0.0)
+
+                for node in nodes_popped:
+                    assert node.bellman_backup_val is not None
+                    ctgs_backup.append(node.bellman_backup_val)
+            elif self.backup == -1:
+                root_node.tree_backup()
+                for node in nodes_popped:
+                    assert node.tree_backup_val is not None
+                    ctgs_backup.append(node.tree_backup_val)
+            else:
+                raise ValueError(f"Unknown backup {self.backup}")
+
+            times.record_time("backup", time.time() - start_time)
 
         start_time = time.time()
         inputs_np: List[NDArray] = self.get_heur_nnet().to_np(states, goals)
@@ -449,11 +474,12 @@ class UpdateHeurQ(UpdateHeur[E, NodeQ, Inst, PQ, HeurNNetQ[State, Action, Goal],
 
         return states_next, ctg_backups.tolist()
 
-    def step_get_in_out_np(self, pathfind: PQ, times: Times) -> List[NDArray]:
+    def step(self, pathfind: PQ, times: Times) -> None:
         # take a step
         nodeqacts: List[NodeQAct] = pathfind.step()
         assert len(nodeqacts) == len(pathfind.instances), f"Values were {len(nodeqacts)} and {len(pathfind.instances)}"
 
+    def get_instance_data(self, instances: List[Inst], times: Times) -> List[NDArray]:
         # get backup for node_q_acts with actions that are not none
         states: List[State] = []
         goals: List[Goal] = []
