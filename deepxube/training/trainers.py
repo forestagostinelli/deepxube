@@ -46,14 +46,20 @@ class Status:
                 per_solved_per_step_l.append(search_perf.per_solved())
         per_solved_per_step: NDArray = np.array(per_solved_per_step_l)
 
-        num_no_soln: int = np.sum(per_solved_per_step == 0)
-        if num_no_soln == 0:
+        wo_soln_mask: NDArray = np.array(per_solved_per_step == 0)
+        num_wo_soln: int = int(np.sum(wo_soln_mask))
+        if num_wo_soln == 0:
             self.step_probs = per_solved_per_step / per_solved_per_step.sum()
         else:
-            num_w_soln_eff: float = per_solved_per_step.sum() / 100.0
-            num_tot_eff: float = num_w_soln_eff + 1
-            self.step_probs = num_w_soln_eff * per_solved_per_step / per_solved_per_step.sum() / num_tot_eff
-            self.step_probs[per_solved_per_step == 0] = 1 / num_tot_eff / num_no_soln
+            w_soln_mask: NDArray = per_solved_per_step > 0
+            w_soln_weights: NDArray = per_solved_per_step[w_soln_mask]/per_solved_per_step[w_soln_mask].sum()
+            self.step_probs[w_soln_mask] = w_soln_weights / 2.0
+            wo_soln_weight: float = 1 / num_wo_soln
+            self.step_probs[wo_soln_mask] = wo_soln_weight / 2.0
+            # num_w_soln_eff: float = per_solved_per_step.sum() / 100.0
+            # num_tot_eff: float = num_w_soln_eff + 1
+            # self.step_probs = num_w_soln_eff * per_solved_per_step / per_solved_per_step.sum() / num_tot_eff
+            # self.step_probs[per_solved_per_step == 0] = 1 / num_tot_eff / num_wo_soln
 
 
 class TrainHeur:
