@@ -44,8 +44,12 @@ class Status:
         self.split_idx: int = self._get_split_idx(step_to_search_perf)
         self.step_probs[np.arange(0, self.split_idx + 1)] = 1 / (self.split_idx + 1) / 2.0
         if self.split_idx < self.step_max:
-            num_steps_left: int = self.step_max - self.split_idx
-            self.step_probs[np.arange(self.split_idx + 1, self.step_max + 1)] = 1 / num_steps_left / 2.0
+            wo_soln_steps: NDArray = np.arange(self.split_idx + 1, self.step_max + 1)
+            wo_soln_weights: NDArray = (1.0 / wo_soln_steps)/(1.0 / wo_soln_steps).sum()
+            self.step_probs[wo_soln_steps] = wo_soln_weights / 2.0
+
+            # num_steps_left: int = self.step_max - self.split_idx
+            # self.step_probs[np.arange(self.split_idx + 1, self.step_max + 1)] = 1 / num_steps_left / 2.0
         """
         for step in range(self.step_max + 1):
             if step not in step_to_search_perf.keys():
