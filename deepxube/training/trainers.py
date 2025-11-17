@@ -41,7 +41,7 @@ class Status:
         self.per_solved_best: float = 0.0
 
     def update_step_probs(self, step_to_search_perf: Dict[int, PathFindPerf]) -> None:
-        self.split_idx: int = self._get_split_idx(step_to_search_perf)
+        self.split_idx = self._get_split_idx(step_to_search_perf)
         self.step_probs[np.arange(0, self.split_idx + 1)] = 1 / (self.split_idx + 1)
         if self.split_idx < self.step_max:
             self.step_probs[np.arange(0, self.split_idx + 1)] = self.step_probs[np.arange(0, self.split_idx + 1)] / 2.0
@@ -87,6 +87,7 @@ class Status:
             if float(np.mean(per_solved_l)) < 50.0:
                 return steps_sort[max(step_idx - 1, 0)]
         return self.step_max
+
 
 class TrainHeur:
     def __init__(self, updater: UpdateHeur, step_max: int, nnet_file: str, nnet_targ_file: str, status_file: str,

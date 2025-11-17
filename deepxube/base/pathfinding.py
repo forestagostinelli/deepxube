@@ -306,6 +306,14 @@ class PathFindV(PathFind[E, NodeV, I]):
 
         return root_nodes
 
+    def set_root_heurs(self, instances: List[I]) -> None:
+        nodes_root: List[NodeV] = [instance.root_node for instance in instances]
+        states_root: List[State] = [node.state for node in nodes_root]
+        goals_root: List[Goal] = [node.goal for node in nodes_root]
+        heurs: List[float] = self.heur_fn(states_root, goals_root)
+        for heur, node_root in zip(heurs, nodes_root):
+            node_root.heuristic = heur
+
     @abstractmethod
     def expand(self, states: List[State],
                goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:

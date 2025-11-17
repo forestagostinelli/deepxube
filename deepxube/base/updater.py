@@ -131,12 +131,12 @@ class Update(ABC, Generic[E, N, Inst, P]):
         return nnet_par_infos, nnet_procs
 
     @staticmethod
-    def _update_perf(insts_rem: List[Inst], step_to_pathperf: Dict[int, PathFindPerf]) -> None:
-        for inst_rem in insts_rem:
-            step_num_inst: int = int(inst_rem.inst_info[0])
+    def _update_perf(insts: List[Inst], step_to_pathperf: Dict[int, PathFindPerf]) -> None:
+        for inst in insts:
+            step_num_inst: int = int(inst.inst_info[0])
             if step_num_inst not in step_to_pathperf.keys():
                 step_to_pathperf[step_num_inst] = PathFindPerf()
-            step_to_pathperf[step_num_inst].update_perf(inst_rem)
+            step_to_pathperf[step_num_inst].update_perf(inst)
 
     @staticmethod
     def _send_work_to_q(up_args: UpArgs, num_gen: int, ctx: SpawnContext) -> Queue:
@@ -278,28 +278,26 @@ class Update(ABC, Generic[E, N, Inst, P]):
 
             pathfind: P = self.get_pathfind()
 
-            insts_rem: List[Inst] = []
-            data_l: List[List[NDArray]] = []
+            insts_all: List[Inst] = []
+            insts_rem_last_itr: List[Inst] = []
             for _ in range(self.up_args.up_search_itrs):
                 # add instances
-                self._add_instances(pathfind, insts_rem, gen_step_max, batch_size, step_probs, times)
+                self._add_instances(pathfind, insts_rem_last_itr, gen_step_max, batch_size, step_probs, times)
                 assert len(pathfind.instances) == batch_size, f"Values were {len(pathfind.instances)} and {batch_size}"
 
                 # step
                 self.step(pathfind, times)
 
                 # remove instances
-                insts_rem = pathfind.remove_finished_instances(self.up_args.up_search_itrs)
-                if len(insts_rem) > 0:
-                    data_l.append(self.get_instance_data(insts_rem, times))
+                insts_rem_last_itr = pathfind.remove_finished_instances(self.up_args.up_search_itrs)
+                insts_all.extend(insts_rem_last_itr)
 
-                # pathfinding performance
-                self._update_perf(insts_rem, step_to_pathperf)
+            insts_all = insts_all + pathfind.instances
+            _put_from_q([self.get_instance_data(insts_all, times)], from_q, times)
 
-            if len(pathfind.instances) > 0:
-                data_l.append(self.get_instance_data(pathfind.instances, times))
+            # pathfinding performance
+            self._update_perf(insts_all, step_to_pathperf)
 
-            _put_from_q(data_l, from_q, times)
             times.add_times(pathfind.times, path=["pathfinding"])
 
         from_q.put((times, step_to_pathperf))
@@ -391,39 +389,47 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV
                                                               f"{len(pathfind.instances)}")
 
     def get_instance_data(self, instances: List[Inst], times: Times) -> List[NDArray]:
-        states: List[State] = []
-        goals: List[Goal] = []
-        ctgs_backup: List[float] = []
+        # root heur
+        start_time = time.time()
+        self.get_pathfind().set_root_heurs(instances)
+        times.record_time("root_heur", time.time() - start_time)
+
+        # get popped
+        start_time = time.time()
+        nodes_popped: List[NodeV] = []
         for instance in instances:
             root_node: NodeV = instance.root_node
-            start_time = time.time()
-            nodes_popped: List[NodeV] = self.get_pathfind().get_expanded_nodes(root_node)
-            states.extend([node.state for node in nodes_popped])
-            goals.extend([node.goal for node in nodes_popped])
-            times.record_time("get_popped", time.time() - start_time)
+            nodes_popped.extend(self.get_pathfind().get_expanded_nodes(root_node))
+        states: List[State] = [node.state for node in nodes_popped]
+        goals: List[Goal] = [node.goal for node in nodes_popped]
+        times.record_time("get_popped", time.time() - start_time)
 
-            start_time = time.time()
-            if self.backup == 1:
+        # get backup
+        start_time = time.time()
+        ctgs_backup: List[float] = []
+        if self.backup == 1:
+            for node in nodes_popped:
+                node.backup()
+            if self.ub_heur_solns:
                 for node in nodes_popped:
-                    node.backup()
-                if self.ub_heur_solns:
-                    for node in nodes_popped:
-                        assert node.is_solved is not None
-                        if node.is_solved:
-                            node.upper_bound_parent_path(0.0)
+                    assert node.is_solved is not None
+                    if node.is_solved:
+                        node.upper_bound_parent_path(0.0)
 
-                for node in nodes_popped:
-                    assert node.bellman_backup_val is not None
-                    ctgs_backup.append(node.bellman_backup_val)
-            elif self.backup == -1:
+            for node in nodes_popped:
+                assert node.bellman_backup_val is not None
+                ctgs_backup.append(node.bellman_backup_val)
+        elif self.backup == -1:
+            for instance in instances:
+                root_node = instance.root_node
                 root_node.tree_backup()
-                for node in nodes_popped:
-                    assert node.tree_backup_val is not None
-                    ctgs_backup.append(node.tree_backup_val)
-            else:
-                raise ValueError(f"Unknown backup {self.backup}")
+            for node in nodes_popped:
+                assert node.tree_backup_val is not None
+                ctgs_backup.append(node.tree_backup_val)
+        else:
+            raise ValueError(f"Unknown backup {self.backup}")
 
-            times.record_time("backup", time.time() - start_time)
+        times.record_time("backup", time.time() - start_time)
 
         start_time = time.time()
         inputs_np: List[NDArray] = self.get_heur_nnet().to_np(states, goals)
@@ -437,7 +443,7 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV
         times.add_times(times_states, ["get_states"])
 
         # root nodes
-        return pathfind.create_root_nodes(states_gen, goals_gen, compute_init_heur=True)
+        return pathfind.create_root_nodes(states_gen, goals_gen, compute_init_heur=False)
 
 
 PQ = TypeVar('PQ', bound=PathFindQ)

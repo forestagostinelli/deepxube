@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 from itertools import permutations
 import re
 from numpy.typing import NDArray
+import time
 
 
 class OneHot(nn.Module):
@@ -377,9 +378,19 @@ class Cube3(EnvGrndAtoms[Cube3State, Cube3Action, Cube3Goal], EnvStartGoalRW[Cub
         if not self.fixed_goal:
             return super().get_start_goal_pairs(num_steps_l, times=times)
         else:
+            if times is None:
+                times = Times()
+            start_time = time.time()
             states_goal: List[Cube3State] = [Cube3State(self.goal_colors.copy()) for _ in num_steps_l]
+            times.record_time("state_init", time.time() - start_time)
+
+            start_time = time.time()
             states_start: List[Cube3State] = self.random_walk(states_goal, num_steps_l)
+            times.record_time("rand_walk", time.time() - start_time)
+
+            start_time = time.time()
             goals: List[Cube3Goal] = self.sample_goal(states_start, states_goal)
+            times.record_time("samp_goal", time.time() - start_time)
 
             return states_start, goals
 
