@@ -409,26 +409,22 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV
         ctgs_backup: List[float] = []
         if self.backup == 1:
             for node in nodes_popped:
-                node.backup()
+                node.bellman_backup()
             if self.ub_heur_solns:
                 for node in nodes_popped:
                     assert node.is_solved is not None
                     if node.is_solved:
                         node.upper_bound_parent_path(0.0)
-
-            for node in nodes_popped:
-                assert node.bellman_backup_val is not None
-                ctgs_backup.append(node.bellman_backup_val)
         elif self.backup == -1:
             for instance in instances:
                 root_node = instance.root_node
                 root_node.tree_backup()
-            for node in nodes_popped:
-                assert node.tree_backup_val is not None
-                ctgs_backup.append(node.tree_backup_val)
         else:
             raise ValueError(f"Unknown backup {self.backup}")
 
+        for node in nodes_popped:
+            assert node.backup_val is not None
+            ctgs_backup.append(node.backup_val)
         times.record_time("backup", time.time() - start_time)
 
         start_time = time.time()
