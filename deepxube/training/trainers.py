@@ -54,8 +54,10 @@ class Status:
             w_soln_mask: NDArray = per_solved_per_step > 0
             w_soln_weights: NDArray = per_solved_per_step[w_soln_mask]/per_solved_per_step[w_soln_mask].sum()
             self.step_probs[w_soln_mask] = w_soln_weights / 2.0
-            wo_soln_weight: float = 1 / num_wo_soln
-            self.step_probs[wo_soln_mask] = wo_soln_weight / 2.0
+
+            wo_soln_steps: NDArray = np.arange(len(self.step_probs))[wo_soln_mask]
+            wo_soln_weights: NDArray = (1.0 / wo_soln_steps)/(1.0 / wo_soln_steps).sum()
+            self.step_probs[wo_soln_mask] = wo_soln_weights / 2.0
             # num_w_soln_eff: float = per_solved_per_step.sum() / 100.0
             # num_tot_eff: float = num_w_soln_eff + 1
             # self.step_probs = num_w_soln_eff * per_solved_per_step / per_solved_per_step.sum() / num_tot_eff
