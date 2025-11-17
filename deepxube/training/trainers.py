@@ -28,6 +28,7 @@ class Status:
         self.update_num: int = 0
         self.step_max: int = step_max
         self.step_probs: NDArray
+        self.split_idx: int = 1
         if balance_steps:
             self.step_probs = np.zeros(self.step_max + 1)
             self.step_probs[0] = 0.5
@@ -40,7 +41,12 @@ class Status:
         self.per_solved_best: float = 0.0
 
     def update_step_probs(self, step_to_search_perf: Dict[int, PathFindPerf]) -> None:
-        per_solved_per_step_l: List[float] = []
+        self.split_idx: int = self._get_split_idx(step_to_search_perf)
+        self.step_probs[np.arange(0, self.split_idx + 1)] = 1 / (self.split_idx + 1) / 2.0
+        if self.split_idx < self.step_max:
+            num_steps_left: int = self.step_max - self.split_idx
+            self.step_probs[np.arange(self.split_idx + 1, self.step_max + 1)] = 1 / num_steps_left / 2.0
+        """
         for step in range(self.step_max + 1):
             if step not in step_to_search_perf.keys():
                 per_solved_per_step_l.append(0.0)
@@ -65,7 +71,17 @@ class Status:
             # num_tot_eff: float = num_w_soln_eff + 1
             # self.step_probs = num_w_soln_eff * per_solved_per_step / per_solved_per_step.sum() / num_tot_eff
             # self.step_probs[per_solved_per_step == 0] = 1 / num_tot_eff / num_wo_soln
+        """
 
+    def _get_split_idx(self, step_to_search_perf: Dict[int, PathFindPerf]) -> int:
+        per_solved_l: List[float] = []
+        steps_sort: List[int] = list(step_to_search_perf.keys())
+        steps_sort.sort()
+        for step_idx, step in enumerate(steps_sort):
+            per_solved_l.append(step_to_search_perf[step].per_solved())
+            if float(np.mean(per_solved_l)) < 50.0:
+                return steps_sort[max(step_idx - 1, 0)]
+        return self.step_max
 
 class TrainHeur:
     def __init__(self, updater: UpdateHeur, step_max: int, nnet_file: str, nnet_targ_file: str, status_file: str,
@@ -126,6 +142,7 @@ class TrainHeur:
         if self.train_args.balance_steps:
             steps_show: List[int] = list(np.unique(np.linspace(0, self.status.step_max, 30, dtype=int)))
             step_prob_str: str = ', '.join([f'{step}:{self.status.step_probs[step]:.2E}' for step in steps_show])
+            print(f"Split idx: {self.status.split_idx}")
             print(f"Step probs: {step_prob_str}")
 
         # get update data
