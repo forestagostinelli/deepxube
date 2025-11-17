@@ -31,7 +31,10 @@ class Status:
         if balance_steps:
             self.step_probs = np.zeros(self.step_max + 1)
             self.step_probs[0] = 0.5
-            self.step_probs[1:] = 0.5/self.step_max
+
+            wo_soln_steps: NDArray = np.arange(1, len(self.step_probs))
+            wo_soln_weights: NDArray = (1.0 / wo_soln_steps)/(1.0 / wo_soln_steps).sum()
+            self.step_probs[1:] = wo_soln_weights / 2.0
         else:
             self.step_probs = np.ones(self.step_max + 1)/(self.step_max + 1)
         self.per_solved_best: float = 0.0
