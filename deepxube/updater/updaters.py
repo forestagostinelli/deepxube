@@ -29,10 +29,11 @@ class UpdateHeurStepLenSup(UpdateHeurV[Env, InstanceStepLenSup, StepLenSupV]):
 
 class UpdateHeurBWASEnum(UpdateHeurV[EnvEnumerableActs, InstanceBWAS, BWASEnum]):
     def __init__(self, env: EnvEnumerableActs, up_args: UpArgs, ub_heur_soln: bool, backup: int, heur_nnet: HeurNNetV,
-                 weight: float = 1.0):
+                 weight: float = 1.0, eps: float = 0.0):
         super().__init__(env, up_args, ub_heur_soln, backup)
         self.set_heur_nnet(heur_nnet)
         self.weight: float = weight
+        self.eps: float = eps
 
     def get_pathfind(self) -> BWASEnum:
         return BWASEnum(self.env, self.get_heur_fn())
@@ -40,7 +41,7 @@ class UpdateHeurBWASEnum(UpdateHeurV[EnvEnumerableActs, InstanceBWAS, BWASEnum])
     def _get_instances(self, pathfind: BWASEnum, steps_gen: List[int], inst_infos: List[Any],
                        times: Times) -> List[InstanceBWAS]:
         root_nodes: List[NodeV] = self._get_root_nodes(pathfind, steps_gen, times)
-        return [InstanceBWAS(root_node, 1, self.weight, inst_info) for root_node, inst_info in
+        return [InstanceBWAS(root_node, 1, self.weight, self.eps, inst_info) for root_node, inst_info in
                 zip(root_nodes, inst_infos, strict=True)]
 
 

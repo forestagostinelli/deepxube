@@ -3,7 +3,8 @@ from typing import List, Tuple, Dict, Optional, Any, TypeVar
 from deepxube.base.env import Env, EnvEnumerableActs, State
 from deepxube.base.pathfinding import Instance, NodeV, PathFindV, PathFindVExpandEnum
 import numpy as np
-from heapq import heappush, heappop
+from heapq import heappush, heappop, heapify
+import random
 
 from deepxube.utils import misc_utils
 import time
@@ -13,7 +14,7 @@ OpenSetElem = Tuple[float, int, NodeV]
 
 
 class InstanceBWAS(Instance[NodeV]):
-    def __init__(self, root_node: NodeV, batch_size: int, weight: float, inst_info: Any):
+    def __init__(self, root_node: NodeV, batch_size: int, weight: float, eps: float, inst_info: Any):
         super().__init__(root_node, inst_info)
         self.open_set: List[OpenSetElem] = []
         self.heappush_count: int = 0
@@ -22,6 +23,7 @@ class InstanceBWAS(Instance[NodeV]):
         self.lb: float = 0.0
         self.batch_size: int = batch_size
         self.weight: float = weight
+        self.eps: float = eps
 
         self.push_to_open([self.root_node], [self.root_node.heuristic])
 
@@ -42,7 +44,15 @@ class InstanceBWAS(Instance[NodeV]):
     def pop_from_open(self) -> List[NodeV]:
         num_to_pop: int = min(self.batch_size, len(self.open_set))
 
-        elems_popped: List[OpenSetElem] = [heappop(self.open_set) for _ in range(num_to_pop)]
+        elems_popped: List[OpenSetElem] = []
+        for _ in range(num_to_pop):
+            if random.random() < self.eps:
+                pop_idx: int = random.randrange(0, len(self.open_set))
+                elems_popped.append(self.open_set.pop(pop_idx))
+                heapify(self.open_set)
+            else:
+                elems_popped.append(heappop(self.open_set))
+
         nodes_popped: List[NodeV] = [elem_popped[2] for elem_popped in elems_popped]
 
         assert len(elems_popped) > 0

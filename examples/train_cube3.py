@@ -58,7 +58,7 @@ def main():
         if args.sup:
             updater = UpdateHeurStepLenSup(env, up_args, Cube3NNetParV())
         else:
-            updater = UpdateHeurBWASEnum(env, up_args, False, args.backup, Cube3NNetParV())
+            updater = UpdateHeurBWASEnum(env, up_args, False, args.backup, Cube3NNetParV(), eps=args.eps)
     elif (args.heur_type.upper() == "Q") or (args.heur_type.upper() == "QIN"):
         nnet_par: HeurNNetQ
         if args.heur_type.upper() == "Q":
