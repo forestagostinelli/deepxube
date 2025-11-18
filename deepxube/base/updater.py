@@ -292,11 +292,11 @@ class Update(ABC, Generic[E, N, Inst, P]):
                 insts_rem_last_itr = pathfind.remove_finished_instances(self.up_args.up_search_itrs)
                 insts_all.extend(insts_rem_last_itr)
 
+                # pathfinding performance
+                self._update_perf(insts_rem_last_itr, step_to_pathperf)
+
             insts_all = insts_all + pathfind.instances
             _put_from_q([self.get_instance_data(insts_all, times)], from_q, times)
-
-            # pathfinding performance
-            self._update_perf(insts_all, step_to_pathperf)
 
             times.add_times(pathfind.times, path=["pathfinding"])
 
