@@ -278,7 +278,7 @@ class Update(ABC, Generic[E, N, Inst, P]):
 
             pathfind: P = self.get_pathfind()
 
-            insts_all: List[Inst] = []
+            insts_rem_all: List[Inst] = []
             insts_rem_last_itr: List[Inst] = []
             for _ in range(self.up_args.up_search_itrs):
                 # add instances
@@ -290,13 +290,12 @@ class Update(ABC, Generic[E, N, Inst, P]):
 
                 # remove instances
                 insts_rem_last_itr = pathfind.remove_finished_instances(self.up_args.up_search_itrs)
-                insts_all.extend(insts_rem_last_itr)
+                insts_rem_all.extend(insts_rem_last_itr)
 
-                # pathfinding performance
-                self._update_perf(insts_rem_last_itr, step_to_pathperf)
+            _put_from_q([self.get_instance_data(insts_rem_all + pathfind.instances, times)], from_q, times)
 
-            insts_all = insts_all + pathfind.instances
-            _put_from_q([self.get_instance_data(insts_all, times)], from_q, times)
+            # pathfinding performance
+            self._update_perf(insts_rem_all, step_to_pathperf)
 
             times.add_times(pathfind.times, path=["pathfinding"])
 
