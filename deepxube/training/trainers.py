@@ -29,21 +29,28 @@ class Status:
         self.update_num: int = 0
         self.step_max: int = step_max
         self.step_probs: NDArray
-        self.split_idx: int = 1
+        self.split_idx: int = 2
         if balance_steps:
             self.step_probs = np.zeros(self.step_max + 1)
-            self.step_probs[0] = 0.5
+            self.step_probs[0:2] = 0.5
 
-            wo_soln_steps: NDArray = np.arange(1, len(self.step_probs))
-            wo_soln_weights: NDArray = (1.0 / wo_soln_steps)/(1.0 / wo_soln_steps).sum()
-            self.step_probs[1:] = wo_soln_weights / 2.0
+            # wo_soln_steps: NDArray = np.arange(1, len(self.step_probs))
+            # wo_soln_weights: NDArray = (1.0 / wo_soln_steps)/(1.0 / wo_soln_steps).sum()
+            # self.step_probs[2:] = wo_soln_weights / 2.0
+            self.step_probs[2:] = 0
         else:
             self.step_probs = np.ones(self.step_max + 1)/(self.step_max + 1)
         self.per_solved_best: float = 0.0
 
     def update_step_probs(self, step_to_search_perf: Dict[int, PathFindPerf]) -> None:
-        self.split_idx = self._get_split_idx(step_to_search_perf)
+        # self.split_idx = self._get_split_idx(step_to_search_perf)
+        ave_solve: float = np.mean([step_to_search_perf[step].per_solved() for step in step_to_search_perf.keys()])
+        if ave_solve >= 50.0:
+            self.split_idx = min(self.split_idx * 2, self.step_max)
+
+        self.step_probs = np.zeros(self.step_max + 1)
         self.step_probs[np.arange(0, self.split_idx + 1)] = 1 / (self.split_idx + 1)
+        """
         if self.split_idx < self.step_max:
             self.step_probs[np.arange(0, self.split_idx + 1)] = self.step_probs[np.arange(0, self.split_idx + 1)] / 2.0
             wo_soln_steps: NDArray = np.arange(self.split_idx + 1, self.step_max + 1)
@@ -52,6 +59,7 @@ class Status:
 
             # num_steps_left: int = self.step_max - self.split_idx
             # self.step_probs[np.arange(self.split_idx + 1, self.step_max + 1)] = 1 / num_steps_left / 2.0
+        """
         """
         for step in range(self.step_max + 1):
             if step not in step_to_search_perf.keys():
