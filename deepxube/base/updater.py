@@ -15,13 +15,12 @@ from deepxube.base.env import Env, State, Goal, Action, EnvEnumerableActs
 from deepxube.base.heuristic import HeurNNet, HeurFnV, HeurFnQ, HeurNNetV, HeurNNetQ
 from deepxube.base.pathfinding import PathFind, PathFindV, PathFindQ, Instance, Node, NodeV, NodeQ, NodeQAct
 from deepxube.nnet import nnet_utils
-from deepxube.pathfinding.pathfinding_utils import PathFindPerf, get_eq_weighted_perf, print_pathfindperf
+from deepxube.pathfinding.pathfinding_utils import PathFindPerf, print_pathfindperf
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd
 from deepxube.utils.misc_utils import split_evenly_w_max
 from deepxube.utils.timing_utils import Times
 
 import copy
-from torch.utils.tensorboard import SummaryWriter
 from torch.multiprocessing import get_context
 
 
@@ -38,6 +37,7 @@ class UpArgs:
     Decrease if memory is running out during updater.
     :param up_nnet_batch_size: Batch size of each nnet used for each process updater. Make smaller if running out
     of memory.
+    :param up_v: True if update is verbose.
     Increasing this number could make the heuristic function more robust to depression regions.
     """
     up_itrs: int
@@ -46,10 +46,11 @@ class UpArgs:
     up_search_itrs: int
     up_batch_size: int
     up_nnet_batch_size: int
+    up_v: bool = False
 
 
 def get_data_from_procs(num_gen: int, from_q: Queue, to_q: Queue, procs: List[BaseProcess],
-                        start_time_gen: float,) -> Tuple[List[List[NDArray]], Dict[int, PathFindPerf]]:
+                        start_time_gen: float, verbose: bool) -> Tuple[List[List[NDArray]], Dict[int, PathFindPerf]]:
     # getting data from processes
     times_up: Times = Times()
     display_counts: NDArray[np.int_] = np.linspace(0, num_gen, 10, dtype=int)
@@ -74,8 +75,9 @@ def get_data_from_procs(num_gen: int, from_q: Queue, to_q: Queue, procs: List[Ba
                 arr_shm.unlink()
         times_up.record_time("rb", time.time() - start_time)
         if num_gen_curr >= min(display_counts):
-            print(f"{num_gen_curr}/{num_gen} instances (%.2f%%) "
-                  f"(Tot time: %.2f)" % (100 * num_gen_curr / num_gen, time.time() - start_time_gen))
+            if verbose:
+                print(f"{num_gen_curr}/{num_gen} instances (%.2f%%) "
+                      f"(Tot time: %.2f)" % (100 * num_gen_curr / num_gen, time.time() - start_time_gen))
             display_counts = display_counts[num_gen_curr < display_counts]
 
     # sending stop signal
@@ -93,8 +95,9 @@ def get_data_from_procs(num_gen: int, from_q: Queue, to_q: Queue, procs: List[Ba
             step_to_pathperf[step_num_perf] = step_to_pathperf[step_num_perf].comb_perf(pathperf)
 
     # summary
-    print(f"Generated {format(num_gen_curr, ',')} training instances")
-    print(f"Times - {times_up.get_time_str()}")
+    if verbose:
+        print(f"Generated {format(num_gen_curr, ',')} training instances")
+        print(f"Times - {times_up.get_time_str()}")
 
     return data_l, step_to_pathperf
 
@@ -139,9 +142,10 @@ class Update(ABC, Generic[E, N, Inst, P]):
             step_to_pathperf[step_num_inst].update_perf(inst)
 
     @staticmethod
-    def _send_work_to_q(up_args: UpArgs, num_gen: int, ctx: SpawnContext) -> Queue:
+    def _send_work_to_q(up_args: UpArgs, num_gen: int, ctx: SpawnContext, verbose: bool) -> Queue:
         num_searches: int = num_gen // up_args.up_search_itrs
-        print(f"Generating {format(num_gen, ',')} training instances with {format(num_searches, ',')} searches")
+        if verbose:
+            print(f"Generating {format(num_gen, ',')} training instances with {format(num_searches, ',')} searches")
 
         assert num_gen % up_args.up_search_itrs == 0, (f"Number of instances to generate per for this updater "
                                                        f"{num_gen} is not divisible by the max number of "
@@ -154,18 +158,6 @@ class Update(ABC, Generic[E, N, Inst, P]):
                 to_q.put(num_to_send_per_i)
 
         return to_q
-
-    @staticmethod
-    def print_update_summary(step_to_search_perf: Dict[int, PathFindPerf], writer: SummaryWriter,
-                             train_itr: int) -> None:
-        per_solved_ave, path_costs_ave, search_itrs_ave = get_eq_weighted_perf(step_to_search_perf)
-        print(f"%solved: {per_solved_ave:.2f}, path_costs: {path_costs_ave:.3f}, "
-              f"search_itrs: {search_itrs_ave:.3f} (equally weighted across step numbers)")
-        writer.add_scalar("solved (update)", per_solved_ave, train_itr)
-        writer.add_scalar("path_cost (update)", path_costs_ave, train_itr)
-        writer.add_scalar("search_itrs (update)", search_itrs_ave, train_itr)
-
-        print_pathfindperf(step_to_search_perf)
 
     def __init__(self, env: E, up_args: UpArgs):
         self.env: E = env
@@ -208,7 +200,7 @@ class Update(ABC, Generic[E, N, Inst, P]):
         start_time_gen = time.time()
         # put work information on to_q
         ctx = get_context("spawn")
-        to_q: Queue = self._send_work_to_q(self.up_args, num_gen, ctx)
+        to_q: Queue = self._send_work_to_q(self.up_args, num_gen, ctx, self.up_args.up_v)
 
         # parallel heuristic functions
         nnet_runner_dict: Dict[str, Tuple[List[NNetParInfo], List[BaseProcess]]] = self.get_nnet_fn_runner_dict(device,
@@ -230,13 +222,16 @@ class Update(ABC, Generic[E, N, Inst, P]):
             procs.append(proc)
 
         # getting data from procs
-        data_l, step_to_pathperf = get_data_from_procs(num_gen, from_q, to_q, procs, start_time_gen)
+        data_l, step_to_pathperf = get_data_from_procs(num_gen, from_q, to_q, procs, start_time_gen, self.up_args.up_v)
 
         # clean up clean up everybody do your share
         for nnet_par_infos, nnet_procs in nnet_runner_dict.values():
             nnet_utils.stop_nnet_runners(nnet_procs, nnet_par_infos)
         for proc in procs:
             proc.join()
+
+        if self.up_args.up_v:
+            print_pathfindperf(step_to_pathperf)
 
         return data_l, step_to_pathperf
 

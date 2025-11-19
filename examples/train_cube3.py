@@ -29,7 +29,7 @@ def main():
     parser.add_argument('--max_itrs', type=int, default=1000000, help="")
     parser.add_argument('--balance', action='store_true', default=False, help="")
     parser.add_argument('--targ_up_searches', type=int, default=0, help="")
-    parser.add_argument('--display', type=int, default=100, help="")
+    parser.add_argument('--display', type=int, default=-1, help="")
 
     # updater args
     parser.add_argument('--up_itrs', type=int, default=1000, help="")
@@ -38,6 +38,7 @@ def main():
     parser.add_argument('--up_search_itrs', type=int, default=200, help="")
     parser.add_argument('--up_batch_size', type=int, default=100, help="")
     parser.add_argument('--up_nnet_batch_size', type=int, default=10000, help="")
+    parser.add_argument('--up_v', action='store_true', default=False, help="")
 
     parser.add_argument('--backup', type=int, default=1, help="")
 
@@ -50,7 +51,7 @@ def main():
     args = parser.parse_args()
 
     up_args: UpArgs = UpArgs(args.up_itrs, args.up_gen_itrs, args.up_procs, args.up_search_itrs,
-                             args.up_batch_size, args.up_nnet_batch_size)
+                             args.up_batch_size, args.up_nnet_batch_size, up_v=args.up_v)
     updater: UpdateHeur
     env = Cube3(True)
     if args.heur_type.upper() == "V":

@@ -5,6 +5,7 @@ from deepxube.base.updater import UpdateHeur
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, get_eq_weighted_perf
 from deepxube.updater.updaters import UpdateHeurGrPolVEnum, UpdateHeurGrPolQEnum
 from deepxube.training.train_utils import ReplayBuffer, train_heur_nnet, TrainArgs, ctgs_summary
+from deepxube.utils.timing_utils import Times
 from deepxube.nnet import nnet_utils
 
 import torch
@@ -115,18 +116,13 @@ class TrainHeur:
             pickle.dump(self.status, open(self.status_file, "wb"), protocol=-1)
 
         # load nnet
-        self.nnet_targ = nnet_utils.load_nnet(self.nnet_targ_file, updater.get_heur_nnet().get_nnet())
         if os.path.isfile(self.nnet_file):
             self.nnet = nnet_utils.load_nnet(self.nnet_file, self.nnet)
         else:
             torch.save(self.nnet.state_dict(), self.nnet_file)
         if not os.path.isfile(self.nnet_targ_file):
             torch.save(self.nnet.state_dict(), self.nnet_targ_file)
-        self.updater.set_heur_file(self.nnet_file)
-
-        self.nnet_targ.to(self.device)
-        self.nnet_targ = nn.DataParallel(self.nnet_targ)
-        self.nnet_targ.eval()
+        self.updater.set_heur_file(self.nnet_targ_file)
 
         self.nnet.to(self.device)
         self.nnet = nn.DataParallel(self.nnet)
@@ -149,48 +145,63 @@ class TrainHeur:
         self.criterion = nn.MSELoss()
 
     def update_step(self) -> None:
-        # step probs
+        # print info
+        start_info_l: List[str] = [f"itr: {self.status.itr}", f"update: {self.status.update_num}"]
+
+        num_gen: int = self.train_args.batch_size * self.updater.up_args.up_gen_itrs
+        start_info_l.append(f"num_gen: {format(num_gen, ',')}")
         if self.train_args.balance_steps:
-            steps_show: List[int] = list(np.unique(np.linspace(0, self.status.step_max, 30, dtype=int)))
-            step_prob_str: str = ', '.join([f'{step}:{self.status.step_probs[step]:.2E}' for step in steps_show])
-            print(f"Split idx: {self.status.split_idx}")
-            print(f"Step probs: {step_prob_str}")
+            start_info_l.append(f"split_idx: {self.status.split_idx}")
+        print(f"Start - {', '.join(start_info_l)}")
+        times: Times = Times()
 
         # get update data
-        num_gen: int = self.train_args.batch_size * self.updater.up_args.up_gen_itrs
+        start_time = time.time()
         data_l, step_to_search_perf = self.updater.get_update_data(self.step_max, self.status.step_probs.tolist(),
                                                                    num_gen, self.device, self.on_gpu,
                                                                    self.status.update_num)
+        times.record_time("up", time.time() - start_time)
+
+        per_solved_ave, path_costs_ave, search_itrs_ave = get_eq_weighted_perf(step_to_search_perf)
+        self.writer.add_scalar("solved (update)", per_solved_ave, self.status.itr)
+        self.writer.add_scalar("path_cost (update)", path_costs_ave, self.status.itr)
+        self.writer.add_scalar("search_itrs (update)", search_itrs_ave, self.status.itr)
+
         ctgs_l: List[NDArray] = [data[-1] for data in data_l]
-        ctgs_summary(ctgs_l, self.writer, self.status.itr)
-        self.updater.print_update_summary(step_to_search_perf, self.writer, self.status.itr)
+        ctgs_mean, ctgs_min, ctgs_max = ctgs_summary(ctgs_l, self.writer, self.status.itr)
+
         if self.train_args.balance_steps:
             self.status.update_step_probs(step_to_search_perf)
 
         # get batches
-        print(f"Getting training batches, Replay buffer size: {format(self.rb.size(), ',')}")
         start_time = time.time()
         for data in data_l:
             self.rb.add(data)
+
         batches: List[Tuple[List[NDArray], NDArray]] = []
         for _ in range(self.updater.up_args.up_itrs):
             arrays_samp: List[NDArray] = self.rb.sample(self.train_args.batch_size)
             inputs_batch_np: List[NDArray] = arrays_samp[:-1]
-            inputs_batch = nnet_utils.to_pytorch_input(inputs_batch_np, self.device)
-            ctgs_batch_np: NDArray = self.nnet_targ(inputs_batch).cpu().data.numpy()
-            # ctgs_batch_np: NDArray = np.expand_dims(arrays_samp[-1].astype(np.float32), 1)
+            ctgs_batch_np: NDArray = np.expand_dims(arrays_samp[-1].astype(np.float32), 1)
             batches.append((inputs_batch_np, ctgs_batch_np))
-        print(f"Time: {time.time() - start_time}")
+        times.record_time("rb_samp", time.time() - start_time)
+
+        post_up_info_l: List[str] = [f"%solved: {per_solved_ave:.2f}", f"path_costs: {path_costs_ave:.3f}",
+                                     f"search_itrs: {search_itrs_ave:.3f}",
+                                     f"Cost-to-go (mean/min/max): {ctgs_mean:.2f}/{ctgs_min:.2f}/{ctgs_max:.2f}"]
+        print(f"Update - {', '.join(post_up_info_l)}")
 
         # train nnet
-        print("Training model for %i iterations" % len(batches))
+        start_time = time.time()
         last_loss = train_heur_nnet(self.nnet, batches, self.optimizer, self.criterion, self.device, self.status.itr,
                                     self.train_args)
         self.status.itr += self.updater.up_args.up_itrs
-        print("Last loss was %f" % last_loss)
+        times.record_time("train", time.time() - start_time)
 
         # save nnet
+        start_time = time.time()
         torch.save(self.nnet.state_dict(), self.nnet_file)
+        times.record_time("save", time.time() - start_time)
 
         # update nnet
         update: bool = False
@@ -204,14 +215,15 @@ class TrainHeur:
                 update = True
                 self.status.per_solved_best = per_solved
 
-        update = False
         if update:
-            print("Updating target network")
             shutil.copy(self.nnet_file, self.nnet_targ_file)
             self.status.update_num = self.status.update_num + 1
 
         # noinspection PyTypeChecker
         pickle.dump(self.status, open(self.status_file, "wb"), protocol=-1)
+        print(f"Train - itrs: {format(len(batches), ',')}, loss: {last_loss:.2E}, rb: {format(self.rb.size(), ',')}, "
+              f"updated: {update}")
+        print(f"Times - {times.get_time_str()}\n")
 
     def update_greedy_perf(self, update_num: int) -> float:
         # get updater

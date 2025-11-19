@@ -91,7 +91,7 @@ class ReplayBuffer:
                 self.add_idx = 0
 
 
-def ctgs_summary(ctgs_l: List[NDArray], writer: SummaryWriter, itr: int) -> None:
+def ctgs_summary(ctgs_l: List[NDArray], writer: SummaryWriter, itr: int) -> Tuple[float, float, float]:
     ctgs_min: float = np.inf
     ctgs_max: float = -np.inf
     ctgs_mean: float = 0
@@ -104,10 +104,10 @@ def ctgs_summary(ctgs_l: List[NDArray], writer: SummaryWriter, itr: int) -> None
         num_tot += ctgs.shape[0]
     ctgs_mean = ctgs_mean/float(num_tot)
 
-    print(f"Cost-to-go (mean/min/max): {ctgs_mean:.2f}/{ctgs_min:.2f}/{ctgs_max:.2f}")
     writer.add_scalar("ctgs (mean)", ctgs_mean, itr)
     writer.add_scalar("ctgs (min)", ctgs_min, itr)
     writer.add_scalar("ctgs (max)", ctgs_max, itr)
+    return ctgs_mean, ctgs_min, ctgs_max
 
 
 def train_heur_nnet(nnet: nn.Module, batches: List[Tuple[List[NDArray], NDArray]], optimizer: Optimizer,
