@@ -125,7 +125,7 @@ class TrainHeur:
         self.updater.set_heur_file(self.nnet_file)
 
         self.nnet_targ.to(self.device)
-        self.nnet_targ = nn.DataParallel(self.nnet)
+        self.nnet_targ = nn.DataParallel(self.nnet_targ)
         self.nnet_targ.eval()
 
         self.nnet.to(self.device)
