@@ -172,7 +172,7 @@ class Cube3Action(Action):
 class Cube3NNetParV(HeurNNetV[Cube3State, Cube3Goal]):
     def get_nnet(self) -> HeurNNetModule:
         state_dim: int = (3 ** 2) * 6
-        return Cube3NNet(state_dim, 6, 7, 1000, 4, 1, False, True, -1, "SPLASH1")
+        return Cube3NNet(state_dim, 6, 7, 1000, 4, 1, True, False, -1, "RELU")
 
     def to_np(self, states: List[Cube3State], goals: List[Cube3Goal]) -> List[NDArray[Any]]:
         states_np: NDArray[np.uint8] = np.stack([state.colors for state in states], axis=0).astype(np.uint8)

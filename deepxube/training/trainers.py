@@ -115,13 +115,18 @@ class TrainHeur:
             pickle.dump(self.status, open(self.status_file, "wb"), protocol=-1)
 
         # load nnet
+        self.nnet_targ = nnet_utils.load_nnet(self.nnet_targ_file, updater.get_heur_nnet().get_nnet())
         if os.path.isfile(self.nnet_file):
             self.nnet = nnet_utils.load_nnet(self.nnet_file, self.nnet)
         else:
             torch.save(self.nnet.state_dict(), self.nnet_file)
         if not os.path.isfile(self.nnet_targ_file):
             torch.save(self.nnet.state_dict(), self.nnet_targ_file)
-        self.updater.set_heur_file(self.nnet_targ_file)
+        self.updater.set_heur_file(self.nnet_file)
+
+        self.nnet_targ.to(self.device)
+        self.nnet_targ = nn.DataParallel(self.nnet)
+        self.nnet_targ.eval()
 
         self.nnet.to(self.device)
         self.nnet = nn.DataParallel(self.nnet)
@@ -171,7 +176,9 @@ class TrainHeur:
         for _ in range(self.updater.up_args.up_itrs):
             arrays_samp: List[NDArray] = self.rb.sample(self.train_args.batch_size)
             inputs_batch_np: List[NDArray] = arrays_samp[:-1]
-            ctgs_batch_np: NDArray = np.expand_dims(arrays_samp[-1].astype(np.float32), 1)
+            inputs_batch = nnet_utils.to_pytorch_input(inputs_batch_np, self.device)
+            ctgs_batch_np: NDArray = self.nnet_targ(inputs_batch).cpu().data.numpy()
+            # ctgs_batch_np: NDArray = np.expand_dims(arrays_samp[-1].astype(np.float32), 1)
             batches.append((inputs_batch_np, ctgs_batch_np))
         print(f"Time: {time.time() - start_time}")
 
@@ -197,6 +204,7 @@ class TrainHeur:
                 update = True
                 self.status.per_solved_best = per_solved
 
+        update = False
         if update:
             print("Updating target network")
             shutil.copy(self.nnet_file, self.nnet_targ_file)
