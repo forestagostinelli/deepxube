@@ -29,6 +29,7 @@ class UpArgs:
     """ Each time an instance is solved, a new one is created with the same number of steps to maintain training data
     balance.
 
+    :param step_max: Maximum number of steps to take when generating data
     :param up_itrs: How many iterations to wait for updating target network
     :param up_gen_itrs: How many iterations worth of data to generate per udpate
     :param up_procs: Number of parallel workers used to compute updated cost-to-go values
@@ -40,6 +41,7 @@ class UpArgs:
     :param up_v: True if update is verbose.
     Increasing this number could make the heuristic function more robust to depression regions.
     """
+    step_max: int
     up_itrs: int
     up_gen_itrs: int
     up_procs: int
@@ -50,7 +52,7 @@ class UpArgs:
 
 
 def get_data_from_procs(num_gen: int, from_q: Queue, to_q: Queue, procs: List[BaseProcess],
-                        start_time_gen: float, verbose: bool) -> Tuple[List[List[NDArray]], Dict[int, PathFindPerf]]:
+                        verbose: bool) -> Tuple[List[List[NDArray]], Dict[int, PathFindPerf]]:
     # getting data from processes
     times_up: Times = Times()
     display_counts: NDArray[np.int_] = np.linspace(0, num_gen, 10, dtype=int)
@@ -75,9 +77,9 @@ def get_data_from_procs(num_gen: int, from_q: Queue, to_q: Queue, procs: List[Ba
                 arr_shm.unlink()
         times_up.record_time("rb", time.time() - start_time)
         if num_gen_curr >= min(display_counts):
-            if verbose:
-                print(f"{num_gen_curr}/{num_gen} instances (%.2f%%) "
-                      f"(Tot time: %.2f)" % (100 * num_gen_curr / num_gen, time.time() - start_time_gen))
+            # if verbose:
+            #    print(f"{num_gen_curr}/{num_gen} instances (%.2f%%) "
+            #          f"(Tot time: %.2f)" % (100 * num_gen_curr / num_gen, time.time() - start_time_gen))
             display_counts = display_counts[num_gen_curr < display_counts]
 
     # sending stop signal
@@ -194,10 +196,9 @@ class Update(ABC, Generic[E, N, Inst, P]):
         assert nnet_name in self.nnet_par_dict.keys(), f"{nnet_name} should already be in dict, but it is not"
         self.nnet_file_dict[nnet_name] = nnet_file
 
-    def get_update_data(self, step_max: int, step_probs: List[int], num_gen: int, device: torch.device, on_gpu: bool,
+    def get_update_data(self, step_probs: List[int], num_gen: int, device: torch.device, on_gpu: bool,
                         update_num: int) -> Tuple[List[List[NDArray]], Dict[int, PathFindPerf]]:
         self.set_update_num(update_num)
-        start_time_gen = time.time()
         # put work information on to_q
         ctx = get_context("spawn")
         to_q: Queue = self._send_work_to_q(self.up_args, num_gen, ctx, self.up_args.up_v)
@@ -216,13 +217,13 @@ class Update(ABC, Generic[E, N, Inst, P]):
         from_q: Queue = ctx.Queue()
         procs: List[BaseProcess] = []
         for updater in updaters:
-            proc: BaseProcess = ctx.Process(target=updater.update_runner, args=(step_max, to_q, from_q, step_probs))
+            proc: BaseProcess = ctx.Process(target=updater.update_runner, args=(to_q, from_q, step_probs))
             proc.daemon = True
             proc.start()
             procs.append(proc)
 
         # getting data from procs
-        data_l, step_to_pathperf = get_data_from_procs(num_gen, from_q, to_q, procs, start_time_gen, self.up_args.up_v)
+        data_l, step_to_pathperf = get_data_from_procs(num_gen, from_q, to_q, procs, self.up_args.up_v)
 
         # clean up clean up everybody do your share
         for nnet_par_infos, nnet_procs in nnet_runner_dict.values():
@@ -261,7 +262,7 @@ class Update(ABC, Generic[E, N, Inst, P]):
     def set_update_num(self, update_num: Optional[int]) -> None:
         self.update_num = update_num
 
-    def update_runner(self, gen_step_max: int, to_q: Queue, from_q: Queue, step_probs: List[int]) -> None:
+    def update_runner(self, to_q: Queue, from_q: Queue, step_probs: List[int]) -> None:
         times: Times = Times()
 
         self.initialize_fns()
@@ -277,7 +278,7 @@ class Update(ABC, Generic[E, N, Inst, P]):
             insts_rem_last_itr: List[Inst] = []
             for _ in range(self.up_args.up_search_itrs):
                 # add instances
-                self._add_instances(pathfind, insts_rem_last_itr, gen_step_max, batch_size, step_probs, times)
+                self._add_instances(pathfind, insts_rem_last_itr, batch_size, step_probs, times)
                 assert len(pathfind.instances) == batch_size, f"Values were {len(pathfind.instances)} and {batch_size}"
 
                 # step
@@ -296,8 +297,8 @@ class Update(ABC, Generic[E, N, Inst, P]):
 
         from_q.put((times, step_to_pathperf))
 
-    def _add_instances(self, pathfind: P, insts_rem: List[Inst], gen_step_max: int, batch_size: int,
-                       step_probs: List[int], times: Times) -> None:
+    def _add_instances(self, pathfind: P, insts_rem: List[Inst], batch_size: int, step_probs: List[int],
+                       times: Times) -> None:
         if (len(pathfind.instances) == 0) or (len(insts_rem) > 0):
             # get steps generate
             start_time = time.time()
@@ -305,7 +306,8 @@ class Update(ABC, Generic[E, N, Inst, P]):
             if len(insts_rem) > 0:
                 steps_gen = [int(inst.inst_info[0]) for inst in insts_rem]
             else:
-                steps_gen = np.random.choice(gen_step_max + 1, size=batch_size, p=np.array(step_probs)).tolist()
+                steps_gen = np.random.choice(self.up_args.step_max + 1, size=batch_size,
+                                             p=np.array(step_probs)).tolist()
             times.record_time("steps_gen", time.time() - start_time)
 
             # get instance information and kwargs

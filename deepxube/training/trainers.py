@@ -29,7 +29,7 @@ class Status:
         self.update_num: int = 0
         self.step_max: int = step_max
         self.step_probs: NDArray
-        self.split_idx: int = 2
+        self.step_max_curr: int = 1
         if balance_steps:
             self.step_probs = np.zeros(self.step_max + 1)
             self.step_probs[0:2] = 0.5
@@ -44,12 +44,13 @@ class Status:
 
     def update_step_probs(self, step_to_search_perf: Dict[int, PathFindPerf]) -> None:
         # self.split_idx = self._get_split_idx(step_to_search_perf)
-        ave_solve: float = np.mean([step_to_search_perf[step].per_solved() for step in step_to_search_perf.keys()])
+        ave_solve: float = float(np.mean([step_to_search_perf[step].per_solved()
+                                          for step in step_to_search_perf.keys()]))
         if ave_solve >= 50.0:
-            self.split_idx = min(self.split_idx * 2, self.step_max)
+            self.step_max_curr = min(self.step_max_curr * 2, self.step_max)
 
         self.step_probs = np.zeros(self.step_max + 1)
-        self.step_probs[np.arange(0, self.split_idx + 1)] = 1 / (self.split_idx + 1)
+        self.step_probs[np.arange(0, self.step_max_curr + 1)] = 1 / (self.step_max_curr + 1)
         """
         if self.split_idx < self.step_max:
             self.step_probs[np.arange(0, self.split_idx + 1)] = self.step_probs[np.arange(0, self.split_idx + 1)] / 2.0
@@ -99,11 +100,9 @@ class Status:
 
 
 class TrainHeur:
-    def __init__(self, updater: UpdateHeur, step_max: int, nnet_file: str, nnet_targ_file: str, status_file: str,
-                 device: torch.device, on_gpu: bool, writer: SummaryWriter, train_args: TrainArgs,
-                 rb_past_up: int) -> None:
+    def __init__(self, updater: UpdateHeur, nnet_file: str, nnet_targ_file: str, status_file: str,
+                 device: torch.device, on_gpu: bool, writer: SummaryWriter, train_args: TrainArgs) -> None:
         self.updater: UpdateHeur = updater
-        self.step_max: int = step_max
         self.nnet: nn.Module = updater.get_heur_nnet().get_nnet()
         self.nnet_file = nnet_file
         self.nnet_targ_file: str = nnet_targ_file
@@ -119,7 +118,7 @@ class TrainHeur:
             self.status = pickle.load(open(self.status_file, "rb"))
             print(f"Loaded with itr: {self.status.itr}, update_num: {self.status.update_num}")
         else:
-            self.status = Status(self.step_max, train_args.balance_steps)
+            self.status = Status(self.updater.up_args.step_max, train_args.balance_steps)
             # noinspection PyTypeChecker
             pickle.dump(self.status, open(self.status_file, "wb"), protocol=-1)
 
@@ -145,8 +144,8 @@ class TrainHeur:
         shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = updater.get_shapes_dtypes()
         rb_shapes: List[Tuple[int, ...]] = [x[0] for x in shapes_dtypes]
         rb_dtypes: List[np.dtype] = [x[1] for x in shapes_dtypes]
-        self.rb: ReplayBuffer = ReplayBuffer(self.train_args.batch_size * updater.up_args.up_gen_itrs * rb_past_up,
-                                             rb_shapes, rb_dtypes)
+        self.rb: ReplayBuffer = ReplayBuffer(self.train_args.batch_size * self.updater.up_args.up_gen_itrs *
+                                             self.train_args.rb, rb_shapes, rb_dtypes)
 
         # optimizer and criterion
         self.optimizer: Optimizer = optim.Adam(self.nnet.parameters(), lr=self.train_args.lr)
@@ -159,15 +158,14 @@ class TrainHeur:
         num_gen: int = self.train_args.batch_size * self.updater.up_args.up_gen_itrs
         start_info_l.append(f"num_gen: {format(num_gen, ',')}")
         if self.train_args.balance_steps:
-            start_info_l.append(f"split_idx: {self.status.split_idx}")
-        print(f"Start - {', '.join(start_info_l)}")
+            start_info_l.append(f"step max (curr): {self.status.step_max_curr}")
+        print(f"\nStart - {', '.join(start_info_l)}")
         times: Times = Times()
 
         # get update data
         start_time = time.time()
-        data_l, step_to_search_perf = self.updater.get_update_data(self.step_max, self.status.step_probs.tolist(),
-                                                                   num_gen, self.device, self.on_gpu,
-                                                                   self.status.update_num)
+        data_l, step_to_search_perf = self.updater.get_update_data(self.status.step_probs.tolist(), num_gen,
+                                                                   self.device, self.on_gpu, self.status.update_num)
         times.record_time("up", time.time() - start_time)
 
         per_solved_ave, path_costs_ave, search_itrs_ave = get_eq_weighted_perf(step_to_search_perf)
@@ -176,7 +174,10 @@ class TrainHeur:
         self.writer.add_scalar("search_itrs (update)", search_itrs_ave, self.status.itr)
 
         ctgs_l: List[NDArray] = [data[-1] for data in data_l]
-        ctgs_mean, ctgs_min, ctgs_max = ctgs_summary(ctgs_l, self.writer, self.status.itr)
+        ctgs_mean, ctgs_min, ctgs_max = ctgs_summary(ctgs_l)
+        self.writer.add_scalar("ctgs_mean (update)", ctgs_mean, self.status.itr)
+        self.writer.add_scalar("ctgs_min (update)", ctgs_min, self.status.itr)
+        self.writer.add_scalar("ctgs_max (update)", ctgs_max, self.status.itr)
 
         if self.train_args.balance_steps:
             self.status.update_step_probs(step_to_search_perf)
@@ -196,7 +197,7 @@ class TrainHeur:
 
         post_up_info_l: List[str] = [f"%solved: {per_solved_ave:.2f}", f"path_costs: {path_costs_ave:.3f}",
                                      f"search_itrs: {search_itrs_ave:.3f}",
-                                     f"Cost-to-go (mean/min/max): {ctgs_mean:.2f}/{ctgs_min:.2f}/{ctgs_max:.2f}"]
+                                     f"cost-to-go (mean/min/max): {ctgs_mean:.2f}/{ctgs_min:.2f}/{ctgs_max:.2f}"]
         print(f"Update - {', '.join(post_up_info_l)}")
 
         # train nnet
@@ -231,7 +232,7 @@ class TrainHeur:
         pickle.dump(self.status, open(self.status_file, "wb"), protocol=-1)
         print(f"Train - itrs: {format(len(batches), ',')}, loss: {last_loss:.2E}, rb: {format(self.rb.size(), ',')}, "
               f"updated: {update}")
-        print(f"Times - {times.get_time_str()}\n")
+        print(f"Times - {times.get_time_str()}")
 
     def update_greedy_perf(self, update_num: int) -> float:
         # get updater
@@ -246,10 +247,10 @@ class TrainHeur:
 
         # do greedy update
         updater_greedy.set_heur_file(self.nnet_file)
-        step_probs = np.ones(self.step_max + 1) / (self.step_max + 1)
+        step_probs = np.ones(self.updater.up_args.step_max + 1) / (self.updater.up_args.step_max + 1)
         num_gen: int = self.updater.up_args.up_search_itrs * self.train_args.targ_up_searches
-        _, step_to_search_perf = updater_greedy.get_update_data(self.step_max, step_probs.tolist(), num_gen,
-                                                                self.device, self.on_gpu, update_num)
+        _, step_to_search_perf = updater_greedy.get_update_data(step_probs.tolist(), num_gen, self.device, self.on_gpu,
+                                                                update_num)
         per_solved_ave, path_cost_ave, search_itrs_ave = get_eq_weighted_perf(step_to_search_perf)
         print(f"%solved: {per_solved_ave:.2f}, path_costs: {path_cost_ave:.3f}, search_itrs: {search_itrs_ave:.3f} "
               f"(greedy perf)")

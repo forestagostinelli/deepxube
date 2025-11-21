@@ -17,7 +17,6 @@ from deepxube.implementations.cube3 import Cube3
 def main():
     parser: ArgumentParser = ArgumentParser()
     parser.add_argument('--heur_type', type=str, required=True, help="")
-    parser.add_argument('--step_max', type=int, required=True, help="")
     parser.add_argument('--nnet_dir', type=str, required=True, help="")
     parser.add_argument('--sup', action='store_true', default=False, help="")
     parser.add_argument('--greedy', action='store_true', default=False, help="")
@@ -32,6 +31,7 @@ def main():
     parser.add_argument('--display', type=int, default=-1, help="")
 
     # updater args
+    parser.add_argument('--step_max', type=int, required=True, help="")
     parser.add_argument('--up_itrs', type=int, default=1000, help="")
     parser.add_argument('--up_gen_itrs', type=int, default=1000, help="")
     parser.add_argument('--up_procs', type=int, default=1, help="")
@@ -50,7 +50,7 @@ def main():
     parser.add_argument('--debug', action='store_true', default=False, help="")
     args = parser.parse_args()
 
-    up_args: UpArgs = UpArgs(args.up_itrs, args.up_gen_itrs, args.up_procs, args.up_search_itrs,
+    up_args: UpArgs = UpArgs(args.step_max, args.up_itrs, args.up_gen_itrs, args.up_procs, args.up_search_itrs,
                              args.up_batch_size, args.up_nnet_batch_size, up_v=args.up_v)
     updater: UpdateHeur
     env = Cube3(True)
@@ -78,9 +78,9 @@ def main():
     else:
         raise ValueError(f"Unknown heur type {args.heur_type}")
 
-    train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.balance,
+    train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.balance, args.rb,
                                       args.targ_up_searches, args.display)
-    train(updater, args.step_max, args.nnet_dir, train_args, rb_past_up=args.rb, debug=args.debug)
+    train(updater, args.nnet_dir, train_args, debug=args.debug)
 
 
 if __name__ == "__main__":

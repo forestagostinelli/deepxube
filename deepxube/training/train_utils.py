@@ -12,7 +12,6 @@ import torch
 from torch import Tensor
 from torch.optim.optimizer import Optimizer
 import torch.nn as nn
-from torch.utils.tensorboard import SummaryWriter
 
 
 @dataclass
@@ -23,6 +22,8 @@ class TrainArgs:
     :param lr_d: Learning rate decay for every iteration. Learning rate is decayed according to: lr * (lr_d ^ itr)
     :param max_itrs: Maximum number of iterations
     :param balance_steps: If true, steps are balanced based on solve percentage
+    :param rb: amount of data generated from previous updates to keep in replay buffer. Total replay buffer size will
+    then be train_args.batch_size * up_args.up_gen_itrs * rb_past_up. Cost-to-go target is not recomputed.
     :param targ_up_searches: If > 0, do a greedy search with updater for minimum given number of searches to test
     if target network should be updated. Otherwise, it will be updated automatically.
     :param display: Number of iterations to display progress. No display if 0.
@@ -32,6 +33,7 @@ class TrainArgs:
     lr_d: float
     max_itrs: int
     balance_steps: bool
+    rb: int
     targ_up_searches: int
     display: bool
 
@@ -91,7 +93,7 @@ class ReplayBuffer:
                 self.add_idx = 0
 
 
-def ctgs_summary(ctgs_l: List[NDArray], writer: SummaryWriter, itr: int) -> Tuple[float, float, float]:
+def ctgs_summary(ctgs_l: List[NDArray]) -> Tuple[float, float, float]:
     ctgs_min: float = np.inf
     ctgs_max: float = -np.inf
     ctgs_mean: float = 0
@@ -104,9 +106,6 @@ def ctgs_summary(ctgs_l: List[NDArray], writer: SummaryWriter, itr: int) -> Tupl
         num_tot += ctgs.shape[0]
     ctgs_mean = ctgs_mean/float(num_tot)
 
-    writer.add_scalar("ctgs (mean)", ctgs_mean, itr)
-    writer.add_scalar("ctgs (min)", ctgs_min, itr)
-    writer.add_scalar("ctgs (max)", ctgs_max, itr)
     return ctgs_mean, ctgs_min, ctgs_max
 
 

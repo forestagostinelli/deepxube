@@ -1,3 +1,11 @@
+from typing import Optional, List
+from dataclasses import dataclass
+
+from deepxube.base.env import State, Goal
+from deepxube.base.heuristic import HeurNNet, HeurNNetV, HeurFnV
+from deepxube.base.pathfinding import PathFind, NodeV
+from deepxube.pathfinding.pathfinding_utils import PathFindPerf
+from deepxube.pathfinding.v.bwas import BWASEnum, InstanceBWAS
 from deepxube.base.updater import UpdateHeur
 from deepxube.training.train_utils import TrainArgs
 from deepxube.utils import data_utils
@@ -6,14 +14,40 @@ from deepxube.training.trainers import TrainHeur
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
+import time
 
 import os
 
 import sys
 
 
-def train(updater: UpdateHeur, step_max: int, nnet_dir: str, train_args: TrainArgs,
-          rb_past_up: int = 1, debug: bool = False) -> None:
+@dataclass
+class TestArgs:
+    test_states: List[State]
+    test_goals: List[Goal]
+    search_itrs: int
+    search_weight: float
+    test_nnet_batch_size: int
+    test_up_freq: int
+
+
+def get_pathfind_w_instances(updater: UpdateHeur, train_heur: TrainHeur, test_args: TestArgs) -> PathFind:
+    heur_nnet: HeurNNet = updater.get_heur_nnet()
+    if isinstance(heur_nnet, HeurNNetV):
+        heur_fn: HeurFnV = heur_nnet.get_nnet_fn(train_heur.nnet, test_args.test_nnet_batch_size,
+                                                 train_heur.device, None)
+        pathfind: BWASEnum = BWASEnum(updater.env, heur_fn)
+        root_nodes: List[NodeV] = pathfind.create_root_nodes(test_args.test_states, test_args.test_goals)
+        instances: List[InstanceBWAS] = [InstanceBWAS(root_node, 1, test_args.search_weight, 0.0, None)
+                                         for root_node in root_nodes]
+        pathfind.add_instances(instances)
+        return pathfind
+    else:
+        raise ValueError(f"Unknown heuristic function type {heur_nnet}")
+
+
+def train(updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: Optional[TestArgs] = None,
+          debug: bool = False) -> None:
     """ Train a deep neural network heuristic (DNN) function with deep reinforcement learning.
 
     For more information see:
@@ -22,11 +56,9 @@ def train(updater: UpdateHeur, step_max: int, nnet_dir: str, train_args: TrainAr
     - Bertsekas, D. P. & Tsitsiklis, J. N. Neuro-dynamic Programming (Athena Scientific, 1996).
 
     :param updater: an Updater object
-    :param step_max: maximum number of steps to take to generate start/goal pairs
     :param nnet_dir: directory where DNN will be saved
     :param train_args: training arguments
-    :param rb_past_up: amount of data generated from previous updates to keep in replay buffer. Total replay buffer size
-    will then be train_args.batch_size * up_args.up_gen_itrs * rb_past_up
+    :param test_args: test arguments
     :param debug: Turns off logging to make typing during breakpoints easier
     :return: None
     """
@@ -56,15 +88,44 @@ def train(updater: UpdateHeur, step_max: int, nnet_dir: str, train_args: TrainAr
     device, devices, on_gpu = nnet_utils.get_device()
     print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
 
-    train_heur: TrainHeur = TrainHeur(updater, step_max, heur_file, heur_targ_file, status_file, device, on_gpu, writer,
-                                      train_args, rb_past_up)
+    train_heur: TrainHeur = TrainHeur(updater, heur_file, heur_targ_file, status_file, device, on_gpu, writer,
+                                      train_args)
 
     # training
+    up_itrs: int = 0
     while train_heur.status.itr < train_args.max_itrs:
+        # test
+        if (test_args is not None) and (up_itrs % test_args.test_up_freq == 0):
+            start_time = time.time()
+            # get pathfinding alg with test instances
+            pathfind: PathFind = get_pathfind_w_instances(updater, train_heur, test_args)
+            for _ in range(test_args.search_itrs):
+                pathfind.step()
+
+            # attempt to solve
+            pathfind_perf: PathFindPerf = PathFindPerf()
+
+            # get performacne
+            for instance in pathfind.instances:
+                pathfind_perf.update_perf(instance)
+            test_time = time.time() - start_time
+
+            # log
+            per_solved_ave, path_cost_ave, search_itrs_ave = pathfind_perf.stats()
+            test_info_l: List[str] = [f"%solved: {per_solved_ave:.2f}", f"path_costs: {path_cost_ave:.3f}",
+                                      f"search_itrs: {search_itrs_ave:.3f}",
+                                      f"test_time: {test_time:.2f}"]
+            writer.add_scalar("solved (test)", per_solved_ave, train_heur.status.itr)
+            writer.add_scalar("path_cost (test)", path_cost_ave, train_heur.status.itr)
+            writer.add_scalar("search_itrs (test)", search_itrs_ave, train_heur.status.itr)
+            print(f"Test - {', '.join(test_info_l)}")
+
         # train
         train_heur.update_step()
 
         # clear cuda memory
         torch.cuda.empty_cache()
+
+        up_itrs += 1
 
     print("Done")
