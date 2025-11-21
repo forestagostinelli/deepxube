@@ -137,8 +137,8 @@ class BWAS(PathFindV[E, InstanceBWAS], ABC):
                 min_heur_pc = float(path_costs[np.argmin(heuristics)])
                 max_heur = float(np.max(heuristics))
                 max_heur_pc = float(path_costs[np.argmax(heuristics)])
-                per_has_soln: float = 100.0 * float(np.mean([inst.has_soln() for inst in instances]))
-                per_finished: float = 100.0 * float(np.mean([inst.finished() for inst in instances]))
+                per_has_soln: float = 100.0 * float(np.mean([inst.has_soln() for inst in self.instances]))
+                per_finished: float = 100.0 * float(np.mean([inst.finished() for inst in self.instances]))
 
                 print(f"Itr: %i, Added to OPEN - Min/Max Heur(PathCost): "
                       f"%.2E(%.2f)/%.2E(%.2f), %%has_soln: {per_has_soln}, "

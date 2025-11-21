@@ -159,7 +159,7 @@ class TrainHeur:
         start_info_l.append(f"num_gen: {format(num_gen, ',')}")
         if self.train_args.balance_steps:
             start_info_l.append(f"step max (curr): {self.status.step_max_curr}")
-        print(f"\nStart - {', '.join(start_info_l)}")
+        print(f"\nUpdating - {', '.join(start_info_l)}")
         times: Times = Times()
 
         # get update data

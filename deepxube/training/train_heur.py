@@ -30,6 +30,11 @@ class TestArgs:
     test_nnet_batch_size: int
     test_up_freq: int
 
+    def __repr__(self) -> str:
+        return (f"TestArgs(num_instances={len(self.test_states)}, search_itrs={self.search_itrs}, "
+                f"search_weight={self.search_weight}, test_nnet_batch_size={self.test_nnet_batch_size}, "
+                f"test_up_freq={self.test_up_freq})")
+
 
 def get_pathfind_w_instances(updater: UpdateHeur, train_heur: TrainHeur, test_args: TestArgs) -> PathFind:
     heur_nnet: HeurNNet = updater.get_heur_nnet()
@@ -79,6 +84,8 @@ def train(updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: 
     # print("HOST: %s" % os.uname()[1])
     print(f"Train args: {train_args}")
     print(f"Update args: {updater.up_args}")
+    if test_args is not None:
+        print(f"Test args: {test_args}")
     if 'SLURM_JOB_ID' in os.environ:
         print("SLURM JOB ID: %s" % os.environ['SLURM_JOB_ID'])
 
@@ -96,6 +103,7 @@ def train(updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: 
     while train_heur.status.itr < train_args.max_itrs:
         # test
         if (test_args is not None) and (up_itrs % test_args.test_up_freq == 0):
+            print("Testing")
             start_time = time.time()
             # get pathfinding alg with test instances
             pathfind: PathFind = get_pathfind_w_instances(updater, train_heur, test_args)

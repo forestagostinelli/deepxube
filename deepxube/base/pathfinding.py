@@ -154,7 +154,9 @@ class NodeV(Node):
         self.backup_val: Optional[float] = None
 
     def backup(self) -> float:
-        assert self.backup_val is not None
+        if self.backup_val is None:
+            self.bellman_backup()
+
         return self.backup_val
 
     def bellman_backup(self) -> float:

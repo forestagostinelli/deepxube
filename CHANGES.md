@@ -8,14 +8,14 @@
 * Add cost-to-go backup info to greedy policy test output
 * Remove redundant is_solved check for greedy policy
 * Consolidate updater for DAVI
-* Balance probabilities for steps based on solve percentage (not sure if will keep)
 * Use SharedMemory for update and heuristic function runners
 * Add option to skip computation of initial heuristic value for search
 * Faster replay buffer initialization
 * Get more statistics when solving with clingo
-* Refactor search
-* Refactor neural networks
 * Environment has a function for getting a random action that is applicable to a given state
+* base: env, heuristic, pathfinding, updater
+* option to adjust step_max based on solve percentage
+* option to test on test set during training
 
 
 ## 0.1.6
