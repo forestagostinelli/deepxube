@@ -29,11 +29,12 @@ class TestArgs:
     search_weights: List[float]
     test_nnet_batch_size: int
     test_up_freq: int
+    test_init: bool
 
     def __repr__(self) -> str:
         return (f"TestArgs(instances={len(self.test_states)}, search_itrs={self.search_itrs}, "
                 f"search_weights={self.search_weights}, test_nnet_batch_size={self.test_nnet_batch_size}, "
-                f"test_up_freq={self.test_up_freq})")
+                f"test_up_freq={self.test_up_freq}, test_init={self.test_init})")
 
 
 def get_pathfind_w_instances(updater: UpdateHeur, train_heur: TrainHeur, test_args: TestArgs, param_idx: int) -> PathFind:
@@ -102,7 +103,14 @@ def train(updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: 
     up_itrs: int = 0
     while train_heur.status.itr < train_args.max_itrs:
         # test
-        if (test_args is not None) and (up_itrs % test_args.test_up_freq == 0):
+        do_test: bool = False
+        if test_args is not None:
+            if up_itrs > 0:
+                do_test = up_itrs % test_args.test_up_freq == 0
+            elif up_itrs == 0:
+                do_test = test_args.test_init
+
+        if do_test:
             print("Testing")
             for param_idx in range(len(test_args.search_weights)):
                 start_time = time.time()
