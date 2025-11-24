@@ -150,7 +150,7 @@ def test(updater: UpdateHeur, train_heur: TrainHeur, test_args: TestArgs, writer
         test_info_l: List[str] = [f"%solved: {per_solved_ave:.2f}", f"path_costs: {path_cost_ave:.3f}",
                                   f"search_itrs: {search_itrs_ave:.3f}",
                                   f"test_time: {test_time:.2f}"]
-        writer.add_scalar(f"solved w{w_val} (test)", per_solved_ave, train_heur.status.itr)
-        writer.add_scalar(f"path_cost w{w_val} (test)", path_cost_ave, train_heur.status.itr)
-        writer.add_scalar(f"search_itrs w{w_val} (test)", search_itrs_ave, train_heur.status.itr)
+        writer.add_scalar(f"val/solved_w{w_val}", per_solved_ave, train_heur.status.itr)
+        writer.add_scalar(f"val/path_cost_w{w_val}", path_cost_ave, train_heur.status.itr)
+        writer.add_scalar(f"val/search_itrs_w{w_val}", search_itrs_ave, train_heur.status.itr)
         print(f"Test w{w_val} - {', '.join(test_info_l)}")
