@@ -128,7 +128,8 @@ def train(updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: 
 
 
 def test(updater: UpdateHeur, train_heur: TrainHeur, test_args: TestArgs, writer: SummaryWriter):
-    print("Testing")
+    print(f"Testing - itr: {train_heur.status.itr}, update: {train_heur.status.update_num}, "
+          f"num_inst: {len(test_args.test_states)}, num_search_params: {len(test_args.search_weights)}")
     for param_idx in range(len(test_args.search_weights)):
         start_time = time.time()
         # get pathfinding alg with test instances
@@ -150,7 +151,7 @@ def test(updater: UpdateHeur, train_heur: TrainHeur, test_args: TestArgs, writer
         test_info_l: List[str] = [f"%solved: {per_solved_ave:.2f}", f"path_costs: {path_cost_ave:.3f}",
                                   f"search_itrs: {search_itrs_ave:.3f}",
                                   f"test_time: {test_time:.2f}"]
-        writer.add_scalar(f"val/solved_w{w_val}", per_solved_ave, train_heur.status.itr)
-        writer.add_scalar(f"val/path_cost_w{w_val}", path_cost_ave, train_heur.status.itr)
-        writer.add_scalar(f"val/search_itrs_w{w_val}", search_itrs_ave, train_heur.status.itr)
+        writer.add_scalar(f"val/w{w_val}/solved", per_solved_ave, train_heur.status.itr)
+        writer.add_scalar(f"val/w{w_val}/path_cost", path_cost_ave, train_heur.status.itr)
+        writer.add_scalar(f"val/w{w_val}/search_itrs", search_itrs_ave, train_heur.status.itr)
         print(f"Test w{w_val} - {', '.join(test_info_l)}")

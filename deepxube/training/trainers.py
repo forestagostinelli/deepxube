@@ -169,15 +169,15 @@ class TrainHeur:
         times.record_time("up", time.time() - start_time)
 
         per_solved_ave, path_costs_ave, search_itrs_ave = get_eq_weighted_perf(step_to_search_perf)
-        self.writer.add_scalar("train/solved", per_solved_ave, self.status.itr)
-        self.writer.add_scalar("train/path_cost", path_costs_ave, self.status.itr)
-        self.writer.add_scalar("train/search_itrs", search_itrs_ave, self.status.itr)
+        self.writer.add_scalar("train/pathfind/solved", per_solved_ave, self.status.itr)
+        self.writer.add_scalar("train/pathfind/path_cost", path_costs_ave, self.status.itr)
+        self.writer.add_scalar("train/pathfind/search_itrs", search_itrs_ave, self.status.itr)
 
         ctgs_l: List[NDArray] = [data[-1] for data in data_l]
         ctgs_mean, ctgs_min, ctgs_max = ctgs_summary(ctgs_l)
-        self.writer.add_scalar("train/ctgs_mean", ctgs_mean, self.status.itr)
-        self.writer.add_scalar("train/ctgs_min", ctgs_min, self.status.itr)
-        self.writer.add_scalar("train/ctgs_max", ctgs_max, self.status.itr)
+        self.writer.add_scalar("train/ctgs/mean", ctgs_mean, self.status.itr)
+        self.writer.add_scalar("train/ctgs/min", ctgs_min, self.status.itr)
+        self.writer.add_scalar("train/ctgs/max", ctgs_max, self.status.itr)
 
         if self.train_args.balance_steps:
             self.status.update_step_probs(step_to_search_perf)
