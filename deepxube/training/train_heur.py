@@ -111,32 +111,7 @@ def train(updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: 
                 do_test = test_args.test_init
 
         if do_test:
-            print("Testing")
-            for param_idx in range(len(test_args.search_weights)):
-                start_time = time.time()
-                # get pathfinding alg with test instances
-                pathfind: PathFind = get_pathfind_w_instances(updater, train_heur, test_args, param_idx)
-
-                # attempt to solve
-                for _ in range(test_args.search_itrs):
-                    pathfind.step()
-
-                # get performacne
-                pathfind_perf: PathFindPerf = PathFindPerf()
-                for instance in pathfind.instances:
-                    pathfind_perf.update_perf(instance)
-                test_time = time.time() - start_time
-
-                # log
-                per_solved_ave, path_cost_ave, search_itrs_ave = pathfind_perf.stats()
-                w_val: float = test_args.search_weights[param_idx]
-                test_info_l: List[str] = [f"%solved: {per_solved_ave:.2f}", f"path_costs: {path_cost_ave:.3f}",
-                                          f"search_itrs: {search_itrs_ave:.3f}",
-                                          f"test_time: {test_time:.2f}"]
-                writer.add_scalar(f"solved w{w_val} (test)", per_solved_ave, train_heur.status.itr)
-                writer.add_scalar(f"path_cost w{w_val} (test)", path_cost_ave, train_heur.status.itr)
-                writer.add_scalar(f"search_itrs w{w_val} (test)", search_itrs_ave, train_heur.status.itr)
-                print(f"Test w{w_val} - {', '.join(test_info_l)}")
+            test(updater, train_heur, test_args, writer)
 
         # train
         train_heur.update_step()
@@ -146,4 +121,36 @@ def train(updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: 
 
         up_itrs += 1
 
+    if test_args is not None:
+        test(updater, train_heur, test_args, writer)
+
     print("Done")
+
+
+def test(updater: UpdateHeur, train_heur: TrainHeur, test_args: TestArgs, writer: SummaryWriter):
+    print("Testing")
+    for param_idx in range(len(test_args.search_weights)):
+        start_time = time.time()
+        # get pathfinding alg with test instances
+        pathfind: PathFind = get_pathfind_w_instances(updater, train_heur, test_args, param_idx)
+
+        # attempt to solve
+        for _ in range(test_args.search_itrs):
+            pathfind.step()
+
+        # get performacne
+        pathfind_perf: PathFindPerf = PathFindPerf()
+        for instance in pathfind.instances:
+            pathfind_perf.update_perf(instance)
+        test_time = time.time() - start_time
+
+        # log
+        per_solved_ave, path_cost_ave, search_itrs_ave = pathfind_perf.stats()
+        w_val: float = test_args.search_weights[param_idx]
+        test_info_l: List[str] = [f"%solved: {per_solved_ave:.2f}", f"path_costs: {path_cost_ave:.3f}",
+                                  f"search_itrs: {search_itrs_ave:.3f}",
+                                  f"test_time: {test_time:.2f}"]
+        writer.add_scalar(f"solved w{w_val} (test)", per_solved_ave, train_heur.status.itr)
+        writer.add_scalar(f"path_cost w{w_val} (test)", path_cost_ave, train_heur.status.itr)
+        writer.add_scalar(f"search_itrs w{w_val} (test)", search_itrs_ave, train_heur.status.itr)
+        print(f"Test w{w_val} - {', '.join(test_info_l)}")

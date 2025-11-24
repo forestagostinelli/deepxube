@@ -153,13 +153,13 @@ class TrainHeur:
 
     def update_step(self) -> None:
         # print info
-        start_info_l: List[str] = [f"itr: {self.status.itr}", f"update: {self.status.update_num}"]
+        start_info_l: List[str] = [f"itr: {self.status.itr}", f"targ_update: {self.status.update_num}"]
 
         num_gen: int = self.train_args.batch_size * self.updater.up_args.up_gen_itrs
         start_info_l.append(f"num_gen: {format(num_gen, ',')}")
         if self.train_args.balance_steps:
             start_info_l.append(f"step max (curr): {self.status.step_max_curr}")
-        print(f"\nUpdating - {', '.join(start_info_l)}")
+        print(f"\nGetting Data - {', '.join(start_info_l)}")
         times: Times = Times()
 
         # get update data
@@ -198,7 +198,7 @@ class TrainHeur:
         post_up_info_l: List[str] = [f"%solved: {per_solved_ave:.2f}", f"path_costs: {path_costs_ave:.3f}",
                                      f"search_itrs: {search_itrs_ave:.3f}",
                                      f"cost-to-go (mean/min/max): {ctgs_mean:.2f}/{ctgs_min:.2f}/{ctgs_max:.2f}"]
-        print(f"Update - {', '.join(post_up_info_l)}")
+        print(f"Data - {', '.join(post_up_info_l)}")
 
         # train nnet
         start_time = time.time()
@@ -231,7 +231,7 @@ class TrainHeur:
         # noinspection PyTypeChecker
         pickle.dump(self.status, open(self.status_file, "wb"), protocol=-1)
         print(f"Train - itrs: {format(len(batches), ',')}, loss: {last_loss:.2E}, rb: {format(self.rb.size(), ',')}, "
-              f"updated: {update}")
+              f"targ_updated: {update}")
         print(f"Times - {times.get_time_str()}")
 
     def update_greedy_perf(self, update_num: int) -> float:
