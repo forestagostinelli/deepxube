@@ -1,7 +1,7 @@
 from typing import List, Tuple, Dict
 
 from deepxube.base.heuristic import HeurNNet, HeurNNetV, HeurNNetQ
-from deepxube.base.updater import UpdateHeur
+from deepxube.base.updater import UpdateHeur, UpHeurArgs
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, get_eq_weighted_perf
 from deepxube.updater.updaters import UpdateHeurGrPolVEnum, UpdateHeurGrPolQEnum
 from deepxube.training.train_utils import ReplayBuffer, train_heur_nnet, TrainArgs, ctgs_summary
@@ -238,10 +238,11 @@ class TrainHeur:
         # get updater
         updater_greedy: UpdateHeur
         heur_nnet: HeurNNet = self.updater.get_heur_nnet()
+        up_heur_args: UpHeurArgs = UpHeurArgs(self.updater.up_args, False, 1)
         if isinstance(heur_nnet, HeurNNetV):
-            updater_greedy = UpdateHeurGrPolVEnum(self.updater.env, self.updater.up_args, False, 1, heur_nnet, 0.0)
+            updater_greedy = UpdateHeurGrPolVEnum(self.updater.env, up_heur_args, heur_nnet, 0.0)
         elif isinstance(heur_nnet, HeurNNetQ):
-            updater_greedy = UpdateHeurGrPolQEnum(self.updater.env, self.updater.up_args, False, heur_nnet, 0.0, 0.0)
+            updater_greedy = UpdateHeurGrPolQEnum(self.updater.env, up_heur_args, heur_nnet, 0.0, 0.0)
         else:
             raise ValueError(f"Unknown heuristic function type {heur_nnet}")
 

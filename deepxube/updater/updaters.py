@@ -1,9 +1,10 @@
 from typing import List, Any
+from dataclasses import dataclass
 
 from deepxube.base.env import Env, EnvEnumerableActs
 from deepxube.base.heuristic import HeurNNetV, HeurNNetQ
 from deepxube.base.pathfinding import NodeV, NodeQ
-from deepxube.base.updater import UpdateHeurV, UpdateHeurQEnum, UpArgs
+from deepxube.base.updater import UpdateHeurV, UpdateHeurQEnum, UpHeurArgs
 from deepxube.pathfinding.v.step_len_supervised_v import StepLenSupV, InstanceStepLenSup
 from deepxube.pathfinding.v.bwas import BWASEnum, InstanceBWAS
 from deepxube.pathfinding.v.greedy_policy import InstanceGrPolV, GreedyPolicyVEnum
@@ -13,8 +14,8 @@ from deepxube.pathfinding.q.bwqs import BWQSEnum, InstanceBWQS
 
 
 class UpdateHeurStepLenSup(UpdateHeurV[Env, InstanceStepLenSup, StepLenSupV]):
-    def __init__(self, env: EnvEnumerableActs, up_args: UpArgs, heur_nnet: HeurNNetV):
-        super().__init__(env, up_args, False, 1)
+    def __init__(self, env: EnvEnumerableActs, up_heur_args: UpHeurArgs, heur_nnet: HeurNNetV):
+        super().__init__(env, up_heur_args)
         self.set_heur_nnet(heur_nnet)
 
     def get_pathfind(self) -> StepLenSupV:
@@ -27,13 +28,23 @@ class UpdateHeurStepLenSup(UpdateHeurV[Env, InstanceStepLenSup, StepLenSupV]):
                 zip(root_nodes, steps_gen, inst_infos, strict=True)]
 
 
+@dataclass
+class UpBWASArgs:
+    """
+    :param up_heur_args: Update heur args
+    :param weight: search weight
+    :param eps: expand random with probability eps
+    """
+    up_heur_args: UpHeurArgs
+    weight: float
+    eps: float
+
+
 class UpdateHeurBWASEnum(UpdateHeurV[EnvEnumerableActs, InstanceBWAS, BWASEnum]):
-    def __init__(self, env: EnvEnumerableActs, up_args: UpArgs, ub_heur_soln: bool, backup: int, heur_nnet: HeurNNetV,
-                 weight: float = 1.0, eps: float = 0.0):
-        super().__init__(env, up_args, ub_heur_soln, backup)
+    def __init__(self, env: EnvEnumerableActs, up_bwas_args: UpBWASArgs, heur_nnet: HeurNNetV):
+        super().__init__(env, up_bwas_args.up_heur_args)
         self.set_heur_nnet(heur_nnet)
-        self.weight: float = weight
-        self.eps: float = eps
+        self.up_bwas_args: UpBWASArgs = up_bwas_args
 
     def get_pathfind(self) -> BWASEnum:
         return BWASEnum(self.env, self.get_heur_fn())
@@ -41,14 +52,13 @@ class UpdateHeurBWASEnum(UpdateHeurV[EnvEnumerableActs, InstanceBWAS, BWASEnum])
     def _get_instances(self, pathfind: BWASEnum, steps_gen: List[int], inst_infos: List[Any],
                        times: Times) -> List[InstanceBWAS]:
         root_nodes: List[NodeV] = self._get_root_nodes(pathfind, steps_gen, times)
-        return [InstanceBWAS(root_node, 1, self.weight, self.eps, inst_info) for root_node, inst_info in
-                zip(root_nodes, inst_infos, strict=True)]
+        return [InstanceBWAS(root_node, 1, self.up_bwas_args.weight, self.up_bwas_args.eps, inst_info)
+                for root_node, inst_info in zip(root_nodes, inst_infos, strict=True)]
 
 
 class UpdateHeurGrPolVEnum(UpdateHeurV[EnvEnumerableActs, InstanceGrPolV, GreedyPolicyVEnum]):
-    def __init__(self, env: EnvEnumerableActs, up_args: UpArgs, ub_heur_soln: bool, backup: int, heur_nnet: HeurNNetV,
-                 eps: float):
-        super().__init__(env, up_args, ub_heur_soln, backup)
+    def __init__(self, env: EnvEnumerableActs, up_heur_args: UpHeurArgs, heur_nnet: HeurNNetV, eps: float):
+        super().__init__(env, up_heur_args)
         self.set_heur_nnet(heur_nnet)
         self.eps: float = eps
 
@@ -64,8 +74,8 @@ class UpdateHeurGrPolVEnum(UpdateHeurV[EnvEnumerableActs, InstanceGrPolV, Greedy
 
 
 class UpdateHeurBWQSEnum(UpdateHeurQEnum[InstanceBWQS, BWQSEnum]):
-    def __init__(self, env: EnvEnumerableActs, up_args: UpArgs, ub_heur_soln: bool, heur_nnet: HeurNNetQ, eps: float):
-        super().__init__(env, up_args, ub_heur_soln)
+    def __init__(self, env: EnvEnumerableActs, up_heur_args: UpHeurArgs, heur_nnet: HeurNNetQ, eps: float):
+        super().__init__(env, up_heur_args)
         self.set_heur_nnet(heur_nnet)
         self.eps: float = eps
 
@@ -81,9 +91,9 @@ class UpdateHeurBWQSEnum(UpdateHeurQEnum[InstanceBWQS, BWQSEnum]):
 
 
 class UpdateHeurGrPolQEnum(UpdateHeurQEnum[InstanceGrPolQ, GreedyPolicyQEnum]):
-    def __init__(self, env: EnvEnumerableActs, up_args: UpArgs, ub_heur_soln: bool, heur_nnet: HeurNNetQ, temp: float,
+    def __init__(self, env: EnvEnumerableActs, up_heur_args: UpHeurArgs, heur_nnet: HeurNNetQ, temp: float,
                  eps: float):
-        super().__init__(env, up_args, ub_heur_soln)
+        super().__init__(env, up_heur_args)
         self.set_heur_nnet(heur_nnet)
         self.temp: float = temp
         self.eps: float = eps

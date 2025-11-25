@@ -1,10 +1,12 @@
-from typing import List, Tuple, Union, Set, Optional
+from typing import List, Tuple, Union, Set, Optional, Any
 
 from deepxube.base.env import (EnvGrndAtoms, State, Action, Goal, EnvSupportsPDDL, EnvStartGoalRW, EnvEnumerableActs,
                                EnvVizable)
 from deepxube.nnet.pytorch_models import ResnetModel, FullyConnectedModel, OneHot
 from deepxube.logic.logic_objects import Atom, Model
+from deepxube.base.heuristic import HeurNNetModule, HeurNNetV
 from deepxube.utils import misc_utils
+from clingo.solving import Model as ModelCl
 import numpy as np
 import torch
 from torch import nn, Tensor
@@ -74,8 +76,7 @@ class NPuzzle(EnvGrndAtoms[NPState, NPAction, NPGoal], EnvStartGoalRW[NPState, N
         self.num_tiles: int = dim ** 2
 
         # Solved state
-        self.goal_tiles: NDArray[int_t] = np.concatenate((np.arange(1, self.dim * self.dim),
-                                                          [0])).astype(self.dtype)  # type: ignore
+        self.goal_tiles: NDArray[int_t] = np.concatenate((np.arange(1, self.dim * self.dim), [0])).astype(self.dtype)
 
         # Next state ops
         self.swap_zero_idxs: NDArray[int_t] = self._get_swap_zero_idxs(self.dim)
@@ -153,12 +154,6 @@ class NPuzzle(EnvGrndAtoms[NPState, NPAction, NPGoal], EnvStartGoalRW[NPState, N
         is_solved_np = np.all(np.logical_or(states_np == goals_np, goals_np == self.num_tiles), axis=1)
         return list(is_solved_np)
 
-    def states_goals_to_nnet_input(self, states: List[NPState], goals: List[NPGoal]) -> List[NDArray[int_t]]:
-        states_np: NDArray[int_t] = np.stack([x.tiles for x in states], axis=0)
-        goals_np: NDArray[int_t] = np.stack([x.tiles for x in goals], axis=0)
-
-        return [states_np.astype(self.dtype), goals_np]
-
     def state_to_model(self, states: List[NPState]) -> List[Model]:
         states_np: NDArray[int_t] = np.stack([state.tiles for state in states], axis=0).astype(self.dtype)
         states_np = states_np.reshape((-1, self.dim, self.dim))
@@ -178,14 +173,6 @@ class NPuzzle(EnvGrndAtoms[NPState, NPAction, NPGoal], EnvStartGoalRW[NPState, N
 
     def model_to_goal(self, models: List[Model]) -> List[NPGoal]:
         return [NPGoal(x) for x in self._models_to_np(models)]
-
-    def get_v_nnet(self) -> HeurFnNNet:
-        nnet = NNet(self.num_tiles, self.num_tiles + 1, 5000, 1000, 4, 1, True, False, "V")
-        return nnet
-
-    def get_q_nnet(self) -> HeurFnNNet:
-        nnet = NNet(self.num_tiles, self.num_tiles + 1, 5000, 1000, 4, self.num_actions, True, False, "Q")
-        return nnet
 
     def get_start_states(self, num_states: int) -> List[NPState]:
         assert (num_states > 0)
@@ -341,7 +328,7 @@ class NPuzzle(EnvGrndAtoms[NPState, NPAction, NPGoal], EnvStartGoalRW[NPState, N
 
         raise ValueError(f"Unknown action {pddl_action}")
 
-    def visualize(self, states: Union[List[State], List[Goal]]) -> NDArray[np.float64]:
+    def visualize(self, states: List[Union[State, Goal]]) -> NDArray[np.float64]:
         fig = plt.figure(figsize=(.64, .64))
         ax = fig.add_axes((0, 0, 1., 1.))
         # fig = plt.figure(figsize=(.64, .64))
@@ -402,7 +389,7 @@ class NPuzzle(EnvGrndAtoms[NPState, NPAction, NPGoal], EnvStartGoalRW[NPState, N
 
         return ground_atoms
 
-    def on_model(self, m) -> Model:
+    def on_model(self, m: ModelCl) -> Model:
         symbs_set: Set[str] = set(str(x) for x in m.symbols(shown=True))
         symbs: List[str] = [misc_utils.remove_all_whitespace(symb) for symb in symbs_set]
 
@@ -483,7 +470,7 @@ class NPuzzle(EnvGrndAtoms[NPState, NPAction, NPGoal], EnvStartGoalRW[NPState, N
 
         return num_inversions
 
-    def _sqr_tiles_to_model(self, tiles_sqr: NDArray[int_t]):
+    def _sqr_tiles_to_model(self, tiles_sqr: NDArray[int_t]) -> Model:
         grnd_atoms: List[Atom] = []
         for idx_x in range(tiles_sqr.shape[0]):
             for idx_y in range(tiles_sqr.shape[1]):
@@ -532,7 +519,7 @@ class NPuzzle(EnvGrndAtoms[NPState, NPAction, NPGoal], EnvStartGoalRW[NPState, N
                 for j in range(n):
                     z_idx = np.ravel_multi_index((i, j), (n, n))
 
-                    state = np.ones((n, n), dtype=int)
+                    state: NDArray = np.ones((n, n), dtype=int)
                     state[i, j] = 0
 
                     is_eligible: bool = False
@@ -585,35 +572,46 @@ class NPuzzle(EnvGrndAtoms[NPState, NPAction, NPGoal], EnvStartGoalRW[NPState, N
         return states_next_np, swap_z_idxs, transition_costs
 
 
-class FCResnet(nn.Module):
-    def __init__(self, input_dim: int, h1_dim: int, resnet_dim: int, num_resnet_blocks: int, out_dim: int,
-                 batch_norm: bool, weight_norm: bool):
-        super().__init__()
-        self.first_fc = FullyConnectedModel(input_dim, [h1_dim, resnet_dim], [batch_norm] * 2, ["RELU"] * 2,
-                                            weight_norms=[weight_norm] * 2)
-        self.resnet = ResnetModel(resnet_dim, num_resnet_blocks, out_dim, batch_norm, weight_norm=weight_norm,
-                                  layer_act="RELU")
-
-    def forward(self, x: Tensor):
-        x = self.first_fc(x)
-        x = self.resnet(x)
-
-        return x
-
-
-class NNet(HeurFnNNet):
-    def __init__(self, state_dim: int, one_hot_depth: int, h1_dim: int, resnet_dim: int, num_res_blocks: int,
+class NNet(HeurNNetModule):
+    def __init__(self, state_dim: int, oh_depth0: int, oh_depth1: int, res_dim: int, num_res_blocks: int,
                  out_dim: int, batch_norm: bool, weight_norm: bool, nnet_type: str):
         super().__init__(nnet_type)
-        self.state_proc = OneHot(state_dim, one_hot_depth)
+        self.state_proc0 = OneHot(state_dim, oh_depth0)
+        self.state_proc1 = OneHot(state_dim, oh_depth1)
 
-        input_dim: int = state_dim * one_hot_depth * 2
-        self.heur = FCResnet(input_dim, h1_dim, resnet_dim, num_res_blocks, out_dim, batch_norm, weight_norm)
+        input_dim: int = (state_dim * oh_depth0) + (state_dim * oh_depth1)
 
-    def forward(self, states_goals_l: List[Tensor]):
-        states_proc = self.state_proc(states_goals_l[0])
-        goals_proc = self.state_proc(states_goals_l[1])
+        act_fn: str = "RELU"
+
+        def res_block_init() -> nn.Module:
+            return FullyConnectedModel(res_dim, [res_dim] * 2, [act_fn, "LINEAR"],
+                                       batch_norms=[batch_norm] * 2, weight_norms=[weight_norm] * 2,
+                                       group_norms=[-1] * 2)
+
+        self.heur = nn.Sequential(
+            nn.Linear(input_dim, res_dim),
+            ResnetModel(res_block_init, num_res_blocks, act_fn),
+            nn.Linear(res_dim, out_dim)
+        )
+
+    def forward(self, states_goals_l: List[Tensor]) -> Tensor:
+        states_proc = self.state_proc0(states_goals_l[0])
+        goals_proc = self.state_proc1(states_goals_l[1])
 
         x: Tensor = self.heur(torch.cat((states_proc, goals_proc), dim=1))
 
         return x
+
+
+class NPNNetParV(HeurNNetV[NPState, NPGoal]):
+    def __init__(self, env: NPuzzle):
+        self.env: NPuzzle = env
+
+    def get_nnet(self) -> HeurNNetModule:
+        return NNet(self.env.num_tiles, self.env.num_tiles, self.env.num_tiles + 1, 1000, 4, 1, True, False, "V")
+
+    def to_np(self, states: List[NPState], goals: List[NPGoal]) -> List[NDArray[Any]]:
+        states_np: NDArray[int_t] = np.stack([x.tiles for x in states], axis=0)
+        goals_np: NDArray[int_t] = np.stack([x.tiles for x in goals], axis=0)
+
+        return [states_np.astype(self.env.dtype), goals_np]

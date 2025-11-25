@@ -111,6 +111,7 @@ def train(updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: 
                 do_test = test_args.test_init
 
         if do_test:
+            assert test_args is not None
             test(updater, train_heur, test_args, writer)
 
         # train
@@ -127,7 +128,7 @@ def train(updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: 
     print("Done")
 
 
-def test(updater: UpdateHeur, train_heur: TrainHeur, test_args: TestArgs, writer: SummaryWriter):
+def test(updater: UpdateHeur, train_heur: TrainHeur, test_args: TestArgs, writer: SummaryWriter) -> None:
     print(f"Testing - itr: {train_heur.status.itr}, update: {train_heur.status.update_num}, "
           f"num_inst: {len(test_args.test_states)}, num_search_params: {len(test_args.search_weights)}")
     for param_idx in range(len(test_args.search_weights)):

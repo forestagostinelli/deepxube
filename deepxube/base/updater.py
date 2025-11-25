@@ -353,19 +353,30 @@ class UpdateHasHeur(Update[E, N, Inst, P], Generic[E, N, Inst, P, HNet, H]):
         pass
 
 
+@dataclass
+class UpHeurArgs:
+    """
+    :param up_args: Update args
+    :param ub_heur_solns: if True, the target cost-to-go will be min(backup, path_cost_from_state)
+    :param backup: 1 is Bellman and -1 is tree backup (i.e. Limited Horizon Bellman-based Learning)
+    """
+    up_args: UpArgs
+    ub_heur_solns: bool
+    backup: int
+
+
 class UpdateHeur(UpdateHasHeur[E, N, Inst, P, HNet, H], ABC):
-    def __init__(self, env: E, up_args: UpArgs, ub_heur_solns: bool):
-        super().__init__(env, up_args)
-        self.ub_heur_solns: bool = ub_heur_solns
+    def __init__(self, env: E, up_heur_args: UpHeurArgs):
+        super().__init__(env, up_heur_args.up_args)
+        self.up_heur_args: UpHeurArgs = up_heur_args
 
 
 PV = TypeVar('PV', bound=PathFindV)
 
 
 class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV[State, Goal]], ABC):
-    def __init__(self, env: E, up_args: UpArgs, ub_heur_solns: bool, backup: int):
-        super().__init__(env, up_args, ub_heur_solns)
-        self.backup: int = backup
+    def __init__(self, env: E, up_heur_args: UpHeurArgs):
+        super().__init__(env, up_heur_args)
 
     def get_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.env.get_start_goal_pairs([0])
@@ -403,20 +414,20 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV
         # get backup
         start_time = time.time()
         ctgs_backup: List[float] = []
-        if self.backup == 1:
+        if self.up_heur_args.backup == 1:
             for node in nodes_popped:
                 node.bellman_backup()
-            if self.ub_heur_solns:
+            if self.up_heur_args.ub_heur_solns:
                 for node in nodes_popped:
                     assert node.is_solved is not None
                     if node.is_solved:
                         node.upper_bound_parent_path(0.0)
-        elif self.backup == -1:
+        elif self.up_heur_args.backup == -1:
             for instance in instances:
                 root_node = instance.root_node
                 root_node.tree_backup()
         else:
-            raise ValueError(f"Unknown backup {self.backup}")
+            raise ValueError(f"Unknown backup {self.up_heur_args.backup}")
 
         for node in nodes_popped:
             assert node.backup_val is not None
