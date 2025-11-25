@@ -55,6 +55,9 @@ class UpdateHeurBWASEnum(UpdateHeurV[EnvEnumerableActs, InstanceBWAS, BWASEnum])
         return [InstanceBWAS(root_node, 1, self.up_bwas_args.weight, self.up_bwas_args.eps, inst_info)
                 for root_node, inst_info in zip(root_nodes, inst_infos, strict=True)]
 
+    def get_up_args_repr(self) -> str:
+        return self.up_bwas_args.__repr__()
+
 
 class UpdateHeurGrPolVEnum(UpdateHeurV[EnvEnumerableActs, InstanceGrPolV, GreedyPolicyVEnum]):
     def __init__(self, env: EnvEnumerableActs, up_heur_args: UpHeurArgs, heur_nnet: HeurNNetV, eps: float):

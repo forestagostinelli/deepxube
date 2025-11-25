@@ -84,7 +84,7 @@ def train(updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: 
     # Print basic info
     # print("HOST: %s" % os.uname()[1])
     print(f"Train args: {train_args}")
-    print(f"Update args: {updater.up_args}")
+    print(f"Update args: {updater.get_up_args_repr()}")
     if test_args is not None:
         print(f"Test args: {test_args}")
     if 'SLURM_JOB_ID' in os.environ:

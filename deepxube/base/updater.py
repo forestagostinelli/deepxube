@@ -243,6 +243,9 @@ class Update(ABC, Generic[E, N, Inst, P]):
             self.nnet_fn_dict[nnet_name] = nnet.get_nnet_par_fn(nnet_par_info, self.update_num)
         self.env.set_nnet_fns(self.nnet_fn_dict)
 
+    def get_up_args_repr(self) -> str:
+        return self.up_args.__repr__()
+
     @abstractmethod
     def get_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         pass
@@ -369,6 +372,9 @@ class UpdateHeur(UpdateHasHeur[E, N, Inst, P, HNet, H], ABC):
     def __init__(self, env: E, up_heur_args: UpHeurArgs):
         super().__init__(env, up_heur_args.up_args)
         self.up_heur_args: UpHeurArgs = up_heur_args
+
+    def get_up_args_repr(self) -> str:
+        return self.up_heur_args.__repr__()
 
 
 PV = TypeVar('PV', bound=PathFindV)
