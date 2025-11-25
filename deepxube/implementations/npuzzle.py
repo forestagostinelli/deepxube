@@ -6,6 +6,7 @@ from deepxube.nnet.pytorch_models import ResnetModel, FullyConnectedModel, OneHo
 from deepxube.logic.logic_objects import Atom, Model
 from deepxube.base.heuristic import HeurNNetModule, HeurNNetV
 from deepxube.utils import misc_utils
+from deepxube.utils.timing_utils import Times
 from clingo.solving import Model as ModelCl
 import numpy as np
 import torch
@@ -17,6 +18,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import matplotlib.patches as patches
 
 from numpy.typing import NDArray
+import time
 
 
 int_t = Union[np.uint8, np.int_]
@@ -185,6 +187,39 @@ class NPuzzle(EnvGrndAtoms[NPState, NPAction, NPGoal], EnvStartGoalRW[NPState, N
             states.extend([NPState(x) for x in states_np[is_solvable]])
 
         return states
+
+    def get_start_goal_pairs(self, num_steps_l: List[int],
+                             times: Optional[Times] = None) -> Tuple[List[NPState], List[NPGoal]]:
+        if not self.fixed_goal:
+            return super().get_start_goal_pairs(num_steps_l, times=times)
+        else:
+            if times is None:
+                times = Times()
+            start_time = time.time()
+            states_goal: List[NPState] = [NPState(self.goal_tiles.copy()) for _ in num_steps_l]
+            times.record_time("state_init", time.time() - start_time)
+
+            start_time = time.time()
+            states_start: List[NPState] = self.random_walk(states_goal, num_steps_l)
+            times.record_time("rand_walk", time.time() - start_time)
+
+            start_time = time.time()
+            goals: List[NPGoal] = self.sample_goal(states_start, states_goal)
+            times.record_time("samp_goal", time.time() - start_time)
+
+            return states_start, goals
+
+    def sample_goal(self, states_start: List[NPState], states_goal: List[NPState]) -> List[NPGoal]:
+        if not self.fixed_goal:
+            return super().sample_goal(states_start, states_goal)
+        else:
+            models_g: List[Model] = []
+
+            models_s: List[Model] = self.state_to_model(states_goal)
+            for model_s in models_s:
+                models_g.append(model_s)
+
+            return self.model_to_goal(models_g)
 
     def start_state_fixed(self, states: List[NPState]) -> List[Model]:
         return [frozenset() for _ in states]
@@ -574,8 +609,8 @@ class NPuzzle(EnvGrndAtoms[NPState, NPAction, NPGoal], EnvStartGoalRW[NPState, N
 
 class NNet(HeurNNetModule):
     def __init__(self, state_dim: int, oh_depth0: int, oh_depth1: int, res_dim: int, num_res_blocks: int,
-                 out_dim: int, batch_norm: bool, weight_norm: bool, nnet_type: str):
-        super().__init__(nnet_type)
+                 out_dim: int, batch_norm: bool, weight_norm: bool):
+        super().__init__()
         self.state_proc0 = OneHot(state_dim, oh_depth0)
         self.state_proc1 = OneHot(state_dim, oh_depth1)
 
@@ -608,7 +643,7 @@ class NPNNetParV(HeurNNetV[NPState, NPGoal]):
         self.env: NPuzzle = env
 
     def get_nnet(self) -> HeurNNetModule:
-        return NNet(self.env.num_tiles, self.env.num_tiles, self.env.num_tiles + 1, 1000, 4, 1, True, False, "V")
+        return NNet(self.env.num_tiles, self.env.num_tiles, self.env.num_tiles + 1, 1000, 4, 1, True, False)
 
     def to_np(self, states: List[NPState], goals: List[NPGoal]) -> List[NDArray[Any]]:
         states_np: NDArray[int_t] = np.stack([x.tiles for x in states], axis=0)
