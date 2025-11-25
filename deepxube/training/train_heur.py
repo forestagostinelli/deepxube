@@ -122,7 +122,7 @@ def train(updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: 
 
         up_itrs += 1
 
-    if test_args is not None:
+    if (test_args is not None) and (up_itrs > 0):
         test(updater, train_heur, test_args, writer)
 
     print("Done")
