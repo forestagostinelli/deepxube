@@ -1,6 +1,6 @@
 from typing import List, Tuple, Dict
 
-from deepxube.base.heuristic import HeurNNet, HeurNNetV, HeurNNetQ
+from deepxube.base.heuristic import HeurNNet, HeurNNetV, HeurNNetQ, HeurFnV, HeurFnQ
 from deepxube.base.updater import UpdateHeur, UpHeurArgs
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, get_eq_weighted_perf
 from deepxube.updater.updaters import UpdateHeurGrPolVEnum, UpdateHeurGrPolQEnum
@@ -166,18 +166,50 @@ class TrainHeur:
         print(f"\nGetting Data - {', '.join(start_info_l)}")
         times: Times = Times()
 
-        # get update data
+        # start updater
         start_time = time.time()
-        self.updater.start_update(self.status.step_probs.tolist(), num_gen, self.device, self.on_gpu,
-                                  self.status.targ_update_num, self.train_args.batch_size)
+        to_main_q, from_main_qs = self.updater.start_update(self.status.step_probs.tolist(), num_gen, self.device,
+                                                            self.on_gpu, self.status.targ_update_num,
+                                                            self.train_args.batch_size)
         self.db.clear()
         times.record_time("up_start", time.time() - start_time)
+
+        ctgs_l: List[NDArray] = []
+        if not self.updater.up_heur_args.on_heur:
+            # get update data
+            start_time = time.time()
+            while self.db.size() < num_gen:
+                data_l: List[List[NDArray]] = self.updater.get_update_data()
+                for data in data_l:
+                    ctgs_l.append(data[-1])
+                    self.db.add(data)
+            times.record_time("up_data", time.time() - start_time)
 
         # train nnet
         update_train_itr: int = 0
         loss: float = np.inf
-        ctgs_l: List[NDArray] = []
         while update_train_itr < self.updater.up_args.up_itrs:
+            batch: List[NDArray]
+            if not self.updater.up_heur_args.on_heur:
+                batch = self.db.sample(self.train_args.batch_size)
+                inputs_batch_np: List[NDArray] = batch[:-1]
+                ctgs_batch_np: NDArray = np.expand_dims(batch[-1].astype(np.float32), 1)
+            else:
+                raise NotImplementedError
+            """
+            if self.updater.up_heur_args.on_heur:
+                # get heuristic values for ongoing search
+                proc_id, inputs_np = to_main_q.get()
+                heur_nnet: HeurNNet = self.updater.get_heur_nnet()
+                if isinstance(heur_nnet, HeurNNetV):
+                    heur_fn: HeurFnV = heur_nnet.get_nnet_fn(self.nnet, self.updater.up_args.up_nnet_batch_size,
+                                                             self.device, self.updater.targ_update_num)
+                elif isinstance(heur_nnet, HeurNNetQ):
+                    heur_fn: HeurFnQ = heur_nnet.get_nnet_fn(self.nnet, self.updater.up_args.up_nnet_batch_size,
+                                                             self.device, self.updater.targ_update_num)
+                else:
+                    raise ValueError(f"Unknown heuristic function type {heur_nnet}")
+
             # data from updater should not be more that train_args.batch_size
             start_time = time.time()
             batch: List[NDArray]
@@ -196,6 +228,7 @@ class TrainHeur:
             inputs_batch_np: List[NDArray] = batch[:-1]
             ctgs_batch_np: NDArray = np.expand_dims(batch[-1].astype(np.float32), 1)
             times.record_time("up_data", time.time() - start_time)
+            """
 
             # train
             start_time = time.time()
@@ -262,7 +295,7 @@ class TrainHeur:
         # get updater
         updater_greedy: UpdateHeur
         heur_nnet: HeurNNet = self.updater.get_heur_nnet()
-        up_heur_args: UpHeurArgs = UpHeurArgs(self.updater.up_args, False, 1)
+        up_heur_args: UpHeurArgs = UpHeurArgs(self.updater.up_args, False, 1, False)
         if isinstance(heur_nnet, HeurNNetV):
             updater_greedy = UpdateHeurGrPolVEnum(self.updater.env, up_heur_args, heur_nnet, 0.0)
         elif isinstance(heur_nnet, HeurNNetQ):

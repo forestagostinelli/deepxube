@@ -105,9 +105,9 @@ def train(updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: 
         # test
         do_test: bool = False
         if test_args is not None:
-            if train_heur.status.update_num > 0:
-                do_test = train_heur.status.update_num % test_args.test_up_freq == 0
-            elif train_heur.status.update_num == 0:
+            if train_heur.status.targ_update_num > 0:
+                do_test = train_heur.status.targ_update_num % test_args.test_up_freq == 0
+            elif train_heur.status.targ_update_num == 0:
                 do_test = test_args.test_init
 
         if do_test:
@@ -129,7 +129,7 @@ def train(updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: 
 
 
 def test(updater: UpdateHeur, train_heur: TrainHeur, test_args: TestArgs, writer: SummaryWriter) -> None:
-    print(f"Testing - itr: {train_heur.status.itr}, update_itr: {train_heur.status.update_num}, "
+    print(f"Testing - itr: {train_heur.status.itr}, update_itr: {train_heur.status.targ_update_num}, "
           f"targ_update: {train_heur.status.targ_update_num}, num_inst: {len(test_args.test_states)}, "
           f"num_search_params: {len(test_args.search_weights)}")
     for param_idx in range(len(test_args.search_weights)):

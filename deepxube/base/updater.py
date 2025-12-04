@@ -112,7 +112,7 @@ class Update(ABC, Generic[E, N, Inst, P]):
     def __init__(self, env: E, up_args: UpArgs):
         self.env: E = env
         self.up_args: UpArgs = up_args
-        self.update_num: Optional[int] = None
+        self.targ_update_num: Optional[int] = None
         self.nnet_par_dict: Dict[str, NNetPar] = dict()
         self.nnet_file_dict: Dict[str, str] = dict()
         for nnet_name, nnet_file, nnet_par in env.get_nnet_pars():
@@ -127,6 +127,9 @@ class Update(ABC, Generic[E, N, Inst, P]):
         self.to_q: Optional[Queue] = None
         self.from_q: Optional[Queue] = None
         self.num_generated: int = 0
+        self.to_main_q: Optional[Queue] = None
+        self.from_main_q: Optional[Queue] = None
+        self.main_q_idx: int = 0
 
     def get_nnet_fn_runner_dict(self, device: torch.device,
                                 on_gpu: bool) -> Dict[str, Tuple[List[NNetParInfo], List[BaseProcess]]]:
@@ -151,31 +154,43 @@ class Update(ABC, Generic[E, N, Inst, P]):
         assert nnet_name in self.nnet_par_dict.keys(), f"{nnet_name} should already be in dict, but it is not"
         self.nnet_file_dict[nnet_name] = nnet_file
 
+    def set_main_qs(self, to_main_q: Queue, from_main_q: Queue, main_q_idx: int) -> None:
+        self.to_main_q = to_main_q
+        self.from_main_q = from_main_q
+        self.main_q_idx = main_q_idx
+
     def start_update(self, step_probs: List[int], num_gen: int, device: torch.device, on_gpu: bool,
-                     update_num: int, train_batch_size: int) -> None:
-        self.set_update_num(update_num)
+                     targ_update_num: int, train_batch_size: int) -> Tuple[Queue, List[Queue]]:
+        self.set_targ_update_num(targ_update_num)
 
         # start updater procs
         # TODO implement safer copy?
         updaters: List[Update] = [copy.deepcopy(self) for _ in range(self.up_args.up_procs)]
 
         # parallel heuristic functions
+        ctx = get_context("spawn")
         self.nnet_runner_dict = self.get_nnet_fn_runner_dict(device, on_gpu)
         for proc_itr, updater in enumerate(updaters):
             for nnet_name in self.nnet_runner_dict.keys():
                 updater.set_nnet_par_info(nnet_name, self.nnet_runner_dict[nnet_name][0][proc_itr])
 
         # put work information on to_q
-        ctx = get_context("spawn")
         self.to_q = self._send_work_to_q(self.up_args, num_gen, ctx, train_batch_size, self.up_args.up_v)
 
         self.from_q = ctx.Queue()
         self.procs = []
-        for updater in updaters:
-            proc: BaseProcess = ctx.Process(target=updater.update_runner, args=(self.to_q, self.from_q, step_probs))
+        to_main_q: Queue = ctx.Queue()
+        from_main_qs: List[Queue] = []
+        for updater_idx, updater in enumerate(updaters):
+            from_main_q: Queue = ctx.Queue(1)
+            from_main_qs.append(from_main_q)
+            proc: BaseProcess = ctx.Process(target=updater.update_runner, args=(self.to_q, self.from_q, step_probs,
+                                                                                to_main_q, from_main_q, updater_idx))
             proc.daemon = True
             proc.start()
             self.procs.append(proc)
+
+        return to_main_q, from_main_qs
 
     def get_update_data(self) -> List[List[NDArray]]:
         assert self.from_q is not None
@@ -239,7 +254,7 @@ class Update(ABC, Generic[E, N, Inst, P]):
         for nnet_name in self.nnet_par_dict.keys():
             nnet: NNetPar = self.nnet_par_dict[nnet_name]
             nnet_par_info: NNetParInfo = self.nnet_par_info_dict[nnet_name]
-            self.nnet_fn_dict[nnet_name] = nnet.get_nnet_par_fn(nnet_par_info, self.update_num)
+            self.nnet_fn_dict[nnet_name] = nnet.get_nnet_par_fn(nnet_par_info, self.targ_update_num)
         self.env.set_nnet_fns(self.nnet_fn_dict)
 
     def get_up_args_repr(self) -> str:
@@ -261,11 +276,13 @@ class Update(ABC, Generic[E, N, Inst, P]):
     def get_instance_data(self, instances: List[Inst], times: Times) -> List[NDArray]:
         pass
 
-    def set_update_num(self, update_num: Optional[int]) -> None:
-        self.update_num = update_num
+    def set_targ_update_num(self, targ_update_num: Optional[int]) -> None:
+        self.targ_update_num = targ_update_num
 
-    def update_runner(self, to_q: Queue, from_q: Queue, step_probs: List[int]) -> None:
+    def update_runner(self, to_q: Queue, from_q: Queue, step_probs: List[int], to_main_q: Queue, from_main_q: Queue,
+                      main_q_idx: int) -> None:
         times: Times = Times()
+        # self.set_main_qs(to_main_q, from_main_q, main_q_idx)
 
         self.initialize_fns()
         step_to_pathperf: Dict[int, PathFindPerf] = dict()
@@ -299,6 +316,8 @@ class Update(ABC, Generic[E, N, Inst, P]):
             times.add_times(pathfind.times, path=["pathfinding"])
 
         from_q.put((times, step_to_pathperf))
+        self.to_main_q = None
+        self.from_main_q = None
 
     def _add_instances(self, pathfind: P, insts_rem: List[Inst], batch_size: int, step_probs: List[int],
                        times: Times) -> None:
@@ -362,10 +381,12 @@ class UpHeurArgs:
     :param up_args: Update args
     :param ub_heur_solns: if True, the target cost-to-go will be min(backup, path_cost_from_state)
     :param backup: 1 is Bellman and -1 is tree backup (i.e. Limited Horizon Bellman-based Learning)
+    :param on_heur: if True, number of processes can affect order in which data is seen
     """
     up_args: UpArgs
     ub_heur_solns: bool
     backup: int
+    on_heur: bool
 
 
 class UpdateHeur(UpdateHasHeur[E, N, Inst, P, HNet, H], ABC):
@@ -375,6 +396,9 @@ class UpdateHeur(UpdateHasHeur[E, N, Inst, P, HNet, H], ABC):
 
     def get_up_args_repr(self) -> str:
         return self.up_heur_args.__repr__()
+
+    def get_targ_heur_fn(self) -> H:
+        return cast(H, self.nnet_fn_dict[self.heur_name()])
 
 
 PV = TypeVar('PV', bound=PathFindV)
@@ -394,6 +418,18 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV
         shapes_dypes.append((tuple(), np.dtype(np.float64)))
 
         return shapes_dypes
+
+    def get_heur_fn(self) -> HeurFnV:
+        if not self.up_heur_args.on_heur:
+            return super().get_heur_fn()
+        else:
+            def heur_fn(states: List[State], goals: List[Goal]) -> List[float]:
+                assert (self.to_main_q is not None) and (self.from_main_q is not None)
+                inputs_np: List[NDArray] = self.get_heur_nnet().to_np(states, goals)
+                self.to_main_q.put((self.main_q_idx, inputs_np))
+                return cast(List[float], self.from_main_q.get())
+
+            return heur_fn
 
     def step(self, pathfind: PV, times: Times) -> List[NDArray]:
         # take a step
@@ -584,6 +620,6 @@ class UpdateHeurQ(UpdateHeur[E, NodeQ, Inst, PQ, HeurNNetQ[State, Action, Goal],
 class UpdateHeurQEnum(UpdateHeurQ[EnvEnumerableActs, Inst, PQ], ABC):
     def get_qvals(self, states: List[State], goals: List[Goal]) -> List[List[float]]:
         actions_next: List[List[Action]] = self.env.get_state_actions(states)
-        qvals: List[List[float]] = self.get_heur_fn()(states, goals, actions_next)
+        qvals: List[List[float]] = self.get_targ_heur_fn()(states, goals, actions_next)
 
         return qvals
