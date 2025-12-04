@@ -4,8 +4,9 @@ from deepxube.base.heuristic import HeurNNet, HeurNNetV, HeurNNetQ
 from deepxube.base.updater import UpdateHeur, UpHeurArgs
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, get_eq_weighted_perf
 from deepxube.updater.updaters import UpdateHeurGrPolVEnum, UpdateHeurGrPolQEnum
-from deepxube.training.train_utils import ReplayBuffer, train_heur_nnet, TrainArgs, ctgs_summary
+from deepxube.training.train_utils import DataBuffer, train_heur_nnet_step, TrainArgs, ctgs_summary
 from deepxube.utils.timing_utils import Times
+from deepxube.utils.data_utils import sel_l
 from deepxube.nnet import nnet_utils
 
 import torch
@@ -27,6 +28,7 @@ class Status:
     def __init__(self, step_max: int, balance_steps: bool):
         self.itr: int = 0
         self.update_num: int = 0
+        self.targ_update_num: int = 0
         self.step_max: int = step_max
         self.step_probs: NDArray
         self.step_max_curr: int = 1
@@ -116,7 +118,8 @@ class TrainHeur:
         self.status: Status
         if os.path.isfile(self.status_file):
             self.status = pickle.load(open(self.status_file, "rb"))
-            print(f"Loaded with itr: {self.status.itr}, update_num: {self.status.update_num}")
+            print(f"Loaded with itr: {self.status.itr}, update_num: {self.status.update_num}, "
+                  f"targ_update_num: {self.status.targ_update_num}")
         else:
             self.status = Status(self.updater.up_args.step_max, train_args.balance_steps)
             # noinspection PyTypeChecker
@@ -142,10 +145,10 @@ class TrainHeur:
 
         # init replay buffer
         shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = updater.get_shapes_dtypes()
-        rb_shapes: List[Tuple[int, ...]] = [x[0] for x in shapes_dtypes]
-        rb_dtypes: List[np.dtype] = [x[1] for x in shapes_dtypes]
-        self.rb: ReplayBuffer = ReplayBuffer(self.train_args.batch_size * self.updater.up_args.up_gen_itrs *
-                                             self.train_args.rb, rb_shapes, rb_dtypes)
+        db_shapes: List[Tuple[int, ...]] = [x[0] for x in shapes_dtypes]
+        db_dtypes: List[np.dtype] = [x[1] for x in shapes_dtypes]
+        self.db: DataBuffer = DataBuffer(self.train_args.batch_size * self.updater.up_args.up_gen_itrs, db_shapes,
+                                         db_dtypes)
 
         # optimizer and criterion
         self.optimizer: Optimizer = optim.Adam(self.nnet.parameters(), lr=self.train_args.lr)
@@ -153,7 +156,8 @@ class TrainHeur:
 
     def update_step(self) -> None:
         # print info
-        start_info_l: List[str] = [f"itr: {self.status.itr}", f"targ_update: {self.status.update_num}"]
+        start_info_l: List[str] = [f"itr: {self.status.itr}", f"update_num: {self.status.update_num}",
+                                   f"targ_update: {self.status.targ_update_num}"]
 
         num_gen: int = self.train_args.batch_size * self.updater.up_args.up_gen_itrs
         start_info_l.append(f"num_gen: {format(num_gen, ',')}")
@@ -164,48 +168,68 @@ class TrainHeur:
 
         # get update data
         start_time = time.time()
-        data_l, step_to_search_perf = self.updater.get_update_data(self.status.step_probs.tolist(), num_gen,
-                                                                   self.device, self.on_gpu, self.status.update_num)
-        times.record_time("up", time.time() - start_time)
+        self.updater.start_update(self.status.step_probs.tolist(), num_gen, self.device, self.on_gpu,
+                                  self.status.targ_update_num, self.train_args.batch_size)
+        self.db.clear()
+        times.record_time("up_start", time.time() - start_time)
+
+        # train nnet
+        update_train_itr: int = 0
+        loss: float = np.inf
+        ctgs_l: List[NDArray] = []
+        while update_train_itr < self.updater.up_args.up_itrs:
+            # data from updater should not be more that train_args.batch_size
+            start_time = time.time()
+            batch: List[NDArray]
+            if self.db.size() == num_gen:
+                batch = self.db.sample(self.train_args.batch_size)
+            else:
+                while self.db.size() < ((update_train_itr + 1) * self.train_args.batch_size):
+                    data_l: List[List[NDArray]] = self.updater.get_update_data()
+                    for data in data_l:
+                        ctgs_l.append(data[-1])
+                        self.db.add(data)
+                sel_idxs: NDArray = np.arange(update_train_itr * self.train_args.batch_size,
+                                              (update_train_itr + 1) * self.train_args.batch_size)
+                batch = sel_l(self.db.arrays, sel_idxs)
+
+            inputs_batch_np: List[NDArray] = batch[:-1]
+            ctgs_batch_np: NDArray = np.expand_dims(batch[-1].astype(np.float32), 1)
+            times.record_time("up_data", time.time() - start_time)
+
+            # train
+            start_time = time.time()
+
+            loss = train_heur_nnet_step(self.nnet, inputs_batch_np, ctgs_batch_np, self.optimizer, self.criterion,
+                                        self.device, self.status.itr, self.train_args)
+
+            update_train_itr += 1
+            self.status.itr += 1
+            times.record_time("train", time.time() - start_time)
+
+        # end update
+        start_time = time.time()
+        step_to_search_perf: Dict[int, PathFindPerf] = self.updater.end_update()
 
         per_solved_ave, path_costs_ave, search_itrs_ave = get_eq_weighted_perf(step_to_search_perf)
         self.writer.add_scalar("train/pathfind/solved", per_solved_ave, self.status.itr)
         self.writer.add_scalar("train/pathfind/path_cost", path_costs_ave, self.status.itr)
         self.writer.add_scalar("train/pathfind/search_itrs", search_itrs_ave, self.status.itr)
 
-        ctgs_l: List[NDArray] = [data[-1] for data in data_l]
+        if self.train_args.balance_steps:
+            self.status.update_step_probs(step_to_search_perf)
+
         ctgs_mean, ctgs_min, ctgs_max = ctgs_summary(ctgs_l)
         self.writer.add_scalar("train/ctgs/mean", ctgs_mean, self.status.itr)
         self.writer.add_scalar("train/ctgs/min", ctgs_min, self.status.itr)
         self.writer.add_scalar("train/ctgs/max", ctgs_max, self.status.itr)
-
-        if self.train_args.balance_steps:
-            self.status.update_step_probs(step_to_search_perf)
-
-        # get batches
-        start_time = time.time()
-        for data in data_l:
-            self.rb.add(data)
-
-        batches: List[Tuple[List[NDArray], NDArray]] = []
-        for _ in range(self.updater.up_args.up_itrs):
-            arrays_samp: List[NDArray] = self.rb.sample(self.train_args.batch_size)
-            inputs_batch_np: List[NDArray] = arrays_samp[:-1]
-            ctgs_batch_np: NDArray = np.expand_dims(arrays_samp[-1].astype(np.float32), 1)
-            batches.append((inputs_batch_np, ctgs_batch_np))
-        times.record_time("rb_samp", time.time() - start_time)
 
         post_up_info_l: List[str] = [f"%solved: {per_solved_ave:.2f}", f"path_costs: {path_costs_ave:.3f}",
                                      f"search_itrs: {search_itrs_ave:.3f}",
                                      f"cost-to-go (mean/min/max): {ctgs_mean:.2f}/{ctgs_min:.2f}/{ctgs_max:.2f}"]
         print(f"Data - {', '.join(post_up_info_l)}")
 
-        # train nnet
-        start_time = time.time()
-        last_loss = train_heur_nnet(self.nnet, batches, self.optimizer, self.criterion, self.device, self.status.itr,
-                                    self.train_args)
-        self.status.itr += self.updater.up_args.up_itrs
-        times.record_time("train", time.time() - start_time)
+        times.record_time("up_end", time.time() - start_time)
 
         # save nnet
         start_time = time.time()
@@ -213,25 +237,25 @@ class TrainHeur:
         times.record_time("save", time.time() - start_time)
 
         # update nnet
-        update: bool = False
+        update_targ: bool = False
         if self.train_args.targ_up_searches <= 0:
-            update = True
+            update_targ = True
         else:
             print("Getting greedy performance")
-            per_solved: float = self.update_greedy_perf(self.status.update_num + 1)
+            per_solved: float = self.update_greedy_perf(self.status.targ_update_num + 1)
             print(f"Greedy policy solved (best): {per_solved:.2f}% ({self.status.per_solved_best:.2f}%)")
             if per_solved > self.status.per_solved_best:
-                update = True
+                update_targ = True
                 self.status.per_solved_best = per_solved
 
-        if update:
+        if update_targ:
             shutil.copy(self.nnet_file, self.nnet_targ_file)
-            self.status.update_num = self.status.update_num + 1
+            self.status.targ_update_num = self.status.targ_update_num + 1
+        self.status.update_num += 1
 
         # noinspection PyTypeChecker
         pickle.dump(self.status, open(self.status_file, "wb"), protocol=-1)
-        print(f"Train - itrs: {format(len(batches), ',')}, loss: {last_loss:.2E}, rb: {format(self.rb.size(), ',')}, "
-              f"targ_updated: {update}")
+        print(f"Train - itrs: {update_train_itr}, loss: {loss:.2E}, targ_updated: {update_targ}")
         print(f"Times - {times.get_time_str()}")
 
     def update_greedy_perf(self, update_num: int) -> float:
@@ -250,8 +274,12 @@ class TrainHeur:
         updater_greedy.set_heur_file(self.nnet_file)
         step_probs = np.ones(self.updater.up_args.step_max + 1) / (self.updater.up_args.step_max + 1)
         num_gen: int = self.updater.up_args.up_search_itrs * self.train_args.targ_up_searches
-        _, step_to_search_perf = updater_greedy.get_update_data(step_probs.tolist(), num_gen, self.device, self.on_gpu,
-                                                                update_num)
+        updater_greedy.start_update(step_probs.tolist(), num_gen, self.device, self.on_gpu, update_num,
+                                    self.train_args.batch_size)
+        while updater_greedy.num_generated < num_gen:
+            self.updater.get_update_data()
+
+        step_to_search_perf: Dict[int, PathFindPerf] = updater_greedy.end_update()
         per_solved_ave, path_cost_ave, search_itrs_ave = get_eq_weighted_perf(step_to_search_perf)
         print(f"%solved: {per_solved_ave:.2f}, path_costs: {path_cost_ave:.3f}, search_itrs: {search_itrs_ave:.3f} "
               f"(greedy perf)")

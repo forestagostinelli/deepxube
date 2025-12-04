@@ -100,14 +100,14 @@ def train(updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: 
                                       train_args)
 
     # training
-    up_itrs: int = 0
+    up_itr_performed: bool = False
     while train_heur.status.itr < train_args.max_itrs:
         # test
         do_test: bool = False
         if test_args is not None:
-            if up_itrs > 0:
-                do_test = up_itrs % test_args.test_up_freq == 0
-            elif up_itrs == 0:
+            if train_heur.status.update_num > 0:
+                do_test = train_heur.status.update_num % test_args.test_up_freq == 0
+            elif train_heur.status.update_num == 0:
                 do_test = test_args.test_init
 
         if do_test:
@@ -120,17 +120,18 @@ def train(updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: 
         # clear cuda memory
         torch.cuda.empty_cache()
 
-        up_itrs += 1
+        up_itr_performed = True
 
-    if (test_args is not None) and (up_itrs > 0):
+    if (test_args is not None) and up_itr_performed:
         test(updater, train_heur, test_args, writer)
 
     print("Done")
 
 
 def test(updater: UpdateHeur, train_heur: TrainHeur, test_args: TestArgs, writer: SummaryWriter) -> None:
-    print(f"Testing - itr: {train_heur.status.itr}, update: {train_heur.status.update_num}, "
-          f"num_inst: {len(test_args.test_states)}, num_search_params: {len(test_args.search_weights)}")
+    print(f"Testing - itr: {train_heur.status.itr}, update_itr: {train_heur.status.update_num}, "
+          f"targ_update: {train_heur.status.targ_update_num}, num_inst: {len(test_args.test_states)}, "
+          f"num_search_params: {len(test_args.search_weights)}")
     for param_idx in range(len(test_args.search_weights)):
         start_time = time.time()
         # get pathfinding alg with test instances

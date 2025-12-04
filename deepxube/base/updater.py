@@ -51,59 +51,6 @@ class UpArgs:
     up_v: bool = False
 
 
-def get_data_from_procs(num_gen: int, from_q: Queue, to_q: Queue, procs: List[BaseProcess],
-                        verbose: bool) -> Tuple[List[List[NDArray]], Dict[int, PathFindPerf]]:
-    # getting data from processes
-    times_up: Times = Times()
-    display_counts: NDArray[np.int_] = np.linspace(0, num_gen, 10, dtype=int)
-    num_gen_curr: int = 0
-    data_l: List[List[NDArray]] = []
-    while num_gen_curr < num_gen:
-        data_get_l: List[List[SharedNDArray]] = from_q.get()
-        start_time = time.time()
-        for data_get in data_get_l:
-            # to np
-            data_get_np: List[NDArray] = []
-            for data_get_i in data_get:
-                data_get_np.append(data_get_i.array.copy())
-            data_l.append(data_get_np)
-
-            # status tracking
-            num_gen_curr += data_get_np[0].shape[0]
-
-            # unlink shared mem
-            for arr_shm in data_get:
-                arr_shm.close()
-                arr_shm.unlink()
-        times_up.record_time("rb", time.time() - start_time)
-        if num_gen_curr >= min(display_counts):
-            # if verbose:
-            #    print(f"{num_gen_curr}/{num_gen} instances (%.2f%%) "
-            #          f"(Tot time: %.2f)" % (100 * num_gen_curr / num_gen, time.time() - start_time_gen))
-            display_counts = display_counts[num_gen_curr < display_counts]
-
-    # sending stop signal
-    for _ in procs:
-        to_q.put(None)
-
-    # get summary from processes
-    step_to_pathperf: Dict[int, PathFindPerf] = dict()
-    for _ in procs:
-        times_up_i, step_to_pathperf_i = from_q.get()
-        times_up.add_times(times_up_i)
-        for step_num_perf, pathperf in step_to_pathperf_i.items():
-            if step_num_perf not in step_to_pathperf.keys():
-                step_to_pathperf[step_num_perf] = PathFindPerf()
-            step_to_pathperf[step_num_perf] = step_to_pathperf[step_num_perf].comb_perf(pathperf)
-
-    # summary
-    if verbose:
-        print(f"Generated {format(num_gen_curr, ',')} training instances")
-        print(f"Times - {times_up.get_time_str()}")
-
-    return data_l, step_to_pathperf
-
-
 def _put_from_q(data_l: List[List[NDArray]], from_q: Queue, times: Times) -> None:
     start_time = time.time()
 
@@ -144,7 +91,7 @@ class Update(ABC, Generic[E, N, Inst, P]):
             step_to_pathperf[step_num_inst].update_perf(inst)
 
     @staticmethod
-    def _send_work_to_q(up_args: UpArgs, num_gen: int, ctx: SpawnContext, verbose: bool) -> Queue:
+    def _send_work_to_q(up_args: UpArgs, num_gen: int, ctx: SpawnContext, train_batch_size: int, verbose: bool) -> Queue:
         num_searches: int = num_gen // up_args.up_search_itrs
         if verbose:
             print(f"Generating {format(num_gen, ',')} training instances with {format(num_searches, ',')} searches")
@@ -154,7 +101,8 @@ class Update(ABC, Generic[E, N, Inst, P]):
                                                        f"pathfinding iterations to take during the "
                                                        f"updater ({up_args.up_search_itrs})")
         to_q: Queue = ctx.Queue()
-        num_to_send_per: List[int] = split_evenly_w_max(num_searches, up_args.up_procs, up_args.up_batch_size)
+        num_to_send_per: List[int] = split_evenly_w_max(num_searches, up_args.up_procs,
+                                                        min(up_args.up_batch_size, train_batch_size))
         for num_to_send_per_i in num_to_send_per:
             if num_to_send_per_i > 0:
                 to_q.put(num_to_send_per_i)
@@ -172,6 +120,13 @@ class Update(ABC, Generic[E, N, Inst, P]):
             self.set_nnet_file(nnet_name, nnet_file)
         self.nnet_par_info_dict: Dict[str, NNetParInfo] = dict()
         self.nnet_fn_dict: Dict[str, NNetCallable] = dict()
+
+        # update info
+        self.nnet_runner_dict: Dict[str, Tuple[List[NNetParInfo], List[BaseProcess]]] = dict()
+        self.procs: List[BaseProcess] = []
+        self.to_q: Optional[Queue] = None
+        self.from_q: Optional[Queue] = None
+        self.num_generated: int = 0
 
     def get_nnet_fn_runner_dict(self, device: torch.device,
                                 on_gpu: bool) -> Dict[str, Tuple[List[NNetParInfo], List[BaseProcess]]]:
@@ -196,45 +151,89 @@ class Update(ABC, Generic[E, N, Inst, P]):
         assert nnet_name in self.nnet_par_dict.keys(), f"{nnet_name} should already be in dict, but it is not"
         self.nnet_file_dict[nnet_name] = nnet_file
 
-    def get_update_data(self, step_probs: List[int], num_gen: int, device: torch.device, on_gpu: bool,
-                        update_num: int) -> Tuple[List[List[NDArray]], Dict[int, PathFindPerf]]:
+    def start_update(self, step_probs: List[int], num_gen: int, device: torch.device, on_gpu: bool,
+                     update_num: int, train_batch_size: int) -> None:
         self.set_update_num(update_num)
-        # put work information on to_q
-        ctx = get_context("spawn")
-        to_q: Queue = self._send_work_to_q(self.up_args, num_gen, ctx, self.up_args.up_v)
-
-        # parallel heuristic functions
-        nnet_runner_dict: Dict[str, Tuple[List[NNetParInfo], List[BaseProcess]]] = self.get_nnet_fn_runner_dict(device,
-                                                                                                                on_gpu)
 
         # start updater procs
         # TODO implement safer copy?
         updaters: List[Update] = [copy.deepcopy(self) for _ in range(self.up_args.up_procs)]
-        for proc_itr, updater in enumerate(updaters):
-            for nnet_name in nnet_runner_dict.keys():
-                updater.set_nnet_par_info(nnet_name, nnet_runner_dict[nnet_name][0][proc_itr])
 
-        from_q: Queue = ctx.Queue()
-        procs: List[BaseProcess] = []
+        # parallel heuristic functions
+        self.nnet_runner_dict = self.get_nnet_fn_runner_dict(device, on_gpu)
+        for proc_itr, updater in enumerate(updaters):
+            for nnet_name in self.nnet_runner_dict.keys():
+                updater.set_nnet_par_info(nnet_name, self.nnet_runner_dict[nnet_name][0][proc_itr])
+
+        # put work information on to_q
+        ctx = get_context("spawn")
+        self.to_q = self._send_work_to_q(self.up_args, num_gen, ctx, train_batch_size, self.up_args.up_v)
+
+        self.from_q = ctx.Queue()
+        self.procs = []
         for updater in updaters:
-            proc: BaseProcess = ctx.Process(target=updater.update_runner, args=(to_q, from_q, step_probs))
+            proc: BaseProcess = ctx.Process(target=updater.update_runner, args=(self.to_q, self.from_q, step_probs))
             proc.daemon = True
             proc.start()
-            procs.append(proc)
+            self.procs.append(proc)
 
-        # getting data from procs
-        data_l, step_to_pathperf = get_data_from_procs(num_gen, from_q, to_q, procs, self.up_args.up_v)
+    def get_update_data(self) -> List[List[NDArray]]:
+        assert self.from_q is not None
+        data_l: List[List[NDArray]] = []
+        data_get_l: List[List[SharedNDArray]] = self.from_q.get()
+        for data_get in data_get_l:
+            # to np
+            data_get_np: List[NDArray] = []
+            for data_get_i in data_get:
+                data_get_np.append(data_get_i.array.copy())
+            data_l.append(data_get_np)
 
-        # clean up clean up everybody do your share
-        for nnet_par_infos, nnet_procs in nnet_runner_dict.values():
-            nnet_utils.stop_nnet_runners(nnet_procs, nnet_par_infos)
-        for proc in procs:
-            proc.join()
+            # status tracking
+            self.num_generated += data_get_np[0].shape[0]
 
+            # unlink shared mem
+            for arr_shm in data_get:
+                arr_shm.close()
+                arr_shm.unlink()
+
+        return data_l
+
+    def end_update(self) -> Dict[int, PathFindPerf]:
+        assert (self.to_q is not None) and (self.from_q is not None)
+        # sending stop signal
+        for _ in self.procs:
+            self.to_q.put(None)
+
+        # get summary from processes
+        step_to_pathperf: Dict[int, PathFindPerf] = dict()
+        times_up: Times = Times()
+        for _ in self.procs:
+            times_up_i, step_to_pathperf_i = self.from_q.get()
+            times_up.add_times(times_up_i)
+            for step_num_perf, pathperf in step_to_pathperf_i.items():
+                if step_num_perf not in step_to_pathperf.keys():
+                    step_to_pathperf[step_num_perf] = PathFindPerf()
+                step_to_pathperf[step_num_perf] = step_to_pathperf[step_num_perf].comb_perf(pathperf)
+
+        # print
         if self.up_args.up_v:
+            print(f"Generated {format(self.num_generated, ',')} training instances")
+            print(f"Times - {times_up.get_time_str()}")
             print_pathfindperf(step_to_pathperf)
 
-        return data_l, step_to_pathperf
+        # clean up clean up everybody do your share
+        for nnet_par_infos, nnet_procs in self.nnet_runner_dict.values():
+            nnet_utils.stop_nnet_runners(nnet_procs, nnet_par_infos)
+        for proc in self.procs:
+            proc.join()
+
+        self.nnet_runner_dict = dict()
+        self.procs = []
+        self.to_q = None
+        self.from_q = None
+        self.num_generated = 0
+
+        return step_to_pathperf
 
     def initialize_fns(self) -> None:
         for nnet_name in self.nnet_par_dict.keys():
@@ -255,7 +254,7 @@ class Update(ABC, Generic[E, N, Inst, P]):
         pass
 
     @abstractmethod
-    def step(self, pathfind: P, times: Times) -> None:
+    def step(self, pathfind: P, times: Times) -> List[NDArray]:
         pass
 
     @abstractmethod
@@ -285,13 +284,14 @@ class Update(ABC, Generic[E, N, Inst, P]):
                 assert len(pathfind.instances) == batch_size, f"Values were {len(pathfind.instances)} and {batch_size}"
 
                 # step
-                self.step(pathfind, times)
+                data: List[NDArray] = self.step(pathfind, times)
+                _put_from_q([data], from_q, times)
 
                 # remove instances
                 insts_rem_last_itr = pathfind.remove_finished_instances(self.up_args.up_search_itrs)
                 insts_rem_all.extend(insts_rem_last_itr)
 
-            _put_from_q([self.get_instance_data(insts_rem_all + pathfind.instances, times)], from_q, times)
+            # _put_from_q([self.get_instance_data(insts_rem_all + pathfind.instances, times)], from_q, times)
 
             # pathfinding performance
             self._update_perf(insts_rem_all, step_to_pathperf)
@@ -395,11 +395,29 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV
 
         return shapes_dypes
 
-    def step(self, pathfind: PV, times: Times) -> None:
+    def step(self, pathfind: PV, times: Times) -> List[NDArray]:
         # take a step
         nodes_popped: List[NodeV] = pathfind.step()
         assert len(nodes_popped) == len(pathfind.instances), (f"Values were {len(nodes_popped)} and "
                                                               f"{len(pathfind.instances)}")
+
+        # backup
+        start_time = time.time()
+        ctgs_backup: List[float] = []
+        for node in nodes_popped:
+            node.bellman_backup()
+            assert node.backup_val is not None
+            ctgs_backup.append(node.backup_val)
+        times.record_time("backup", time.time() - start_time)
+
+        # inputs
+        start_time = time.time()
+        states: List[State] = [node.state for node in nodes_popped]
+        goals: List[Goal] = [node.goal for node in nodes_popped]
+        inputs_np: List[NDArray] = self.get_heur_nnet().to_np(states, goals)
+        times.record_time("to_np", time.time() - start_time)
+
+        return inputs_np + [np.array(ctgs_backup)]
 
     def get_instance_data(self, instances: List[Inst], times: Times) -> List[NDArray]:
         # root heur
@@ -452,7 +470,7 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV
         times.add_times(times_states, ["get_states"])
 
         # root nodes
-        return pathfind.create_root_nodes(states_gen, goals_gen, compute_init_heur=False)
+        return pathfind.create_root_nodes(states_gen, goals_gen, compute_init_heur=True)
 
 
 PQ = TypeVar('PQ', bound=PathFindQ)
@@ -489,7 +507,7 @@ class UpdateHeurQ(UpdateHeur[E, NodeQ, Inst, PQ, HeurNNetQ[State, Action, Goal],
 
         return states_next, ctg_backups.tolist()
 
-    def step(self, pathfind: PQ, times: Times) -> None:
+    def step(self, pathfind: PQ, times: Times) -> List[NDArray]:
         # take a step
         nodeqacts: List[NodeQAct] = pathfind.step()
         assert len(nodeqacts) == len(pathfind.instances), f"Values were {len(nodeqacts)} and {len(pathfind.instances)}"

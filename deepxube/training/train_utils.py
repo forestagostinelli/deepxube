@@ -38,7 +38,7 @@ class TrainArgs:
     display: bool
 
 
-class ReplayBuffer:
+class DataBuffer:
     def __init__(self, max_size: int, shapes: List[Tuple[int, ...]], dtypes: List[np.dtype]):
         self.arrays: List[NDArray] = []
         self.max_size: int = max_size
@@ -47,18 +47,18 @@ class ReplayBuffer:
 
         # first add
         start_time = time.time()
-        print(f"Initializing replay buffer with max size {format(self.max_size, ',')}")
+        print(f"Initializing data buffer with max size {format(self.max_size, ',')}")
         print("Input array sizes:")
         for array_idx, (shape, dtype) in enumerate(zip(shapes, dtypes)):
             print(f"index: {array_idx}, dtype: {dtype}, shape:", shape)
             array: NDArray = np.empty((self.max_size,) + shape, dtype=dtype)
             self.arrays.append(array)
 
-        print(f"Replay buffer initialized. Time: {time.time() - start_time}")
+        print(f"Data buffer initialized. Time: {time.time() - start_time}")
 
     def add(self, arrays_add: List[NDArray]) -> None:
         self.curr_size = min(self.curr_size + arrays_add[0].shape[0], self.max_size)
-        assert len(self.arrays) > 0, "Replay buffer should have at least one array."
+        assert len(self.arrays) > 0, "Data buffer should have at least one array."
         self._add_circular(arrays_add)
 
     def sample(self, num: int) -> List[NDArray]:
@@ -109,49 +109,37 @@ def ctgs_summary(ctgs_l: List[NDArray]) -> Tuple[float, float, float]:
     return ctgs_mean, ctgs_min, ctgs_max
 
 
-def train_heur_nnet(nnet: nn.Module, batches: List[Tuple[List[NDArray], NDArray]], optimizer: Optimizer,
-                    criterion: nn.Module, device: torch.device, train_itr: int, train_args: TrainArgs) -> float:
-    # initialize status tracking
-    start_time = time.time()
-
+def train_heur_nnet_step(nnet: nn.Module, inputs_np: List[NDArray], ctgs_np: NDArray, optimizer: Optimizer,
+                         criterion: nn.Module, device: torch.device, train_itr: int, train_args: TrainArgs) -> float:
     # train network
     nnet.train()
 
-    last_loss: float = np.inf
-    for (inputs_batch_np, ctgs_batch_np) in batches:
-        # zero the parameter gradients
-        optimizer.zero_grad()
-        lr_itr: float = train_args.lr * (train_args.lr_d ** train_itr)
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = lr_itr
+    # zero the parameter gradients
+    optimizer.zero_grad()
+    lr_itr: float = train_args.lr * (train_args.lr_d ** train_itr)
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr_itr
 
-        # send data to device
-        inputs_batch: List[Tensor] = nnet_utils.to_pytorch_input(inputs_batch_np, device)
-        ctgs_batch: Tensor = torch.tensor(ctgs_batch_np, device=device)
+    # send data to device
+    inputs_batch: List[Tensor] = nnet_utils.to_pytorch_input(inputs_np, device)
+    ctgs_batch: Tensor = torch.tensor(ctgs_np, device=device)
 
-        # forward
-        ctgs_nnet: Tensor = nnet(inputs_batch)
+    # forward
+    ctgs_nnet: Tensor = nnet(inputs_batch)
 
-        # loss
-        assert ctgs_nnet.size() == ctgs_batch.size()
-        loss = criterion(ctgs_nnet, ctgs_batch)
+    # loss
+    assert ctgs_nnet.size() == ctgs_batch.size()
+    loss = criterion(ctgs_nnet, ctgs_batch)
 
-        # backwards
-        loss.backward()
+    # backwards
+    loss.backward()
 
-        # step
-        optimizer.step()
+    # step
+    optimizer.step()
 
-        last_loss = loss.item()
-        # display progress
-        if (train_args.display > 0) and (train_itr % train_args.display == 0):
-            print("Itr: %i, lr: %.2E, loss: %.2E, targ_ctg: %.2f, nnet_ctg: %.2f, "
-                  "Time: %.2f" % (
-                      train_itr, lr_itr, loss.item(), ctgs_batch.mean().item(), ctgs_nnet.mean().item(),
-                      time.time() - start_time))
+    # display progress
+    if (train_args.display > 0) and (train_itr % train_args.display == 0):
+        print("Itr: %i, lr: %.2E, loss: %.2E, targ_ctg: %.2f, "
+              "nnet_ctg: %.2f, " % (train_itr, lr_itr, loss.item(), ctgs_batch.mean().item(), ctgs_nnet.mean().item()))
 
-            start_time = time.time()
-
-        train_itr = train_itr + 1
-
-    return last_loss
+    return float(loss.item())

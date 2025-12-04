@@ -17,4 +17,4 @@ def test_status():
     assert len(status.states_start_t) == num_states_gen
     assert len(status.goals_t) == num_states_gen
     assert status.itr == 0
-    assert status.update_num == 0
+    assert status.targ_update_num == 0
