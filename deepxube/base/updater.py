@@ -16,8 +16,8 @@ from deepxube.base.heuristic import HeurNNet, HeurFnV, HeurFnQ, HeurNNetV, HeurN
 from deepxube.base.pathfinding import PathFind, PathFindV, PathFindQ, Instance, Node, NodeV, NodeQ, NodeQAct
 from deepxube.nnet import nnet_utils
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, print_pathfindperf
-from deepxube.utils.data_utils import SharedNDArray, np_to_shnd
-from deepxube.utils.misc_utils import split_evenly_w_max
+from deepxube.utils.data_utils import SharedNDArray, np_to_shnd, get_nowait_noerr
+from deepxube.utils.misc_utils import split_evenly_w_max, flatten, unflatten
 from deepxube.utils.timing_utils import Times
 
 import copy
@@ -129,7 +129,8 @@ class Update(ABC, Generic[E, N, Inst, P]):
         self.num_generated: int = 0
         self.to_main_q: Optional[Queue] = None
         self.from_main_q: Optional[Queue] = None
-        self.main_q_idx: int = 0
+        self.q_id: int = 0
+        self.nnet_par_info_main: Optional[NNetParInfo] = None
 
     def get_nnet_fn_runner_dict(self, device: torch.device,
                                 on_gpu: bool) -> Dict[str, Tuple[List[NNetParInfo], List[BaseProcess]]]:
@@ -154,10 +155,11 @@ class Update(ABC, Generic[E, N, Inst, P]):
         assert nnet_name in self.nnet_par_dict.keys(), f"{nnet_name} should already be in dict, but it is not"
         self.nnet_file_dict[nnet_name] = nnet_file
 
-    def set_main_qs(self, to_main_q: Queue, from_main_q: Queue, main_q_idx: int) -> None:
+    def set_main_qs(self, to_main_q: Queue, from_main_q: Queue, q_id: int) -> None:
         self.to_main_q = to_main_q
         self.from_main_q = from_main_q
-        self.main_q_idx = main_q_idx
+        self.q_id = q_id
+        self.nnet_par_info_main = NNetParInfo(self.to_main_q, self.from_main_q, self.q_id)
 
     def start_update(self, step_probs: List[int], num_gen: int, device: torch.device, on_gpu: bool,
                      targ_update_num: int, train_batch_size: int) -> Tuple[Queue, List[Queue]]:
@@ -169,33 +171,40 @@ class Update(ABC, Generic[E, N, Inst, P]):
 
         # parallel heuristic functions
         ctx = get_context("spawn")
+        to_main_q: Queue = ctx.Queue()
+        from_main_qs: List[Queue] = []
         self.nnet_runner_dict = self.get_nnet_fn_runner_dict(device, on_gpu)
-        for proc_itr, updater in enumerate(updaters):
+        for proc_idx, updater in enumerate(updaters):
+            from_main_q: Queue = ctx.Queue(1)
+            from_main_qs.append(from_main_q)
+            updater.set_main_qs(to_main_q, from_main_q, proc_idx)
             for nnet_name in self.nnet_runner_dict.keys():
-                updater.set_nnet_par_info(nnet_name, self.nnet_runner_dict[nnet_name][0][proc_itr])
+                updater.set_nnet_par_info(nnet_name, self.nnet_runner_dict[nnet_name][0][proc_idx])
 
         # put work information on to_q
         self.to_q = self._send_work_to_q(self.up_args, num_gen, ctx, train_batch_size, self.up_args.up_v)
 
         self.from_q = ctx.Queue()
         self.procs = []
-        to_main_q: Queue = ctx.Queue()
-        from_main_qs: List[Queue] = []
-        for updater_idx, updater in enumerate(updaters):
-            from_main_q: Queue = ctx.Queue(1)
-            from_main_qs.append(from_main_q)
-            proc: BaseProcess = ctx.Process(target=updater.update_runner, args=(self.to_q, self.from_q, step_probs,
-                                                                                to_main_q, from_main_q, updater_idx))
+        for updater in updaters:
+            proc: BaseProcess = ctx.Process(target=updater.update_runner, args=(self.to_q, self.from_q, step_probs))
             proc.daemon = True
             proc.start()
             self.procs.append(proc)
 
         return to_main_q, from_main_qs
 
-    def get_update_data(self) -> List[List[NDArray]]:
+    def get_update_data(self, nowait: bool = False) -> List[List[NDArray]]:
         assert self.from_q is not None
         data_l: List[List[NDArray]] = []
-        data_get_l: List[List[SharedNDArray]] = self.from_q.get()
+        data_get_l: Optional[List[List[SharedNDArray]]]
+        if nowait:
+            data_get_l = get_nowait_noerr(self.from_q)
+        else:
+            data_get_l = self.from_q.get()
+        if data_get_l is None:
+            return []
+
         for data_get in data_get_l:
             # to np
             data_get_np: List[NDArray] = []
@@ -279,10 +288,8 @@ class Update(ABC, Generic[E, N, Inst, P]):
     def set_targ_update_num(self, targ_update_num: Optional[int]) -> None:
         self.targ_update_num = targ_update_num
 
-    def update_runner(self, to_q: Queue, from_q: Queue, step_probs: List[int], to_main_q: Queue, from_main_q: Queue,
-                      main_q_idx: int) -> None:
+    def update_runner(self, to_q: Queue, from_q: Queue, step_probs: List[int]) -> None:
         times: Times = Times()
-        # self.set_main_qs(to_main_q, from_main_q, main_q_idx)
 
         self.initialize_fns()
         step_to_pathperf: Dict[int, PathFindPerf] = dict()
@@ -318,6 +325,7 @@ class Update(ABC, Generic[E, N, Inst, P]):
         from_q.put((times, step_to_pathperf))
         self.to_main_q = None
         self.from_main_q = None
+        self.nnet_par_info_main = None
 
     def _add_instances(self, pathfind: P, insts_rem: List[Inst], batch_size: int, step_probs: List[int],
                        times: Times) -> None:
@@ -423,13 +431,8 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV
         if not self.up_heur_args.on_heur:
             return super().get_heur_fn()
         else:
-            def heur_fn(states: List[State], goals: List[Goal]) -> List[float]:
-                assert (self.to_main_q is not None) and (self.from_main_q is not None)
-                inputs_np: List[NDArray] = self.get_heur_nnet().to_np(states, goals)
-                self.to_main_q.put((self.main_q_idx, inputs_np))
-                return cast(List[float], self.from_main_q.get())
-
-            return heur_fn
+            assert self.nnet_par_info_main is not None
+            return self.get_heur_nnet().get_nnet_par_fn(self.nnet_par_info_main, self.targ_update_num)
 
     def step(self, pathfind: PV, times: Times) -> List[NDArray]:
         # take a step
@@ -440,10 +443,36 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV
         # backup
         start_time = time.time()
         ctgs_backup: List[float] = []
-        for node in nodes_popped:
-            node.bellman_backup()
-            assert node.backup_val is not None
-            ctgs_backup.append(node.backup_val)
+        if not self.up_heur_args.on_heur:
+            for node in nodes_popped:
+                node.bellman_backup()
+                assert node.backup_val is not None
+                ctgs_backup.append(node.backup_val)
+        else:
+            # get all t_costs, states, and goals of child nodes
+            t_costs_l: List[List[float]] = []
+            states_child_all: List[State] = []
+            goals_child_all: List[Goal] = []
+            for node in nodes_popped:
+                assert node.t_costs is not None
+                assert node.children is not None
+                t_costs_l.append(node.t_costs)
+                children: List[NodeV] = node.children
+                states_child_all.extend([node.state for node in children])
+                goals_child_all.extend([node.goal for node in children])
+
+            # compute targ heur values
+            heur_fn_targ: HeurFnV = self.get_targ_heur_fn()
+            heuristics: List[float] = heur_fn_targ(states_child_all, goals_child_all)
+            _, split_idxs = flatten(t_costs_l)
+            heuristics_l: List[List[float]] = unflatten(heuristics, split_idxs)
+
+            # backup
+            for t_costs, heuristics in zip(t_costs_l, heuristics_l):
+                backup_val: float = np.inf
+                for tc, heuristic in zip(t_costs, heuristics, strict=True):
+                    backup_val = min(backup_val, tc + heuristic)
+                ctgs_backup.append(backup_val)
         times.record_time("backup", time.time() - start_time)
 
         # inputs

@@ -108,6 +108,23 @@ class NNetParInfo:
     proc_id: int
 
 
+def nnet_in_out_shared_q(nnet: nn.Module, inputs_nnet_shm: List[SharedNDArray], batch_size: Optional[int],
+                         device: torch.device, nnet_o_q: Queue) -> None:
+    # get outputs
+    inputs_nnet: List[NDArray] = []
+    for inputs_idx in range(len(inputs_nnet_shm)):
+        inputs_nnet.append(inputs_nnet_shm[inputs_idx].array)
+
+    outputs: NDArray[np.float64] = nnet_batched(nnet, inputs_nnet, batch_size, device)
+
+    # send outputs
+    outputs_shm: SharedNDArray = np_to_shnd(outputs)
+    nnet_o_q.put(outputs_shm)
+
+    for arr_shm in inputs_nnet_shm + [outputs_shm]:
+        arr_shm.close()
+
+
 # parallel neural networks
 def nnet_fn_runner(nnet_i_q: Queue, nnet_o_qs: List[Queue], model_file: str, device: torch.device, on_gpu: bool,
                    gpu_num: int, get_nnet: Callable[[], nn.Module], batch_size: Optional[int]) -> None:
@@ -129,19 +146,8 @@ def nnet_fn_runner(nnet_i_q: Queue, nnet_o_qs: List[Queue], model_file: str, dev
         if proc_id is None:
             break
 
-        # get outputs
-        inputs_nnet: List[NDArray] = []
-        for inputs_idx in range(len(inputs_nnet_shm)):
-            inputs_nnet.append(inputs_nnet_shm[inputs_idx].array)
-
-        outputs: NDArray[np.float64] = nnet_batched(nnet, inputs_nnet, batch_size, device)
-
-        # send outputs
-        outputs_shm: SharedNDArray = np_to_shnd(outputs)
-        nnet_o_qs[proc_id].put(outputs_shm)
-
-        for arr_shm in inputs_nnet_shm + [outputs_shm]:
-            arr_shm.close()
+        # nnet in/out
+        nnet_in_out_shared_q(nnet, inputs_nnet_shm, batch_size, device, nnet_o_qs[proc_id])
 
 
 def start_nnet_fn_runners(get_nnet: Callable[[], nn.Module], num_procs: int, model_file: str, device: torch.device,

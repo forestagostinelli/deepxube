@@ -1,12 +1,14 @@
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 
-from deepxube.base.heuristic import HeurNNet, HeurNNetV, HeurNNetQ, HeurFnV, HeurFnQ
+from deepxube.base.heuristic import HeurNNet, HeurNNetV, HeurNNetQ
 from deepxube.base.updater import UpdateHeur, UpHeurArgs
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, get_eq_weighted_perf
 from deepxube.updater.updaters import UpdateHeurGrPolVEnum, UpdateHeurGrPolQEnum
 from deepxube.training.train_utils import DataBuffer, train_heur_nnet_step, TrainArgs, ctgs_summary
+from deepxube.nnet.nnet_utils import nnet_in_out_shared_q
+from deepxube.utils.data_utils import get_nowait_noerr
 from deepxube.utils.timing_utils import Times
-from deepxube.utils.data_utils import sel_l
+from deepxube.utils.data_utils import sel_l, SharedNDArray
 from deepxube.nnet import nnet_utils
 
 import torch
@@ -45,7 +47,6 @@ class Status:
         self.per_solved_best: float = 0.0
 
     def update_step_probs(self, step_to_search_perf: Dict[int, PathFindPerf]) -> None:
-        # self.split_idx = self._get_split_idx(step_to_search_perf)
         ave_solve: float = float(np.mean([step_to_search_perf[step].per_solved()
                                           for step in step_to_search_perf.keys()]))
         if ave_solve >= 50.0:
@@ -53,52 +54,6 @@ class Status:
 
         self.step_probs = np.zeros(self.step_max + 1)
         self.step_probs[np.arange(0, self.step_max_curr + 1)] = 1 / (self.step_max_curr + 1)
-        """
-        if self.split_idx < self.step_max:
-            self.step_probs[np.arange(0, self.split_idx + 1)] = self.step_probs[np.arange(0, self.split_idx + 1)] / 2.0
-            wo_soln_steps: NDArray = np.arange(self.split_idx + 1, self.step_max + 1)
-            wo_soln_weights: NDArray = (1.0 / wo_soln_steps)/(1.0 / wo_soln_steps).sum()
-            self.step_probs[wo_soln_steps] = wo_soln_weights / 2.0
-
-            # num_steps_left: int = self.step_max - self.split_idx
-            # self.step_probs[np.arange(self.split_idx + 1, self.step_max + 1)] = 1 / num_steps_left / 2.0
-        """
-        """
-        for step in range(self.step_max + 1):
-            if step not in step_to_search_perf.keys():
-                per_solved_per_step_l.append(0.0)
-            else:
-                search_perf: PathFindPerf = step_to_search_perf[step]
-                per_solved_per_step_l.append(search_perf.per_solved())
-        per_solved_per_step: NDArray = np.array(per_solved_per_step_l)
-
-        wo_soln_mask: NDArray = np.array(per_solved_per_step == 0)
-        num_wo_soln: int = int(np.sum(wo_soln_mask))
-        if num_wo_soln == 0:
-            self.step_probs = per_solved_per_step / per_solved_per_step.sum()
-        else:
-            w_soln_mask: NDArray = per_solved_per_step > 0
-            w_soln_weights: NDArray = per_solved_per_step[w_soln_mask]/per_solved_per_step[w_soln_mask].sum()
-            self.step_probs[w_soln_mask] = w_soln_weights / 2.0
-
-            wo_soln_steps: NDArray = np.arange(len(self.step_probs))[wo_soln_mask]
-            wo_soln_weights: NDArray = (1.0 / wo_soln_steps)/(1.0 / wo_soln_steps).sum()
-            self.step_probs[wo_soln_mask] = wo_soln_weights / 2.0
-            # num_w_soln_eff: float = per_solved_per_step.sum() / 100.0
-            # num_tot_eff: float = num_w_soln_eff + 1
-            # self.step_probs = num_w_soln_eff * per_solved_per_step / per_solved_per_step.sum() / num_tot_eff
-            # self.step_probs[per_solved_per_step == 0] = 1 / num_tot_eff / num_wo_soln
-        """
-
-    def _get_split_idx(self, step_to_search_perf: Dict[int, PathFindPerf]) -> int:
-        per_solved_l: List[float] = []
-        steps_sort: List[int] = list(step_to_search_perf.keys())
-        steps_sort.sort()
-        for step_idx, step in enumerate(steps_sort):
-            per_solved_l.append(step_to_search_perf[step].per_solved())
-            if float(np.mean(per_solved_l)) < 50.0:
-                return steps_sort[max(step_idx - 1, 0)]
-        return self.step_max
 
 
 class TrainHeur:
@@ -192,47 +147,37 @@ class TrainHeur:
             batch: List[NDArray]
             if not self.updater.up_heur_args.on_heur:
                 batch = self.db.sample(self.train_args.batch_size)
-                inputs_batch_np: List[NDArray] = batch[:-1]
-                ctgs_batch_np: NDArray = np.expand_dims(batch[-1].astype(np.float32), 1)
             else:
-                raise NotImplementedError
-            """
-            if self.updater.up_heur_args.on_heur:
-                # get heuristic values for ongoing search
-                proc_id, inputs_np = to_main_q.get()
-                heur_nnet: HeurNNet = self.updater.get_heur_nnet()
-                if isinstance(heur_nnet, HeurNNetV):
-                    heur_fn: HeurFnV = heur_nnet.get_nnet_fn(self.nnet, self.updater.up_args.up_nnet_batch_size,
-                                                             self.device, self.updater.targ_update_num)
-                elif isinstance(heur_nnet, HeurNNetQ):
-                    heur_fn: HeurFnQ = heur_nnet.get_nnet_fn(self.nnet, self.updater.up_args.up_nnet_batch_size,
-                                                             self.device, self.updater.targ_update_num)
+                # data from updater should not be more that train_args.batch_size
+                start_time = time.time()
+                if self.db.size() == num_gen:
+                    batch = self.db.sample(self.train_args.batch_size)
                 else:
-                    raise ValueError(f"Unknown heuristic function type {heur_nnet}")
+                    self.nnet.eval()
+                    while self.db.size() < ((update_train_itr + 1) * self.train_args.batch_size):
+                        # get heuristic values for ongoing search
+                        q_res: Optional[Tuple[int, List[SharedNDArray]]] = get_nowait_noerr(to_main_q)
+                        if q_res is not None:
+                            proc_id, inputs_np_shm = q_res
+                            nnet_in_out_shared_q(self.nnet, inputs_np_shm, self.updater.up_args.up_nnet_batch_size,
+                                                 self.device, from_main_qs[proc_id])
 
-            # data from updater should not be more that train_args.batch_size
-            start_time = time.time()
-            batch: List[NDArray]
-            if self.db.size() == num_gen:
-                batch = self.db.sample(self.train_args.batch_size)
-            else:
-                while self.db.size() < ((update_train_itr + 1) * self.train_args.batch_size):
-                    data_l: List[List[NDArray]] = self.updater.get_update_data()
-                    for data in data_l:
-                        ctgs_l.append(data[-1])
-                        self.db.add(data)
-                sel_idxs: NDArray = np.arange(update_train_itr * self.train_args.batch_size,
-                                              (update_train_itr + 1) * self.train_args.batch_size)
-                batch = sel_l(self.db.arrays, sel_idxs)
+                        # get update data
+                        data_l_i: List[List[NDArray]] = self.updater.get_update_data(nowait=True)
+                        for data in data_l_i:
+                            ctgs_l.append(data[-1])
+                            self.db.add(data)
+                    sel_idxs: NDArray = np.arange(update_train_itr * self.train_args.batch_size,
+                                                  (update_train_itr + 1) * self.train_args.batch_size)
+                    batch = sel_l(self.db.arrays, sel_idxs)
 
-            inputs_batch_np: List[NDArray] = batch[:-1]
-            ctgs_batch_np: NDArray = np.expand_dims(batch[-1].astype(np.float32), 1)
             times.record_time("up_data", time.time() - start_time)
-            """
 
             # train
             start_time = time.time()
-
+            inputs_batch_np: List[NDArray] = batch[:-1]
+            ctgs_batch_np: NDArray = np.expand_dims(batch[-1].astype(np.float32), 1)
+            self.nnet.train()
             loss = train_heur_nnet_step(self.nnet, inputs_batch_np, ctgs_batch_np, self.optimizer, self.criterion,
                                         self.device, self.status.itr, self.train_args)
 
