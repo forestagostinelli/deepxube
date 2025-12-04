@@ -450,12 +450,15 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV
                 ctgs_backup.append(node.backup_val)
         else:
             # get all t_costs, states, and goals of child nodes
+            is_solved_l: List[bool] = []
             t_costs_l: List[List[float]] = []
             states_child_all: List[State] = []
             goals_child_all: List[Goal] = []
             for node in nodes_popped:
+                assert node.is_solved is not None
                 assert node.t_costs is not None
                 assert node.children is not None
+                is_solved_l.append(node.is_solved)
                 t_costs_l.append(node.t_costs)
                 children: List[NodeV] = node.children
                 states_child_all.extend([node.state for node in children])
@@ -468,10 +471,15 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV
             heuristics_l: List[List[float]] = unflatten(heuristics, split_idxs)
 
             # backup
-            for t_costs, heuristics in zip(t_costs_l, heuristics_l):
-                backup_val: float = np.inf
-                for tc, heuristic in zip(t_costs, heuristics, strict=True):
-                    backup_val = min(backup_val, tc + heuristic)
+            for is_solved, t_costs, heuristics in zip(is_solved_l, t_costs_l, heuristics_l, strict=True):
+                backup_val: float
+                assert len(heuristics) > 0
+                if is_solved:
+                    backup_val = 0
+                else:
+                    backup_val = np.inf
+                    for tc, heuristic in zip(t_costs, heuristics, strict=True):
+                        backup_val = min(backup_val, tc + heuristic)
                 ctgs_backup.append(backup_val)
         times.record_time("backup", time.time() - start_time)
 
