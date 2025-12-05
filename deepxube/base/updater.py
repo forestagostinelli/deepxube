@@ -39,7 +39,7 @@ class UpArgs:
     :param up_nnet_batch_size: Batch size of each nnet used for each process updater. Make smaller if running out
     of memory.
     :param up_v: True if update is verbose.
-    Increasing this number could make the heuristic function more robust to depression regions.
+    :param sync_main: if True, number of processes can affect order in which data is seen
     """
     step_max: int
     up_itrs: int
@@ -48,6 +48,7 @@ class UpArgs:
     up_search_itrs: int
     up_batch_size: int
     up_nnet_batch_size: int
+    sync_main: bool
     up_v: bool = False
 
 
@@ -302,6 +303,7 @@ class Update(ABC, Generic[E, N, Inst, P]):
 
             insts_rem_all: List[Inst] = []
             insts_rem_last_itr: List[Inst] = []
+            data_l: List[List[NDArray]] = []
             for _ in range(self.up_args.up_search_itrs):
                 # add instances
                 self._add_instances(pathfind, insts_rem_last_itr, batch_size, step_probs, times)
@@ -309,13 +311,15 @@ class Update(ABC, Generic[E, N, Inst, P]):
 
                 # step
                 data: List[NDArray] = self.step(pathfind, times)
-                _put_from_q([data], from_q, times)
+                if self.up_args.sync_main:
+                    _put_from_q([data], from_q, times)
 
                 # remove instances
                 insts_rem_last_itr = pathfind.remove_finished_instances(self.up_args.up_search_itrs)
                 insts_rem_all.extend(insts_rem_last_itr)
 
-            # _put_from_q([self.get_instance_data(insts_rem_all + pathfind.instances, times)], from_q, times)
+            if not self.up_args.sync_main:
+                _put_from_q([self.get_instance_data(insts_rem_all + pathfind.instances, times)], from_q, times)
 
             # pathfinding performance
             self._update_perf(insts_rem_all, step_to_pathperf)
@@ -389,12 +393,10 @@ class UpHeurArgs:
     :param up_args: Update args
     :param ub_heur_solns: if True, the target cost-to-go will be min(backup, path_cost_from_state)
     :param backup: 1 is Bellman and -1 is tree backup (i.e. Limited Horizon Bellman-based Learning)
-    :param on_heur: if True, number of processes can affect order in which data is seen
     """
     up_args: UpArgs
     ub_heur_solns: bool
     backup: int
-    on_heur: bool
 
 
 class UpdateHeur(UpdateHasHeur[E, N, Inst, P, HNet, H], ABC):
@@ -428,7 +430,7 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV
         return shapes_dypes
 
     def get_heur_fn(self) -> HeurFnV:
-        if not self.up_heur_args.on_heur:
+        if not self.up_args.sync_main:
             return super().get_heur_fn()
         else:
             assert self.nnet_par_info_main is not None
@@ -439,11 +441,13 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV
         nodes_popped: List[NodeV] = pathfind.step()
         assert len(nodes_popped) == len(pathfind.instances), (f"Values were {len(nodes_popped)} and "
                                                               f"{len(pathfind.instances)}")
+        if not self.up_args.sync_main:
+            return []
 
         # backup
         start_time = time.time()
         ctgs_backup: List[float] = []
-        if not self.up_heur_args.on_heur:
+        if not self.up_args.sync_main:
             for node in nodes_popped:
                 node.bellman_backup()
                 assert node.backup_val is not None
@@ -543,7 +547,7 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV
         times.add_times(times_states, ["get_states"])
 
         # root nodes
-        return pathfind.create_root_nodes(states_gen, goals_gen, compute_init_heur=True)
+        return pathfind.create_root_nodes(states_gen, goals_gen, compute_init_heur=self.up_args.sync_main)
 
 
 PQ = TypeVar('PQ', bound=PathFindQ)

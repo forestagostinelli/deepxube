@@ -130,7 +130,7 @@ class TrainHeur:
         times.record_time("up_start", time.time() - start_time)
 
         ctgs_l: List[NDArray] = []
-        if not self.updater.up_heur_args.on_heur:
+        if not self.updater.up_args.sync_main:
             # get update data
             start_time = time.time()
             while self.db.size() < num_gen:
@@ -145,7 +145,7 @@ class TrainHeur:
         loss: float = np.inf
         while update_train_itr < self.updater.up_args.up_itrs:
             batch: List[NDArray]
-            if not self.updater.up_heur_args.on_heur:
+            if not self.updater.up_args.sync_main:
                 batch = self.db.sample(self.train_args.batch_size)
             else:
                 # data from updater should not be more that train_args.batch_size
@@ -240,7 +240,8 @@ class TrainHeur:
         # get updater
         updater_greedy: UpdateHeur
         heur_nnet: HeurNNet = self.updater.get_heur_nnet()
-        up_heur_args: UpHeurArgs = UpHeurArgs(self.updater.up_args, False, 1, False)
+        up_heur_args: UpHeurArgs = UpHeurArgs(self.updater.up_args, False, 1)
+        up_heur_args.up_args.sync_main = False
         if isinstance(heur_nnet, HeurNNetV):
             updater_greedy = UpdateHeurGrPolVEnum(self.updater.env, up_heur_args, heur_nnet, 0.0)
         elif isinstance(heur_nnet, HeurNNetQ):
