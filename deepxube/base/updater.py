@@ -303,7 +303,6 @@ class Update(ABC, Generic[E, N, Inst, P]):
 
             insts_rem_all: List[Inst] = []
             insts_rem_last_itr: List[Inst] = []
-            data_l: List[List[NDArray]] = []
             for _ in range(self.up_args.up_search_itrs):
                 # add instances
                 self._add_instances(pathfind, insts_rem_last_itr, batch_size, step_probs, times)
@@ -447,44 +446,39 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV
         # backup
         start_time = time.time()
         ctgs_backup: List[float] = []
-        if not self.up_args.sync_main:
-            for node in nodes_popped:
-                node.bellman_backup()
-                assert node.backup_val is not None
-                ctgs_backup.append(node.backup_val)
-        else:
-            # get all t_costs, states, and goals of child nodes
-            is_solved_l: List[bool] = []
-            t_costs_l: List[List[float]] = []
-            states_child_all: List[State] = []
-            goals_child_all: List[Goal] = []
-            for node in nodes_popped:
-                assert node.is_solved is not None
-                assert node.t_costs is not None
-                assert node.children is not None
-                is_solved_l.append(node.is_solved)
-                t_costs_l.append(node.t_costs)
-                children: List[NodeV] = node.children
-                states_child_all.extend([node.state for node in children])
-                goals_child_all.extend([node.goal for node in children])
 
-            # compute targ heur values
-            heur_fn_targ: HeurFnV = self.get_targ_heur_fn()
-            heuristics: List[float] = heur_fn_targ(states_child_all, goals_child_all)
-            _, split_idxs = flatten(t_costs_l)
-            heuristics_l: List[List[float]] = unflatten(heuristics, split_idxs)
+        # get all t_costs, states, and goals of child nodes
+        is_solved_l: List[bool] = []
+        t_costs_l: List[List[float]] = []
+        states_child_all: List[State] = []
+        goals_child_all: List[Goal] = []
+        for node in nodes_popped:
+            assert node.is_solved is not None
+            assert node.t_costs is not None
+            assert node.children is not None
+            is_solved_l.append(node.is_solved)
+            t_costs_l.append(node.t_costs)
+            children: List[NodeV] = node.children
+            states_child_all.extend([node.state for node in children])
+            goals_child_all.extend([node.goal for node in children])
 
-            # backup
-            for is_solved, t_costs, heuristics in zip(is_solved_l, t_costs_l, heuristics_l, strict=True):
-                backup_val: float
-                assert len(heuristics) > 0
-                if is_solved:
-                    backup_val = 0
-                else:
-                    backup_val = np.inf
-                    for tc, heuristic in zip(t_costs, heuristics, strict=True):
-                        backup_val = min(backup_val, tc + heuristic)
-                ctgs_backup.append(backup_val)
+        # compute targ heur values
+        heur_fn_targ: HeurFnV = self.get_targ_heur_fn()
+        heuristics: List[float] = heur_fn_targ(states_child_all, goals_child_all)
+        _, split_idxs = flatten(t_costs_l)
+        heuristics_l: List[List[float]] = unflatten(heuristics, split_idxs)
+
+        # backup
+        for is_solved, t_costs, heuristics in zip(is_solved_l, t_costs_l, heuristics_l, strict=True):
+            backup_val: float
+            assert len(heuristics) > 0
+            if is_solved:
+                backup_val = 0
+            else:
+                backup_val = np.inf
+                for tc, heuristic in zip(t_costs, heuristics, strict=True):
+                    backup_val = min(backup_val, tc + heuristic)
+            ctgs_backup.append(backup_val)
         times.record_time("backup", time.time() - start_time)
 
         # inputs
