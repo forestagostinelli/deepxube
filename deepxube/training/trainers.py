@@ -171,7 +171,7 @@ class TrainHeur:
                                                   (update_train_itr + 1) * self.train_args.batch_size)
                     batch = sel_l(self.db.arrays, sel_idxs)
 
-            times.record_time("up_data", time.time() - start_time)
+                times.record_time("up_data", time.time() - start_time)
 
             # train
             start_time = time.time()
