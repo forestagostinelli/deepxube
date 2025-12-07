@@ -26,6 +26,7 @@ class TrainArgs:
     then be train_args.batch_size * up_args.up_gen_itrs * rb_past_up. Cost-to-go target is not recomputed.
     :param targ_up_searches: If > 0, do a greedy search with updater for minimum given number of searches to test
     if target network should be updated. Otherwise, it will be updated automatically.
+    :param loss_thresh: Loss threshold
     :param display: Number of iterations to display progress. No display if 0.
     """
     batch_size: int
@@ -35,6 +36,7 @@ class TrainArgs:
     balance_steps: bool
     rb: int
     targ_up_searches: int
+    loss_thresh: float
     display: bool
 
 

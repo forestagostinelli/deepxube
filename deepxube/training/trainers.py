@@ -216,15 +216,17 @@ class TrainHeur:
 
         # update nnet
         update_targ: bool = False
-        if self.train_args.targ_up_searches <= 0:
-            update_targ = True
-        else:
-            print("Getting greedy performance")
-            per_solved: float = self.update_greedy_perf(self.status.targ_update_num + 1)
-            print(f"Greedy policy solved (best): {per_solved:.2f}% ({self.status.per_solved_best:.2f}%)")
-            if per_solved > self.status.per_solved_best:
+        if loss < self.train_args.loss_thresh:
+            if self.train_args.targ_up_searches <= 0:
                 update_targ = True
-                self.status.per_solved_best = per_solved
+            else:
+                start_time = time.time()
+                per_solved: float = self.update_greedy_perf(self.status.targ_update_num + 1)
+                print(f"Greedy policy solved (best): {per_solved:.2f}% ({self.status.per_solved_best:.2f}%)")
+                if per_solved > self.status.per_solved_best:
+                    update_targ = True
+                    self.status.per_solved_best = per_solved
+                times.record_time("greedy_policy_test", time.time() - start_time)
 
         if update_targ:
             shutil.copy(self.nnet_file, self.nnet_targ_file)
@@ -260,7 +262,7 @@ class TrainHeur:
 
         step_to_search_perf: Dict[int, PathFindPerf] = updater_greedy.end_update()
         per_solved_ave, path_cost_ave, search_itrs_ave = get_eq_weighted_perf(step_to_search_perf)
-        print(f"%solved: {per_solved_ave:.2f}, path_costs: {path_cost_ave:.3f}, search_itrs: {search_itrs_ave:.3f} "
-              f"(greedy perf)")
+        # print(f"%solved: {per_solved_ave:.2f}, path_costs: {path_cost_ave:.3f}, search_itrs: {search_itrs_ave:.3f} "
+        #      f"(greedy perf)")
 
         return per_solved_ave
