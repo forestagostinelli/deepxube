@@ -200,7 +200,7 @@ class NPuzzle(EnvGrndAtoms[NPState, NPAction, NPGoal], EnvStartGoalRW[NPState, N
             times.record_time("state_init", time.time() - start_time)
 
             start_time = time.time()
-            states_start: List[NPState] = self.random_walk(states_goal, num_steps_l)
+            states_start: List[NPState] = self._random_walk(states_goal, num_steps_l)
             times.record_time("rand_walk", time.time() - start_time)
 
             start_time = time.time()
