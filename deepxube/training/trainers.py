@@ -1,9 +1,10 @@
 from typing import List, Tuple, Dict, Optional
+import dataclasses
 
 from deepxube.base.heuristic import HeurNNet, HeurNNetV, HeurNNetQ
 from deepxube.base.updater import UpdateHeur, UpHeurArgs
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, get_eq_weighted_perf
-from deepxube.updater.updaters import UpdateHeurGrPolVEnum, UpdateHeurGrPolQEnum
+from deepxube.updater.updaters import UpGreedyPolicyArgs, UpdateHeurGrPolVEnum, UpdateHeurGrPolQEnum
 from deepxube.training.train_utils import DataBuffer, train_heur_nnet_step, TrainArgs, ctgs_summary
 from deepxube.nnet.nnet_utils import nnet_in_out_shared_q
 from deepxube.utils.data_utils import get_nowait_noerr
@@ -18,6 +19,7 @@ import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 import pickle
 
+from multiprocessing import Queue
 import os
 import shutil
 
@@ -37,10 +39,6 @@ class Status:
         if balance_steps:
             self.step_probs = np.zeros(self.step_max + 1)
             self.step_probs[0:2] = 0.5
-
-            # wo_soln_steps: NDArray = np.arange(1, len(self.step_probs))
-            # wo_soln_weights: NDArray = (1.0 / wo_soln_steps)/(1.0 / wo_soln_steps).sum()
-            # self.step_probs[2:] = wo_soln_weights / 2.0
             self.step_probs[2:] = 0
         else:
             self.step_probs = np.ones(self.step_max + 1)/(self.step_max + 1)
@@ -95,14 +93,14 @@ class TrainHeur:
         # init greedy perf for update
         if self.train_args.targ_up_searches > 0:
             print("Getting init greedy performance")
-            per_solved: float = self.update_greedy_perf(0)
+            per_solved: float = self._update_greedy_perf(0)
             self.status.per_solved_best = per_solved
 
         # init replay buffer
         shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = updater.get_shapes_dtypes()
         db_shapes: List[Tuple[int, ...]] = [x[0] for x in shapes_dtypes]
         db_dtypes: List[np.dtype] = [x[1] for x in shapes_dtypes]
-        self.db: DataBuffer = DataBuffer(self.train_args.batch_size * self.updater.up_args.up_gen_itrs, db_shapes,
+        self.db: DataBuffer = DataBuffer(self.train_args.batch_size * self.updater.up_args.get_up_gen_itrs(), db_shapes,
                                          db_dtypes)
 
         # optimizer and criterion
@@ -114,7 +112,7 @@ class TrainHeur:
         start_info_l: List[str] = [f"itr: {self.status.itr}", f"update_num: {self.status.update_num}",
                                    f"targ_update: {self.status.targ_update_num}"]
 
-        num_gen: int = self.train_args.batch_size * self.updater.up_args.up_gen_itrs
+        num_gen: int = self.train_args.batch_size * self.updater.up_args.get_up_gen_itrs()
         start_info_l.append(f"num_gen: {format(num_gen, ',')}")
         if self.train_args.balance_steps:
             start_info_l.append(f"step max (curr): {self.status.step_max_curr}")
@@ -126,64 +124,14 @@ class TrainHeur:
         to_main_q, from_main_qs = self.updater.start_update(self.status.step_probs.tolist(), num_gen, self.device,
                                                             self.on_gpu, self.status.targ_update_num,
                                                             self.train_args.batch_size)
-        self.db.clear()
         times.record_time("up_start", time.time() - start_time)
 
-        ctgs_l: List[NDArray] = []
+        loss: float
+        ctgs_l: List[NDArray]
         if not self.updater.up_args.sync_main:
-            # get update data
-            start_time = time.time()
-            while self.db.size() < num_gen:
-                data_l: List[List[NDArray]] = self.updater.get_update_data()
-                for data in data_l:
-                    ctgs_l.append(data[-1])
-                    self.db.add(data)
-            times.record_time("up_data", time.time() - start_time)
-
-        # train nnet
-        update_train_itr: int = 0
-        loss: float = np.inf
-        while update_train_itr < self.updater.up_args.up_itrs:
-            batch: List[NDArray]
-            if not self.updater.up_args.sync_main:
-                batch = self.db.sample(self.train_args.batch_size)
-            else:
-                # data from updater should not be more that train_args.batch_size
-                start_time = time.time()
-                if self.db.size() == num_gen:
-                    batch = self.db.sample(self.train_args.batch_size)
-                else:
-                    self.nnet.eval()
-                    while self.db.size() < ((update_train_itr + 1) * self.train_args.batch_size):
-                        # get heuristic values for ongoing search
-                        q_res: Optional[Tuple[int, List[SharedNDArray]]] = get_nowait_noerr(to_main_q)
-                        if q_res is not None:
-                            proc_id, inputs_np_shm = q_res
-                            nnet_in_out_shared_q(self.nnet, inputs_np_shm, self.updater.up_args.up_nnet_batch_size,
-                                                 self.device, from_main_qs[proc_id])
-
-                        # get update data
-                        data_l_i: List[List[NDArray]] = self.updater.get_update_data(nowait=True)
-                        for data in data_l_i:
-                            ctgs_l.append(data[-1])
-                            self.db.add(data)
-                    sel_idxs: NDArray = np.arange(update_train_itr * self.train_args.batch_size,
-                                                  (update_train_itr + 1) * self.train_args.batch_size)
-                    batch = sel_l(self.db.arrays, sel_idxs)
-
-                times.record_time("up_data", time.time() - start_time)
-
-            # train
-            start_time = time.time()
-            inputs_batch_np: List[NDArray] = batch[:-1]
-            ctgs_batch_np: NDArray = np.expand_dims(batch[-1].astype(np.float32), 1)
-            self.nnet.train()
-            loss = train_heur_nnet_step(self.nnet, inputs_batch_np, ctgs_batch_np, self.optimizer, self.criterion,
-                                        self.device, self.status.itr, self.train_args)
-
-            update_train_itr += 1
-            self.status.itr += 1
-            times.record_time("train", time.time() - start_time)
+            loss, ctgs_l = self._train_no_rb(num_gen, times)
+        else:
+            loss, ctgs_l = self._train_rb(num_gen, to_main_q, from_main_qs, times)
 
         # end update
         start_time = time.time()
@@ -221,7 +169,7 @@ class TrainHeur:
                 update_targ = True
             else:
                 start_time = time.time()
-                per_solved: float = self.update_greedy_perf(self.status.targ_update_num + 1)
+                per_solved: float = self._update_greedy_perf(self.status.targ_update_num + 1)
                 print(f"Greedy policy solved (best): {per_solved:.2f}% ({self.status.per_solved_best:.2f}%)")
                 if per_solved > self.status.per_solved_best:
                     update_targ = True
@@ -235,26 +183,103 @@ class TrainHeur:
 
         # noinspection PyTypeChecker
         pickle.dump(self.status, open(self.status_file, "wb"), protocol=-1)
-        print(f"Train - itrs: {update_train_itr}, loss: {loss:.2E}, targ_updated: {update_targ}")
+        print(f"Train - itrs: {self.updater.up_args.up_itrs}, loss: {loss:.2E}, targ_updated: {update_targ}")
         print(f"Times - {times.get_time_str()}")
 
-    def update_greedy_perf(self, update_num: int) -> float:
+    def _train_no_rb(self, num_gen: int, times: Times) -> Tuple[float, List[NDArray]]:
+        # get update data
+        start_time = time.time()
+        self.db.clear()
+        ctgs_l: List[NDArray] = []
+        while self.db.size() < num_gen:
+            data_l: List[List[NDArray]] = self.updater.get_update_data()
+            for data in data_l:
+                ctgs_l.append(data[-1])
+                self.db.add(data)
+        times.record_time("up_data", time.time() - start_time)
+
+        # train
+        loss: float = np.inf
+        for _ in range(self.updater.up_args.up_itrs):
+            # sample data
+            start_time = time.time()
+            batch: List[NDArray] = self.db.sample(self.train_args.batch_size)
+            times.record_time("data_samp", time.time() - start_time)
+
+            # train
+            loss = self._train_itr(batch[:-1], batch[-1], times)
+
+        return loss, ctgs_l
+
+    def _train_rb(self, num_gen: int, to_main_q: Queue, from_main_qs: List[Queue],
+                  times: Times) -> Tuple[float, List[NDArray]]:
+        loss: float = np.inf
+        ctgs_l: List[NDArray] = []
+        update_train_itr: int = 0
+        while update_train_itr < self.updater.up_args.up_itrs:
+            batch: List[NDArray]
+            # data from updater should not be more that train_args.batch_size
+            start_time = time.time()
+            if self.db.size() == num_gen:
+                batch = self.db.sample(self.train_args.batch_size)
+            else:
+                self.nnet.eval()
+                while self.db.size() < ((update_train_itr + 1) * self.train_args.batch_size):
+                    # get heuristic values for ongoing search
+                    q_res: Optional[Tuple[int, List[SharedNDArray]]] = get_nowait_noerr(to_main_q)
+                    if q_res is not None:
+                        proc_id, inputs_np_shm = q_res
+                        nnet_in_out_shared_q(self.nnet, inputs_np_shm, self.updater.up_args.nnet_batch_size,
+                                             self.device, from_main_qs[proc_id])
+
+                    # get update data
+                    data_l_i: List[List[NDArray]] = self.updater.get_update_data(nowait=True)
+                    for data in data_l_i:
+                        ctgs_l.append(data[-1])
+                        self.db.add(data)
+                sel_idxs: NDArray = np.arange(update_train_itr * self.train_args.batch_size,
+                                              (update_train_itr + 1) * self.train_args.batch_size)
+                batch = sel_l(self.db.arrays, sel_idxs)
+
+            times.record_time("up_data", time.time() - start_time)
+
+            # train
+            start_time = time.time()
+            loss = self._train_itr(batch[:-1], batch[-1], times)
+            update_train_itr += 1
+            times.record_time("train", time.time() - start_time)
+
+        return loss, ctgs_l
+
+    def _train_itr(self, inputs_batch_np: List[NDArray], ctgs_batch_np: NDArray, times: Times) -> float:
+        start_time = time.time()
+        ctgs_batch_np = np.expand_dims(ctgs_batch_np.astype(np.float32), 1)
+        self.nnet.train()
+        loss: float = train_heur_nnet_step(self.nnet, inputs_batch_np, ctgs_batch_np, self.optimizer, self.criterion,
+                                           self.device, self.status.itr, self.train_args)
+        self.status.itr += 1
+        times.record_time("train", time.time() - start_time)
+        return loss
+
+    def _update_greedy_perf(self, update_num: int) -> float:
         # get updater
         updater_greedy: UpdateHeur
         heur_nnet: HeurNNet = self.updater.get_heur_nnet()
-        up_heur_args: UpHeurArgs = UpHeurArgs(self.updater.up_args, False, 1)
-        up_heur_args.up_args.sync_main = False
+        up_greedy_args: UpGreedyPolicyArgs = UpGreedyPolicyArgs(0.0, 0.0)
+        up_heur_args: UpHeurArgs = UpHeurArgs(False, 1)
+        up_args = dataclasses.replace(self.updater.up_args)
+        up_args.sync_main = False
         if isinstance(heur_nnet, HeurNNetV):
-            updater_greedy = UpdateHeurGrPolVEnum(self.updater.env, up_heur_args, heur_nnet, 0.0)
+            updater_greedy = UpdateHeurGrPolVEnum(self.updater.env, up_args, up_heur_args, up_greedy_args, heur_nnet)
         elif isinstance(heur_nnet, HeurNNetQ):
-            updater_greedy = UpdateHeurGrPolQEnum(self.updater.env, up_heur_args, heur_nnet, 0.0, 0.0)
+            updater_greedy = UpdateHeurGrPolQEnum(self.updater.env, up_args, up_heur_args, up_greedy_args, heur_nnet)
         else:
             raise ValueError(f"Unknown heuristic function type {heur_nnet}")
 
         # do greedy update
         updater_greedy.set_heur_file(self.nnet_file)
         step_probs = np.ones(self.updater.up_args.step_max + 1) / (self.updater.up_args.step_max + 1)
-        num_gen: int = self.updater.up_args.up_search_itrs * self.train_args.targ_up_searches
+        num_gen: int = self.updater.up_args.search_itrs * self.train_args.targ_up_searches
         updater_greedy.start_update(step_probs.tolist(), num_gen, self.device, self.on_gpu, update_num,
                                     self.train_args.batch_size)
         while updater_greedy.num_generated < num_gen:

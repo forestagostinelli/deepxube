@@ -1,6 +1,6 @@
 from typing import Optional, List, Tuple, Set, Callable, cast
 from collections import OrderedDict
-from deepxube.base.env import EnvGrndAtoms, State, Goal, Action, EnvVizable
+from deepxube.base.env import GoalGrndAtoms, State, Goal, Action, Vizable
 from deepxube.logic.asp import Spec
 from deepxube.logic.logic_objects import Clause, Model, Atom
 from deepxube.logic.logic_utils import atom_to_str
@@ -21,7 +21,7 @@ class PathSoln:
     path_cost: float
 
 
-PathFn = Callable[[EnvGrndAtoms, List[State], List[Goal]], List[Optional[PathSoln]]]
+PathFn = Callable[[GoalGrndAtoms, List[State], List[Goal]], List[Optional[PathSoln]]]
 
 
 class MCArgs:
@@ -48,7 +48,7 @@ class SpecNode:
         self.models_prev: List[Model] = []
 
 
-def get_bk(env: EnvGrndAtoms, bk_add_file_name: Optional[str]) -> List[str]:
+def get_bk(env: GoalGrndAtoms, bk_add_file_name: Optional[str]) -> List[str]:
     bk_init: List[str] = env.get_bk()
     bk_init.append("")
 
@@ -61,7 +61,7 @@ def get_bk(env: EnvGrndAtoms, bk_add_file_name: Optional[str]) -> List[str]:
 
 
 class SpecSearchASP:
-    def __init__(self, env: EnvGrndAtoms, state_start: State, spec_clauses: List[Clause], path_fn: PathFn,
+    def __init__(self, env: GoalGrndAtoms, state_start: State, spec_clauses: List[Clause], path_fn: PathFn,
                  refine_args: RefineArgs, bk_add: Optional[str] = None, verbose: bool = False,
                  viz_model: bool = False, viz_conf: bool = False, viz_reached: bool = False):
         """
@@ -81,7 +81,7 @@ class SpecSearchASP:
                                               "improve_ub", "push"])
         self.models_banned: List[Model] = []
 
-        self.env: EnvGrndAtoms = env
+        self.env: GoalGrndAtoms = env
         self.state_start: State = state_start
         self.model_fixed: Model = self.env.start_state_fixed([self.state_start])[0]
         self.path_fn: PathFn = path_fn

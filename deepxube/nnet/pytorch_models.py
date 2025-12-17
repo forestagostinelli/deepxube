@@ -8,21 +8,21 @@ import numpy as np
 
 
 class OneHot(nn.Module):
-    def __init__(self, data_dim: int, one_hot_depth: int) -> None:
+    def __init__(self, one_hot_depth: int, flatten_oh: bool) -> None:
         super().__init__()
-        self.data_dim: int = data_dim
         self.one_hot_depth: int = one_hot_depth
+        self.flatten_oh: bool = flatten_oh
 
     def forward(self, x: Tensor) -> Tensor:
-        # preprocess input
-        if self.one_hot_depth > 0:
-            x = nn.functional.one_hot(x.long(), self.one_hot_depth)
-            x = x.float()
-            x = x.view(-1, self.data_dim * self.one_hot_depth)
+        if self.one_hot_depth > 1:
+            x = nn.functional.one_hot(x.long(), self.one_hot_depth).float()
+            if not self.flatten_oh:
+                return x
+            else:
+                *leading, d, c = x.shape
+                return x.reshape(*leading, d * c)
         else:
-            x = x.float()
-
-        return x
+            return x.float()
 
 
 class SPLASH(nn.Module):

@@ -1,7 +1,7 @@
 import random
 from abc import ABC
 from typing import List, Tuple, Dict, Optional, Any, TypeVar
-from deepxube.base.env import Env, EnvEnumerableActs, State
+from deepxube.base.env import Env, ActsEnum, State
 from deepxube.base.pathfinding import Instance, NodeQ, PathFindQ, NodeQAct, PathFindQExpandEnum
 from deepxube.utils import misc_utils
 from heapq import heappush, heappop, heapify
@@ -62,8 +62,7 @@ class InstanceBWQS(Instance[NodeQ]):
     def update_ub(self, nodes: List[NodeQ]) -> None:
         # keep solved nodes for training
         for node in nodes:
-            assert node.is_solved is not None
-            if node.is_solved and (self.ub > node.path_cost):
+            if (node.is_solved is not None) and node.is_solved and (self.ub > node.path_cost):
                 self.goal_node = node
                 self.ub = node.path_cost
 
@@ -77,26 +76,15 @@ E = TypeVar('E', bound=Env)
 class BWQS(PathFindQ[E, InstanceBWQS], ABC):
     def step(self, verbose: bool = False) -> List[NodeQAct]:
         # split instances by iteration
-        instances_all: List[InstanceBWQS] = [instance for instance in self.instances if not instance.finished()]
-        instances_itr0: List[InstanceBWQS] = [instance for instance in instances_all if instance.itr == 0]
-        instances_itrgt0: List[InstanceBWQS] = [instance for instance in instances_all if instance.itr > 0]
+        instances: List[InstanceBWQS] = [instance for instance in self.instances if not instance.finished()]
 
         # pop from open
         start_time = time.time()
-        nodeacts_popped_itr0: List[List[NodeQAct]] = [instance.pop_from_open() for instance in instances_itr0]
-        nodeacts_popped_itrgt0: List[List[NodeQAct]] = [instance.pop_from_open() for instance in instances_itrgt0]
+        nodeacts_popped_by_inst: List[List[NodeQAct]] = [instance.pop_from_open() for instance in instances]
         self.times.record_time("pop", time.time() - start_time)
 
         # next state
-        nodes_next_itr0: List[List[NodeQ]] = []
-        for nodeacts_popped_itr0_i in nodeacts_popped_itr0:
-            for nodeact in nodeacts_popped_itr0_i:
-                assert nodeact.action is None
-            nodes_next_itr0.append([nodeact.node for nodeact in nodeacts_popped_itr0_i])
-        nodes_next_itrgt0: List[List[NodeQ]] = self.get_next_nodes(instances_itrgt0, nodeacts_popped_itrgt0)
-        instances: List[InstanceBWQS] = instances_itr0 + instances_itrgt0
-        nodes_next_by_inst: List[List[NodeQ]] = nodes_next_itr0 + nodes_next_itrgt0
-        # nodes_next_flat: List[NodeQ] = misc_utils.flatten(nodes_next_by_inst)[0]
+        nodes_next_by_inst: List[List[NodeQ]] = self.get_next_nodes(instances, nodeacts_popped_by_inst)
 
         # is solved
         start_time = time.time()
@@ -116,12 +104,14 @@ class BWQS(PathFindQ[E, InstanceBWQS], ABC):
             nodes_next_by_inst[inst_idx] = instance.check_closed(nodes_next_by_inst[inst_idx])
         self.times.record_time("check", time.time() - start_time)
 
+        # make edges
         start_time = time.time()
         nodeacts_next_by_inst: List[List[NodeQAct]] = []
 
         for nodes_next in nodes_next_by_inst:
             nodeacts_next: List[NodeQAct] = []
             for node in nodes_next:
+                assert node.q_values is not None
                 for action, q_val in zip(node.actions, node.q_values, strict=True):
                     nodeacts_next.append(NodeQAct(node, action, q_val))
             nodeacts_next_by_inst.append(nodeacts_next)
@@ -168,11 +158,10 @@ class BWQS(PathFindQ[E, InstanceBWQS], ABC):
             instance.itr += 1
 
         # return
-        nodeacts_popped_by_inst: List[List[NodeQAct]] = nodeacts_popped_itr0 + nodeacts_popped_itrgt0
         nodesacts_popped_flat: List[NodeQAct] = misc_utils.flatten(nodeacts_popped_by_inst)[0]
         # nodes_popped_flat: List[NodeQ] = [nodeact_popped.node for nodeact_popped in nodesacts_popped_flat]
         return nodesacts_popped_flat
 
 
-class BWQSEnum(BWQS[EnvEnumerableActs], PathFindQExpandEnum[InstanceBWQS]):
+class BWQSEnum(BWQS[ActsEnum], PathFindQExpandEnum[InstanceBWQS]):
     pass

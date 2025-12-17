@@ -23,21 +23,21 @@ class TrainArgs:
     :param max_itrs: Maximum number of iterations
     :param balance_steps: If true, steps are balanced based on solve percentage
     :param rb: amount of data generated from previous updates to keep in replay buffer. Total replay buffer size will
-    then be train_args.batch_size * up_args.up_gen_itrs * rb_past_up. Cost-to-go target is not recomputed.
+    then be train_args.batch_size * up_args.up_gen_itrs * rb_past_up.
+    :param loss_thresh: Loss threshold for updating.
     :param targ_up_searches: If > 0, do a greedy search with updater for minimum given number of searches to test
     if target network should be updated. Otherwise, it will be updated automatically.
-    :param loss_thresh: Loss threshold
-    :param display: Number of iterations to display progress. No display if 0.
+    :param display: Number of iterations to display progress when training nnet. No display if 0.
     """
     batch_size: int
     lr: float
     lr_d: float
     max_itrs: int
     balance_steps: bool
-    rb: int
-    targ_up_searches: int
-    loss_thresh: float
-    display: bool
+    rb: int = 1
+    loss_thresh: float = np.inf
+    targ_up_searches: int = 0
+    display: int = 100
 
 
 class DataBuffer:

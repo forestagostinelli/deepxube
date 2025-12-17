@@ -10,7 +10,7 @@ from deepxube.base.heuristic import HeurNNetQ
 from deepxube.training.train_utils import TrainArgs
 from deepxube.training.train_heur import train
 from deepxube.base.updater import UpArgs, UpdateHeur
-from deepxube.updater.updaters import UpdateHeurBWASEnum, UpdateHeurBWQSEnum, UpdateHeurGrPolQEnum, UpdateHeurStepLenSup
+from deepxube.updater.updaters import UpdateHeurBWASEnum, UpdateHeurBWQSEnum, UpdateHeurGrPolQEnum, UpdateHeurRWSupV
 from deepxube.implementations.cube3 import Cube3
 
 
@@ -51,13 +51,13 @@ def main():
     args = parser.parse_args()
 
     up_args: UpArgs = UpArgs(args.step_max, args.up_itrs, args.up_gen_itrs, args.up_procs, args.up_search_itrs,
-                             args.up_batch_size, args.up_nnet_batch_size, up_v=args.up_v)
+                             args.up_batch_size, args.up_nnet_batch_size, v=args.up_v)
     updater: UpdateHeur
     env = Cube3(True)
     if args.heur_type.upper() == "V":
         from deepxube.implementations.cube3 import Cube3NNetParV
         if args.sup:
-            updater = UpdateHeurStepLenSup(env, up_args, Cube3NNetParV())
+            updater = UpdateHeurRWSupV(env, up_args, Cube3NNetParV())
         else:
             updater = UpdateHeurBWASEnum(env, up_args, False, args.backup, Cube3NNetParV(), eps=args.eps)
     elif (args.heur_type.upper() == "Q") or (args.heur_type.upper() == "QIN"):

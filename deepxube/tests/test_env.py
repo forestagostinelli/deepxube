@@ -1,14 +1,15 @@
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 import torch
 import torch.nn as nn
 from torch.multiprocessing import Queue, get_context
 
-from deepxube.base.env import Env, EnvEnumerableActs, EnvStartGoalRW, State, Goal, Action
+from deepxube.base.env import Env, ActsEnum, StartGoalWalkable, State, Goal, Action
 from deepxube.base.heuristic import HeurNNet, HeurNNetV, HeurNNetQ
 from deepxube.nnet.nnet_utils import NNetCallable
 from deepxube.nnet import nnet_utils
 from deepxube.utils.misc_utils import flatten
+from deepxube.utils.timing_utils import Times
 import numpy as np
 
 import time
@@ -25,10 +26,13 @@ def data_runner(queue1: Queue, queue2: Queue) -> None:
 def test_env(env: Env, num_states: int, step_max: int) -> Tuple[List[State], List[Goal], List[Action]]:
     # get data
     start_time = time.time()
-    states, goals = env.get_start_goal_pairs(list(np.random.randint(step_max + 1, size=num_states)))
+    sg_times: Times = Times()
+    states, goals = env.get_start_goal_pairs(list(np.random.randint(step_max + 1, size=num_states)), times=sg_times)
+    assert len(states) == len(goals), f"state({len(states)}) and goal({len(goals)}) pairs not same length"
 
     elapsed_time = time.time() - start_time
     states_per_sec = len(states) / elapsed_time
+    print(sg_times.get_time_str(decplace=16))
     print("Generated %i start/goal states in %s seconds (%.2f/second)" % (len(states), elapsed_time, states_per_sec))
 
     # get state action
@@ -58,11 +62,11 @@ def test_env(env: Env, num_states: int, step_max: int) -> Tuple[List[State], Lis
 
     # next state
     start_time = time.time()
-    env.next_state_rand(states)
+    states_next: List[State] = env.next_state_rand(states)[0]
 
     elapsed_time = time.time() - start_time
-    states_per_sec = len(states) / elapsed_time
-    print("Got %i random next states in %s seconds (%.2f/second)" % (len(states), elapsed_time, states_per_sec))
+    states_per_sec = len(states_next) / elapsed_time
+    print("Got %i random next states in %s seconds (%.2f/second)" % (len(states_next), elapsed_time, states_per_sec))
 
     # multiprocessing
     print("")
@@ -91,7 +95,7 @@ def test_env(env: Env, num_states: int, step_max: int) -> Tuple[List[State], Lis
     return states, goals, actions
 
 
-def test_envstartgoalrw(env: EnvStartGoalRW, num_states: int) -> None:
+def test_envstartgoalrw(env: StartGoalWalkable, num_states: int) -> None:
     # generate start/goal states
     start_time = time.time()
     states: List[State] = env.get_start_states(num_states)
@@ -101,7 +105,7 @@ def test_envstartgoalrw(env: EnvStartGoalRW, num_states: int) -> None:
     print("Generated %i start states in %s seconds (%.2f/second)" % (len(states), elapsed_time, states_per_sec))
 
 
-def test_envenumerableacts(env: EnvEnumerableActs, states: List[State]) -> None:
+def test_envenumerableacts(env: ActsEnum, states: List[State]) -> None:
     torch.set_num_threads(1)
 
     # expand
@@ -169,31 +173,12 @@ def test_heur_nnet(heur_nnet: HeurNNet, states: List[State], goals: List[Goal], 
     print("Computed heuristic for %i states in %s seconds (%.2f/second)" % (len(states), nnet_time, states_per_sec))
 
 
-def test(env: Env, heur_nnet: HeurNNet, num_states: int, step_max: int) -> None:
+def test(env: Env, heur_nnet: Optional[HeurNNet], num_states: int, step_max: int) -> None:
     states, goals, actions = test_env(env, num_states, step_max)
-    if isinstance(env, EnvStartGoalRW):
+    if isinstance(env, StartGoalWalkable):
         test_envstartgoalrw(env, num_states)
-    if isinstance(env, EnvEnumerableActs):
+    if isinstance(env, ActsEnum):
         test_envenumerableacts(env, states)
 
-    test_heur_nnet(heur_nnet, states, goals, actions)
-    """
-    nnet, device = init_nnet(heur_nnet)
-    heur_fn = heur_nnet.get_nnet_fn(nnet, None, device)
-    search: BWQSEnum = BWQSEnum(env, heur_fn)
-    nnet.eval()
-    root_nodes: List[NodeQ] = search.create_root_nodes([states[0]], [goals[0]], compute_init_heur=True)
-    instances: List[InstanceBWQS] = []
-    for root_node in root_nodes:
-        instances.append(InstanceBWQS(root_node, 1, 1.0, None))
-    search.add_instances(instances)
-    instance = search.instances[0]
-    while any([not instance.finished() for instance in search.instances]):
-        node_q_acts = search.step()
-        for node_q_act in node_q_acts:
-            node_q = node_q_act.node
-            print(node_q.state)
-            print(instance.itr, node_q.is_solved, env.is_solved([node_q.state], [goals[0]]), node_q.path_cost,
-                  instance.lb, instance.ub)
-        breakpoint()
-"""
+    if heur_nnet is not None:
+        test_heur_nnet(heur_nnet, states, goals, actions)

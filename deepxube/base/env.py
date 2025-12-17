@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Optional, Set, TypeVar, Generic, Protocol, runtime_checkable, Union, Dict
+from typing import List, Tuple, Optional, Set, TypeVar, Generic, Protocol, runtime_checkable, Dict, Any
 import numpy as np
 from clingo.solving import Model as ModelCl
 
@@ -10,6 +10,12 @@ from deepxube.utils.timing_utils import Times
 import random
 import time
 from numpy.typing import NDArray
+
+
+# Protocols
+@runtime_checkable
+class Vizable(Protocol):
+    def visualize(self) -> NDArray[np.float64]: ...
 
 
 class State(ABC):
@@ -48,7 +54,6 @@ class Action(ABC):
         pass
 
 
-# TODO make hash and eq method for goal required
 class Goal(ABC):
     pass
 
@@ -58,8 +63,9 @@ A = TypeVar('A', bound=Action)
 G = TypeVar('G', bound=Goal)
 
 
+# TODO method for downloading data?
 class Env(ABC, Generic[S, A, G]):
-    def __init__(self) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.nnet_pars: List[Tuple[str, str, NNetPar]] = []
 
     @abstractmethod
@@ -103,12 +109,6 @@ class Env(ABC, Generic[S, A, G]):
         """
         pass
 
-    def get_nnet_pars(self) -> List[Tuple[str, str, NNetPar]]:
-        return self.nnet_pars
-
-    def set_nnet_fns(self, nnet_fn_dict: Dict[str, NNetCallable]) -> None:
-        pass
-
     def next_state_rand(self, states: List[S]) -> Tuple[List[S], List[float]]:
         """ Get random next state and transition cost given the current state
 
@@ -118,31 +118,110 @@ class Env(ABC, Generic[S, A, G]):
         actions_rand: List[A] = self.get_state_action_rand(states)
         return self.next_state(states, actions_rand)
 
-    def random_walk(self, states: List[S], num_steps_l: List[int]) -> List[S]:
+    def random_walk(self, states: List[S], num_steps_l: List[int]) -> Tuple[List[S], List[float]]:
+        """ Perform a random walk on the given states for the given number of steps
+
+        @param states: List of states
+        @param num_steps_l: number of steps to take for each state
+        @return: The resulting state and the path cost for each random walk
+        """
         states_walk: List[S] = [state for state in states]
+        path_costs: List[float] = [0.0 for _ in states]
 
         num_steps: NDArray[np.int_] = np.array(num_steps_l)
-        num_moves_curr: NDArray[np.int_] = np.zeros(len(states), dtype=int)
-        moves_lt: NDArray[np.bool_] = num_moves_curr < num_steps
-        while np.any(moves_lt):
-            idxs: NDArray[np.int_] = np.where(moves_lt)[0]
+        num_steps_curr: NDArray[np.int_] = np.zeros(len(states), dtype=int)
+        steps_lt: NDArray[np.bool_] = num_steps_curr < num_steps
+        while np.any(steps_lt):
+            idxs: NDArray[np.int_] = np.where(steps_lt)[0]
             states_to_move = [states_walk[idx] for idx in idxs]
 
-            states_moved, _ = self.next_state_rand(states_to_move)
+            states_moved, tcs = self.next_state_rand(states_to_move)
 
             idx: int
             for move_idx, idx in enumerate(idxs):
                 states_walk[idx] = states_moved[move_idx]
+                path_costs[idx] += tcs[move_idx]
 
-            num_moves_curr[idxs] = num_moves_curr[idxs] + 1
+            num_steps_curr[idxs] = num_steps_curr[idxs] + 1
 
-            moves_lt[idxs] = num_moves_curr[idxs] < num_steps[idxs]
+            steps_lt[idxs] = num_steps_curr[idxs] < num_steps[idxs]
 
-        return states_walk
+        return states_walk, path_costs
+
+    def get_nnet_pars(self) -> List[Tuple[str, str, NNetPar]]:
+        return self.nnet_pars
+
+    def set_nnet_fns(self, nnet_fn_dict: Dict[str, NNetCallable]) -> None:
+        pass
 
 
 # Mixins
-class EnvEnumerableActs(Env[S, A, G]):
+class FixedGoalRevWalk(Env[S, A, G]):
+    def get_start_goal_pairs(self, num_steps_l: List[int], times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
+        # Initialize
+        if times is None:
+            times = Times()
+
+        # Start states
+        start_time = time.time()
+        states_goal: List[S] = self.get_goal_states(len(num_steps_l))
+        times.record_time("get_start_states", time.time() - start_time)
+
+        # random walk
+        start_time = time.time()
+        states_start: List[S] = self.random_walk_rev(states_goal, num_steps_l)
+        times.record_time("random_walk", time.time() - start_time)
+
+        # state to goal
+        start_time = time.time()
+        goals: List[G] = [self.get_goal()] * len(states_start)
+        times.record_time("sample_goal", time.time() - start_time)
+
+        return states_start, goals
+
+    @abstractmethod
+    def random_walk_rev(self, states: List[S], num_steps_l: List[int]) -> List[S]:
+        pass
+
+    @abstractmethod
+    def get_goal_states(self, num_states: int) -> List[S]:
+        pass
+
+    @abstractmethod
+    def get_goal(self) -> G:
+        pass
+
+
+class GoalSampleable(Env[S, A, G]):
+    @abstractmethod
+    def sample_goal(self, states_start: List[S], states_goal: List[S]) -> List[G]:
+        """ Given a state, return a goal that represents a set of goal states of which the given state is a member.
+        Does not have to always return the same goal.
+
+        @param states_start: List of start states
+        @param states_goal List of states from which goals will be sampled
+        @return: Goals
+        """
+        pass
+
+
+class ActsFixed(Env[S, A, G]):
+    @abstractmethod
+    def get_action_rand(self, num: int) -> List[A]:
+        pass
+
+    def get_state_action_rand(self, states: List[S]) -> List[A]:
+        return self.get_action_rand(len(states))
+
+
+class ActsRev(Env[S, A, G], ABC):
+    """ To indicate reversibility. Functionality to implement may come later.
+
+    """
+    pass
+
+
+class ActsEnum(Env[S, A, G]):
     @abstractmethod
     def get_state_actions(self, states: List[S]) -> List[List[A]]:
         """ Get actions applicable to each states
@@ -181,7 +260,7 @@ class EnvEnumerableActs(Env[S, A, G]):
             # next state
             states_next, tcs_move = self.next_state(states_idxs, actions_idxs)
 
-            # transition cost
+            # append
             idx: int
             for exp_idx, idx in enumerate(idxs):
                 states_exp_l[idx].append(states_next[exp_idx])
@@ -194,20 +273,23 @@ class EnvEnumerableActs(Env[S, A, G]):
         return states_exp_l, actions_exp_l, tcs_l
 
 
-class EnvGoalSampleable(Env[S, A, G]):
-    @abstractmethod
-    def sample_goal(self, states_start: List[S], states_goal: List[S]) -> List[G]:
-        """ Given a state, return a goal that represents a set of goal states of which the given state is a member.
-        Does not have to always return the same goal.
+class ActsEnumFixed(ActsEnum[S, A, G], ActsFixed[S, A, G]):
+    def get_action_rand(self, num: int) -> List[A]:
+        actions_fixed: List[A] = self._get_actions_fixed()
+        return [random.choice(actions_fixed) for _ in range(num)]
 
-        @param states_start: List of start states
-        @param states_goal List of states from which goals will be sampled
-        @return: Goals
-        """
+    def get_state_actions(self, states: List[S]) -> List[List[A]]:
+        return [self._get_actions_fixed().copy() for _ in range(len(states))]
+
+    @abstractmethod
+    def _get_actions_fixed(self) -> List[A]:
         pass
 
+    def get_num_acts(self) -> int:
+        return len(self._get_actions_fixed())
 
-class EnvStartGoalRW(EnvGoalSampleable[S, A, G]):
+
+class StartGoalWalkable(GoalSampleable[S, A, G]):
     @abstractmethod
     def get_start_states(self, num_states: int) -> List[S]:
         """ A method for generating start states. Should try to make this generate states that are as diverse as
@@ -218,8 +300,7 @@ class EnvStartGoalRW(EnvGoalSampleable[S, A, G]):
         """
         pass
 
-    def get_start_goal_pairs(self, num_steps_l: List[int],
-                             times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
+    def get_start_goal_pairs(self, num_steps_l: List[int], times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
         # Initialize
         if times is None:
             times = Times()
@@ -231,7 +312,7 @@ class EnvStartGoalRW(EnvGoalSampleable[S, A, G]):
 
         # random walk
         start_time = time.time()
-        states_goal: List[S] = self.random_walk(states_start, num_steps_l)
+        states_goal: List[S] = self.random_walk(states_start, num_steps_l)[0]
         times.record_time("random_walk", time.time() - start_time)
 
         # state to goal
@@ -242,7 +323,26 @@ class EnvStartGoalRW(EnvGoalSampleable[S, A, G]):
         return states_start, goals
 
 
-class EnvGrndAtoms(Env[S, A, G]):
+class FixedGoalRevWalkActsRev(FixedGoalRevWalk[S, A, G], ActsRev[S, A, G], ABC):
+    def random_walk_rev(self, states: List[S], num_steps_l: List[int]) -> List[S]:
+        return self.random_walk(states, num_steps_l)[0]
+
+
+class SupportsPDDL(Env[S, A, G], ABC):
+    @abstractmethod
+    def get_pddl_domain(self) -> List[str]:
+        pass
+
+    @abstractmethod
+    def state_goal_to_pddl_inst(self, state: S, goal: G) -> List[str]:
+        pass
+
+    @abstractmethod
+    def pddl_action_to_action(self, pddl_action: str) -> A:
+        pass
+
+
+class GoalGrndAtoms(Env[S, A, G]):
     @abstractmethod
     def state_to_model(self, states: List[S]) -> List[Model]:
         pass
@@ -324,18 +424,3 @@ class EnvGrndAtoms(Env[S, A, G]):
         :return:
         """
         pass
-
-
-# Protocols
-@runtime_checkable
-class EnvVizable(Protocol):
-    def visualize(self, states: List[Union[State, Goal]]) -> NDArray[np.float64]: ...
-
-
-@runtime_checkable
-class EnvSupportsPDDL(Protocol):
-    def get_pddl_domain(self) -> List[str]: ...
-
-    def state_goal_to_pddl_inst(self, state: State, goal: Goal) -> List[str]: ...
-
-    def pddl_action_to_action(self, pddl_action: str) -> Action: ...

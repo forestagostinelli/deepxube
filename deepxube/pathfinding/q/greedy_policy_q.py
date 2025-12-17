@@ -1,6 +1,6 @@
 from typing import List, Any
 from abc import ABC
-from deepxube.base.env import EnvEnumerableActs, State, Goal
+from deepxube.base.env import ActsEnum, State, Goal
 from deepxube.base.pathfinding import E, Instance, NodeQ, PathFindQ, NodeQAct, PathFindQExpandEnum
 from deepxube.utils.misc_utils import boltzmann
 import numpy as np
@@ -80,5 +80,5 @@ class GreedyPolicyQ(PathFindQ[E, InstanceGrPolQ], ABC):
         return nodeq_acts
 
 
-class GreedyPolicyQEnum(GreedyPolicyQ[EnvEnumerableActs], PathFindQExpandEnum[InstanceGrPolQ]):
+class GreedyPolicyQEnum(GreedyPolicyQ[ActsEnum], PathFindQExpandEnum[InstanceGrPolQ]):
     pass

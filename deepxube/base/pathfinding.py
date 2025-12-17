@@ -1,8 +1,8 @@
-from typing import Generic, List, Optional, Any, Tuple, Callable, TypeVar, Dict
+from typing import Generic, List, Optional, Any, Tuple, Callable, TypeVar, Dict, Union, cast
 
 from numpy.typing import NDArray
 
-from deepxube.base.env import Env, State, Goal, Action, EnvEnumerableActs
+from deepxube.base.env import Env, State, Goal, Action, ActsEnum
 from deepxube.base.heuristic import HeurFnV, HeurFnQ
 from deepxube.utils import misc_utils
 from deepxube.utils.timing_utils import Times
@@ -326,7 +326,7 @@ class PathFindV(PathFind[E, NodeV, I]):
 
 
 # mixins
-class PathFindVExpandEnum(PathFindV[EnvEnumerableActs, I], ABC):
+class PathFindVExpandEnum(PathFindV[ActsEnum, I], ABC):
     def expand(self, states: List[State],
                goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
         return self.env.expand(states)
@@ -338,11 +338,11 @@ class NodeQ(Node):
 
     def __init__(self, state: State, goal: Goal, path_cost: float, heuristic: float, is_solved: Optional[bool],
                  parent_action: Optional[Action], parent_t_cost: Optional[float], parent: Optional['NodeQ'],
-                 actions: List[Action], q_values: List[float]):
+                 actions: List[Action], q_values: Optional[List[float]]):
         super().__init__(state, goal, path_cost, heuristic, is_solved, parent_action, parent_t_cost, parent)
         self.parent: Optional[NodeQ] = parent
         self.actions: List[Action] = actions
-        self.q_values: List[float] = q_values
+        self.q_values: Optional[List[float]] = q_values
         self.act_dict: Dict[Action, Tuple[float, NodeQ]] = dict()
         self.bellman_backup_val: Optional[float] = None
 
@@ -365,6 +365,7 @@ class NodeQ(Node):
             return 0.0
         else:
             tc, node_next = self.act_dict[action]
+            assert node_next.q_values is not None
             return tc + min(node_next.q_values)
 
 
@@ -392,24 +393,26 @@ class PathFindQ(PathFind[E, NodeQ, I]):
         start_time = time.time()
         # flatten
         node_acts, split_idxs = misc_utils.flatten(node_acts_by_inst)
-        for node_act in node_acts:
-            assert node_act.action is not None
         nodes: List[NodeQ] = [node_act.node for node_act in node_acts]
-        actions: List[Action] = [node_act.action for node_act in node_acts]
 
         states: List[State] = [node.state for node in nodes]
         goals: List[Goal] = [node.goal for node in nodes]
+        actions: List[Optional[Action]] = [node_act.action for node_act in node_acts]
         path_costs: List[float] = [popped_node.path_cost for popped_node in nodes]
 
         # next states
-        states_next, tcs = self.env.next_state(states, actions)
+        states_next = states.copy()
+        tcs: List[float] = [0.0] * len(states_next)
+        idxs_op: List[int] = [idx for idx, action in enumerate(actions) if action is not None]
+        if len(idxs_op) > 0:
+            states_op: List[State] = [states[idx_op] for idx_op in idxs_op]
+            actions_op: List[Action] = [cast(Action, actions[idx_op]) for idx_op in idxs_op]
+            states_next_op, tcs_op = self.env.next_state(states_op, actions_op)
+            for idx_op, state, tc in zip(idxs_op, states_next_op, tcs_op):
+                states_next[idx_op] = state
+                tcs[idx_op] = tc
         path_costs_next: List[float] = (np.array(path_costs) + np.array(tcs)).tolist()
         self.times.record_time("next_state", time.time() - start_time)
-
-        # is solved
-        # start_time = time.time()
-        # is_solved_next: List[bool] = self.env.is_solved(states_next, goals)
-        # self.times.record_time("is_solved", time.time() - start_time)
 
         # heuristic function
         start_time = time.time()
@@ -421,10 +424,15 @@ class PathFindQ(PathFind[E, NodeQ, I]):
         start_time = time.time()
         nodes_next: List[NodeQ] = []
         for idx in range(len(node_acts)):
-            node_next: NodeQ = NodeQ(states_next[idx], goals[idx], path_costs_next[idx], heurs_next[idx],
-                                     None, actions[idx], tcs[idx], nodes[idx], actions_next_l[idx],
-                                     q_vals_next[idx])
-            nodes[idx].act_dict[actions[idx]] = (tcs[idx], node_next)
+            node_next: NodeQ
+            action_i: Optional[Action] = actions[idx]
+            if action_i is not None:
+                node_next = NodeQ(states_next[idx], goals[idx], path_costs_next[idx], heurs_next[idx], None,
+                                  action_i, tcs[idx], nodes[idx], actions_next_l[idx], q_vals_next[idx])
+                nodes[idx].act_dict[action_i] = (tcs[idx], node_next)
+            else:
+                node_next = nodes[idx]
+                node_next.q_values = q_vals_next[idx]
             nodes_next.append(node_next)
         self.times.record_time("make_nodes", time.time() - start_time)
 
@@ -437,18 +445,23 @@ class PathFindQ(PathFind[E, NodeQ, I]):
 
         return nodes_next_by_inst
 
-    @abstractmethod
     def get_qvals_acts(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[float]], List[List[Action]]]:
-        pass
+        actions_l: List[List[Action]] = self.get_actions(states, goals)
+        qvals_l: List[List[float]] = self.heur_fn(states, goals, actions_l)
+        return qvals_l, actions_l
 
     def create_root_nodes(self, states: List[State], goals: List[Goal], compute_init_heur: bool = True) -> List[NodeQ]:
         start_time = time.time()
-        qvals_l, actions_l = self.get_qvals_acts(states, goals)
 
+        qvals_l: Union[List[List[float]], List[None]]
+        actions_l: List[List[Action]]
         heuristics: List[float]
         if compute_init_heur:
+            qvals_l, actions_l = self.get_qvals_acts(states, goals)
             heuristics = [min(x) for x in qvals_l]
         else:
+            qvals_l = [None for _ in states]
+            actions_l = self.get_actions(states, goals)
             heuristics = [0.0 for _ in states]
 
         root_nodes: List[NodeQ] = []
@@ -459,9 +472,11 @@ class PathFindQ(PathFind[E, NodeQ, I]):
 
         return root_nodes
 
+    @abstractmethod
+    def get_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
+        pass
 
-class PathFindQExpandEnum(PathFindQ[EnvEnumerableActs, I], ABC):
-    def get_qvals_acts(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[float]], List[List[Action]]]:
-        actions_l: List[List[Action]] = self.env.get_state_actions(states)
-        qvals_l: List[List[float]] = self.heur_fn(states, goals, actions_l)
-        return qvals_l, actions_l
+
+class PathFindQExpandEnum(PathFindQ[ActsEnum, I], ABC):
+    def get_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
+        return self.env.get_state_actions(states)
