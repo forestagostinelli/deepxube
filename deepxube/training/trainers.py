@@ -126,6 +126,7 @@ class TrainHeur:
                                                             self.train_args.batch_size)
         times.record_time("up_start", time.time() - start_time)
 
+        # do training
         loss: float
         ctgs_l: List[NDArray]
         if not self.updater.up_args.sync_main:
@@ -135,26 +136,8 @@ class TrainHeur:
 
         # end update
         start_time = time.time()
-        step_to_search_perf: Dict[int, PathFindPerf] = self.updater.end_update()
-
-        per_solved_ave, path_costs_ave, search_itrs_ave = get_eq_weighted_perf(step_to_search_perf)
-        self.writer.add_scalar("train/pathfind/solved", per_solved_ave, self.status.itr)
-        self.writer.add_scalar("train/pathfind/path_cost", path_costs_ave, self.status.itr)
-        self.writer.add_scalar("train/pathfind/search_itrs", search_itrs_ave, self.status.itr)
-
-        if self.train_args.balance_steps:
-            self.status.update_step_probs(step_to_search_perf)
-
-        ctgs_mean, ctgs_min, ctgs_max = ctgs_summary(ctgs_l)
-        self.writer.add_scalar("train/ctgs/mean", ctgs_mean, self.status.itr)
-        self.writer.add_scalar("train/ctgs/min", ctgs_min, self.status.itr)
-        self.writer.add_scalar("train/ctgs/max", ctgs_max, self.status.itr)
-
-        post_up_info_l: List[str] = [f"%solved: {per_solved_ave:.2f}", f"path_costs: {path_costs_ave:.3f}",
-                                     f"search_itrs: {search_itrs_ave:.3f}",
-                                     f"cost-to-go (mean/min/max): {ctgs_mean:.2f}/{ctgs_min:.2f}/{ctgs_max:.2f}"]
+        post_up_info_l: List[str] = self._post_up_info(ctgs_l)
         print(f"Data - {', '.join(post_up_info_l)}")
-
         times.record_time("up_end", time.time() - start_time)
 
         # save nnet
@@ -260,6 +243,27 @@ class TrainHeur:
         self.status.itr += 1
         times.record_time("train", time.time() - start_time)
         return loss
+
+    def _post_up_info(self, ctgs_l: List[NDArray]) -> List[str]:
+        step_to_search_perf: Dict[int, PathFindPerf] = self.updater.end_update()
+        if self.train_args.balance_steps:
+            self.status.update_step_probs(step_to_search_perf)
+
+        per_solved_ave, path_costs_ave, search_itrs_ave = get_eq_weighted_perf(step_to_search_perf)
+        ctgs_mean, ctgs_min, ctgs_max = ctgs_summary(ctgs_l)
+
+        self.writer.add_scalar("train/pathfind/solved", per_solved_ave, self.status.itr)
+        self.writer.add_scalar("train/pathfind/path_cost", path_costs_ave, self.status.itr)
+        self.writer.add_scalar("train/pathfind/search_itrs", search_itrs_ave, self.status.itr)
+
+        self.writer.add_scalar("train/ctgs/mean", ctgs_mean, self.status.itr)
+        self.writer.add_scalar("train/ctgs/min", ctgs_min, self.status.itr)
+        self.writer.add_scalar("train/ctgs/max", ctgs_max, self.status.itr)
+
+        post_up_info_l: List[str] = [f"%solved: {per_solved_ave:.2f}", f"path_costs: {path_costs_ave:.3f}",
+                                     f"search_itrs: {search_itrs_ave:.3f}",
+                                     f"cost-to-go (mean/min/max): {ctgs_mean:.2f}/{ctgs_min:.2f}/{ctgs_max:.2f}"]
+        return post_up_info_l
 
     def _update_greedy_perf(self, update_num: int) -> float:
         # get updater
