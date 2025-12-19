@@ -130,15 +130,12 @@ class TrainHeur:
         loss: float
         ctgs_l: List[NDArray]
         if not self.updater.up_args.sync_main:
-            loss, ctgs_l = self._train_no_rb(num_gen, times)
+            ctgs_l = self._get_update_data(num_gen, times)
+            self._end_update(ctgs_l, times)
+            loss = self._train_no_rb(times)
         else:
             loss, ctgs_l = self._train_rb(num_gen, to_main_q, from_main_qs, times)
-
-        # end update
-        start_time = time.time()
-        post_up_info_l: List[str] = self._post_up_info(ctgs_l)
-        print(f"Data - {', '.join(post_up_info_l)}")
-        times.record_time("up_end", time.time() - start_time)
+            self._end_update(ctgs_l, times)
 
         # save nnet
         start_time = time.time()
@@ -169,8 +166,7 @@ class TrainHeur:
         print(f"Train - itrs: {self.updater.up_args.up_itrs}, loss: {loss:.2E}, targ_updated: {update_targ}")
         print(f"Times - {times.get_time_str()}")
 
-    def _train_no_rb(self, num_gen: int, times: Times) -> Tuple[float, List[NDArray]]:
-        # get update data
+    def _get_update_data(self, num_gen: int, times: Times) -> List[NDArray]:
         start_time = time.time()
         self.db.clear()
         ctgs_l: List[NDArray] = []
@@ -181,6 +177,9 @@ class TrainHeur:
                 self.db.add(data)
         times.record_time("up_data", time.time() - start_time)
 
+        return ctgs_l
+
+    def _train_no_rb(self, times: Times) -> float:
         # train
         loss: float = np.inf
         for _ in range(self.updater.up_args.up_itrs):
@@ -192,7 +191,7 @@ class TrainHeur:
             # train
             loss = self._train_itr(batch[:-1], batch[-1], times)
 
-        return loss, ctgs_l
+        return loss
 
     def _train_rb(self, num_gen: int, to_main_q: Queue, from_main_qs: List[Queue],
                   times: Times) -> Tuple[float, List[NDArray]]:
@@ -244,7 +243,8 @@ class TrainHeur:
         times.record_time("train", time.time() - start_time)
         return loss
 
-    def _post_up_info(self, ctgs_l: List[NDArray]) -> List[str]:
+    def _end_update(self, ctgs_l: List[NDArray], times: Times):
+        start_time = time.time()
         step_to_search_perf: Dict[int, PathFindPerf] = self.updater.end_update()
         if self.train_args.balance_steps:
             self.status.update_step_probs(step_to_search_perf)
@@ -263,7 +263,9 @@ class TrainHeur:
         post_up_info_l: List[str] = [f"%solved: {per_solved_ave:.2f}", f"path_costs: {path_costs_ave:.3f}",
                                      f"search_itrs: {search_itrs_ave:.3f}",
                                      f"cost-to-go (mean/min/max): {ctgs_mean:.2f}/{ctgs_min:.2f}/{ctgs_max:.2f}"]
-        return post_up_info_l
+
+        print(f"Data - {', '.join(post_up_info_l)}")
+        times.record_time("up_end", time.time() - start_time)
 
     def _update_greedy_perf(self, update_num: int) -> float:
         # get updater
