@@ -2,9 +2,10 @@ from typing import Optional, List
 from dataclasses import dataclass
 
 from deepxube.base.env import State, Goal
-from deepxube.base.heuristic import HeurNNet, HeurNNetV, HeurFnV
-from deepxube.base.pathfinding import PathFind, NodeV
+from deepxube.base.heuristic import HeurNNet, HeurNNetV, HeurNNetQ, HeurFnV, HeurFnQ
+from deepxube.base.pathfinding import PathFind, NodeV, NodeQ
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf
+from deepxube.pathfinding.q.bwqs import BWQSEnum, InstanceBWQS
 from deepxube.pathfinding.v.bwas import BWASEnum, InstanceBWAS
 from deepxube.base.updater import UpdateHeur
 from deepxube.training.train_utils import TrainArgs
@@ -48,6 +49,16 @@ def get_pathfind_w_instances(updater: UpdateHeur, train_heur: TrainHeur, test_ar
                                          for root_node in root_nodes]
         pathfind.add_instances(instances)
         return pathfind
+    elif isinstance(heur_nnet, HeurNNetQ):
+        heur_fn: HeurFnQ = heur_nnet.get_nnet_fn(train_heur.nnet, test_args.test_nnet_batch_size,
+                                                 train_heur.device, None)
+        pathfind: BWQSEnum = BWQSEnum(updater.env, heur_fn)
+        root_nodes: List[NodeQ] = pathfind.create_root_nodes(test_args.test_states, test_args.test_goals)
+        instances: List[InstanceBWQS] = [InstanceBWQS(root_node, 1, test_args.search_weights[param_idx], 0.0, None)
+                                         for root_node in root_nodes]
+        pathfind.add_instances(instances)
+        return pathfind
+
     else:
         raise ValueError(f"Unknown heuristic function type {heur_nnet}")
 
