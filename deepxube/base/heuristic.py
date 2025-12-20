@@ -1,19 +1,42 @@
 from abc import abstractmethod, ABC
-from typing import Callable, List, Any, TypeVar, Generic, cast, Tuple, Optional
+from typing import Callable, List, Any, TypeVar, Generic, cast, Tuple, Optional, Dict, Type
 
 import numpy as np
 from numpy.typing import NDArray
 
 from deepxube.base.domain import State, Goal, Action
+from deepxube.base.nnet_input import NNetInput
 from deepxube.nnet.nnet_utils import NNetParInfo, nnet_batched, NNetFn, NNetPar, get_nnet_par_out
 from deepxube.utils import misc_utils
 import torch
 from torch import nn, Tensor
 
 
-class HeurNNet(nn.Module, ABC):
+In = TypeVar('In', bound=NNetInput)
+
+
+class HeurNNet(nn.Module, Generic[In], ABC):
+    @staticmethod
     @abstractmethod
+    def nnet_input_type() -> Type[In]:
+        pass
+
+    def __init__(self, nnet_input: In, out_dim: int, q_fix: bool, **kwargs: Any):
+        super().__init__(**kwargs)
+        self.nnet_input: In = nnet_input
+        self.out_dim: int = out_dim
+        self.q_fix: bool = q_fix
+
     def forward(self, inputs: List[Tensor]) -> Tensor:
+        if self.q_fix:
+            action_idxs: Tensor = inputs[-1].long()
+            x: Tensor = self._forward(inputs[:-1])
+            return torch.gather(x, 1, action_idxs)
+        else:
+            return self._forward(inputs)
+
+    @abstractmethod
+    def _forward(self, inputs: List[Tensor]) -> Tensor:
         pass
 
 
@@ -185,3 +208,13 @@ class HeurNNetParQIn(HeurNNetParQ[S, A, G], ABC):
         q_vals_flat: List[float] = q_vals_np.astype(np.float64).tolist()
         q_vals_l: List[List[float]] = misc_utils.unflatten(q_vals_flat, split_idxs)
         return q_vals_l
+
+
+class HeurNNetParser(ABC):
+    @abstractmethod
+    def parse(self, args_str: str) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def help(self) -> str:
+        pass

@@ -342,7 +342,7 @@ class SupportsPDDL(Domain[S, A, G], ABC):
         pass
 
 
-class GoalGrndAtoms(Domain[S, A, G]):
+class GoalGrndAtoms(GoalSampleable[S, A, G]):
     @abstractmethod
     def state_to_model(self, states: List[S]) -> List[Model]:
         pass
@@ -424,6 +424,112 @@ class GoalGrndAtoms(Domain[S, A, G]):
         :return:
         """
         pass
+
+
+class NextStateNP(Domain[S, A, G]):
+    def next_state(self, states: List[S], actions: List[A]) -> Tuple[List[S], List[float]]:
+        states_np: List[NDArray] = self._states_to_np(states)
+        states_next_np, tcs = self._next_state_np(states_np, actions)
+        states_next: List[S] = self._np_to_states(states_next_np)
+
+        return states_next, tcs
+
+    def random_walk(self, states: List[S], num_steps_l: List[int]) -> Tuple[List[S], List[float]]:
+        states_np = self._states_to_np(states)
+        path_costs: List[float] = [0.0 for _ in states]
+
+        num_steps: NDArray[np.int_] = np.array(num_steps_l)
+        num_steps_curr: NDArray[np.int_] = np.zeros(len(states), dtype=int)
+        steps_lt: NDArray[np.bool_] = num_steps_curr < num_steps
+        while np.any(steps_lt):
+            idxs: NDArray[np.int_] = np.where(steps_lt)[0]
+            states_np_tomove: List[NDArray] = [states_np_i[idxs] for states_np_i in states_np]
+            actions_rand: List[A] = self._get_state_np_action_rand(states_np_tomove)
+
+            states_moved, tcs = self._next_state_np(states_np_tomove, actions_rand)
+
+            for l_idx in range(len(states_np)):
+                states_np[l_idx][idxs] = states_moved[l_idx]
+            idx: int
+            for act_idx, idx in enumerate(idxs):
+                path_costs[idx] += tcs[act_idx]
+
+            num_steps_curr[idxs] = num_steps_curr[idxs] + 1
+
+            steps_lt[idxs] = num_steps_curr[idxs] < num_steps[idxs]
+
+        return self._np_to_states(states_np), path_costs
+
+    @abstractmethod
+    def _states_to_np(self, states: List[S]) -> List[NDArray]:
+        pass
+
+    @abstractmethod
+    def _np_to_states(self, states_np_l: List[NDArray]) -> List[S]:
+        pass
+
+    @abstractmethod
+    def _get_state_np_actions(self, states_np_l: List[NDArray]) -> List[List[A]]:
+        pass
+
+    def _get_state_np_action_rand(self, states_np: List[NDArray]) -> List[A]:
+        state_actions_l: List[List[A]] = self._get_state_np_actions(states_np)
+        return [random.choice(state_actions) for state_actions in state_actions_l]
+
+    @abstractmethod
+    def _next_state_np(self, states_np: List[NDArray], actions: List[A]) -> Tuple[List[NDArray], List[float]]:
+        """ Get the next state and transition cost given the current numpy representations of the state and action
+
+
+        @param states_np: numpy representation of states. Each row in each element of states_np list represents
+        information for a different state. There can be one or more multiple elements in the list for each state.
+        This object should not be mutated.
+        @param actions: actions
+        @return: Numpy representation of next states, transition costs
+        """
+        pass
+
+
+class NextStateNPActsEnum(NextStateNP[S, A, G], ActsEnum[S, A, G], ABC):
+    def expand(self, states: List[S]) -> Tuple[List[List[S]], List[List[A]], List[List[float]]]:
+        # initialize
+        states_np: List[NDArray] = self._states_to_np(states)
+        states_exp_l: List[List[S]] = [[] for _ in range(len(states))]
+        actions_exp_l: List[List[A]] = [[] for _ in range(len(states))]
+        tcs_l: List[List[float]] = [[] for _ in range(len(states))]
+        state_actions: List[List[A]] = self.get_state_actions(states)
+
+        num_actions_tot: NDArray[np.int_] = np.array([len(x) for x in state_actions])
+        num_actions_taken: NDArray[np.int_] = np.zeros(len(states), dtype=int)
+        actions_lt: NDArray[np.bool_] = num_actions_taken < num_actions_tot
+
+        # for each move, get next states, transition costs, and if solved
+        while np.any(actions_lt):
+            idxs: NDArray[np.int_] = np.where(actions_lt)[0]
+            states_np_idxs: List[NDArray] = [states_np_i[idxs] for states_np_i in states_np]
+            actions_idxs: List[A] = [state_actions[idx].pop(0) for idx in idxs]
+
+            # next state
+            states_next_np, tcs_move = self._next_state_np(states_np_idxs, actions_idxs)
+            states_next: List[S] = self._np_to_states(states_next_np)
+
+            # append
+            idx: int
+            for exp_idx, idx in enumerate(idxs):
+                states_exp_l[idx].append(states_next[exp_idx])
+                actions_exp_l[idx].append(actions_idxs[exp_idx])
+                tcs_l[idx].append(tcs_move[exp_idx])
+
+            num_actions_taken[idxs] = num_actions_taken[idxs] + 1
+            actions_lt[idxs] = num_actions_taken[idxs] < num_actions_tot[idxs]
+
+        return states_exp_l, actions_exp_l, tcs_l
+
+
+class NextStateNPActsEnumFixed(NextStateNPActsEnum[S, A, G], ActsEnumFixed[S, A, G], ABC):
+    def _get_state_np_actions(self, states_np: List[NDArray]) -> List[List[A]]:
+        state_actions: List[A] = self._get_actions_fixed()
+        return [state_actions.copy() for _ in range(states_np[0].shape[0])]
 
 
 class DomainParser(ABC):
