@@ -90,22 +90,22 @@ def build_heur_nnet_par(domain: Domain, domain_name: str, heur_nnet_mod_name: st
 
 
 class HeurNNetParConcrete(HeurNNetPar, ABC):
-    def __init__(self, domain: Domain, nnet_input_name: Tuple[str, str], heur_nnet_mod_name: str,
-                 heur_nnet_mod_kwargs: Dict[str, Any], q_fix: bool, out_dim: int):
+    def __init__(self, domain: Domain, nnet_input_name: Tuple[str, str], heur_nnet_name: str,
+                 heur_nnet_kwargs: Dict[str, Any], q_fix: bool, out_dim: int):
         self.domain: Domain = domain
         self.nnet_input_name: Tuple[str, str] = nnet_input_name
         self.nnet_input: Optional[NNetInput] = None
-        self.heur_nnet_mod_name: str = heur_nnet_mod_name
-        self.heur_nnet_mod_kwargs: Dict[str, Any] = heur_nnet_mod_kwargs
+        self.heur_nnet_name: str = heur_nnet_name
+        self.heur_nnet_kwargs: Dict[str, Any] = heur_nnet_kwargs
         self.q_fix: bool = q_fix
         self.out_dim: int = out_dim
 
     def get_nnet(self) -> HeurNNet:
-        heur_nnet_mod_params: Dict = self.heur_nnet_mod_kwargs.copy()
-        heur_nnet_mod_params['nnet_input'] = self._get_nnet_input()
-        heur_nnet_mod_params['q_fix'] = self.q_fix
-        heur_nnet_mod_params['out_dim'] = self.out_dim
-        return build_heur_nnet(self.heur_nnet_mod_name, heur_nnet_mod_params)
+        heur_nnet_params: Dict = self.heur_nnet_kwargs.copy()
+        heur_nnet_params['nnet_input'] = self._get_nnet_input()
+        heur_nnet_params['q_fix'] = self.q_fix
+        heur_nnet_params['out_dim'] = self.out_dim
+        return build_heur_nnet(self.heur_nnet_name, heur_nnet_params)
 
     def _get_nnet_input(self) -> NNetInput:
         if self.nnet_input is None:
@@ -118,9 +118,9 @@ class HeurNNetParConcrete(HeurNNetPar, ABC):
 
 
 class HeurNNetParVConcrete(HeurNNetParV[State, Goal], HeurNNetParConcrete):
-    def __init__(self, domain: Domain, nnet_input_name: Tuple[str, str], heur_nnet_mod_name: str,
-                 heur_nnet_mod_kwargs: Dict[str, Any]):
-        HeurNNetParConcrete.__init__(self, domain, nnet_input_name, heur_nnet_mod_name, heur_nnet_mod_kwargs, False, 1)
+    def __init__(self, domain: Domain, nnet_input_name: Tuple[str, str], heur_nnet_name: str,
+                 heur_nnet_kwargs: Dict[str, Any]):
+        HeurNNetParConcrete.__init__(self, domain, nnet_input_name, heur_nnet_name, heur_nnet_kwargs, False, 1)
 
     def to_np(self, states: List[State], goals: List[Goal]) -> List[NDArray]:
         return self._get_nnet_input().to_np(states, goals)
@@ -133,8 +133,8 @@ class HeurNNetParVConcrete(HeurNNetParV[State, Goal], HeurNNetParConcrete):
 
 class HeurNNetParQFixOutConcrete(HeurNNetParQFixOut[State, Action, Goal], HeurNNetParConcrete):
     def __init__(self, domain: Domain, nnet_input_name: Tuple[str, str],
-                 heur_nnet_mod_name: str, heur_nnet_mod_kwargs: Dict[str, Any], out_dim: int):
-        HeurNNetParConcrete.__init__(self, domain, nnet_input_name, heur_nnet_mod_name, heur_nnet_mod_kwargs, True, out_dim)
+                 heur_nnet_name: str, heur_nnet_kwargs: Dict[str, Any], out_dim: int):
+        HeurNNetParConcrete.__init__(self, domain, nnet_input_name, heur_nnet_name, heur_nnet_kwargs, True, out_dim)
 
     def _to_np_fixed_acts(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[NDArray]:
         return self._get_nnet_input().to_np(states, goals, actions_l)
@@ -147,8 +147,8 @@ class HeurNNetParQFixOutConcrete(HeurNNetParQFixOut[State, Action, Goal], HeurNN
 
 class HeurNNetParQActInConcrete(HeurNNetParQIn[State, Action, Goal], HeurNNetParConcrete):
     def __init__(self, domain: Domain, nnet_input_name: Tuple[str, str],
-                 heur_nnet_mod_name: str, heur_nnet_mod_kwargs: Dict[str, Any]):
-        HeurNNetParConcrete.__init__(self, domain, nnet_input_name, heur_nnet_mod_name, heur_nnet_mod_kwargs, False, 1)
+                 heur_nnet_name: str, heur_nnet_kwargs: Dict[str, Any]):
+        HeurNNetParConcrete.__init__(self, domain, nnet_input_name, heur_nnet_name, heur_nnet_kwargs, False, 1)
 
     def _to_np_one_act(self, states: List[State], goals: List[Goal], actions: List[Action]) -> List[NDArray]:
         return self._get_nnet_input().to_np(states, goals, actions)

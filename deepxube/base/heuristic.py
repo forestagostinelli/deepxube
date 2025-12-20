@@ -15,15 +15,24 @@ from torch import nn, Tensor
 In = TypeVar('In', bound=NNetInput)
 
 
-class HeurNNet(nn.Module, Generic[In], ABC):
+class DeepXubeNNet(nn.Module, Generic[In], ABC):
     @staticmethod
     @abstractmethod
     def nnet_input_type() -> Type[In]:
         pass
 
-    def __init__(self, nnet_input: In, out_dim: int, q_fix: bool, **kwargs: Any):
-        super().__init__(**kwargs)
+    def __init__(self, nnet_input: In):
+        super().__init__()
         self.nnet_input: In = nnet_input
+
+    @abstractmethod
+    def forward(self, inputs: List[Tensor]) -> List[Tensor]:
+        pass
+
+
+class HeurNNet(DeepXubeNNet[In]):
+    def __init__(self, nnet_input: In, out_dim: int, q_fix: bool, **kwargs: Any):
+        super().__init__(nnet_input)
         self.out_dim: int = out_dim
         self.q_fix: bool = q_fix
 
