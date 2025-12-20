@@ -8,10 +8,10 @@ from deepxube.base.heuristic import HeurNNet
 from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel, OneHot
 
 from deepxube.base.heuristic import HeurNNetParser
-from deepxube.factories.heuristic_factory import register_heur_module, register_heur_module_parser
+from deepxube.factories.heuristic_factory import register_heur_nnet, register_heur_nnet_parser
 
 
-@register_heur_module("resnet_fc")
+@register_heur_nnet("resnet_fc")
 class ResnetFC(HeurNNet[FlatIn]):
     @staticmethod
     def nnet_input_type() -> Type[FlatIn]:
@@ -49,7 +49,7 @@ class ResnetFC(HeurNNet[FlatIn]):
         return x
 
 
-@register_heur_module_parser("resnet_fc")
+@register_heur_nnet_parser("resnet_fc")
 class ResnetFCParser(HeurNNetParser):
     def parse(self, args_str: str) -> Dict[str, Any]:
         args_str_l: List[str] = args_str.split("_")

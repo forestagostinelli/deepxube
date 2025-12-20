@@ -127,7 +127,7 @@ def train_heur_nnet_step(nnet: nn.Module, inputs_np: List[NDArray], ctgs_np: NDA
     ctgs_batch: Tensor = torch.tensor(ctgs_np, device=device)
 
     # forward
-    ctgs_nnet: Tensor = nnet(inputs_batch)
+    ctgs_nnet: Tensor = nnet(inputs_batch)[0]
 
     # loss
     assert ctgs_nnet.size() == ctgs_batch.size()

@@ -27,13 +27,13 @@ class HeurNNet(nn.Module, Generic[In], ABC):
         self.out_dim: int = out_dim
         self.q_fix: bool = q_fix
 
-    def forward(self, inputs: List[Tensor]) -> Tensor:
+    def forward(self, inputs: List[Tensor]) -> List[Tensor]:
         if self.q_fix:
             action_idxs: Tensor = inputs[-1].long()
             x: Tensor = self._forward(inputs[:-1])
-            return torch.gather(x, 1, action_idxs)
+            return [torch.gather(x, 1, action_idxs)]
         else:
-            return self._forward(inputs)
+            return [self._forward(inputs)]
 
     @abstractmethod
     def _forward(self, inputs: List[Tensor]) -> Tensor:
@@ -65,7 +65,7 @@ class HeurNNetParV(HeurNNetPar[HeurFnV], Generic[S, G]):
 
         def heuristic_fn(states: List[S], goals: List[G]) -> List[float]:
             inputs_nnet: List[NDArray] = self.to_np(states, goals)
-            heurs: NDArray[np.float64] = nnet_batched(nnet, inputs_nnet, batch_size, device)
+            heurs: NDArray[np.float64] = nnet_batched(nnet, inputs_nnet, batch_size, device)[0]
 
             return self._get_output(heurs, update_num)
         return heuristic_fn
@@ -73,7 +73,7 @@ class HeurNNetParV(HeurNNetPar[HeurFnV], Generic[S, G]):
     def get_nnet_par_fn(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> HeurFnV:
         def heuristic_fn(states: List[S], goals: List[G]) -> List[float]:
             inputs_nnet: List[NDArray] = self.to_np(states, goals)
-            heurs: NDArray[np.float64] = get_nnet_par_out(inputs_nnet, nnet_par_info)
+            heurs: NDArray[np.float64] = get_nnet_par_out(inputs_nnet, nnet_par_info)[0]
 
             return self._get_output(heurs, update_num)
 
@@ -113,7 +113,7 @@ class HeurNNetParQFixOut(HeurNNetParQ[S, A, G], ABC):
 
         def heuristic_fn(states: List[S], goals: List[G], actions_l: List[List[A]]) -> List[List[float]]:
             inputs_nnet: List[NDArray] = self._get_input(states, goals, actions_l)
-            q_vals_np: NDArray[np.float64] = nnet_batched(nnet, inputs_nnet, batch_size, device)
+            q_vals_np: NDArray[np.float64] = nnet_batched(nnet, inputs_nnet, batch_size, device)[0]
             return self._get_output(states, q_vals_np, update_num)
 
         return heuristic_fn
@@ -121,7 +121,7 @@ class HeurNNetParQFixOut(HeurNNetParQ[S, A, G], ABC):
     def get_nnet_par_fn(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> HeurFnQ:
         def heuristic_fn(states: List[S], goals: List[G], actions_l: List[List[A]]) -> List[List[float]]:
             inputs_nnet: List[NDArray] = self._get_input(states, goals, actions_l)
-            q_vals_np: NDArray[np.float64] = get_nnet_par_out(inputs_nnet, nnet_par_info)
+            q_vals_np: NDArray[np.float64] = get_nnet_par_out(inputs_nnet, nnet_par_info)[0]
             return self._get_output(states, q_vals_np, update_num)
 
         return heuristic_fn
@@ -163,7 +163,7 @@ class HeurNNetParQIn(HeurNNetParQ[S, A, G], ABC):
 
         def heuristic_fn(states: List[S], goals: List[G], actions_l: List[List[A]]) -> List[List[float]]:
             inputs_nnet, states_rep, split_idxs = self._get_input(states, goals, actions_l)
-            q_vals_np: NDArray = nnet_batched(nnet, inputs_nnet, batch_size, device)
+            q_vals_np: NDArray = nnet_batched(nnet, inputs_nnet, batch_size, device)[0]
             return self._get_output(states_rep, q_vals_np, split_idxs, update_num)
 
         return heuristic_fn
@@ -171,7 +171,7 @@ class HeurNNetParQIn(HeurNNetParQ[S, A, G], ABC):
     def get_nnet_par_fn(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> HeurFnQ:
         def heuristic_fn(states: List[S], goals: List[G], actions_l: List[List[A]]) -> List[List[float]]:
             inputs_nnet, states_rep, split_idxs = self._get_input(states, goals, actions_l)
-            q_vals_np: NDArray = get_nnet_par_out(inputs_nnet, nnet_par_info)
+            q_vals_np: NDArray = get_nnet_par_out(inputs_nnet, nnet_par_info)[0]
             return self._get_output(states_rep, q_vals_np, split_idxs, update_num)
 
         return heuristic_fn

@@ -11,62 +11,62 @@ import logging
 
 from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys, get_nnet_input_t
 
-_heur_module_registry: Dict[str, Type[HeurNNet]] = {}
+_heur_nnet_registry: Dict[str, Type[HeurNNet]] = {}
 
-_heur_module_parser_registry: Dict[str, Type[HeurNNetParser]] = {}
+_heur_nnet_parser_registry: Dict[str, Type[HeurNNetParser]] = {}
 
 
-def register_heur_module(heur_module_name: str) -> Callable[[Type[HeurNNet]], Type[HeurNNet]]:
+def register_heur_nnet(heur_nnet_name: str) -> Callable[[Type[HeurNNet]], Type[HeurNNet]]:
     def deco(cls: Type[HeurNNet]) -> Type[HeurNNet]:
-        if heur_module_name in _heur_module_registry.keys():
-            raise ValueError(f"{heur_module_name!r} already registered for heur module")
-        _heur_module_registry[heur_module_name] = cls
+        if heur_nnet_name in _heur_nnet_registry.keys():
+            raise ValueError(f"{heur_nnet_name!r} already registered for heur_nnet")
+        _heur_nnet_registry[heur_nnet_name] = cls
         return cls
     return deco
 
 
-def register_heur_module_parser(heur_module_parser_name: str) -> Callable[[Type[HeurNNetParser]], Type[HeurNNetParser]]:
+def register_heur_nnet_parser(heur_nnet_parser_name: str) -> Callable[[Type[HeurNNetParser]], Type[HeurNNetParser]]:
     def deco(cls: Type[HeurNNetParser]) -> Type[HeurNNetParser]:
-        if heur_module_parser_name in _heur_module_parser_registry.keys():
-            raise ValueError(f"{heur_module_parser_name!r} already registered for heur module")
-        _heur_module_parser_registry[heur_module_parser_name] = cls
+        if heur_nnet_parser_name in _heur_nnet_parser_registry.keys():
+            raise ValueError(f"{heur_nnet_parser_name!r} already registered for heur_nnet")
+        _heur_nnet_parser_registry[heur_nnet_parser_name] = cls
         return cls
     return deco
 
 
-def get_heur_module_entry(name: str) -> Type[HeurNNet]:
+def get_heur_nnet_type(name: str) -> Type[HeurNNet]:
     try:
-        return _heur_module_registry[name]
+        return _heur_nnet_registry[name]
     except KeyError:
         raise ValueError(
-            f"Unknown heur nnet module {name!r}. Available: {sorted(_heur_module_registry)}"
+            f"Unknown heur_nnet {name!r}. Available: {sorted(_heur_nnet_registry)}"
         )
 
 
-def get_heur_module_kwargs(heur_module_name: str, args_str: Optional[str]) -> Dict[str, Any]:
+def get_heur_nnet_kwargs(heur_nnet_name: str, args_str: Optional[str]) -> Dict[str, Any]:
     kwargs: Dict[str, Any] = dict()
-    if (heur_module_name in _heur_module_parser_registry.keys()) and (args_str is not None):
-        cls_parser: Type[HeurNNetParser] = _heur_module_parser_registry[heur_module_name]
+    if (heur_nnet_name in _heur_nnet_parser_registry.keys()) and (args_str is not None):
+        cls_parser: Type[HeurNNetParser] = _heur_nnet_parser_registry[heur_nnet_name]
         parser: HeurNNetParser = cls_parser()
         try:
             kwargs = parser.parse(args_str)
         except Exception as e:
             logging.exception(f"Error occurred: {e}")
-            raise ValueError(f"Error parsing {args_str} for heur module {heur_module_name!r}. "
+            raise ValueError(f"Error parsing {args_str} for heur_nnet {heur_nnet_name!r}. "
                              f"Help:\n{parser.help()}")
     else:
-        assert args_str is None, f"No parser for heur module {heur_module_name}, however, args given are {args_str}"
+        assert args_str is None, f"No parser for heur_nnet {heur_nnet_name}, however, args given are {args_str}"
     return kwargs
 
 
-def build_heur_module(heur_module_name: str, kwargs: Dict[str, Any]) -> HeurNNet:
-    cls: Type[HeurNNet] = get_heur_module_entry(heur_module_name)
+def build_heur_nnet(heur_nnet_name: str, kwargs: Dict[str, Any]) -> HeurNNet:
+    cls: Type[HeurNNet] = get_heur_nnet_type(heur_nnet_name)
     return cls(**kwargs)
 
 
-def build_heur_nnet(domain: Domain, domain_name: str, heur_nnet_mod_name: str,
-                    heur_nnet_mod_kwargs: Dict[str, Any], heur_type: str) -> HeurNNetPar:
-    nnet_input_t: Type[NNetInput] = get_heur_module_entry(heur_nnet_mod_name).nnet_input_type()
+def build_heur_nnet_par(domain: Domain, domain_name: str, heur_nnet_mod_name: str,
+                        heur_nnet_mod_kwargs: Dict[str, Any], heur_type: str) -> HeurNNetPar:
+    nnet_input_t: Type[NNetInput] = get_heur_nnet_type(heur_nnet_mod_name).nnet_input_type()
     nnet_input_domain_keys: List[Tuple[str, str]] = get_domain_nnet_input_keys(domain_name)
 
     for nnet_input_domain_key in nnet_input_domain_keys:
@@ -89,7 +89,7 @@ def build_heur_nnet(domain: Domain, domain_name: str, heur_nnet_mod_name: str,
                      f"nnet_input type {nnet_input_t}.\nNNet inputs checked: {nnet_input_domain_keys}")
 
 
-class HeurNNetParPB(HeurNNetPar, ABC):
+class HeurNNetParConcrete(HeurNNetPar, ABC):
     def __init__(self, domain: Domain, nnet_input_name: Tuple[str, str], heur_nnet_mod_name: str,
                  heur_nnet_mod_kwargs: Dict[str, Any], q_fix: bool, out_dim: int):
         self.domain: Domain = domain
@@ -105,7 +105,7 @@ class HeurNNetParPB(HeurNNetPar, ABC):
         heur_nnet_mod_params['nnet_input'] = self._get_nnet_input()
         heur_nnet_mod_params['q_fix'] = self.q_fix
         heur_nnet_mod_params['out_dim'] = self.out_dim
-        return build_heur_module(self.heur_nnet_mod_name, heur_nnet_mod_params)
+        return build_heur_nnet(self.heur_nnet_mod_name, heur_nnet_mod_params)
 
     def _get_nnet_input(self) -> NNetInput:
         if self.nnet_input is None:
@@ -117,10 +117,10 @@ class HeurNNetParPB(HeurNNetPar, ABC):
         return self.__dict__
 
 
-class HeurNNetParVConcrete(HeurNNetParV[State, Goal], HeurNNetParPB):
+class HeurNNetParVConcrete(HeurNNetParV[State, Goal], HeurNNetParConcrete):
     def __init__(self, domain: Domain, nnet_input_name: Tuple[str, str], heur_nnet_mod_name: str,
                  heur_nnet_mod_kwargs: Dict[str, Any]):
-        HeurNNetParPB.__init__(self, domain, nnet_input_name, heur_nnet_mod_name, heur_nnet_mod_kwargs, False, 1)
+        HeurNNetParConcrete.__init__(self, domain, nnet_input_name, heur_nnet_mod_name, heur_nnet_mod_kwargs, False, 1)
 
     def to_np(self, states: List[State], goals: List[Goal]) -> List[NDArray]:
         return self._get_nnet_input().to_np(states, goals)
@@ -131,10 +131,10 @@ class HeurNNetParVConcrete(HeurNNetParV[State, Goal], HeurNNetParPB):
         return nnet_input
 
 
-class HeurNNetParQFixOutConcrete(HeurNNetParQFixOut[State, Action, Goal], HeurNNetParPB):
+class HeurNNetParQFixOutConcrete(HeurNNetParQFixOut[State, Action, Goal], HeurNNetParConcrete):
     def __init__(self, domain: Domain, nnet_input_name: Tuple[str, str],
                  heur_nnet_mod_name: str, heur_nnet_mod_kwargs: Dict[str, Any], out_dim: int):
-        HeurNNetParPB.__init__(self, domain, nnet_input_name, heur_nnet_mod_name, heur_nnet_mod_kwargs, True, out_dim)
+        HeurNNetParConcrete.__init__(self, domain, nnet_input_name, heur_nnet_mod_name, heur_nnet_mod_kwargs, True, out_dim)
 
     def _to_np_fixed_acts(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[NDArray]:
         return self._get_nnet_input().to_np(states, goals, actions_l)
@@ -145,10 +145,10 @@ class HeurNNetParQFixOutConcrete(HeurNNetParQFixOut[State, Action, Goal], HeurNN
         return nnet_input
 
 
-class HeurNNetParQActInConcrete(HeurNNetParQIn[State, Action, Goal], HeurNNetParPB):
+class HeurNNetParQActInConcrete(HeurNNetParQIn[State, Action, Goal], HeurNNetParConcrete):
     def __init__(self, domain: Domain, nnet_input_name: Tuple[str, str],
                  heur_nnet_mod_name: str, heur_nnet_mod_kwargs: Dict[str, Any]):
-        HeurNNetParPB.__init__(self, domain, nnet_input_name, heur_nnet_mod_name, heur_nnet_mod_kwargs, False, 1)
+        HeurNNetParConcrete.__init__(self, domain, nnet_input_name, heur_nnet_mod_name, heur_nnet_mod_kwargs, False, 1)
 
     def _to_np_one_act(self, states: List[State], goals: List[Goal], actions: List[Action]) -> List[NDArray]:
         return self._get_nnet_input().to_np(states, goals, actions)

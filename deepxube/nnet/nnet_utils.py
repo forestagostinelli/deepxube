@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Tuple, Optional, Any, Callable, TypeVar, Generic
 from dataclasses import dataclass
 
-from deepxube.utils.data_utils import SharedNDArray, np_to_shnd
+from deepxube.utils.data_utils import SharedNDArray, np_to_shnd, combine_l_l
 import numpy as np
 from numpy.typing import NDArray
 import os
@@ -72,8 +72,8 @@ def get_available_gpu_nums() -> List[int]:
 
 
 def nnet_batched(nnet: nn.Module, inputs: List[NDArray[Any]], batch_size: Optional[int],
-                 device: torch.device) -> NDArray[np.float64]:
-    outputs_l: List[NDArray[np.float64]] = []
+                 device: torch.device) -> List[NDArray[np.float64]]:
+    outputs_l_l: List[List[NDArray[np.float64]]] = []
 
     num_states: int = inputs[0].shape[0]
 
@@ -82,6 +82,7 @@ def nnet_batched(nnet: nn.Module, inputs: List[NDArray[Any]], batch_size: Option
         batch_size_inst = batch_size
 
     start_idx: int = 0
+    num_outputs: Optional[int] = None
     while start_idx < num_states:
         # get batch
         end_idx: int = min(start_idx + batch_size_inst, num_states)
@@ -90,15 +91,25 @@ def nnet_batched(nnet: nn.Module, inputs: List[NDArray[Any]], batch_size: Option
         # get nnet output
         inputs_batch_t = to_pytorch_input(inputs_batch, device)
 
-        outputs_batch: NDArray[np.float64] = nnet(inputs_batch_t).cpu().data.numpy()
-        outputs_l.append(outputs_batch)
+        outputs_batch_t_l: List[Tensor] = nnet(inputs_batch_t)
+        outputs_batch_l: List[NDArray[np.float64]] = [outputs_batch_t.cpu().data.numpy()
+                                                      for outputs_batch_t in outputs_batch_t_l]
+        if num_outputs is None:
+            num_outputs = len(outputs_batch_l)
+        else:
+            assert len(outputs_batch_l) == num_outputs, f"{len(outputs_batch_l)} != {num_outputs}"
+
+        for out_idx in range(len(outputs_batch_l)):
+            outputs_batch_l[out_idx] = outputs_batch_l[out_idx].astype(np.float64)
+        outputs_l_l.append(outputs_batch_l)
 
         start_idx = end_idx
 
-    outputs: NDArray[np.float64] = np.concatenate(outputs_l, axis=0).astype(np.float64)
-    assert (outputs.shape[0] == num_states)
+    outputs_l: List[NDArray[np.float64]] = combine_l_l(outputs_l_l, "concat")
+    for out_idx in range(len(outputs_l)):
+        assert (outputs_l[out_idx].shape[0] == num_states)
 
-    return outputs
+    return outputs_l
 
 
 @dataclass
@@ -115,13 +126,13 @@ def nnet_in_out_shared_q(nnet: nn.Module, inputs_nnet_shm: List[SharedNDArray], 
     for inputs_idx in range(len(inputs_nnet_shm)):
         inputs_nnet.append(inputs_nnet_shm[inputs_idx].array)
 
-    outputs: NDArray[np.float64] = nnet_batched(nnet, inputs_nnet, batch_size, device)
+    outputs_l: List[NDArray[np.float64]] = nnet_batched(nnet, inputs_nnet, batch_size, device)
 
     # send outputs
-    outputs_shm: SharedNDArray = np_to_shnd(outputs)
-    nnet_o_q.put(outputs_shm)
+    outputs_l_shm: List[SharedNDArray] = [np_to_shnd(outputs) for outputs in outputs_l]
+    nnet_o_q.put(outputs_l_shm)
 
-    for arr_shm in inputs_nnet_shm + [outputs_shm]:
+    for arr_shm in inputs_nnet_shm + outputs_l_shm:
         arr_shm.close()
 
 
@@ -208,17 +219,17 @@ class NNetPar(ABC, Generic[NNetFn]):
         pass
 
 
-def get_nnet_par_out(inputs_nnet: List[NDArray], nnet_par_info: NNetParInfo) -> NDArray:
+def get_nnet_par_out(inputs_nnet: List[NDArray], nnet_par_info: NNetParInfo) -> List[NDArray]:
     inputs_nnet_shm: List[SharedNDArray] = [np_to_shnd(inputs_nnet_i)
                                             for input_idx, inputs_nnet_i in enumerate(inputs_nnet)]
 
     nnet_par_info.nnet_i_q.put((nnet_par_info.proc_id, inputs_nnet_shm))
 
-    out_shm: SharedNDArray = nnet_par_info.nnet_o_q.get()
-    out: NDArray = out_shm.array.copy()
+    out_shm_l: List[SharedNDArray] = nnet_par_info.nnet_o_q.get()
+    out_l: List[NDArray] = [out_shm.array.copy() for out_shm in out_shm_l]
 
-    for arr_shm in inputs_nnet_shm + [out_shm]:
+    for arr_shm in inputs_nnet_shm + out_shm_l:
         arr_shm.close()
         arr_shm.unlink()
 
-    return out
+    return out_l

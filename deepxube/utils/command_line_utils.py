@@ -4,7 +4,7 @@ from deepxube.base.domain import Domain
 from deepxube.base.heuristic import HeurNNetPar
 
 from deepxube.factories.domain_factory import build_domain, get_domain_kwargs
-from deepxube.factories.heuristic_factory import build_heur_nnet, get_heur_module_kwargs
+from deepxube.factories.heuristic_factory import build_heur_nnet_par, get_heur_nnet_kwargs
 
 
 def get_name_args(name_args: str) -> Tuple[str, Optional[str]]:
@@ -25,8 +25,8 @@ def get_domain_from_arg(domain: str) -> Tuple[Domain, str]:
     return build_domain(domain_name, domain_kwargs), domain_name
 
 
-def get_heur_nnet_from_arg(domain: Domain, domain_name: str, heur: str, heur_type: str) -> Tuple[HeurNNetPar, str]:
+def get_heur_nnet_par_from_arg(domain: Domain, domain_name: str, heur: str, heur_type: str) -> Tuple[HeurNNetPar, str]:
     heur_module_name, heur_module_args = get_name_args(heur)
-    heur_module_kwargs: Dict[str, Any] = get_heur_module_kwargs(heur_module_name, heur_module_args)
-    heur_nnet: HeurNNetPar = build_heur_nnet(domain, domain_name, heur_module_name, heur_module_kwargs, heur_type)
-    return heur_nnet, heur_module_name
+    heur_module_kwargs: Dict[str, Any] = get_heur_nnet_kwargs(heur_module_name, heur_module_args)
+    heur_nnet_par: HeurNNetPar = build_heur_nnet_par(domain, domain_name, heur_module_name, heur_module_kwargs, heur_type)
+    return heur_nnet_par, heur_module_name
