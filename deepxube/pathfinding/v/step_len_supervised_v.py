@@ -1,5 +1,5 @@
 from typing import List, Any, Tuple
-from deepxube.base.env import Env, State, Goal, Action
+from deepxube.base.domain import Domain, State, Goal, Action
 from deepxube.base.pathfinding import Instance, NodeV, PathFindV
 
 
@@ -12,7 +12,7 @@ class InstanceStepLenSup(Instance[NodeV]):
         return self.itr > 0
 
 
-class StepLenSupV(PathFindV[Env, InstanceStepLenSup]):
+class StepLenSupV(PathFindV[Domain, InstanceStepLenSup]):
     def step(self, verbose: bool = False) -> List[NodeV]:
         nodes: List[NodeV] = []
         for instance in self.instances:

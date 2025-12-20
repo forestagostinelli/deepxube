@@ -11,8 +11,8 @@ import torch
 from numpy.typing import NDArray
 
 from deepxube.nnet.nnet_utils import NNetParInfo, NNetCallable, NNetPar
-from deepxube.base.env import Env, State, Goal, Action, ActsEnum
-from deepxube.base.heuristic import HeurNNet, HeurFnV, HeurFnQ, HeurNNetV, HeurNNetQ
+from deepxube.base.domain import Domain, State, Goal, Action, ActsEnum
+from deepxube.base.heuristic import HeurNNetPar, HeurFnV, HeurFnQ, HeurNNetParV, HeurNNetParQ
 from deepxube.base.pathfinding import PathFind, PathFindV, PathFindQ, Instance, Node, NodeV, NodeQ, NodeQAct
 from deepxube.nnet import nnet_utils
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, print_pathfindperf
@@ -83,7 +83,7 @@ def _put_from_q(data_l: List[List[NDArray]], from_q: Queue, times: Times) -> Non
     times.record_time("put", time.time() - start_time)
 
 
-E = TypeVar('E', bound=Env)
+E = TypeVar('E', bound=Domain)
 N = TypeVar('N', bound=Node)
 Inst = TypeVar('Inst', bound=Instance)
 P = TypeVar('P', bound=PathFind)
@@ -377,7 +377,7 @@ class Update(ABC, Generic[E, N, Inst, P]):
         pass
 
 
-HNet = TypeVar('HNet', bound=HeurNNet)
+HNet = TypeVar('HNet', bound=HeurNNetPar)
 H = TypeVar('H', bound=NNetCallable)
 
 
@@ -419,8 +419,8 @@ class UpdateHeur(UpdateHasHeur[E, N, Inst, P, HNet, H], ABC):
 PV = TypeVar('PV', bound=PathFindV)
 
 
-class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV[State, Goal]], ABC):
-    def __init__(self, env: E, up_args: UpArgs, up_heur_args: UpHeurArgs, heur_nnet: HeurNNetV):
+class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetParV[State, Goal], HeurFnV[State, Goal]], ABC):
+    def __init__(self, env: E, up_args: UpArgs, up_heur_args: UpHeurArgs, heur_nnet: HeurNNetParV):
         super().__init__(env, up_args, up_heur_args, heur_nnet)
         self.nodes_popped: List[NodeV] = []
 
@@ -500,8 +500,8 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetV[State, Goal], HeurFnV
 PQ = TypeVar('PQ', bound=PathFindQ)
 
 
-class UpdateHeurQ(UpdateHeur[E, NodeQ, Inst, PQ, HeurNNetQ[State, Action, Goal], HeurFnQ[State, Goal, Action]], ABC):
-    def __init__(self, env: E, up_args: UpArgs, up_heur_args: UpHeurArgs, heur_nnet: HeurNNetQ):
+class UpdateHeurQ(UpdateHeur[E, NodeQ, Inst, PQ, HeurNNetParQ[State, Action, Goal], HeurFnQ[State, Goal, Action]], ABC):
+    def __init__(self, env: E, up_args: UpArgs, up_heur_args: UpHeurArgs, heur_nnet: HeurNNetParQ):
         super().__init__(env, up_args, up_heur_args, heur_nnet)
         self.nodeqacts_popped: List[NodeQAct] = []
 

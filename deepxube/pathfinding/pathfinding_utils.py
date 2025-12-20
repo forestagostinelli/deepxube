@@ -2,11 +2,11 @@ from typing import List, Tuple, Dict
 from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
-from deepxube.base.env import Env, State, Action, Goal
+from deepxube.base.domain import Domain, State, Action, Goal
 from deepxube.base.pathfinding import Instance
 
 
-def is_valid_soln(state: State, goal: Goal, soln: List[Action], env: Env) -> bool:
+def is_valid_soln(state: State, goal: Goal, soln: List[Action], env: Domain) -> bool:
     state_soln: State = state
     for action in soln:
         state_soln = env.next_state([state_soln], [action])[0][0]

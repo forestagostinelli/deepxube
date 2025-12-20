@@ -4,22 +4,22 @@ from typing import Callable, List, Any, TypeVar, Generic, cast, Tuple, Optional
 import numpy as np
 from numpy.typing import NDArray
 
-from deepxube.base.env import State, Goal, Action
+from deepxube.base.domain import State, Goal, Action
 from deepxube.nnet.nnet_utils import NNetParInfo, nnet_batched, NNetFn, NNetPar, get_nnet_par_out
 from deepxube.utils import misc_utils
 import torch
 from torch import nn, Tensor
 
 
-class HeurNNetModule(nn.Module, ABC):
+class HeurNNet(nn.Module, ABC):
     @abstractmethod
     def forward(self, inputs: List[Tensor]) -> Tensor:
         pass
 
 
-class HeurNNet(NNetPar[NNetFn]):
+class HeurNNetPar(NNetPar[NNetFn]):
     @abstractmethod
-    def get_nnet(self) -> HeurNNetModule:
+    def get_nnet(self) -> HeurNNet:
         pass
 
 
@@ -28,7 +28,7 @@ G = TypeVar('G', bound=Goal)
 HeurFnV = Callable[[List[S], List[G]], List[float]]
 
 
-class HeurNNetV(HeurNNet[HeurFnV], Generic[S, G]):
+class HeurNNetParV(HeurNNetPar[HeurFnV], Generic[S, G]):
     @staticmethod
     def _get_output(heurs: NDArray[np.float64], update_num: Optional[int]) -> List[float]:
         heurs = np.maximum(heurs[:, 0], 0)
@@ -65,7 +65,7 @@ A = TypeVar('A', bound=Action)
 HeurFnQ = Callable[[List[S], List[G], List[List[A]]], List[List[float]]]
 
 
-class HeurNNetQ(HeurNNet[HeurFnQ], Generic[S, A, G]):
+class HeurNNetParQ(HeurNNetPar[HeurFnQ], Generic[S, A, G]):
     @abstractmethod
     def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device,
                     update_num: Optional[int]) -> HeurFnQ:
@@ -80,7 +80,7 @@ class HeurNNetQ(HeurNNet[HeurFnQ], Generic[S, A, G]):
         pass
 
 
-class HeurNNetQFixOut(HeurNNetQ[S, A, G], ABC):
+class HeurNNetParQFixOut(HeurNNetParQ[S, A, G], ABC):
     """ DQN with a fixed output shape
 
     """
@@ -130,7 +130,7 @@ class HeurNNetQFixOut(HeurNNetQ[S, A, G], ABC):
         assert len(set(len(actions) for actions in actions_l)) == 1, "num actions should be the same for all instances"
 
 
-class HeurNNetQIn(HeurNNetQ[S, A, G], ABC):
+class HeurNNetParQIn(HeurNNetParQ[S, A, G], ABC):
     """ DQN that takes a single action as input
 
     """

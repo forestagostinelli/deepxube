@@ -1,6 +1,6 @@
 from typing import List, Any
 from abc import ABC
-from deepxube.base.env import ActsEnum, State, Goal
+from deepxube.base.domain import ActsEnum, State, Goal
 from deepxube.base.pathfinding import E, Instance, NodeQ, PathFindQ, NodeQAct, PathFindQExpandEnum
 from deepxube.utils.misc_utils import boltzmann
 import numpy as np

@@ -1,7 +1,7 @@
 import random
 from abc import ABC
 from typing import List, Tuple, Dict, Optional, Any, TypeVar
-from deepxube.base.env import Env, ActsEnum, State
+from deepxube.base.domain import Domain, ActsEnum, State
 from deepxube.base.pathfinding import Instance, NodeQ, PathFindQ, NodeQAct, PathFindQExpandEnum
 from deepxube.utils import misc_utils
 from heapq import heappush, heappop, heapify
@@ -70,7 +70,7 @@ class InstanceBWQS(Instance[NodeQ]):
         return (self.goal_node is not None) and (self.lb >= (self.weight * self.ub))
 
 
-E = TypeVar('E', bound=Env)
+E = TypeVar('E', bound=Domain)
 
 
 class BWQS(PathFindQ[E, InstanceBWQS], ABC):

@@ -1,4 +1,4 @@
-from typing import List, Any, Tuple, Optional, Type
+from typing import List, Any, Tuple, Optional, Type, cast
 
 import sys
 
@@ -137,7 +137,7 @@ class SharedNDArray:
 
     # --- Convenience ---
     def __getitem__(self, key: Any) -> NDArray:
-        return self.array[key]
+        return cast(NDArray, self.array[key])
 
     def __setitem__(self, key: Any, value: ArrayLike) -> None:
         self.array[key] = value

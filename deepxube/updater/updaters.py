@@ -1,8 +1,8 @@
 from typing import List, Any
 from dataclasses import dataclass
 
-from deepxube.base.env import Env, ActsEnum
-from deepxube.base.heuristic import HeurNNetV, HeurNNetQ
+from deepxube.base.domain import Domain, ActsEnum
+from deepxube.base.heuristic import HeurNNetParV, HeurNNetParQ
 from deepxube.base.pathfinding import NodeV, NodeQ
 from deepxube.base.updater import UpdateHeurV, UpdateHeurQEnum, UpHeurArgs, UpArgs
 
@@ -15,7 +15,7 @@ from deepxube.pathfinding.q.bwqs import BWQSEnum, InstanceBWQS
 
 
 # supervised
-class UpdateHeurRWSupV(UpdateHeurV[Env, InstanceStepLenSup, StepLenSupV]):
+class UpdateHeurRWSupV(UpdateHeurV[Domain, InstanceStepLenSup, StepLenSupV]):
     def get_pathfind(self) -> StepLenSupV:
         return StepLenSupV(self.env, self.get_heur_fn())
 
@@ -39,7 +39,7 @@ class UpGraphSearchArgs:
 
 class UpdateHeurBWASEnum(UpdateHeurV[ActsEnum, InstanceBWAS, BWASEnum]):
     def __init__(self, env: ActsEnum, up_args: UpArgs, up_heur_args: UpHeurArgs,
-                 up_graphsch_args: UpGraphSearchArgs, heur_nnet: HeurNNetV):
+                 up_graphsch_args: UpGraphSearchArgs, heur_nnet: HeurNNetParV):
         super().__init__(env, up_args, up_heur_args, heur_nnet)
         self.up_graphsch_args: UpGraphSearchArgs = up_graphsch_args
 
@@ -58,7 +58,7 @@ class UpdateHeurBWASEnum(UpdateHeurV[ActsEnum, InstanceBWAS, BWASEnum]):
 
 class UpdateHeurBWQSEnum(UpdateHeurQEnum[InstanceBWQS, BWQSEnum]):
     def __init__(self, env: ActsEnum, up_args: UpArgs, up_heur_args: UpHeurArgs,
-                 up_graphsch_args: UpGraphSearchArgs, heur_nnet: HeurNNetQ):
+                 up_graphsch_args: UpGraphSearchArgs, heur_nnet: HeurNNetParQ):
         super().__init__(env, up_args, up_heur_args, heur_nnet)
         self.up_graphsch_args: UpGraphSearchArgs = up_graphsch_args
 
@@ -89,7 +89,7 @@ class UpGreedyPolicyArgs:
 
 class UpdateHeurGrPolVEnum(UpdateHeurV[ActsEnum, InstanceGrPolV, GreedyPolicyVEnum]):
     def __init__(self, env: ActsEnum, up_args: UpArgs, up_heur_args: UpHeurArgs,
-                 up_grpol_args: UpGreedyPolicyArgs, heur_nnet: HeurNNetV):
+                 up_grpol_args: UpGreedyPolicyArgs, heur_nnet: HeurNNetParV):
         super().__init__(env, up_args, up_heur_args, heur_nnet)
         self.up_greedy_args: UpGreedyPolicyArgs = up_grpol_args
 
@@ -109,7 +109,7 @@ class UpdateHeurGrPolVEnum(UpdateHeurV[ActsEnum, InstanceGrPolV, GreedyPolicyVEn
 
 class UpdateHeurGrPolQEnum(UpdateHeurQEnum[InstanceGrPolQ, GreedyPolicyQEnum]):
     def __init__(self, env: ActsEnum, up_args: UpArgs, up_heur_args: UpHeurArgs,
-                 up_greedy_args: UpGreedyPolicyArgs, heur_nnet: HeurNNetQ):
+                 up_greedy_args: UpGreedyPolicyArgs, heur_nnet: HeurNNetParQ):
         super().__init__(env, up_args, up_heur_args, heur_nnet)
         self.up_greedy_args: UpGreedyPolicyArgs = up_greedy_args
 

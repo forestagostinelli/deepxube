@@ -1,4 +1,4 @@
-from deepxube.base.env import Env
+from deepxube.base.domain import Domain
 from deepxube.nnet.nnet_utils import NNetPar
 from deepxube.tests.test_env import test
 from argparse import ArgumentParser
@@ -14,7 +14,7 @@ def main():
 
     if (args.env == "cube3") or (args.env == "cube3_fixed"):
         from deepxube.implementations.cube3 import Cube3
-        env: Env = Cube3(args.env == "cube3_fixed")
+        env: Domain = Cube3(args.env == "cube3_fixed")
         heur_nnet: NNetPar
         if args.heur_type.upper() == "V":
             from deepxube.implementations.cube3 import Cube3NNetParV

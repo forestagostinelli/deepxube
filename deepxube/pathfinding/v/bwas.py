@@ -1,6 +1,6 @@
 from abc import ABC
 from typing import List, Tuple, Dict, Optional, Any, TypeVar
-from deepxube.base.env import Env, ActsEnum, State
+from deepxube.base.domain import Domain, ActsEnum, State
 from deepxube.base.pathfinding import Instance, NodeV, PathFindV, PathFindVExpandEnum
 import numpy as np
 from heapq import heappush, heappop, heapify
@@ -76,7 +76,7 @@ class InstanceBWAS(Instance[NodeV]):
         return case1 or case2
 
 
-E = TypeVar('E', bound=Env)
+E = TypeVar('E', bound=Domain)
 
 
 class BWAS(PathFindV[E, InstanceBWAS], ABC):

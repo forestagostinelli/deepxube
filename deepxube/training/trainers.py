@@ -1,7 +1,7 @@
 from typing import List, Tuple, Dict, Optional
 import dataclasses
 
-from deepxube.base.heuristic import HeurNNet, HeurNNetV, HeurNNetQ
+from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ
 from deepxube.base.updater import UpdateHeur, UpHeurArgs
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, get_eq_weighted_perf
 from deepxube.updater.updaters import UpGreedyPolicyArgs, UpdateHeurGrPolVEnum, UpdateHeurGrPolQEnum
@@ -243,7 +243,7 @@ class TrainHeur:
         times.record_time("train", time.time() - start_time)
         return loss
 
-    def _end_update(self, ctgs_l: List[NDArray], times: Times):
+    def _end_update(self, ctgs_l: List[NDArray], times: Times) -> None:
         start_time = time.time()
         step_to_search_perf: Dict[int, PathFindPerf] = self.updater.end_update()
         if self.train_args.balance_steps:
@@ -270,14 +270,14 @@ class TrainHeur:
     def _update_greedy_perf(self, update_num: int) -> float:
         # get updater
         updater_greedy: UpdateHeur
-        heur_nnet: HeurNNet = self.updater.get_heur_nnet()
+        heur_nnet: HeurNNetPar = self.updater.get_heur_nnet()
         up_greedy_args: UpGreedyPolicyArgs = UpGreedyPolicyArgs(0.0, 0.0)
         up_heur_args: UpHeurArgs = UpHeurArgs(False, 1)
         up_args = dataclasses.replace(self.updater.up_args)
         up_args.sync_main = False
-        if isinstance(heur_nnet, HeurNNetV):
+        if isinstance(heur_nnet, HeurNNetParV):
             updater_greedy = UpdateHeurGrPolVEnum(self.updater.env, up_args, up_heur_args, up_greedy_args, heur_nnet)
-        elif isinstance(heur_nnet, HeurNNetQ):
+        elif isinstance(heur_nnet, HeurNNetParQ):
             updater_greedy = UpdateHeurGrPolQEnum(self.updater.env, up_args, up_heur_args, up_greedy_args, heur_nnet)
         else:
             raise ValueError(f"Unknown heuristic function type {heur_nnet}")

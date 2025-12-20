@@ -1,6 +1,6 @@
 from typing import List
 import pytest
-from deepxube.base.env import Env
+from deepxube.base.domain import Domain
 from deepxube.pathfinding.astar import AStar, get_path
 from deepxube.implementations.env_utils import get_environment
 from deepxube.nnet.nnet_utils import get_heuristic_fn, get_device, HeurFN_T
@@ -18,7 +18,7 @@ batch_sizes: List[int] = [1, 10]
 @pytest.mark.parametrize("batch_size", batch_sizes)
 def test_search(env_name: str, num_steps_l: List[int], batch_size: int):
     # get instances
-    env: Env = get_environment(env_name)
+    env: Domain = get_environment(env_name)
     states, goals = env.get_start_goal_pairs(num_steps_l)
     print(env.env_name, len(states))
 

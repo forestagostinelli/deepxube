@@ -4,8 +4,8 @@ import torch
 import torch.nn as nn
 from torch.multiprocessing import Queue, get_context
 
-from deepxube.base.env import Env, ActsEnum, StartGoalWalkable, State, Goal, Action
-from deepxube.base.heuristic import HeurNNet, HeurNNetV, HeurNNetQ
+from deepxube.base.domain import Domain, ActsEnum, StartGoalWalkable, State, Goal, Action
+from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ
 from deepxube.nnet.nnet_utils import NNetCallable
 from deepxube.nnet import nnet_utils
 from deepxube.utils.misc_utils import flatten
@@ -23,7 +23,7 @@ def data_runner(queue1: Queue, queue2: Queue) -> None:
         queue2.put(the)
 
 
-def test_env(env: Env, num_states: int, step_max: int) -> Tuple[List[State], List[Goal], List[Action]]:
+def test_env(env: Domain, num_states: int, step_max: int) -> Tuple[List[State], List[Goal], List[Action]]:
     # get data
     start_time = time.time()
     sg_times: Times = Times()
@@ -120,7 +120,7 @@ def test_envenumerableacts(env: ActsEnum, states: List[State]) -> None:
           f"in %s seconds (%.2f/second)" % (len(states), elapsed_time, states_per_sec))
 
 
-def init_nnet(heur_nnet: HeurNNet) -> Tuple[nn.Module, torch.device]:
+def init_nnet(heur_nnet: HeurNNetPar) -> Tuple[nn.Module, torch.device]:
     on_gpu: bool
     device: torch.device
     device, devices, on_gpu = nnet_utils.get_device()
@@ -134,22 +134,22 @@ def init_nnet(heur_nnet: HeurNNet) -> Tuple[nn.Module, torch.device]:
     return nnet, device
 
 
-def heur_fn_out(heur_nnet: HeurNNet, heur_fn: NNetCallable, states: List[State], goals: List[Goal],
+def heur_fn_out(heur_nnet: HeurNNetPar, heur_fn: NNetCallable, states: List[State], goals: List[Goal],
                 actions: List[Action]) -> None:
-    if isinstance(heur_nnet, HeurNNetV):
+    if isinstance(heur_nnet, HeurNNetParV):
         heur_fn(states, goals)
-    elif isinstance(heur_nnet, HeurNNetQ):
+    elif isinstance(heur_nnet, HeurNNetParQ):
         heur_fn(states, goals, [[action] for action in actions])
     else:
         raise ValueError(f"Unknown heur fn class {heur_fn}")
 
 
-def test_heur_nnet(heur_nnet: HeurNNet, states: List[State], goals: List[Goal], actions: List[Action]) -> None:
+def test_heur_nnet(heur_nnet: HeurNNetPar, states: List[State], goals: List[Goal], actions: List[Action]) -> None:
     # nnet format
     start_time = time.time()
-    if isinstance(heur_nnet, HeurNNetV):
+    if isinstance(heur_nnet, HeurNNetParV):
         heur_nnet.to_np(states, goals)
-    elif isinstance(heur_nnet, HeurNNetQ):
+    elif isinstance(heur_nnet, HeurNNetParQ):
         heur_nnet.to_np(states, goals, [[action] for action in actions])
     else:
         raise ValueError(f"Unknown heur nnet class {heur_nnet}")
@@ -173,7 +173,7 @@ def test_heur_nnet(heur_nnet: HeurNNet, states: List[State], goals: List[Goal], 
     print("Computed heuristic for %i states in %s seconds (%.2f/second)" % (len(states), nnet_time, states_per_sec))
 
 
-def test(env: Env, heur_nnet: Optional[HeurNNet], num_states: int, step_max: int) -> None:
+def test(env: Domain, heur_nnet: Optional[HeurNNetPar], num_states: int, step_max: int) -> None:
     states, goals, actions = test_env(env, num_states, step_max)
     if isinstance(env, StartGoalWalkable):
         test_envstartgoalrw(env, num_states)

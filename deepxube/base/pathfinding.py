@@ -2,7 +2,7 @@ from typing import Generic, List, Optional, Any, Tuple, Callable, TypeVar, Dict,
 
 from numpy.typing import NDArray
 
-from deepxube.base.env import Env, State, Goal, Action, ActsEnum
+from deepxube.base.domain import Domain, State, Goal, Action, ActsEnum
 from deepxube.base.heuristic import HeurFnV, HeurFnQ
 from deepxube.utils import misc_utils
 from deepxube.utils.timing_utils import Times
@@ -59,7 +59,7 @@ class Instance(ABC, Generic[N]):
 
 
 I = TypeVar('I', bound=Instance)
-E = TypeVar('E', bound=Env)
+E = TypeVar('E', bound=Domain)
 
 
 class PathFind(ABC, Generic[E, N, I]):

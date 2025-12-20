@@ -22,7 +22,7 @@ class State(ABC):
     @abstractmethod
     def __hash__(self) -> int:
         """ For use in CLOSED dictionary for pathfinding
-        @return: hash value
+        :return: hash value
         """
         pass
 
@@ -30,8 +30,8 @@ class State(ABC):
     def __eq__(self, other: object) -> bool:
         """ for use in state reidentification during pathfinding
 
-        @param other: other state
-        @return: true if they are equal
+        :param other: other state
+        :return: true if they are equal
         """
         pass
 
@@ -40,7 +40,7 @@ class Action(ABC):
     @abstractmethod
     def __hash__(self) -> int:
         """ For use in backup for Q* search
-        @return: hash value
+        :return: hash value
         """
         pass
 
@@ -48,8 +48,8 @@ class Action(ABC):
     def __eq__(self, other: object) -> bool:
         """ for use in backup for Q* search
 
-        @param other: other state
-        @return: true if they are equal
+        :param other: other state
+        :return: true if they are equal
         """
         pass
 
@@ -64,7 +64,7 @@ G = TypeVar('G', bound=Goal)
 
 
 # TODO method for downloading data?
-class Env(ABC, Generic[S, A, G]):
+class Domain(ABC, Generic[S, A, G]):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.nnet_pars: List[Tuple[str, str, NNetPar]] = []
 
@@ -73,9 +73,9 @@ class Env(ABC, Generic[S, A, G]):
                              times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
         """ Return start goal pairs with num_steps_l between start and goal
 
-        @param num_steps_l: Number of steps to take between start and goal
-        @param times: Times that can be used to profile code
-        @return: List of start states and list of goals
+        :param num_steps_l: Number of steps to take between start and goal
+        :param times: Times that can be used to profile code
+        :return: List of start states and list of goals
         """
         pass
 
@@ -83,8 +83,8 @@ class Env(ABC, Generic[S, A, G]):
     def get_state_action_rand(self, states: List[S]) -> List[A]:
         """ Get a random action that is applicable to the current state
 
-        @param states: List of states
-        @return: Applicable actions
+        :param states: List of states
+        :return: List of random actions applicable to given states
         """
         pass
 
@@ -92,9 +92,9 @@ class Env(ABC, Generic[S, A, G]):
     def next_state(self, states: List[S], actions: List[A]) -> Tuple[List[S], List[float]]:
         """ Get the next state and transition cost given the current state and action
 
-        @param states: List of states
-        @param actions: List of actions to take
-        @return: Next states, transition costs
+        :param states: List of states
+        :param actions: List of actions to take
+        :return: Next states, transition costs
         """
         pass
 
@@ -102,9 +102,9 @@ class Env(ABC, Generic[S, A, G]):
     def is_solved(self, states: List[S], goals: List[G]) -> List[bool]:
         """ Returns true if the state is a member of the set of goal states represented by the goal
 
-        @param states: List of states
-        @param goals: List of goals
-        @return: List of booleans where the element at index i corresponds to whether or not the
+        :param states: List of states
+        :param goals: List of goals
+        :return: List of booleans where the element at index i corresponds to whether or not the
         state at index i is a member of the set of goal states represented by the goal at index i
         """
         pass
@@ -112,8 +112,8 @@ class Env(ABC, Generic[S, A, G]):
     def next_state_rand(self, states: List[S]) -> Tuple[List[S], List[float]]:
         """ Get random next state and transition cost given the current state
 
-        @param states: List of states
-        @return: Next states, transition costs
+        :param states: List of states
+        :return: Next states, transition costs
         """
         actions_rand: List[A] = self.get_state_action_rand(states)
         return self.next_state(states, actions_rand)
@@ -121,9 +121,9 @@ class Env(ABC, Generic[S, A, G]):
     def random_walk(self, states: List[S], num_steps_l: List[int]) -> Tuple[List[S], List[float]]:
         """ Perform a random walk on the given states for the given number of steps
 
-        @param states: List of states
-        @param num_steps_l: number of steps to take for each state
-        @return: The resulting state and the path cost for each random walk
+        :param states: List of states
+        :param num_steps_l: number of steps to take for each state
+        :return: The resulting state and the path cost for each random walk
         """
         states_walk: List[S] = [state for state in states]
         path_costs: List[float] = [0.0 for _ in states]
@@ -156,7 +156,7 @@ class Env(ABC, Generic[S, A, G]):
 
 
 # Mixins
-class FixedGoalRevWalk(Env[S, A, G]):
+class FixedGoalRevWalk(Domain[S, A, G]):
     def get_start_goal_pairs(self, num_steps_l: List[int], times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
         # Initialize
         if times is None:
@@ -192,20 +192,20 @@ class FixedGoalRevWalk(Env[S, A, G]):
         pass
 
 
-class GoalSampleable(Env[S, A, G]):
+class GoalSampleable(Domain[S, A, G]):
     @abstractmethod
     def sample_goal(self, states_start: List[S], states_goal: List[S]) -> List[G]:
         """ Given a state, return a goal that represents a set of goal states of which the given state is a member.
         Does not have to always return the same goal.
 
-        @param states_start: List of start states
-        @param states_goal List of states from which goals will be sampled
-        @return: Goals
+        :param states_start: List of start states
+        :param states_goal List of states from which goals will be sampled
+        :return: Goals
         """
         pass
 
 
-class ActsFixed(Env[S, A, G]):
+class ActsFixed(Domain[S, A, G]):
     @abstractmethod
     def get_action_rand(self, num: int) -> List[A]:
         pass
@@ -214,20 +214,20 @@ class ActsFixed(Env[S, A, G]):
         return self.get_action_rand(len(states))
 
 
-class ActsRev(Env[S, A, G], ABC):
+class ActsRev(Domain[S, A, G], ABC):
     """ To indicate reversibility. Functionality to implement may come later.
 
     """
     pass
 
 
-class ActsEnum(Env[S, A, G]):
+class ActsEnum(Domain[S, A, G]):
     @abstractmethod
     def get_state_actions(self, states: List[S]) -> List[List[A]]:
         """ Get actions applicable to each states
 
-        @param states: List of states
-        @return: Applicable actions
+        :param states: List of states
+        :return: Applicable actions
         """
         pass
 
@@ -237,8 +237,8 @@ class ActsEnum(Env[S, A, G]):
 
     def expand(self, states: List[S]) -> Tuple[List[List[S]], List[List[A]], List[List[float]]]:
         """ Generate all children for the state, assumes there is at least one child state
-        @param states: List of states
-        @return: Children of each state, actions, transition costs for each state
+        :param states: List of states
+        :return: Children of each state, actions, transition costs for each state
         """
         # TODO further validate
         # initialize
@@ -295,8 +295,8 @@ class StartGoalWalkable(GoalSampleable[S, A, G]):
         """ A method for generating start states. Should try to make this generate states that are as diverse as
         possible so that the trained heuristic function generalizes well.
 
-        @param num_states: Number of states to get
-        @return: Generated states
+        :param num_states: Number of states to get
+        :return: Generated states
         """
         pass
 
@@ -328,7 +328,7 @@ class FixedGoalRevWalkActsRev(FixedGoalRevWalk[S, A, G], ActsRev[S, A, G], ABC):
         return self.random_walk(states, num_steps_l)[0]
 
 
-class SupportsPDDL(Env[S, A, G], ABC):
+class SupportsPDDL(Domain[S, A, G], ABC):
     @abstractmethod
     def get_pddl_domain(self) -> List[str]:
         pass
@@ -342,7 +342,7 @@ class SupportsPDDL(Env[S, A, G], ABC):
         pass
 
 
-class GoalGrndAtoms(Env[S, A, G]):
+class GoalGrndAtoms(Domain[S, A, G]):
     @abstractmethod
     def state_to_model(self, states: List[S]) -> List[Model]:
         pass
@@ -367,9 +367,9 @@ class GoalGrndAtoms(Env[S, A, G]):
     def is_solved(self, states: List[S], goals: List[G]) -> List[bool]:
         """ Returns whether or not state is solved
 
-        @param states: List of states
-        @param goals: List of goals
-        @return: Boolean numpy array where the element at index i corresponds to whether or not the
+        :param states: List of states
+        :param goals: List of goals
+        :return: Boolean numpy array where the element at index i corresponds to whether or not the
         state at index i is solved
         """
         models_g: List[Model] = self.goal_to_model(goals)
@@ -423,4 +423,14 @@ class GoalGrndAtoms(Env[S, A, G]):
         :param states:
         :return:
         """
+        pass
+
+
+class DomainParser(ABC):
+    @abstractmethod
+    def parse(self, args_str: str) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def help(self) -> str:
         pass

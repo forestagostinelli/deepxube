@@ -1,8 +1,8 @@
 from typing import Optional, List
 from dataclasses import dataclass
 
-from deepxube.base.env import State, Goal
-from deepxube.base.heuristic import HeurNNet, HeurNNetV, HeurNNetQ, HeurFnV, HeurFnQ
+from deepxube.base.domain import State, Goal
+from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ, HeurFnV, HeurFnQ
 from deepxube.base.pathfinding import PathFind, NodeV, NodeQ
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf
 from deepxube.pathfinding.q.bwqs import BWQSEnum, InstanceBWQS
@@ -39,25 +39,25 @@ class TestArgs:
 
 
 def get_pathfind_w_instances(updater: UpdateHeur, train_heur: TrainHeur, test_args: TestArgs, param_idx: int) -> PathFind:
-    heur_nnet: HeurNNet = updater.get_heur_nnet()
-    if isinstance(heur_nnet, HeurNNetV):
-        heur_fn: HeurFnV = heur_nnet.get_nnet_fn(train_heur.nnet, test_args.test_nnet_batch_size,
-                                                 train_heur.device, None)
-        pathfind: BWASEnum = BWASEnum(updater.env, heur_fn)
-        root_nodes: List[NodeV] = pathfind.create_root_nodes(test_args.test_states, test_args.test_goals)
-        instances: List[InstanceBWAS] = [InstanceBWAS(root_node, 1, test_args.search_weights[param_idx], 0.0, None)
-                                         for root_node in root_nodes]
-        pathfind.add_instances(instances)
-        return pathfind
-    elif isinstance(heur_nnet, HeurNNetQ):
-        heur_fn: HeurFnQ = heur_nnet.get_nnet_fn(train_heur.nnet, test_args.test_nnet_batch_size,
-                                                 train_heur.device, None)
-        pathfind: BWQSEnum = BWQSEnum(updater.env, heur_fn)
-        root_nodes: List[NodeQ] = pathfind.create_root_nodes(test_args.test_states, test_args.test_goals)
-        instances: List[InstanceBWQS] = [InstanceBWQS(root_node, 1, test_args.search_weights[param_idx], 0.0, None)
-                                         for root_node in root_nodes]
-        pathfind.add_instances(instances)
-        return pathfind
+    heur_nnet: HeurNNetPar = updater.get_heur_nnet()
+    if isinstance(heur_nnet, HeurNNetParV):
+        heur_fn_v: HeurFnV = heur_nnet.get_nnet_fn(train_heur.nnet, test_args.test_nnet_batch_size,
+                                                   train_heur.device, None)
+        pathfind_v: BWASEnum = BWASEnum(updater.env, heur_fn_v)
+        root_nodes_v: List[NodeV] = pathfind_v.create_root_nodes(test_args.test_states, test_args.test_goals)
+        instances_v: List[InstanceBWAS] = [InstanceBWAS(root_node, 1, test_args.search_weights[param_idx], 0.0, None)
+                                           for root_node in root_nodes_v]
+        pathfind_v.add_instances(instances_v)
+        return pathfind_v
+    elif isinstance(heur_nnet, HeurNNetParQ):
+        heur_fn_q: HeurFnQ = heur_nnet.get_nnet_fn(train_heur.nnet, test_args.test_nnet_batch_size,
+                                                   train_heur.device, None)
+        pathfind_q: BWQSEnum = BWQSEnum(updater.env, heur_fn_q)
+        root_nodes_q: List[NodeQ] = pathfind_q.create_root_nodes(test_args.test_states, test_args.test_goals)
+        instances_q: List[InstanceBWQS] = [InstanceBWQS(root_node, 1, test_args.search_weights[param_idx], 0.0, None)
+                                           for root_node in root_nodes_q]
+        pathfind_q.add_instances(instances_q)
+        return pathfind_q
 
     else:
         raise ValueError(f"Unknown heuristic function type {heur_nnet}")

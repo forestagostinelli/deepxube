@@ -6,7 +6,7 @@
 # python train_heur.py --heur_type V --step_max 100 --nnet_dir models/cube3_v_sup/ --batch_size 10000 --up_itrs 1000 --up_gen_itrs 1000 --up_procs 48 --up_search_itrs 200 --sup
 from argparse import ArgumentParser
 
-from deepxube.base.heuristic import HeurNNetQ
+from deepxube.base.heuristic import HeurNNetParQ
 from deepxube.training.train_utils import TrainArgs
 from deepxube.training.train_heur import train
 from deepxube.base.updater import UpArgs, UpdateHeur
@@ -61,7 +61,7 @@ def main():
         else:
             updater = UpdateHeurBWASEnum(env, up_args, False, args.backup, Cube3NNetParV(), eps=args.eps)
     elif (args.heur_type.upper() == "Q") or (args.heur_type.upper() == "QIN"):
-        nnet_par: HeurNNetQ
+        nnet_par: HeurNNetParQ
         if args.heur_type.upper() == "Q":
             from deepxube.implementations.cube3 import Cube3NNetParQFixOut
             nnet_par = Cube3NNetParQFixOut()
