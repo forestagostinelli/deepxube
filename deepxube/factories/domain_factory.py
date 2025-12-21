@@ -26,11 +26,19 @@ def register_domain_parser(domain_name: str) -> Callable[[Type[DomainParser]], T
     return deco
 
 
-def get_domain_kwargs(domain_name: str, args_str: Optional[str]) -> Dict[str, Any]:
-    kwargs: Dict[str, Any] = dict()
-    if (domain_name in _domain_parser_registry.keys()) and (args_str is not None):
+def get_domain_parser(domain_name: str) -> Optional[DomainParser]:
+    if domain_name in _domain_parser_registry.keys():
         cls_parser: Type[DomainParser] = _domain_parser_registry[domain_name]
         parser: DomainParser = cls_parser()
+        return parser
+    else:
+        return None
+
+
+def get_domain_kwargs(domain_name: str, args_str: Optional[str]) -> Dict[str, Any]:
+    kwargs: Dict[str, Any] = dict()
+    parser: Optional[DomainParser] = get_domain_parser(domain_name)
+    if (parser is not None) and (args_str is not None):
         try:
             kwargs = parser.parse(args_str)
         except Exception as e:

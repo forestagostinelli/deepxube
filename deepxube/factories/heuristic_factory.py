@@ -34,6 +34,10 @@ def register_heur_nnet_parser(heur_nnet_parser_name: str) -> Callable[[Type[Heur
     return deco
 
 
+def get_all_heur_nnet_names() -> List[str]:
+    return list(_heur_nnet_registry.keys())
+
+
 def get_heur_nnet_type(name: str) -> Type[HeurNNet]:
     try:
         return _heur_nnet_registry[name]
@@ -43,11 +47,19 @@ def get_heur_nnet_type(name: str) -> Type[HeurNNet]:
         )
 
 
-def get_heur_nnet_kwargs(heur_nnet_name: str, args_str: Optional[str]) -> Dict[str, Any]:
-    kwargs: Dict[str, Any] = dict()
-    if (heur_nnet_name in _heur_nnet_parser_registry.keys()) and (args_str is not None):
+def get_heur_nnet_parser(heur_nnet_name: str) -> Optional[HeurNNetParser]:
+    if heur_nnet_name in _heur_nnet_parser_registry.keys():
         cls_parser: Type[HeurNNetParser] = _heur_nnet_parser_registry[heur_nnet_name]
         parser: HeurNNetParser = cls_parser()
+        return parser
+    else:
+        return None
+
+
+def get_heur_nnet_kwargs(heur_nnet_name: str, args_str: Optional[str]) -> Dict[str, Any]:
+    kwargs: Dict[str, Any] = dict()
+    parser: Optional[HeurNNetParser] = get_heur_nnet_parser(heur_nnet_name)
+    if (parser is not None) and (args_str is not None):
         try:
             kwargs = parser.parse(args_str)
         except Exception as e:
