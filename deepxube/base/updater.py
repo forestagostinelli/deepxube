@@ -10,11 +10,11 @@ import numpy as np
 import torch
 from numpy.typing import NDArray
 
-from deepxube.nnet.nnet_utils import NNetParInfo, NNetCallable, NNetPar
+from deepxube.nnet.nnet_utils import (NNetParInfo, NNetCallable, NNetPar, get_nnet_par_infos, start_nnet_fn_runners,
+                                      stop_nnet_runners)
 from deepxube.base.domain import Domain, State, Goal, Action, ActsEnum
 from deepxube.base.heuristic import HeurNNetPar, HeurFnV, HeurFnQ, HeurNNetParV, HeurNNetParQ
 from deepxube.base.pathfinding import PathFind, PathFindV, PathFindQ, Instance, Node, NodeV, NodeQ, NodeQAct
-from deepxube.nnet import nnet_utils
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, print_pathfindperf
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd, get_nowait_noerr
 from deepxube.utils.misc_utils import split_evenly_w_max
@@ -91,14 +91,6 @@ P = TypeVar('P', bound=PathFind)
 
 class Update(ABC, Generic[E, N, Inst, P]):
     @staticmethod
-    def get_nnet_fn_runners(nnet_par: NNetPar, nnet_file: str, up_args: UpArgs, device: torch.device,
-                            on_gpu: bool) -> Tuple[List[NNetParInfo], List[BaseProcess]]:
-        nnet_par_infos, nnet_procs = nnet_utils.start_nnet_fn_runners(nnet_par.get_nnet, up_args.procs, nnet_file,
-                                                                      device, on_gpu,
-                                                                      batch_size=up_args.nnet_batch_size)
-        return nnet_par_infos, nnet_procs
-
-    @staticmethod
     def _update_perf(insts: List[Inst], step_to_pathperf: Dict[int, PathFindPerf]) -> None:
         for inst in insts:
             step_num_inst: int = int(inst.inst_info[0])
@@ -107,7 +99,7 @@ class Update(ABC, Generic[E, N, Inst, P]):
             step_to_pathperf[step_num_inst].update_perf(inst)
 
     @staticmethod
-    def _send_work_to_q(up_args: UpArgs, num_gen: int, ctx: SpawnContext, train_batch_size: int, verbose: bool) -> Queue:
+    def _send_work_to_q(to_q: Queue, up_args: UpArgs, num_gen: int, train_batch_size: int, verbose: bool) -> None:
         num_searches: int = num_gen // up_args.search_itrs
         if verbose:
             print(f"Generating {format(num_gen, ',')} training instances with {format(num_searches, ',')} searches")
@@ -115,15 +107,12 @@ class Update(ABC, Generic[E, N, Inst, P]):
         assert num_gen % up_args.search_itrs == 0, (f"Number of instances to generate per for this updater {num_gen} "
                                                     f"is not divisible by the max number of pathfinding iterations to "
                                                     f"take during the updater ({up_args.search_itrs})")
-        to_q: Queue = ctx.Queue()
         up_batch_size: int = train_batch_size if (up_args.up_batch_size is None) else up_args.up_batch_size
         num_to_send_per: List[int] = split_evenly_w_max(num_searches, up_args.procs,
                                                         min(up_batch_size, train_batch_size))
         for num_to_send_per_i in num_to_send_per:
             if num_to_send_per_i > 0:
                 to_q.put(num_to_send_per_i)
-
-        return to_q
 
     def __init__(self, env: E, up_args: UpArgs):
         self.env: E = env
@@ -138,30 +127,38 @@ class Update(ABC, Generic[E, N, Inst, P]):
         self.nnet_fn_dict: Dict[str, NNetCallable] = dict()
 
         # update info
-        self.nnet_runner_dict: Dict[str, Tuple[List[NNetParInfo], List[BaseProcess]]] = dict()
+        self.nnet_par_info_l_dict: Dict[str, List[NNetParInfo]] = dict()
+        self.nnet_runner_proc_l_dict: Dict[str, List[BaseProcess]] = dict()
         self.procs: List[BaseProcess] = []
         self.to_q: Optional[Queue] = None
         self.from_q: Optional[Queue] = None
         self.num_generated: int = 0
         self.to_main_q: Optional[Queue] = None
         self.from_main_q: Optional[Queue] = None
+        self.from_main_qs: List[Queue] = []
         self.q_id: int = 0
         self.nnet_par_info_main: Optional[NNetParInfo] = None
 
-    def get_nnet_fn_runner_dict(self, device: torch.device,
-                                on_gpu: bool) -> Dict[str, Tuple[List[NNetParInfo], List[BaseProcess]]]:
-        nnet_runner_dict: Dict[str, Tuple[List[NNetParInfo], List[BaseProcess]]] = dict()
+    def set_nnet_par_info_l_dict(self) -> None:
+        for nnet_name in self.nnet_par_dict.keys():
+            self.nnet_par_info_l_dict[nnet_name] = get_nnet_par_infos(self.up_args.procs)
+
+    def start_nnet_runners(self, device: torch.device, on_gpu: bool) -> None:
         for nnet_name, nnet_par in self.nnet_par_dict.items():
             nnet_file: str = self.nnet_file_dict[nnet_name]
-            nnet_par_infos, nnet_procs = self.get_nnet_fn_runners(nnet_par, nnet_file, self.up_args, device, on_gpu)
-            nnet_runner_dict[nnet_name] = (nnet_par_infos, nnet_procs)
-        return nnet_runner_dict
+            nnet_par_infos: List[NNetParInfo] = self.nnet_par_info_l_dict[nnet_name]
+            self.nnet_runner_proc_l_dict[nnet_name] = start_nnet_fn_runners(nnet_par.get_nnet, nnet_par_infos,
+                                                                            nnet_file, device, on_gpu,
+                                                                            batch_size=self.up_args.nnet_batch_size)
 
     def set_nnet_par_info(self, nnet_name: str, nnet_par_info: NNetParInfo) -> None:
         assert nnet_name in self.nnet_par_dict.keys(), f"{nnet_name} not in dict"
         assert nnet_name in self.nnet_file_dict.keys(), f"{nnet_name} not in dict"
         assert nnet_name not in self.nnet_par_info_dict.keys(), f"{nnet_name} already in dict"
         self.nnet_par_info_dict[nnet_name] = nnet_par_info
+
+    def clear_nnet_fn_dict(self) -> None:
+        self.nnet_fn_dict = dict()
 
     def add_nnet_par(self, nnet_name: str, nnet_par: NNetPar) -> None:
         assert nnet_name not in self.nnet_par_dict.keys(), f"{nnet_name} already in dict"
@@ -177,10 +174,7 @@ class Update(ABC, Generic[E, N, Inst, P]):
         self.q_id = q_id
         self.nnet_par_info_main = NNetParInfo(self.to_main_q, self.from_main_q, self.q_id)
 
-    def start_update(self, step_probs: List[int], num_gen: int, device: torch.device, on_gpu: bool,
-                     targ_update_num: int, train_batch_size: int) -> Tuple[Queue, List[Queue]]:
-        self.set_targ_update_num(targ_update_num)
-
+    def start_procs(self) -> Tuple[Queue, List[Queue]]:
         # start updater procs
         # TODO implement safer copy?
         updaters: List[Update] = [copy.deepcopy(self) for _ in range(self.up_args.procs)]
@@ -188,27 +182,42 @@ class Update(ABC, Generic[E, N, Inst, P]):
         # parallel heuristic functions
         ctx = get_context("spawn")
         to_main_q: Queue = ctx.Queue()
-        from_main_qs: List[Queue] = []
-        self.nnet_runner_dict = self.get_nnet_fn_runner_dict(device, on_gpu)
+        self.from_main_qs = []
+        self.set_nnet_par_info_l_dict()
         for proc_idx, updater in enumerate(updaters):
             from_main_q: Queue = ctx.Queue(1)
-            from_main_qs.append(from_main_q)
+            self.from_main_qs.append(from_main_q)
             updater.set_main_qs(to_main_q, from_main_q, proc_idx)
-            for nnet_name in self.nnet_runner_dict.keys():
-                updater.set_nnet_par_info(nnet_name, self.nnet_runner_dict[nnet_name][0][proc_idx])
+            for nnet_name in self.nnet_par_info_l_dict.keys():
+                updater.set_nnet_par_info(nnet_name, self.nnet_par_info_l_dict[nnet_name][proc_idx])
 
-        # put work information on to_q
-        self.to_q = self._send_work_to_q(self.up_args, num_gen, ctx, train_batch_size, self.up_args.v)
-
+        self.to_q = ctx.Queue()
         self.from_q = ctx.Queue()
         self.procs = []
         for updater in updaters:
-            proc: BaseProcess = ctx.Process(target=updater.update_runner, args=(self.to_q, self.from_q, step_probs))
+            proc: BaseProcess = ctx.Process(target=updater.update_runner, args=(self.to_q, self.from_q))
             proc.daemon = True
             proc.start()
             self.procs.append(proc)
 
-        return to_main_q, from_main_qs
+        return to_main_q, self.from_main_qs
+
+    def start_update(self, step_probs: List[int], num_gen: int, targ_update_num: Optional[int], train_batch_size: int,
+                     device: torch.device, on_gpu: bool) -> None:
+        # parallel heuristic functions
+        self.set_targ_update_num(targ_update_num)
+        self.start_nnet_runners(device, on_gpu)
+
+        for proc_idx, from_main_q in enumerate(self.from_main_qs):
+            from_main_q.put((step_probs, targ_update_num))
+
+        # for proc_idx, updater in enumerate(updaters):
+        #    for nnet_name in self.nnet_runner_dict.keys():
+        #        updater.set_nnet_par_info(nnet_name, self.nnet_runner_dict[nnet_name][0][proc_idx])
+
+        # put work information on to_q
+        assert self.to_q is not None
+        self._send_work_to_q(self.to_q, self.up_args, num_gen, train_batch_size, self.up_args.v)
 
     def get_update_data(self, nowait: bool = False) -> List[List[NDArray]]:
         assert self.from_q is not None
@@ -262,24 +271,33 @@ class Update(ABC, Generic[E, N, Inst, P]):
             print_pathfindperf(step_to_pathperf)
 
         # clean up clean up everybody do your share
-        for nnet_par_infos, nnet_procs in self.nnet_runner_dict.values():
-            nnet_utils.stop_nnet_runners(nnet_procs, nnet_par_infos)
-        for proc in self.procs:
-            proc.join()
+        for nnet_name, nnet_par_infos in self.nnet_par_info_l_dict.items():
+            nnet_procs: List[BaseProcess] = self.nnet_runner_proc_l_dict[nnet_name]
+            stop_nnet_runners(nnet_procs, nnet_par_infos)
 
-        self.nnet_runner_dict = dict()
-        self.procs = []
-        self.to_q = None
-        self.from_q = None
         self.num_generated = 0
+        self.nnet_runner_proc_l_dict = dict()
 
         return step_to_pathperf
 
-    def initialize_fns(self) -> None:
+    def stop_procs(self) -> None:
+        # sending stop signal
+        for from_main_q in self.from_main_qs:
+            from_main_q.put(None)
+
+        # clean up clean up everybody do your share
+        for proc in self.procs:
+            proc.join()
+
+        self.procs = []
+        self.to_q = None
+        self.from_q = None
+
+    def initialize_fns(self, targ_update_num: Optional[int]) -> None:
         for nnet_name in self.nnet_par_dict.keys():
             nnet: NNetPar = self.nnet_par_dict[nnet_name]
             nnet_par_info: NNetParInfo = self.nnet_par_info_dict[nnet_name]
-            self.nnet_fn_dict[nnet_name] = nnet.get_nnet_par_fn(nnet_par_info, self.targ_update_num)
+            self.nnet_fn_dict[nnet_name] = nnet.get_nnet_par_fn(nnet_par_info, targ_update_num)
         self.env.set_nnet_fns(self.nnet_fn_dict)
 
     def get_up_args_repr(self) -> str:
@@ -304,45 +322,55 @@ class Update(ABC, Generic[E, N, Inst, P]):
     def set_targ_update_num(self, targ_update_num: Optional[int]) -> None:
         self.targ_update_num = targ_update_num
 
-    def update_runner(self, to_q: Queue, from_q: Queue, step_probs: List[int]) -> None:
+    def update_runner(self, to_q: Queue, from_q: Queue) -> None:
         times: Times = Times()
 
-        self.initialize_fns()
-        step_to_pathperf: Dict[int, PathFindPerf] = dict()
         while True:
-            batch_size = to_q.get()
-            if batch_size is None:
+            assert self.from_main_q is not None
+            data_q: Optional[Tuple[List[int], Optional[int]]] = self.from_main_q.get()
+            if data_q is None:
                 break
 
-            pathfind: P = self.get_pathfind()
+            step_probs, targ_update_num = data_q
+            self.set_targ_update_num(targ_update_num)
+            self.initialize_fns(targ_update_num)
 
-            insts_rem_all: List[Inst] = []
-            insts_rem_last_itr: List[Inst] = []
-            for _ in range(self.up_args.search_itrs):
-                # add instances
-                self._add_instances(pathfind, insts_rem_last_itr, batch_size, step_probs, times)
-                assert len(pathfind.instances) == batch_size, f"Values were {len(pathfind.instances)} and {batch_size}"
+            step_to_pathperf: Dict[int, PathFindPerf] = dict()
+            while True:
+                batch_size = to_q.get()
+                if batch_size is None:
+                    break
 
-                # step
-                data: List[NDArray] = self.step(pathfind, times)
-                if self.up_args.sync_main:
-                    _put_from_q([data], from_q, times)
+                pathfind: P = self.get_pathfind()
 
-                # remove instances
-                insts_rem_last_itr = pathfind.remove_finished_instances(self.up_args.search_itrs)
-                insts_rem_all.extend(insts_rem_last_itr)
+                insts_rem_all: List[Inst] = []
+                insts_rem_last_itr: List[Inst] = []
+                for _ in range(self.up_args.search_itrs):
+                    # add instances
+                    self._add_instances(pathfind, insts_rem_last_itr, batch_size, step_probs, times)
+                    assert len(pathfind.instances) == batch_size, f"Values were {len(pathfind.instances)} and {batch_size}"
 
-            if not self.up_args.sync_main:
-                _put_from_q([self.get_instance_data(insts_rem_all + pathfind.instances, times)], from_q, times)
+                    # step
+                    data: List[NDArray] = self.step(pathfind, times)
+                    if self.up_args.sync_main:
+                        _put_from_q([data], from_q, times)
 
-            # pathfinding performance
-            start_time = time.time()
-            self._update_perf(insts_rem_all, step_to_pathperf)
-            times.record_time("update_perf", time.time() - start_time)
+                    # remove instances
+                    insts_rem_last_itr = pathfind.remove_finished_instances(self.up_args.search_itrs)
+                    insts_rem_all.extend(insts_rem_last_itr)
 
-            times.add_times(pathfind.times, path=["pathfinding"])
+                if not self.up_args.sync_main:
+                    _put_from_q([self.get_instance_data(insts_rem_all + pathfind.instances, times)], from_q, times)
 
-        from_q.put((times, step_to_pathperf))
+                # pathfinding performance
+                start_time = time.time()
+                self._update_perf(insts_rem_all, step_to_pathperf)
+                times.record_time("update_perf", time.time() - start_time)
+
+                times.add_times(pathfind.times, path=["pathfinding"])
+
+            from_q.put((times, step_to_pathperf))
+            self.clear_nnet_fn_dict()
         self.to_main_q = None
         self.from_main_q = None
         self.nnet_par_info_main = None

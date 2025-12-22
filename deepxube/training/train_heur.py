@@ -109,8 +109,10 @@ def train(updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: 
     device, devices, on_gpu = nnet_utils.get_device()
     print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
 
-    train_heur: TrainHeur = TrainHeur(updater, heur_file, heur_targ_file, status_file, device, on_gpu, writer,
-                                      train_args)
+    updater.set_heur_file(heur_targ_file)
+    to_main_q, from_main_qs = updater.start_procs()
+    train_heur: TrainHeur = TrainHeur(updater, to_main_q, from_main_qs, heur_file, heur_targ_file, status_file, device,
+                                      on_gpu, writer, train_args)
 
     # training
     up_itr_performed: bool = False
@@ -137,6 +139,8 @@ def train(updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: 
 
     if (test_args is not None) and up_itr_performed:
         test(updater, train_heur, test_args, writer)
+
+    updater.stop_procs()
 
     print("Done")
 

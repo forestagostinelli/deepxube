@@ -161,9 +161,7 @@ def nnet_fn_runner(nnet_i_q: Queue, nnet_o_qs: List[Queue], model_file: str, dev
         nnet_in_out_shared_q(nnet, inputs_nnet_shm, batch_size, device, nnet_o_qs[proc_id])
 
 
-def start_nnet_fn_runners(get_nnet: Callable[[], nn.Module], num_procs: int, model_file: str, device: torch.device,
-                          on_gpu: bool,
-                          batch_size: Optional[int] = None) -> Tuple[List[NNetParInfo], List[BaseProcess]]:
+def get_nnet_par_infos(num_procs: int) -> List[NNetParInfo]:
     ctx = get_context("spawn")
 
     nnet_i_q: Queue = ctx.Queue()
@@ -173,6 +171,17 @@ def start_nnet_fn_runners(get_nnet: Callable[[], nn.Module], num_procs: int, mod
         nnet_o_q: Queue = ctx.Queue(1)
         nnet_o_qs.append(nnet_o_q)
         nnet_par_infos.append(NNetParInfo(nnet_i_q, nnet_o_q, proc_id))
+
+    return nnet_par_infos
+
+
+def start_nnet_fn_runners(get_nnet: Callable[[], nn.Module], nnet_par_infos: List[NNetParInfo], model_file: str,
+                          device: torch.device, on_gpu: bool,
+                          batch_size: Optional[int] = None) -> List[BaseProcess]:
+    ctx = get_context("spawn")
+
+    nnet_i_q: Queue = nnet_par_infos[0].nnet_i_q
+    nnet_o_qs: List[Queue] = [nnet_par_info.nnet_o_q for nnet_par_info in nnet_par_infos]
 
     # initialize heuristic procs
     if ('CUDA_VISIBLE_DEVICES' in os.environ) and (len(os.environ['CUDA_VISIBLE_DEVICES']) > 0):
@@ -189,7 +198,7 @@ def start_nnet_fn_runners(get_nnet: Callable[[], nn.Module], num_procs: int, mod
         nnet_fn_procs.start()
         nnet_procs.append(nnet_fn_procs)
 
-    return nnet_par_infos, nnet_procs
+    return nnet_procs
 
 
 def stop_nnet_runners(nnet_fn_procs: List[BaseProcess], nnet_par_infos: List[NNetParInfo]) -> None:

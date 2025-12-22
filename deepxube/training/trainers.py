@@ -55,9 +55,12 @@ class Status:
 
 
 class TrainHeur:
-    def __init__(self, updater: UpdateHeur, nnet_file: str, nnet_targ_file: str, status_file: str,
-                 device: torch.device, on_gpu: bool, writer: SummaryWriter, train_args: TrainArgs) -> None:
+    def __init__(self, updater: UpdateHeur, to_main_q: Queue, from_main_qs: List[Queue], nnet_file: str,
+                 nnet_targ_file: str, status_file: str, device: torch.device, on_gpu: bool, writer: SummaryWriter,
+                 train_args: TrainArgs) -> None:
         self.updater: UpdateHeur = updater
+        self.to_main_q: Queue = to_main_q
+        self.from_main_qs: List[Queue] = from_main_qs
         self.nnet: nn.Module = updater.get_heur_nnet().get_nnet()
         self.nnet_file = nnet_file
         self.nnet_targ_file: str = nnet_targ_file
@@ -85,7 +88,6 @@ class TrainHeur:
             torch.save(self.nnet.state_dict(), self.nnet_file)
         if not os.path.isfile(self.nnet_targ_file):
             torch.save(self.nnet.state_dict(), self.nnet_targ_file)
-        self.updater.set_heur_file(self.nnet_targ_file)
 
         self.nnet.to(self.device)
         self.nnet = nn.DataParallel(self.nnet)
@@ -121,9 +123,8 @@ class TrainHeur:
 
         # start updater
         start_time = time.time()
-        to_main_q, from_main_qs = self.updater.start_update(self.status.step_probs.tolist(), num_gen, self.device,
-                                                            self.on_gpu, self.status.targ_update_num,
-                                                            self.train_args.batch_size)
+        self.updater.start_update(self.status.step_probs.tolist(), num_gen, self.status.targ_update_num,
+                                  self.train_args.batch_size, self.device, self.on_gpu)
         times.record_time("up_start", time.time() - start_time)
 
         # do training
@@ -134,7 +135,7 @@ class TrainHeur:
             self._end_update(ctgs_l, times)
             loss = self._train_no_rb(times)
         else:
-            loss, ctgs_l = self._train_rb(num_gen, to_main_q, from_main_qs, times)
+            loss, ctgs_l = self._train_rb(num_gen, times)
             self._end_update(ctgs_l, times)
 
         # save nnet
@@ -193,8 +194,7 @@ class TrainHeur:
 
         return loss
 
-    def _train_rb(self, num_gen: int, to_main_q: Queue, from_main_qs: List[Queue],
-                  times: Times) -> Tuple[float, List[NDArray]]:
+    def _train_rb(self, num_gen: int, times: Times) -> Tuple[float, List[NDArray]]:
         loss: float = np.inf
         ctgs_l: List[NDArray] = []
         update_train_itr: int = 0
@@ -208,11 +208,11 @@ class TrainHeur:
                 self.nnet.eval()
                 while self.db.size() < ((update_train_itr + 1) * self.train_args.batch_size):
                     # get heuristic values for ongoing search
-                    q_res: Optional[Tuple[int, List[SharedNDArray]]] = get_nowait_noerr(to_main_q)
+                    q_res: Optional[Tuple[int, List[SharedNDArray]]] = get_nowait_noerr(self.to_main_q)
                     if q_res is not None:
                         proc_id, inputs_np_shm = q_res
                         nnet_in_out_shared_q(self.nnet, inputs_np_shm, self.updater.up_args.nnet_batch_size,
-                                             self.device, from_main_qs[proc_id])
+                                             self.device, self.from_main_qs[proc_id])
 
                     # get update data
                     data_l_i: List[List[NDArray]] = self.updater.get_update_data(nowait=True)
@@ -286,12 +286,14 @@ class TrainHeur:
         updater_greedy.set_heur_file(self.nnet_file)
         step_probs = np.ones(self.updater.up_args.step_max + 1) / (self.updater.up_args.step_max + 1)
         num_gen: int = self.updater.up_args.search_itrs * self.train_args.targ_up_searches
-        updater_greedy.start_update(step_probs.tolist(), num_gen, self.device, self.on_gpu, update_num,
-                                    self.train_args.batch_size)
+        updater_greedy.start_procs()
+        updater_greedy.start_update(step_probs.tolist(), num_gen, update_num, self.train_args.batch_size,
+                                    self.device, self.on_gpu)
         while updater_greedy.num_generated < num_gen:
             self.updater.get_update_data()
 
         step_to_search_perf: Dict[int, PathFindPerf] = updater_greedy.end_update()
+        updater_greedy.stop_procs()
         per_solved_ave, path_cost_ave, search_itrs_ave = get_eq_weighted_perf(step_to_search_perf)
         # print(f"%solved: {per_solved_ave:.2f}, path_costs: {path_cost_ave:.3f}, search_itrs: {search_itrs_ave:.3f} "
         #      f"(greedy perf)")
