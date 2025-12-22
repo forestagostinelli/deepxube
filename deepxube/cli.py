@@ -36,10 +36,12 @@ def heur_info(args: argparse.Namespace) -> None:
 
 def main() -> None:
     parser = ArgumentParser(prog="deepxube", description="Solve pathfinding problems with deep reinforcement learning "
-                                                         "and heuristic search.")
+                                                         "and heuristic search.",
+                            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     subparsers = parser.add_subparsers(help="")
 
-    parser_tr: ArgumentParser = subparsers.add_parser('train', help="")
+    parser_tr: ArgumentParser = subparsers.add_parser('train', help="",
+                                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser_train(parser_tr)
 
     parser_domain_info: ArgumentParser = subparsers.add_parser('domain_info', help="")

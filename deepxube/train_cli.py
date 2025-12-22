@@ -29,7 +29,7 @@ def parser_train(parser: ArgumentParser) -> None:
     parser.add_argument('--batch_size', type=int, default=10000, help="")
     parser.add_argument('--lr', type=float, default=0.001, help="")
     parser.add_argument('--lr_d', type=float, default=0.9999993, help="")
-    parser.add_argument('--max_itrs', type=int, default=100000, help="")
+    parser.add_argument('--max_itrs', type=int, default=100000, help="Maximum training iterations")
     parser.add_argument('--display', type=int, default=-1, help="")
     parser.add_argument('--no_bal', action='store_true', default=False, help="Set for no balancing")
 

@@ -567,6 +567,7 @@ class UpdateHeurQ(UpdateHeur[E, NodeQ, Inst, PQ, HeurNNetParQ[State, Action, Goa
                 node_q_l_up.append(node_q)
 
         # get backup of initial node_q_act with random action
+        # TODO this could be taking up a lot of GPU since includes more instances in parallel (i.e. both removed and current)
         start_time = time.time()
         states_up, goals_up, actions_up, ctgs_backup_up = self.update_any_action(node_q_l_up)
         states.extend(states_up)
