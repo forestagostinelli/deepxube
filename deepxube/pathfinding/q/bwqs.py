@@ -77,6 +77,9 @@ class BWQS(PathFindQ[E, InstanceBWQS], ABC):
     def step(self, verbose: bool = False) -> List[NodeQAct]:
         # split instances by iteration
         instances: List[InstanceBWQS] = [instance for instance in self.instances if not instance.finished()]
+        if len(instances) == 0:
+            self.itr += 1  # TODO make more elegant
+            return []
 
         # pop from open
         start_time = time.time()
