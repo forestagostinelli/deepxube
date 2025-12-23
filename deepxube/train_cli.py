@@ -82,7 +82,7 @@ def train_cli(args: argparse.Namespace) -> None:
                              sync_main=args.sync_main, v=args.up_v)
     up_heur_args: UpHeurArgs = UpHeurArgs(False, args.backup)
     up_graphsch_args: UpGraphSearchArgs = UpGraphSearchArgs(args.search_weight, args.search_eps)
-    up_greedy_args: UpGreedyPolicyArgs = UpGreedyPolicyArgs(args.search_eps, args.search_temp)
+    up_greedy_args: UpGreedyPolicyArgs = UpGreedyPolicyArgs(args.search_temp, args.search_eps)
 
     # updater
     updater: UpdateHeur = get_updater(domain, heur_nnet, args.search, up_args, up_heur_args, up_graphsch_args,
