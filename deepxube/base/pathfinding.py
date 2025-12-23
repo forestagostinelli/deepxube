@@ -369,7 +369,7 @@ class NodeQ(Node):
             return tc + min(node_next.q_values)
 
 
-class NodeQAct:
+class Edge:
     __slots__ = ['node', 'action', 'q_val']
 
     def __init__(self, node: NodeQ, action: Optional[Action], q_val: float):
@@ -384,20 +384,20 @@ class PathFindQ(PathFind[E, NodeQ, I]):
         self.heur_fn: HeurFnQ = heur_fn
 
     @abstractmethod
-    def step(self, verbose: bool = False) -> List[NodeQAct]:
+    def step(self, verbose: bool = False) -> List[Edge]:
         pass
 
-    def get_next_nodes(self, instances: List[I], node_acts_by_inst: List[List[NodeQAct]]) -> List[List[NodeQ]]:
+    def get_next_nodes(self, instances: List[I], edges_by_inst: List[List[Edge]]) -> List[List[NodeQ]]:
         if len(instances) == 0:
             return []
         start_time = time.time()
         # flatten
-        node_acts, split_idxs = misc_utils.flatten(node_acts_by_inst)
-        nodes: List[NodeQ] = [node_act.node for node_act in node_acts]
+        edges, split_idxs = misc_utils.flatten(edges_by_inst)
+        nodes: List[NodeQ] = [edge.node for edge in edges]
 
         states: List[State] = [node.state for node in nodes]
         goals: List[Goal] = [node.goal for node in nodes]
-        actions: List[Optional[Action]] = [node_act.action for node_act in node_acts]
+        actions: List[Optional[Action]] = [node_act.action for node_act in edges]
         path_costs: List[float] = [popped_node.path_cost for popped_node in nodes]
 
         # next states
@@ -423,7 +423,7 @@ class PathFindQ(PathFind[E, NodeQ, I]):
         # next nodes
         start_time = time.time()
         nodes_next: List[NodeQ] = []
-        for idx in range(len(node_acts)):
+        for idx in range(len(edges)):
             node_next: NodeQ
             action_i: Optional[Action] = actions[idx]
             if action_i is not None:

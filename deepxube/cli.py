@@ -40,14 +40,22 @@ def main() -> None:
                             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     subparsers = parser.add_subparsers(help="")
 
-    parser_tr: ArgumentParser = subparsers.add_parser('train', help="",
+    parser_tr: ArgumentParser = subparsers.add_parser('train', help="Train a heuristic function.",
                                                       formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser_train(parser_tr)
 
-    parser_domain_info: ArgumentParser = subparsers.add_parser('domain_info', help="")
+    parser_domain_info: ArgumentParser = subparsers.add_parser('domain_info', help="Print information on domains that "
+                                                                                   "deepxube has registered. "
+                                                                                   "Put user-defined definitions of "
+                                                                                   "domains in './domains/'")
     _parser_domain_info(parser_domain_info)
 
-    parser_heur_info: ArgumentParser = subparsers.add_parser('heur_info', help="")
+    parser_heur_info: ArgumentParser = subparsers.add_parser('heur_info', help="Print information on neural network "
+                                                                               "representations of heuristic functions "
+                                                                               "that deepxube has registered. "
+                                                                               "Put user-defined definitions of "
+                                                                               "heuristic neural networks in "
+                                                                               "'./heuristics/'")
     _parser_heur_info(parser_heur_info)
 
     args = parser.parse_args()

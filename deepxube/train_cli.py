@@ -16,51 +16,58 @@ import pickle
 
 
 def parser_train(parser: ArgumentParser) -> None:
-    parser.add_argument('--domain', type=str, required=True, help="")
+    parser.add_argument('--domain', type=str, required=True, help="Domain name and arguments.")
 
-    parser.add_argument('--heur', type=str, required=True, help="")
-    parser.add_argument('--heur_type', type=str, required=True, help="V, QFix, QIn")
+    parser.add_argument('--heur', type=str, required=True, help="Heuristic neural network and arguments.")
+    parser.add_argument('--heur_type', type=str, required=True, help="V, QFix, QIn.")
 
-    parser.add_argument('--search', type=str, required=True, help="graph, greedy, sup")
-
-    parser.add_argument('--dir', type=str, required=True, help="")
+    parser.add_argument('--dir', type=str, required=True, help="Directory to save neural networks.")
 
     # train args
-    parser.add_argument('--batch_size', type=int, default=10000, help="")
-    parser.add_argument('--lr', type=float, default=0.001, help="")
-    parser.add_argument('--lr_d', type=float, default=0.9999993, help="")
-    parser.add_argument('--max_itrs', type=int, default=100000, help="Maximum training iterations")
-    parser.add_argument('--display', type=int, default=-1, help="")
-    parser.add_argument('--no_bal', action='store_true', default=False, help="Set for no balancing")
+    train_group = parser.add_argument_group('train')
+    train_group.add_argument('--batch_size', type=int, default=1000, help="Batch size.")
+    train_group.add_argument('--lr', type=float, default=0.001, help=" Learning rate.")
+    train_group.add_argument('--lr_d', type=float, default=0.9999993, help="Learning rate decay.")
+    train_group.add_argument('--max_itrs', type=int, default=100000, help="Maximum training iterations.")
+    train_group.add_argument('--display', type=int, default=0, help="Display frequency for nnet training.")
+    train_group.add_argument('--no_bal', action='store_true', default=False, help="Balancing of number of steps to take to generate problem instances is on by "
+                                                                                  "default. Set for no balancing.")
+    train_group.add_argument('--rb', type=int, default=0, help="Number of updates worth of data to keep in replay buffer. If 0 then wait for update to get "
+                                                               "data and randomly sample from that data for training data.")
 
     # updater args
-    parser.add_argument('--procs', type=int, default=1, help="")
-    parser.add_argument('--step_max', type=int, required=True, help="")
-    parser.add_argument('--up_itrs', type=int, default=100, help="")
-    parser.add_argument('--search_itrs', type=int, default=1000, help="")
-    parser.add_argument('--up_batch_size', type=int, default=100, help="")
-    parser.add_argument('--up_nnet_batch_size', type=int, default=20000, help="")
-    parser.add_argument('--sync_main', action='store_true', default=False, help="")
-    parser.add_argument('--up_v', action='store_true', default=False, help="")
+    update_group = parser.add_argument_group('update')
+    update_group.add_argument('--search', type=str, required=True, help="graph, greedy, sup.")
+    update_group.add_argument('--procs', type=int, default=1, help="Number of processes to generate update data.")
+    update_group.add_argument('--step_max', type=int, required=True, help="Maximum number of steps to take when generating problem instnaces.")
+    update_group.add_argument('--up_itrs', type=int, default=100, help="Number of iterations to check for update.")
+    update_group.add_argument('--search_itrs', type=int, default=1000, help="Number of search iterations to take when generating data.")
+    update_group.add_argument('--up_batch_size', type=int, default=100, help="Maximum number of problem instances to generate at a time. Lower if running out "
+                                                                             "of memory.")
+    update_group.add_argument('--up_nnet_batch_size', type=int, default=20000, help="Maximum number of inputs to give to any nnet at a time during update. "
+                                                                                    "Lower if running out of memory.")
+    update_group.add_argument('--sync_main', action='store_true', default=False, help="Use main nnet to search during update. If this is true then rb must "
+                                                                                      "be > 0.")
+    update_group.add_argument('--up_v', action='store_true', default=False, help="Verbose update.")
 
     # update heur args
-    parser.add_argument('--backup', type=int, default=-1,
-                        help="1 for Bellman backup, -1 for limited horizon bellman lookahead (LHBL)")
+    update_group.add_argument('--backup', type=int, default=-1, help="1 for Bellman backup, -1 for limited horizon bellman lookahead (LHBL)")
 
     # update graph search args
-    parser.add_argument('--search_weight', type=int, default=1, help="")
-    parser.add_argument('--search_eps', type=float, default=0.0, help="")
+    update_group.add_argument('--search_weight', type=int, default=1, help="Weight when performing graph search during update.")
+    update_group.add_argument('--search_eps', type=float, default=0.0, help="Probability of popping a random node during search.")
 
     # update greedy policy args
-    parser.add_argument('--search_temp', type=float, default=1, help="")
+    update_group.add_argument('--search_temp', type=float, default=1, help="Temperatue for Boltzmann exploration if performing a greedy search. "
+                                                                           "Set to 0 to turn off.")
 
     # test args
-    parser.add_argument('--t_search_itrs', type=int, default=1000, help="")
-    parser.add_argument('--t_up_freq', type=int, default=10, help="")
+    test_group = parser.add_argument_group('test')
+    test_group.add_argument('--t_search_itrs', type=int, default=1000, help="Number of search iterations when testing.")
+    test_group.add_argument('--t_up_freq', type=int, default=10, help="Test every t_up_freq updates.")
 
     # other
-    parser.add_argument('--rb', type=int, default=1, help="")
-    parser.add_argument('--debug', action='store_true', default=False, help="")
+    parser.add_argument('--debug', action='store_true', default=False, help="Set for debug mode.")
     parser.set_defaults(func=train_cli)
 
 

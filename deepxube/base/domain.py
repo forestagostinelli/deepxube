@@ -19,6 +19,9 @@ class Vizable(Protocol):
 
 
 class State(ABC):
+    """ State object
+
+    """
     @abstractmethod
     def __hash__(self) -> int:
         """ For use in CLOSED dictionary for pathfinding
@@ -37,6 +40,10 @@ class State(ABC):
 
 
 class Action(ABC):
+    """ Action object
+
+    """
+
     @abstractmethod
     def __hash__(self) -> int:
         """ For use in backup for Q* search
@@ -55,6 +62,9 @@ class Action(ABC):
 
 
 class Goal(ABC):
+    """ Goal object that represents a set of states considered goal states
+
+    """
     pass
 
 
@@ -104,8 +114,8 @@ class Domain(ABC, Generic[S, A, G]):
 
         :param states: List of states
         :param goals: List of goals
-        :return: List of booleans where the element at index i corresponds to whether or not the
-        state at index i is a member of the set of goal states represented by the goal at index i
+        :return: List of booleans where the element at index i corresponds to whether or not the state at index i is a member of the set of goal states
+        represented by the goal at index i
         """
         pass
 

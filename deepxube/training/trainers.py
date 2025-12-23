@@ -110,6 +110,8 @@ class TrainHeur:
         self.criterion = nn.MSELoss()
 
     def update_step(self) -> None:
+        self.db.clear()
+
         # print info
         start_info_l: List[str] = [f"itr: {self.status.itr}", f"update_num: {self.status.update_num}",
                                    f"targ_update: {self.status.targ_update_num}"]
@@ -133,9 +135,9 @@ class TrainHeur:
         if not self.updater.up_args.sync_main:
             ctgs_l = self._get_update_data(num_gen, times)
             self._end_update(ctgs_l, times)
-            loss = self._train_no_rb(times)
+            loss = self._train_no_sync_main(times)
         else:
-            loss, ctgs_l = self._train_rb(num_gen, times)
+            loss, ctgs_l = self._train_sync_main(num_gen, times)
             self._end_update(ctgs_l, times)
 
         # save nnet
@@ -169,7 +171,6 @@ class TrainHeur:
 
     def _get_update_data(self, num_gen: int, times: Times) -> List[NDArray]:
         start_time = time.time()
-        self.db.clear()
         ctgs_l: List[NDArray] = []
         while self.db.size() < num_gen:
             data_l: List[List[NDArray]] = self.updater.get_update_data()
@@ -180,7 +181,7 @@ class TrainHeur:
 
         return ctgs_l
 
-    def _train_no_rb(self, times: Times) -> float:
+    def _train_no_sync_main(self, times: Times) -> float:
         # train
         loss: float = np.inf
         for _ in range(self.updater.up_args.up_itrs):
@@ -194,7 +195,7 @@ class TrainHeur:
 
         return loss
 
-    def _train_rb(self, num_gen: int, times: Times) -> Tuple[float, List[NDArray]]:
+    def _train_sync_main(self, num_gen: int, times: Times) -> Tuple[float, List[NDArray]]:
         loss: float = np.inf
         ctgs_l: List[NDArray] = []
         update_train_itr: int = 0
@@ -286,7 +287,7 @@ class TrainHeur:
         updater_greedy.set_heur_file(self.nnet_file)
         step_probs = np.ones(self.updater.up_args.step_max + 1) / (self.updater.up_args.step_max + 1)
         num_gen: int = self.updater.up_args.search_itrs * self.train_args.targ_up_searches
-        updater_greedy.start_procs()
+        updater_greedy.start_procs(0)
         updater_greedy.start_update(step_probs.tolist(), num_gen, update_num, self.train_args.batch_size,
                                     self.device, self.on_gpu)
         while updater_greedy.num_generated < num_gen:
