@@ -16,7 +16,7 @@ from deepxube.base.domain import Domain, State, Goal, Action, ActsEnum
 from deepxube.base.heuristic import HeurNNetPar, HeurFnV, HeurFnQ, HeurNNetParV, HeurNNetParQ
 from deepxube.base.pathfinding import PathFind, PathFindV, PathFindQ, Instance, Node, NodeV, NodeQ, Edge
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, print_pathfindperf
-from deepxube.updater.updater_utils import ReplayBufferQ, ReplayQElem
+from deepxube.updater.updater_utils import ReplayBufferQ
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd, get_nowait_noerr
 from deepxube.utils.misc_utils import split_evenly_w_max, split_evenly
 from deepxube.utils.timing_utils import Times
@@ -328,8 +328,6 @@ class Update(ABC, Generic[E, N, Inst, P]):
 
     def update_runner(self, to_q: Queue, from_q: Queue, rb_size: int) -> None:
         times: Times = Times()
-        if self.up_args.sync_main:
-            assert rb_size > 0, "should be using a replay buffer if doing sync_main"
 
         self._init_replay_buffer(rb_size)
         while True:
@@ -431,6 +429,13 @@ class UpdateHasHeur(Update[E, N, Inst, P], Generic[E, N, Inst, P, HNet, H]):
         return cast(HNet, self.nnet_par_dict[self.heur_name()])
 
     def get_heur_fn(self) -> H:
+        if not self.up_args.sync_main:
+            return self._get_heur_fn_from_dict()
+        else:
+            assert self.nnet_par_info_main is not None
+            return cast(H, self.get_heur_nnet().get_nnet_par_fn(self.nnet_par_info_main, None))
+
+    def _get_heur_fn_from_dict(self) -> H:
         return cast(H, self.nnet_fn_dict[self.heur_name()])
 
     @abstractmethod
@@ -445,7 +450,7 @@ class UpdateHeur(UpdateHasHeur[E, N, Inst, P, HNet, H], ABC):
         self.up_heur_args: UpHeurArgs = up_heur_args
 
     def get_targ_heur_fn(self) -> H:
-        return cast(H, self.nnet_fn_dict[self.heur_name()])
+        return self._get_heur_fn_from_dict()
 
     def get_up_args_repr(self) -> str:
         return f"{super().get_up_args_repr()}\n{self.up_heur_args.__repr__()}"
@@ -469,13 +474,6 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetParV[State, Goal], Heur
         shapes_dypes.append((tuple(), np.dtype(np.float64)))
 
         return shapes_dypes
-
-    def get_heur_fn(self) -> HeurFnV:
-        if not self.up_args.sync_main:
-            return super().get_heur_fn()
-        else:
-            assert self.nnet_par_info_main is not None
-            return self.get_heur_nnet().get_nnet_par_fn(self.nnet_par_info_main, self.targ_update_num)
 
     def step(self, pathfind: PV, times: Times) -> List[NDArray]:
         # take a step
@@ -568,122 +566,98 @@ class UpdateHeurQ(UpdateHeur[E, NodeQ, Inst, PQ, HeurNNetParQ[State, Action, Goa
 
         return shapes_dypes
 
-    @abstractmethod
-    def get_qvals(self, states: List[State], goals: List[Goal]) -> List[List[float]]:
-        pass
-
-    def q_learning_backup(self, goals: List[Goal], is_solved_l: List[bool], tcs: List[float], states_next: List[State]) -> List[float]:
-        # min cost-to-go for next state
-        qvals_next_l: List[List[float]] = self.get_qvals(states_next, goals)
-        qvals_next_min: List[float] = [min(qvals_next) for qvals_next in qvals_next_l]
-
-        # backup cost-to-go
-        ctg_backups: NDArray = np.array(tcs) + np.array(qvals_next_min)
-        ctg_backups = ctg_backups * np.logical_not(np.array(is_solved_l))
-
-        return cast(List[float], ctg_backups.tolist())
-
     def step(self, pathfind: PQ, times: Times) -> List[NDArray]:
         # take a step
         edges_popped: List[Edge] = pathfind.step()
         assert len(edges_popped) == len(pathfind.instances), f"Values were {len(edges_popped)} and {len(pathfind.instances)}"
-        if not self.up_args.sync_main:
-            self.edges_popped.extend(edges_popped)
 
         if self.replay_buffer.max_size() > 0:
             start_time = time.time()
-            edges_init, edges_real = _split_init_vs_real_edges(edges_popped)
-            states, goals, is_solved_l, actions, tcs, states_next = self.edge_init_next_random(edges_init)
-            for edge_real in edges_real:
-                node: NodeQ = edge_real.node
-                states.append(node.state)
-                goals.append(node.goal)
-                assert node.is_solved is not None
-                is_solved_l.append(node.is_solved)
-                assert edge_real.action is not None
-                actions.append(edge_real.action)
-                tc, node_next = node.act_dict[edge_real.action]
-                tcs.append(tc)
-                states_next.append(node_next.state)
-            assert len(states) > 0
-            self.replay_buffer.add(list(zip(states, goals, is_solved_l, actions, tcs, states_next)))
+            states_e, goals_e, is_solved_l_e, actions_e, tcs_e, states_next_e = self._get_edge_data(edges_popped)
+            self.replay_buffer.add(list(zip(states_e, goals_e, is_solved_l_e, actions_e, tcs_e, states_next_e)))
             times.record_time("add", time.time() - start_time, path=["rb"])
 
-            if self.up_args.sync_main:
-                states, goals, actions, ctgs_backup = self.get_replay_buffer_data(len(edges_popped), times)
-                return self.inputs_ctgs_np(states, goals, actions, ctgs_backup, times)
+        if self.up_args.sync_main:
+            ctgs_backup: List[float]
+            if self.replay_buffer.max_size() > 0:
+                states, goals, actions, ctgs_backup = self._get_replay_buffer_backup(len(edges_popped), times)
             else:
-                return []
+                start_time = time.time()
+                states, goals, is_solved_l, actions, tcs, states_next = self._get_edge_data(edges_popped)
+                ctgs_backup = self._q_learning_backup_targ(goals, is_solved_l, tcs, states_next)
+                times.record_time("backup_sync", time.time() - start_time)
+
+            return self._inputs_ctgs_np(states, goals, actions, ctgs_backup, times)
         else:
-            assert not self.up_args.sync_main
+            self.edges_popped.extend(edges_popped)
             return []
 
     def get_instance_data(self, instances: List[Inst], times: Times) -> List[NDArray]:
         if self.replay_buffer.max_size() > 0:
-            states, goals, actions, ctgs_backup = self.get_replay_buffer_data(len(self.edges_popped), times)
+            states, goals, actions, ctgs_backup = self._get_replay_buffer_backup(len(self.edges_popped), times)
         else:
-            edges_init, edges_real = _split_init_vs_real_edges(self.edges_popped)
-
-            # get backup of initial edge with random action
-            # TODO this could be taking up a lot of GPU since includes more instances in parallel (i.e. both removed and current)
-            start_time = time.time()
-            states, goals, actions, ctgs_backup = self.update_any_action(edges_init)
-            assert len(states) == len(goals) == len(actions) == len(ctgs_backup), \
-                f"Values were {len(states)}, {len(goals)}, {len(actions)}, {len(ctgs_backup)}, "
-            times.record_time("backup_1st", time.time() - start_time)
-
-            # get backup for real edges
-            for edge_real in edges_real:
-                node: NodeQ = edge_real.node
-                states.append(node.state)
-                goals.append(node.goal)
-                action: Optional[Action] = edge_real.action
-                assert action is not None
-
-                actions.append(action)
-                ctgs_backup.append(node.backup_act(action))
+            states, goals, actions, ctgs_backup = self._backup_edges(self.edges_popped, times)
 
         # to_np
-        inputs_ctgs_np: List[NDArray] = self.inputs_ctgs_np(states, goals, actions, ctgs_backup, times)
+        inputs_ctgs_np: List[NDArray] = self._inputs_ctgs_np(states, goals, actions, ctgs_backup, times)
 
         self.edges_popped = []
         return inputs_ctgs_np
 
-    def update_any_action(self, edges: List[Edge]) -> Tuple[List[State], List[Goal], List[Action], List[float]]:
+    def _backup_edges(self, edges: List[Edge], times: Times) -> Tuple[List[State], List[Goal], List[Action], List[float]]:
+        start_time = time.time()
+        edges_init, edges_real = _split_init_vs_real_edges(edges)
+        times.record_time("split_edges", time.time() - start_time)
+
+        # get backup of initial edge with random action
+        # TODO this could be taking up a lot of GPU since includes more instances in parallel (i.e. both removed and current)
+        start_time = time.time()
+        states, goals, actions, ctgs_backup = self._backup_any_next_edge(edges_init)
+        assert len(states) == len(goals) == len(actions) == len(ctgs_backup), \
+            f"Values were {len(states)}, {len(goals)}, {len(actions)}, {len(ctgs_backup)}, "
+        times.record_time("backup_init", time.time() - start_time)
+
+        # get backup for real edges
+        start_time = time.time()
+        for edge_real in edges_real:
+            node: NodeQ = edge_real.node
+            states.append(node.state)
+            goals.append(node.goal)
+            action: Optional[Action] = edge_real.action
+            assert action is not None
+
+            actions.append(action)
+            ctgs_backup.append(node.backup_act(action))
+        times.record_time("backup_real", time.time() - start_time)
+
+        return states, goals, actions, ctgs_backup
+
+    def _backup_any_next_edge(self, edges: List[Edge]) -> Tuple[List[State], List[Goal], List[Action], List[float]]:
         if len(edges) == 0:
             return [], [], [], []
-        states, goals, is_solved_l, actions, tcs, states_next = self.edge_init_next_random(edges)
-        ctgs_backup: List[float] = self.q_learning_backup(goals, is_solved_l, tcs, states_next)
+        states, goals, is_solved_l, actions, tcs, states_next = self._edge_init_next_random(edges)
+        ctgs_backup: List[float] = self._q_learning_backup_targ(goals, is_solved_l, tcs, states_next)
 
         return states, goals, actions, ctgs_backup
 
-    def get_replay_buffer_data(self, num: int, times: Times) -> Tuple[List[State], List[Goal], List[Action], List[float]]:
-        start_time = time.time()
-        assert self.replay_buffer.size() > 0, f"Replay buffer size should not be {self.replay_buffer.size()}"
-        replay_q_elems: List[ReplayQElem] = self.replay_buffer.sample(num)
-        states: List[State] = [replay_q_elem[0] for replay_q_elem in replay_q_elems]
-        goals: List[Goal] = [replay_q_elem[1] for replay_q_elem in replay_q_elems]
-        is_solved_l: List[bool] = [replay_q_elem[2] for replay_q_elem in replay_q_elems]
-        actions: List[Action] = [replay_q_elem[3] for replay_q_elem in replay_q_elems]
-        tcs: List[float] = [replay_q_elem[4] for replay_q_elem in replay_q_elems]
-        states_next: List[State] = [replay_q_elem[5] for replay_q_elem in replay_q_elems]
-        times.record_time("samp", time.time() - start_time, path=["rb"])
+    def _get_edge_data(self, edges: List[Edge]) -> Tuple[List[State], List[Goal], List[bool], List[Action], List[float], List[State]]:
+        edges_init, edges_real = _split_init_vs_real_edges(edges)
+        states, goals, is_solved_l, actions, tcs, states_next = self._edge_init_next_random(edges_init)
+        for edge_real in edges_real:
+            node: NodeQ = edge_real.node
+            states.append(node.state)
+            goals.append(node.goal)
+            assert node.is_solved is not None
+            is_solved_l.append(node.is_solved)
+            assert edge_real.action is not None
+            actions.append(edge_real.action)
+            tc, node_next = node.act_dict[edge_real.action]
+            tcs.append(tc)
+            states_next.append(node_next.state)
 
-        start_time = time.time()
-        assert len(goals) == len(is_solved_l) == len(tcs) == len(states_next)
-        ctgs_backup: List[float] = self.q_learning_backup(goals, is_solved_l, tcs, states_next)
-        times.record_time("backup", time.time() - start_time, path=["rb"])
+        return states, goals, is_solved_l, actions, tcs, states_next
 
-        return states, goals, actions, ctgs_backup
-
-    def inputs_ctgs_np(self, states: List[State], goals: List[Goal], actions: List[Action], ctgs_backup: List[float], times: Times) -> List[NDArray]:
-        start_time = time.time()
-        inputs_np: List[NDArray] = self.get_heur_nnet().to_np(states, goals, [[action] for action in actions])
-        times.record_time("to_np", time.time() - start_time)
-
-        return inputs_np + [np.array(ctgs_backup)]
-
-    def edge_init_next_random(self, edges: List[Edge]) -> Tuple[List[State], List[Goal], List[bool], List[Action], List[float], List[State]]:
+    def _edge_init_next_random(self, edges: List[Edge]) -> Tuple[List[State], List[Goal], List[bool], List[Action], List[float], List[State]]:
         if len(edges) == 0:
             return [], [], [], [], [], []
 
@@ -703,8 +677,42 @@ class UpdateHeurQ(UpdateHeur[E, NodeQ, Inst, PQ, HeurNNetParQ[State, Action, Goa
 
         return states, goals, is_solved_l, actions, tcs, states_next
 
+    @abstractmethod
+    def _get_qvals_targ(self, states: List[State], goals: List[Goal]) -> List[List[float]]:
+        pass
+
+    def _q_learning_backup_targ(self, goals: List[Goal], is_solved_l: List[bool], tcs: List[float], states_next: List[State]) -> List[float]:
+        # min cost-to-go for next state
+        qvals_next_l: List[List[float]] = self._get_qvals_targ(states_next, goals)
+        qvals_next_min: List[float] = [min(qvals_next) for qvals_next in qvals_next_l]
+
+        # backup cost-to-go
+        ctg_backups: NDArray = np.array(tcs) + np.array(qvals_next_min)
+        ctg_backups = ctg_backups * np.logical_not(np.array(is_solved_l))
+
+        return cast(List[float], ctg_backups.tolist())
+
+    def _inputs_ctgs_np(self, states: List[State], goals: List[Goal], actions: List[Action], ctgs_backup: List[float], times: Times) -> List[NDArray]:
+        start_time = time.time()
+        inputs_np: List[NDArray] = self.get_heur_nnet().to_np(states, goals, [[action] for action in actions])
+        times.record_time("to_np", time.time() - start_time)
+
+        return inputs_np + [np.array(ctgs_backup)]
+
     def _init_replay_buffer(self, max_size: int) -> None:
         self.replay_buffer = ReplayBufferQ(max_size)
+
+    def _get_replay_buffer_backup(self, num: int, times: Times) -> Tuple[List[State], List[Goal], List[Action], List[float]]:
+        start_time = time.time()
+        states, goals, is_solved_l, actions, tcs, states_next = self.replay_buffer.sample(num)
+        times.record_time("samp", time.time() - start_time, path=["rb"])
+
+        start_time = time.time()
+        assert len(goals) == len(is_solved_l) == len(tcs) == len(states_next)
+        ctgs_backup: List[float] = self._q_learning_backup_targ(goals, is_solved_l, tcs, states_next)
+        times.record_time("backup", time.time() - start_time, path=["rb"])
+
+        return states, goals, actions, ctgs_backup
 
     def _get_root_nodes(self, pathfind: PQ, steps_gen: List[int], times: Times) -> List[NodeQ]:
         # get states/goals
@@ -717,7 +725,7 @@ class UpdateHeurQ(UpdateHeur[E, NodeQ, Inst, PQ, HeurNNetParQ[State, Action, Goa
 
 
 class UpdateHeurQEnum(UpdateHeurQ[ActsEnum, Inst, PQ], ABC):
-    def get_qvals(self, states: List[State], goals: List[Goal]) -> List[List[float]]:
+    def _get_qvals_targ(self, states: List[State], goals: List[Goal]) -> List[List[float]]:
         actions_next: List[List[Action]] = self.env.get_state_actions(states)
         qvals: List[List[float]] = self.get_targ_heur_fn()(states, goals, actions_next)
 

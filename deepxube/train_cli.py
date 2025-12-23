@@ -46,8 +46,7 @@ def parser_train(parser: ArgumentParser) -> None:
                                                                              "of memory.")
     update_group.add_argument('--up_nnet_batch_size', type=int, default=20000, help="Maximum number of inputs to give to any nnet at a time during update. "
                                                                                     "Lower if running out of memory.")
-    update_group.add_argument('--sync_main', action='store_true', default=False, help="Use main nnet to search during update. If this is true then rb must "
-                                                                                      "be > 0.")
+    update_group.add_argument('--sync_main', action='store_true', default=False, help="Use main nnet to search during update.")
     update_group.add_argument('--up_v', action='store_true', default=False, help="Verbose update.")
 
     # update heur args
