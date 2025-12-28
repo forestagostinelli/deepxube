@@ -327,14 +327,13 @@ class Update(ABC, Generic[E, N, Inst, P]):
         self.targ_update_num = targ_update_num
 
     def update_runner(self, to_q: Queue, from_q: Queue, rb_size: int) -> None:
-        times: Times = Times()
-
         self._init_replay_buffer(rb_size)
         while True:
             assert self.from_main_q is not None
             data_q: Optional[Tuple[List[int], Optional[int]]] = self.from_main_q.get()
             if data_q is None:
                 break
+            times: Times = Times()
 
             step_probs, targ_update_num = data_q
             self.set_targ_update_num(targ_update_num)

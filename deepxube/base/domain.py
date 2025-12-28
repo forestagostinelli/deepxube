@@ -166,6 +166,15 @@ class Domain(ABC, Generic[S, A, G]):
 
 
 # Mixins
+class StateGoalVizable(Domain[S, A, G]):
+    """ Can visualize problem instances
+
+    """
+    @abstractmethod
+    def visualize_state_goal(self, state: S, goal: G) -> List[NDArray]:
+        pass
+
+
 class FixedGoalRevWalk(Domain[S, A, G]):
     def get_start_goal_pairs(self, num_steps_l: List[int], times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
         # Initialize

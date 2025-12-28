@@ -1,7 +1,7 @@
 from typing import List, Any
 from abc import ABC
 from deepxube.base.domain import ActsEnum, Action
-from deepxube.base.pathfinding import E, Instance, NodeQ, PathFindQ, Edge, PathFindQExpandEnum
+from deepxube.base.pathfinding import D, Instance, NodeQ, PathFindQ, Edge, PathFindQExpandEnum
 from deepxube.utils.misc_utils import boltzmann
 import numpy as np
 import random
@@ -26,7 +26,7 @@ class InstanceGrPolQ(Instance[NodeQ]):
         return self.has_soln()
 
 
-class GreedyPolicyQ(PathFindQ[E, InstanceGrPolQ], ABC):
+class GreedyPolicyQ(PathFindQ[D, InstanceGrPolQ], ABC):
     def step(self, verbose: bool = False) -> List[Edge]:
         # get unsolved instances
         instances: List[InstanceGrPolQ] = [instance for instance in self.instances if not instance.finished()]

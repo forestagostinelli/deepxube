@@ -59,12 +59,12 @@ class Instance(ABC, Generic[N]):
 
 
 I = TypeVar('I', bound=Instance)
-E = TypeVar('E', bound=Domain)
+D = TypeVar('D', bound=Domain)
 
 
-class PathFind(ABC, Generic[E, N, I]):
-    def __init__(self, env: E):
-        self.env: E = env
+class PathFind(ABC, Generic[D, N, I]):
+    def __init__(self, domain: D):
+        self.domain: D = domain
         self.instances: List[I] = []
         self.times: Times = Times()
         self.itr: int = 0
@@ -111,7 +111,7 @@ class PathFind(ABC, Generic[E, N, I]):
             states.append(node.state)
             goals.append(node.goal)
 
-        is_solved_l: List[bool] = self.env.is_solved(states, goals)
+        is_solved_l: List[bool] = self.domain.is_solved(states, goals)
         for node, is_solved in zip(nodes, is_solved_l, strict=True):
             node.is_solved = is_solved
 
@@ -203,7 +203,7 @@ class NodeV(Node):
         return self.backup_val
 
 
-class PathFindV(PathFind[E, NodeV, I]):
+class PathFindV(PathFind[D, NodeV, I]):
     @staticmethod
     def get_expanded_nodes(root_node: NodeV) -> List[NodeV]:
         popped_nodes: List[NodeV] = []
@@ -216,7 +216,7 @@ class PathFindV(PathFind[E, NodeV, I]):
                     fifo.append(child)
         return popped_nodes
 
-    def __init__(self, env: E, heur_fn: HeurFnV):
+    def __init__(self, env: D, heur_fn: HeurFnV):
         super().__init__(env)
         self.heur_fn: HeurFnV = heur_fn
 
@@ -329,7 +329,7 @@ class PathFindV(PathFind[E, NodeV, I]):
 class PathFindVExpandEnum(PathFindV[ActsEnum, I], ABC):
     def expand(self, states: List[State],
                goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
-        return self.env.expand(states)
+        return self.domain.expand(states)
 
 
 class NodeQ(Node):
@@ -378,8 +378,8 @@ class Edge:
         self.q_val: float = q_val
 
 
-class PathFindQ(PathFind[E, NodeQ, I]):
-    def __init__(self, env: E, heur_fn: HeurFnQ):
+class PathFindQ(PathFind[D, NodeQ, I]):
+    def __init__(self, env: D, heur_fn: HeurFnQ):
         super().__init__(env)
         self.heur_fn: HeurFnQ = heur_fn
 
@@ -407,7 +407,7 @@ class PathFindQ(PathFind[E, NodeQ, I]):
         if len(idxs_op) > 0:
             states_op: List[State] = [states[idx_op] for idx_op in idxs_op]
             actions_op: List[Action] = [cast(Action, actions[idx_op]) for idx_op in idxs_op]
-            states_next_op, tcs_op = self.env.next_state(states_op, actions_op)
+            states_next_op, tcs_op = self.domain.next_state(states_op, actions_op)
             for idx_op, state, tc in zip(idxs_op, states_next_op, tcs_op):
                 states_next[idx_op] = state
                 tcs[idx_op] = tc
@@ -479,4 +479,4 @@ class PathFindQ(PathFind[E, NodeQ, I]):
 
 class PathFindQExpandEnum(PathFindQ[ActsEnum, I], ABC):
     def get_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
-        return self.env.get_state_actions(states)
+        return self.domain.get_state_actions(states)
