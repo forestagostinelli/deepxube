@@ -16,7 +16,9 @@ For any issues, you can create a GitHub issue or contact Forest Agostinelli (for
 
 - [Installation](#installation)
 - [Domains](#domains)
+- [Domain Visualization](#domain-visualization)
 - [Neural Network Inputs](#Neural-Network-Inputs)
+- [Heuristic](#Heuristics)
 - [Examples](#examples)
 
 
@@ -31,15 +33,14 @@ The following information is not yet pip installable, but will be soon.
 
 ## Domains
 User-defined domains should go in the `./domains/` folder.
-deepxube will recursively search this directory and import all modules so that domains are registered.
-
+deepxube will recursively search this directory and import all modules so that domains are registered. 
 For example, see the `GridExample` domain in [`examples/domains/grid.py`](examples/domains/grid.py).
 
 `GridExample` inherits from Mixin classes from `deepxube.base.domain`, which give it additional functionality.
-By inheriting from `ActsEnumFixed`, `GridExample` implements `_get_actions_fixed` and has methods automatically implemented 
-to randomly sample actions and to expand states by applying every possible action to that state.
-By inheriting from `StartGoalWalkable`, `GridExample` implements `get_start_states`
-and has a method automatically implemented to get problem instances (start state and goal pairs) via a random walk.
+- `ActsEnumFixed`: `GridExample` implements `_get_actions_fixed` 
+  - Methods obtained: `get_state_action_rand`, `expand`, `get_state_actions`, `get_num_acts`
+- `StartGoalWalkable`: `GridExample` implements `sample_goal` and `get_start_states`
+  - Methods obtained: `get_start_goal_pairs`
 
 By using registers from `deepxube.factories.domain_factory`, `GridExample` can be obtained from its name.
 Furthermore, a parser can be implemetned and registered to allow one to specify arguments for the constructor via the command line.
@@ -48,9 +49,21 @@ By convention, everything after the '.' are considered arguments.
 Running `deepxube domain_info` in a directory with `domains/grid.py` should produce (amongst other available domains):
 ```terminaloutput
 Domain: grid_example
-        Parser: An integer for the dimension. E.g. 'grid.7'
+        Parser: An integer for the dimension. E.g. 'grid_example.7'
         NNet Inputs: flat_sg_dynamic
 ```
+
+See [Neural Network Inputs](#Neural-Network-Inputs) for more information on `NNet Inputs`.
+
+
+## Domain Visualization
+Visualization of states/goals and the domain transition function can be useful to validating it.
+To accomplish this, a domain can inherit from `StateGoalVizable` to convert state/goal pairs to figures
+and inherit from `StringToAct` to be able to type actions into the command line and see how it changes the state.
+
+By running `deepxube viz --domain grid_example.7 --steps 10` will create a start/goal pair by taking a random walk of length 10 and visualize it.
+One can vary the grid size by simply changing the number (e.g. `deepxube viz --domain grid_example.10 --steps 10`).
+Action string representations are 0, 1, 2, and 3. After applying an action, the transition cost and whether or not the goal is reached will be printed.
 
 
 ## Neural Network Inputs
@@ -61,6 +74,8 @@ From this, if a neural network expects a flat (1D) input from a state/goal pair,
 dimension of the input, the number of inputs, and that converts state/goal pairs to numpy arrays is dynamically created.
 Hence, the `NNet Inputs: flat_sg_dynamic` in the domain information.
 
+
+## Heuristics
 
 ## Examples
 ### Using DeepXube to train a heuristic function for the Rubik's cube (this part is not yet pip installable, but will be soon)

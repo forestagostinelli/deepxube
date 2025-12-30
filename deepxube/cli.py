@@ -40,13 +40,12 @@ def heur_info(args: argparse.Namespace) -> None:
 def viz(args: argparse.Namespace) -> None:
     domain, domain_name = get_domain_from_arg(args.domain)
     assert isinstance(domain, StateGoalVizable)
-    states, goals = domain.get_start_goal_pairs([0])
+    states, goals = domain.get_start_goal_pairs([args.steps])
     state: State = states[0]
     goal: Goal = goals[0]
     fig = plt.figure(figsize=(5, 5))
     domain.visualize_state_goal(state, goal, fig)
-    if domain.is_solved([state], [goal])[0]:
-        print("Solved")
+    print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
 
     if isinstance(domain, StringToAct):
         plt.show(block=False)
@@ -66,8 +65,7 @@ def viz(args: argparse.Namespace) -> None:
                 print(f"Transition cost: {tc}")
                 fig.canvas.draw()
 
-                if domain.is_solved([state], [goal])[0]:
-                    print("Solved")
+                print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
     else:
         plt.show(block=True)
 
@@ -118,4 +116,5 @@ def _parser_heur_info(parser: ArgumentParser) -> None:
 
 def _parse_viz_info(parser: ArgumentParser) -> None:
     parser.add_argument('--domain', type=str, required=True, help="Domain name and arguments.")
+    parser.add_argument('--steps', type=int, default=0, help="Number of steps to take to generate problem instnace.")
     parser.set_defaults(func=viz)

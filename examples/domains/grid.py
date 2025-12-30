@@ -110,4 +110,4 @@ class GridParser(DomainParser):
         return {"dim": int(args_str)}
 
     def help(self) -> str:
-        return "An integer for the dimension. E.g. 'grid.7'"
+        return "An integer for the dimension. E.g. 'grid_example.7'"

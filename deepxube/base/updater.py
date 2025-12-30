@@ -554,16 +554,16 @@ class UpdateHeurQ(UpdateHeur[D, NodeQ, Inst, PQ, HeurNNetParQ[State, Action, Goa
         edges_popped: List[Edge] = pathfind.step()
         assert len(edges_popped) == len(pathfind.instances), f"Values were {len(edges_popped)} and {len(pathfind.instances)}"
 
-        if self.up_args.sync_main:
+        if not self.up_args.sync_main:
+            self.edges_popped.extend(edges_popped)
+            return []
+        else:
             start_time = time.time()
             states, goals, is_solved_l, actions, tcs, states_next = self._get_edge_data(edges_popped)
             ctgs_backup: List[float] = self._q_learning_backup_targ(goals, is_solved_l, tcs, states_next)
             times.record_time("backup_sync", time.time() - start_time)
 
             return self._inputs_ctgs_np(states, goals, actions, ctgs_backup, times)
-        else:
-            self.edges_popped.extend(edges_popped)
-            return []
 
     def get_instance_data(self, instances: List[Inst], times: Times) -> List[NDArray]:
         states, goals, actions, ctgs_backup = self._backup_edges(self.edges_popped, times)
