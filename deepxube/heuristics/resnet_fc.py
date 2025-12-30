@@ -74,4 +74,4 @@ class ResnetFCParser(HeurNNetParser):
     def help(self) -> str:
         return ("Arguments are delimited by '_' and can be in any order.\n<num>H (number of hidden units), "
                 "<num>B (number of blocks), bn (batch_norm), wn (weight_norm).\n"
-                "E.g. 1000H_4B_bn")
+                "E.g. resnet_fc.1000H_4B_bn")

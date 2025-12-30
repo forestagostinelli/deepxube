@@ -1,13 +1,13 @@
-from typing import List, Optional, Tuple, cast
+from typing import List, Optional, Tuple, cast, Type
 import argparse
 from argparse import ArgumentParser
 
 from deepxube.train_cli import parser_train
 from deepxube.base.domain import DomainParser, StateGoalVizable, StringToAct, State, Action, Goal
-from deepxube.base.heuristic import HeurNNetParser
+from deepxube.base.heuristic import HeurNNet, HeurNNetParser
 from deepxube.factories.domain_factory import get_all_domain_names, get_domain_parser
-from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys
-from deepxube.factories.heuristic_factory import get_all_heur_nnet_names, get_heur_nnet_parser
+from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys, get_nnet_input_t
+from deepxube.factories.heuristic_factory import get_all_heur_nnet_names, get_heur_nnet_type, get_heur_nnet_parser
 from deepxube.utils.command_line_utils import get_domain_from_arg
 
 import matplotlib.pyplot as plt
@@ -25,13 +25,17 @@ def domain_info(args: argparse.Namespace) -> None:
 
         nnet_input_t_keys: List[Tuple[str, str]] = get_domain_nnet_input_keys(domain_name)
         if len(nnet_input_t_keys) > 0:
-            print(f"\tNNet Inputs: {', '.join(nnet_input_t_key[1] for nnet_input_t_key in nnet_input_t_keys)}")
+            print(textwrap.indent("NNet Inputs:", '\t'))
+            for nnet_input_t_key in nnet_input_t_keys:
+                print(textwrap.indent(f"Name: {nnet_input_t_key[1]}, Type: {get_nnet_input_t(nnet_input_t_key)}", '\t\t'))
 
 
 def heur_info(args: argparse.Namespace) -> None:
     heur_nnet_names: List[str] = get_all_heur_nnet_names()
     for heur_nnet_name in heur_nnet_names:
         print(f"Heur NNet: {heur_nnet_name}")
+        heur_nnet_t: Type[HeurNNet] = get_heur_nnet_type(heur_nnet_name)
+        print(textwrap.indent(f"NNet_Input type expected: {heur_nnet_t.nnet_input_type()}", '\t'))
         parser: Optional[HeurNNetParser] = get_heur_nnet_parser(heur_nnet_name)
         if parser is not None:
             print(textwrap.indent("Parser: " + parser.help(), '\t'))

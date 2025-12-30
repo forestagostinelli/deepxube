@@ -1,7 +1,7 @@
 from typing import Dict, Tuple, Type, Callable, List
 
 from deepxube.base.nnet_input import (NNetInput, FlatIn, StateGoalIn, StateGoalActFixIn, StateGoalActIn, HasFlatSGIn,
-                                      HasFlatSGActFixIn, HasFlatSGAIn)
+                                      HasFlatSGActsEnumFixedIn, HasFlatSGAIn)
 from deepxube.base.domain import Domain, State, Goal, Action
 from deepxube.factories.domain_factory import get_all_domain_names, get_domain_type
 
@@ -48,10 +48,10 @@ def register_nnet_input_dynamic() -> None:
 
             register_nnet_input(domain_name, "flat_sg_dynamic")(FlatSGConcrete)
 
-        if issubclass(domain_t, HasFlatSGActFixIn):
-            class FlatSGActFixConcrete(FlatIn[HasFlatSGActFixIn],
-                                       StateGoalActFixIn[HasFlatSGActFixIn, State, Goal, Action]):
-                def __init__(self, domain: HasFlatSGActFixIn):
+        if issubclass(domain_t, HasFlatSGActsEnumFixedIn):
+            class FlatSGActFixConcrete(FlatIn[HasFlatSGActsEnumFixedIn],
+                                       StateGoalActFixIn[HasFlatSGActsEnumFixedIn, State, Goal, Action]):
+                def __init__(self, domain: HasFlatSGActsEnumFixedIn):
                     super().__init__(domain)
 
                 def get_input_info(self) -> Tuple[List[int], List[int]]:

@@ -2,8 +2,8 @@ from typing import List, Tuple, Dict, Any, Optional
 import numpy as np
 from matplotlib.figure import Figure
 
-from deepxube.base.nnet_input import HasFlatSGIn
 from deepxube.base.domain import State, Action, Goal, ActsEnumFixed, StartGoalWalkable, StateGoalVizable, StringToAct, DomainParser
+from deepxube.base.nnet_input import StateGoalIn, HasFlatSGIn
 from deepxube.factories.domain_factory import register_domain, register_domain_parser
 from matplotlib.colors import ListedColormap
 
@@ -111,3 +111,11 @@ class GridParser(DomainParser):
 
     def help(self) -> str:
         return "An integer for the dimension. E.g. 'grid_example.7'"
+
+
+class GridNNetInput(StateGoalIn[GridExample, GridState, GridGoal]):
+    def get_input_info(self) -> int:
+        return self.domain.dim
+
+    def to_np(self, states: List[GridState], goals: List[GridGoal]) -> List[NDArray]:
+        breakpoint()
