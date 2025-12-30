@@ -32,8 +32,6 @@ def parser_train(parser: ArgumentParser) -> None:
     train_group.add_argument('--display', type=int, default=0, help="Display frequency for nnet training.")
     train_group.add_argument('--no_bal', action='store_true', default=False, help="Balancing of number of steps to take to generate problem instances is on by "
                                                                                   "default. Set for no balancing.")
-    train_group.add_argument('--rb', type=int, default=0, help="Number of updates worth of data to keep in replay buffer. If 0 then wait for update to get "
-                                                               "data and randomly sample from that data for training data.")
 
     # updater args
     update_group = parser.add_argument_group('update')
@@ -89,7 +87,6 @@ def train_cli(args: argparse.Namespace) -> None:
 
     # train args
     train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, not args.no_bal,
-                                      rb=args.rb,
                                       display=args.display)
 
     # test args

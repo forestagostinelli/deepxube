@@ -35,8 +35,7 @@ class InteractiveCube(plt.Axes):  # type: ignore
     base_face_centroid = np.array([[0, 0, 1]])
     base_sticker_centroid = np.array([[0, 0, 1 + stickerthickness]])
 
-    def __init__(self, n, colors: NDArray, view=(0, 0, 10),
-                 fig=None, **kwargs) -> None:
+    def __init__(self, n, colors: NDArray, view=(0, 0, 10), fig=None, **kwargs) -> None:
         self.colors: NDArray = colors
 
         # Define rotation angles and axes for the six sides of the cube

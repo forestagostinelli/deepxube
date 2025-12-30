@@ -16,9 +16,8 @@ from deepxube.base.domain import Domain, State, Goal, Action, ActsEnum
 from deepxube.base.heuristic import HeurNNetPar, HeurFnV, HeurFnQ, HeurNNetParV, HeurNNetParQ
 from deepxube.base.pathfinding import PathFind, PathFindV, PathFindQ, Instance, Node, NodeV, NodeQ, Edge
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, print_pathfindperf
-from deepxube.updater.updater_utils import ReplayBufferQ
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd, get_nowait_noerr
-from deepxube.utils.misc_utils import split_evenly_w_max, split_evenly
+from deepxube.utils.misc_utils import split_evenly_w_max
 from deepxube.utils.timing_utils import Times
 
 import copy
@@ -84,13 +83,13 @@ def _put_from_q(data_l: List[List[NDArray]], from_q: Queue, times: Times) -> Non
     times.record_time("put", time.time() - start_time)
 
 
-E = TypeVar('E', bound=Domain)
+D = TypeVar('D', bound=Domain)
 N = TypeVar('N', bound=Node)
 Inst = TypeVar('Inst', bound=Instance)
 P = TypeVar('P', bound=PathFind)
 
 
-class Update(ABC, Generic[E, N, Inst, P]):
+class Update(ABC, Generic[D, N, Inst, P]):
     @staticmethod
     def _update_perf(insts: List[Inst], step_to_pathperf: Dict[int, PathFindPerf]) -> None:
         for inst in insts:
@@ -99,8 +98,8 @@ class Update(ABC, Generic[E, N, Inst, P]):
                 step_to_pathperf[step_num_inst] = PathFindPerf()
             step_to_pathperf[step_num_inst].update_perf(inst)
 
-    def __init__(self, env: E, up_args: UpArgs):
-        self.env: E = env
+    def __init__(self, env: D, up_args: UpArgs):
+        self.env: D = env
         self.up_args: UpArgs = up_args
         self.targ_update_num: Optional[int] = None
         self.nnet_par_dict: Dict[str, NNetPar] = dict()
@@ -159,7 +158,7 @@ class Update(ABC, Generic[E, N, Inst, P]):
         self.q_id = q_id
         self.nnet_par_info_main = NNetParInfo(self.to_main_q, self.from_main_q, self.q_id)
 
-    def start_procs(self, rb_size: int) -> Tuple[Queue, List[Queue]]:
+    def start_procs(self) -> Tuple[Queue, List[Queue]]:
         # start updater procs
         # TODO implement safer copy?
         updaters: List[Update] = [copy.deepcopy(self) for _ in range(self.up_args.procs)]
@@ -179,14 +178,9 @@ class Update(ABC, Generic[E, N, Inst, P]):
         self.to_q = ctx.Queue()
         self.from_q = ctx.Queue()
         self.procs = []
-        rb_sizes_q: List[int] = [0] * len(updaters)
-        if rb_size > 0:
-            rb_sizes_q = split_evenly(rb_size, self.up_args.procs)
 
-        for updater, rb_size_q in zip(updaters, rb_sizes_q):
-            if rb_size > 0:
-                assert rb_size_q > 0
-            proc: BaseProcess = ctx.Process(target=updater.update_runner, args=(self.to_q, self.from_q, rb_size_q))
+        for updater in updaters:
+            proc: BaseProcess = ctx.Process(target=updater.update_runner, args=(self.to_q, self.from_q))
             proc.daemon = True
             proc.start()
             self.procs.append(proc)
@@ -319,15 +313,10 @@ class Update(ABC, Generic[E, N, Inst, P]):
     def get_instance_data(self, instances: List[Inst], times: Times) -> List[NDArray]:
         pass
 
-    @abstractmethod
-    def _init_replay_buffer(self, max_size: int) -> None:
-        pass
-
     def set_targ_update_num(self, targ_update_num: Optional[int]) -> None:
         self.targ_update_num = targ_update_num
 
-    def update_runner(self, to_q: Queue, from_q: Queue, rb_size: int) -> None:
-        self._init_replay_buffer(rb_size)
+    def update_runner(self, to_q: Queue, from_q: Queue) -> None:
         while True:
             assert self.from_main_q is not None
             data_q: Optional[Tuple[List[int], Optional[int]]] = self.from_main_q.get()
@@ -413,7 +402,7 @@ HNet = TypeVar('HNet', bound=HeurNNetPar)
 H = TypeVar('H', bound=NNetCallable)
 
 
-class UpdateHasHeur(Update[E, N, Inst, P], Generic[E, N, Inst, P, HNet, H]):
+class UpdateHasHeur(Update[D, N, Inst, P], Generic[D, N, Inst, P, HNet, H]):
     @staticmethod
     def heur_name() -> str:
         return 'heur'
@@ -442,8 +431,8 @@ class UpdateHasHeur(Update[E, N, Inst, P], Generic[E, N, Inst, P, HNet, H]):
         pass
 
 
-class UpdateHeur(UpdateHasHeur[E, N, Inst, P, HNet, H], ABC):
-    def __init__(self, env: E, up_args: UpArgs, up_heur_args: UpHeurArgs, heur_nnet: HNet):
+class UpdateHeur(UpdateHasHeur[D, N, Inst, P, HNet, H], ABC):
+    def __init__(self, env: D, up_args: UpArgs, up_heur_args: UpHeurArgs, heur_nnet: HNet):
         super().__init__(env, up_args)
         self.set_heur_nnet(heur_nnet)
         self.up_heur_args: UpHeurArgs = up_heur_args
@@ -458,8 +447,8 @@ class UpdateHeur(UpdateHasHeur[E, N, Inst, P, HNet, H], ABC):
 PV = TypeVar('PV', bound=PathFindV)
 
 
-class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetParV[State, Goal], HeurFnV[State, Goal]], ABC):
-    def __init__(self, env: E, up_args: UpArgs, up_heur_args: UpHeurArgs, heur_nnet: HeurNNetParV):
+class UpdateHeurV(UpdateHeur[D, NodeV, Inst, PV, HeurNNetParV[State, Goal], HeurFnV[State, Goal]], ABC):
+    def __init__(self, env: D, up_args: UpArgs, up_heur_args: UpHeurArgs, heur_nnet: HeurNNetParV):
         super().__init__(env, up_args, up_heur_args, heur_nnet)
         self.nodes_popped: List[NodeV] = []
 
@@ -519,10 +508,6 @@ class UpdateHeurV(UpdateHeur[E, NodeV, Inst, PV, HeurNNetParV[State, Goal], Heur
         self.nodes_popped = []
         return inputs_np + [np.array(ctgs_backup)]
 
-    def _init_replay_buffer(self, max_size: int) -> None:
-        if max_size > 0:
-            raise NotImplementedError
-
     def _get_root_nodes(self, pathfind: PV, steps_gen: List[int], times: Times) -> List[NodeV]:
         # get states/goals
         times_states: Times = Times()
@@ -547,11 +532,10 @@ def _split_init_vs_real_edges(edges: List[Edge]) -> Tuple[List[Edge], List[Edge]
     return edges_init, edges_real
 
 
-class UpdateHeurQ(UpdateHeur[E, NodeQ, Inst, PQ, HeurNNetParQ[State, Action, Goal], HeurFnQ[State, Goal, Action]], ABC):
-    def __init__(self, env: E, up_args: UpArgs, up_heur_args: UpHeurArgs, heur_nnet: HeurNNetParQ):
+class UpdateHeurQ(UpdateHeur[D, NodeQ, Inst, PQ, HeurNNetParQ[State, Action, Goal], HeurFnQ[State, Goal, Action]], ABC):
+    def __init__(self, env: D, up_args: UpArgs, up_heur_args: UpHeurArgs, heur_nnet: HeurNNetParQ):
         super().__init__(env, up_args, up_heur_args, heur_nnet)
         self.edges_popped: List[Edge] = []
-        self.replay_buffer: ReplayBufferQ = ReplayBufferQ(0)
 
     def get_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.env.get_start_goal_pairs([0])
@@ -570,21 +554,11 @@ class UpdateHeurQ(UpdateHeur[E, NodeQ, Inst, PQ, HeurNNetParQ[State, Action, Goa
         edges_popped: List[Edge] = pathfind.step()
         assert len(edges_popped) == len(pathfind.instances), f"Values were {len(edges_popped)} and {len(pathfind.instances)}"
 
-        if self.replay_buffer.max_size() > 0:
-            start_time = time.time()
-            states_e, goals_e, is_solved_l_e, actions_e, tcs_e, states_next_e = self._get_edge_data(edges_popped)
-            self.replay_buffer.add(list(zip(states_e, goals_e, is_solved_l_e, actions_e, tcs_e, states_next_e)))
-            times.record_time("add", time.time() - start_time, path=["rb"])
-
         if self.up_args.sync_main:
-            ctgs_backup: List[float]
-            if self.replay_buffer.max_size() > 0:
-                states, goals, actions, ctgs_backup = self._get_replay_buffer_backup(len(edges_popped), times)
-            else:
-                start_time = time.time()
-                states, goals, is_solved_l, actions, tcs, states_next = self._get_edge_data(edges_popped)
-                ctgs_backup = self._q_learning_backup_targ(goals, is_solved_l, tcs, states_next)
-                times.record_time("backup_sync", time.time() - start_time)
+            start_time = time.time()
+            states, goals, is_solved_l, actions, tcs, states_next = self._get_edge_data(edges_popped)
+            ctgs_backup: List[float] = self._q_learning_backup_targ(goals, is_solved_l, tcs, states_next)
+            times.record_time("backup_sync", time.time() - start_time)
 
             return self._inputs_ctgs_np(states, goals, actions, ctgs_backup, times)
         else:
@@ -592,10 +566,7 @@ class UpdateHeurQ(UpdateHeur[E, NodeQ, Inst, PQ, HeurNNetParQ[State, Action, Goa
             return []
 
     def get_instance_data(self, instances: List[Inst], times: Times) -> List[NDArray]:
-        if self.replay_buffer.max_size() > 0:
-            states, goals, actions, ctgs_backup = self._get_replay_buffer_backup(len(self.edges_popped), times)
-        else:
-            states, goals, actions, ctgs_backup = self._backup_edges(self.edges_popped, times)
+        states, goals, actions, ctgs_backup = self._backup_edges(self.edges_popped, times)
 
         # to_np
         inputs_ctgs_np: List[NDArray] = self._inputs_ctgs_np(states, goals, actions, ctgs_backup, times)
@@ -697,21 +668,6 @@ class UpdateHeurQ(UpdateHeur[E, NodeQ, Inst, PQ, HeurNNetParQ[State, Action, Goa
         times.record_time("to_np", time.time() - start_time)
 
         return inputs_np + [np.array(ctgs_backup)]
-
-    def _init_replay_buffer(self, max_size: int) -> None:
-        self.replay_buffer = ReplayBufferQ(max_size)
-
-    def _get_replay_buffer_backup(self, num: int, times: Times) -> Tuple[List[State], List[Goal], List[Action], List[float]]:
-        start_time = time.time()
-        states, goals, is_solved_l, actions, tcs, states_next = self.replay_buffer.sample(num)
-        times.record_time("samp", time.time() - start_time, path=["rb"])
-
-        start_time = time.time()
-        assert len(goals) == len(is_solved_l) == len(tcs) == len(states_next)
-        ctgs_backup: List[float] = self._q_learning_backup_targ(goals, is_solved_l, tcs, states_next)
-        times.record_time("backup", time.time() - start_time, path=["rb"])
-
-        return states, goals, actions, ctgs_backup
 
     def _get_root_nodes(self, pathfind: PQ, steps_gen: List[int], times: Times) -> List[NodeQ]:
         # get states/goals

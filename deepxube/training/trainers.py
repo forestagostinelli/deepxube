@@ -98,7 +98,7 @@ class TrainHeur:
             per_solved: float = self._update_greedy_perf(0)
             self.status.per_solved_best = per_solved
 
-        # init replay buffer
+        # init data buffer
         shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = updater.get_shapes_dtypes()
         db_shapes: List[Tuple[int, ...]] = [x[0] for x in shapes_dtypes]
         db_dtypes: List[np.dtype] = [x[1] for x in shapes_dtypes]
@@ -287,7 +287,7 @@ class TrainHeur:
         updater_greedy.set_heur_file(self.nnet_file)
         step_probs = np.ones(self.updater.up_args.step_max + 1) / (self.updater.up_args.step_max + 1)
         num_gen: int = self.updater.up_args.search_itrs * self.train_args.targ_up_searches
-        updater_greedy.start_procs(0)
+        updater_greedy.start_procs()
         updater_greedy.start_update(step_probs.tolist(), num_gen, update_num, self.train_args.batch_size,
                                     self.device, self.on_gpu)
         while updater_greedy.num_generated < num_gen:
