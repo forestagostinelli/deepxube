@@ -91,12 +91,12 @@ def main() -> None:
     _parser_domain_info(parser_domain_info)
 
     # heuristic info
-    parser_heur_info: ArgumentParser = subparsers.add_parser('heur_info', help="Print information on neural network "
-                                                                               "representations of heuristic functions "
-                                                                               "that deepxube has registered. "
-                                                                               "Put user-defined definitions of "
-                                                                               "heuristic neural networks in "
-                                                                               "'./heuristics/'")
+    parser_heur_info: ArgumentParser = subparsers.add_parser('heuristic_info', help="Print information on neural network "
+                                                                                    "representations of heuristic functions "
+                                                                                    "that deepxube has registered. "
+                                                                                    "Put user-defined definitions of "
+                                                                                    "heuristic neural networks in "
+                                                                                    "'./heuristics/'")
     _parser_heur_info(parser_heur_info)
 
     # visualization

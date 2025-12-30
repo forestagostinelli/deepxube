@@ -27,130 +27,13 @@ For any issues, you can create a GitHub issue or contact Forest Agostinelli (for
 
 See [INSTALL.md](INSTALL.md) for more details
 
+The following information is not yet pip installable, but will be soon.
+
 ## Domains
 User-defined domains should go in the `./domains/` folder.
 deepxube will recursively search this directory and import all modules so that domains are registered.
 
-For example, in `./domains/grid.py` you can put the following
-
-```python
-from typing import List, Tuple, Dict, Any, Optional
-import numpy as np
-from matplotlib.figure import Figure
-
-from deepxube.base.nnet_input import HasFlatSGIn
-from deepxube.base.domain import State, Action, Goal, ActsEnumFixed, StartGoalWalkable, StateGoalVizable, StringToAct, DomainParser
-from deepxube.factories.domain_factory import register_domain, register_domain_parser
-from matplotlib.colors import ListedColormap
-
-import matplotlib.pyplot as plt
-from numpy.typing import NDArray
-
-
-# Define states, goals, and actions
-class GridState(State):
-    def __init__(self, robot_x: int, robot_y: int):
-        self.robot_x: int = robot_x
-        self.robot_y: int = robot_y
-
-    def __hash__(self) -> int:
-        return hash(self.robot_x + self.robot_y)
-
-    def __eq__(self, other: object) -> bool:
-        if isinstance(other, GridState):
-            return (self.robot_x == other.robot_x) and (self.robot_y == other.robot_y)
-        return NotImplemented
-
-
-class GridGoal(Goal):
-    def __init__(self, robot_x: int, robot_y: int):
-        self.robot_x: int = robot_x
-        self.robot_y: int = robot_y
-
-
-class GridAction(Action):
-    def __init__(self, action: int):
-        self.action = action
-
-    def __hash__(self) -> int:
-        return self.action
-
-    def __eq__(self, other: object) -> bool:
-        if isinstance(other, GridAction):
-            return self.action == other.action
-        return NotImplemented
-
-
-@register_domain("grid_example")
-class GridExample(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalkable[GridState, GridAction, GridGoal],
-                  StateGoalVizable[GridState, GridAction, GridGoal], StringToAct[GridState, GridAction, GridGoal],
-                  HasFlatSGIn[GridState, GridAction, GridGoal]):
-    def __init__(self, dim: int = 7):
-        super().__init__()
-        self.dim: int = dim
-        self.num_tiles: int = self.dim ** 2
-        self.actions_fixed: List[GridAction] = [GridAction(x) for x in [0, 1, 2, 3]]
-
-    def is_solved(self, states: List[GridState], goals: List[GridGoal]) -> List[bool]:
-        return [(goal.robot_x is None or state.robot_x == goal.robot_x) and
-                (goal.robot_y is None or state.robot_y == goal.robot_y)
-                for state, goal in zip(states, goals)]
-
-    def get_start_states(self, num_states: int) -> List[GridState]:
-        return [GridState(np.random.randint(self.dim), np.random.randint(self.dim)) for _ in range(num_states)]
-
-    def next_state(self, states: List[GridState], actions: List[GridAction]) -> Tuple[List[GridState], List[float]]:
-        states_next: List[GridState] = []
-        for state, action in zip(states, actions):
-            if action.action == 0:  # up
-                states_next.append(GridState(min(state.robot_x + 1, self.dim - 1), state.robot_y))
-            elif action.action == 1:  # down
-                states_next.append(GridState(max(state.robot_x - 1, 0), state.robot_y))
-            elif action.action == 2:  # left
-                states_next.append(GridState(state.robot_x, min(state.robot_y + 1, self.dim - 1)))
-            elif action.action == 3:  # right
-                states_next.append(GridState(state.robot_x, max(state.robot_y - 1, 0)))
-
-        return states_next, [1.0] * len(states_next)
-
-    def sample_goal(self, states_start: List[GridState], states_goal: List[GridState]) -> List[GridGoal]:
-        return [GridGoal(state_goal.robot_x, state_goal.robot_y) for state_goal in states_goal]
-
-    def get_input_info_flat_sg(self) -> Tuple[List[int], List[int]]:
-        return [4], [self.dim]
-
-    def to_np_flat_sg(self, states: List[GridState], goals: List[GridGoal]) -> List[NDArray]:
-        return [np.stack([x.robot_x for x in states], axis=0)]
-
-    def visualize_state_goal(self, state: GridState, goal: GridGoal, fig: Figure) -> None:
-        ax = plt.axes()
-        cmap = ListedColormap(["white", "black", "green"])
-        grid: NDArray = np.zeros((self.dim, self.dim))
-        grid[goal.robot_x, goal.robot_y] = 2
-        grid[state.robot_x, state.robot_y] = 1
-        ax.imshow(grid, cmap=cmap, origin="upper")
-        fig.add_axes(ax)
-
-    def string_to_action(self, act_str: str) -> Optional[GridAction]:
-        if act_str in {"0", "1", "2", "3"}:
-            return GridAction(int(act_str))
-        else:
-            return None
-
-    def _get_actions_fixed(self) -> List[GridAction]:
-        return self.actions_fixed.copy()
-
-    def __repr__(self) -> str:
-        return f"Grid(dim={self.dim})"
-
-@register_domain_parser("grid_example")
-class GridParser(DomainParser):
-    def parse(self, args_str: str) -> Dict[str, Any]:
-        return {"dim": int(args_str)}
-
-    def help(self) -> str:
-        return "An integer for the dimension. E.g. 'grid.7'"
-```
+For example, see the `GridExample` domain in [`examples/domains/grid.py`](examples/domains/grid.py).
 
 `GridExample` inherits from Mixin classes from `deepxube.base.domain`, which give it additional functionality.
 By inheriting from `ActsEnumFixed`, `GridExample` implements `_get_actions_fixed` and has methods automatically implemented 
@@ -162,7 +45,7 @@ By using registers from `deepxube.factories.domain_factory`, `GridExample` can b
 Furthermore, a parser can be implemetned and registered to allow one to specify arguments for the constructor via the command line.
 By convention, everything after the '.' are considered arguments.
 
-Now, by running `deepxube domain_info` in a directory with `domains/grid.py` should produce:
+Running `deepxube domain_info` in a directory with `domains/grid.py` should produce (amongst other available domains):
 ```terminaloutput
 Domain: grid_example
         Parser: An integer for the dimension. E.g. 'grid.7'
@@ -175,7 +58,8 @@ Domain: grid_example
 By inheriting from Mixins from `deepxube.base.nnet_input` a `NNetInput` class can be dynamically created for a domain.
 `GridExample` inherits from `HasFlatSGIn` and implements `get_input_info_flat_sg` and `to_np_flat_sg`.
 From this, if a neural network expects a flat (1D) input from a state/goal pair, then a `NNetInput` class that tells the neural network the 
-dimension of the input, the number of inputs, and that converts state/goal pairs to numpy arrays is dynamically created. 
+dimension of the input, the number of inputs, and that converts state/goal pairs to numpy arrays is dynamically created.
+Hence, the `NNet Inputs: flat_sg_dynamic` in the domain information.
 
 
 ## Examples
