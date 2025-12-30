@@ -1,9 +1,9 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, cast
 import argparse
 from argparse import ArgumentParser
 
 from deepxube.train_cli import parser_train
-from deepxube.base.domain import DomainParser, StateGoalVizable
+from deepxube.base.domain import DomainParser, StateGoalVizable, StringToAct, State, Action, Goal
 from deepxube.base.heuristic import HeurNNetParser
 from deepxube.factories.domain_factory import get_all_domain_names, get_domain_parser
 from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys
@@ -41,8 +41,35 @@ def viz(args: argparse.Namespace) -> None:
     domain, domain_name = get_domain_from_arg(args.domain)
     assert isinstance(domain, StateGoalVizable)
     states, goals = domain.get_start_goal_pairs([0])
-    domain.visualize_state_goal(states[0], goals[0])
-    plt.show()
+    state: State = states[0]
+    goal: Goal = goals[0]
+    fig = plt.figure(figsize=(5, 5))
+    domain.visualize_state_goal(state, goal, fig)
+    if domain.is_solved([state], [goal])[0]:
+        print("Solved")
+
+    if isinstance(domain, StringToAct):
+        plt.show(block=False)
+        while True:
+            act_str = input("Write action (make blank to quit): ")
+            if len(act_str) == 0:
+                break
+            action: Optional[Action] = domain.string_to_action(act_str)
+            if action is None:
+                print(f"No action {act_str}")
+            else:
+                states_next, tcs = domain.next_state([state], [action])
+                state = states_next[0]
+                tc: float = tcs[0]
+                fig.clear()
+                cast(StateGoalVizable, domain).visualize_state_goal(state, goal, fig)
+                print(f"Transition cost: {tc}")
+                fig.canvas.draw()
+
+                if domain.is_solved([state], [goal])[0]:
+                    print("Solved")
+    else:
+        plt.show(block=True)
 
 
 def main() -> None:

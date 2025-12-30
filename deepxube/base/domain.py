@@ -166,7 +166,20 @@ class StateGoalVizable(Domain[S, A, G]):
 
     """
     @abstractmethod
-    def visualize_state_goal(self, state: S, goal: G) -> Figure:
+    def visualize_state_goal(self, state: S, goal: G, fig: Figure) -> None:
+        pass
+
+
+class StringToAct(Domain[S, A, G]):
+    """ Can get an action from a string. Used when visualizing problem instances.
+
+    """
+    @abstractmethod
+    def string_to_action(self, act_str: str) -> Optional[A]:
+        """
+        :param act_str: A string representation of an action
+        :return: An action if the string is a valid representation, None otherwise
+        """
         pass
 
 

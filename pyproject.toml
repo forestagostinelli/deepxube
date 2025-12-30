@@ -10,7 +10,7 @@ authors = [
   {name = "Forest Agostinelli", email = "foresta@cse.sc.edu"},
 ]
 requires-python = ">= 3.10"
-dependencies = ['torch>=2.0', 'numpy == 1.*', 'matplotlib', 'clingo', 'wget', 'filelock', 'pillow', 'types-Pillow', 'imageio']
+dependencies = ['torch>=2.0', 'numpy == 2.*', 'matplotlib', 'clingo', 'wget', 'filelock', 'pillow', 'types-Pillow', 'imageio']
 license = {file = "LICENSE.txt"}
 readme = "README.md"
 
@@ -33,6 +33,9 @@ namespaces = false
 
 [project.optional-dependencies]
 test = ['pytest', 'pytest-cov', 'mypy', 'flake8', 'tox']
+
+[project.scripts]
+deepxube = "deepxube.cli:main"
 
 [tool.pytest.ini_options]
 addopts = "--cov=deepxube"
