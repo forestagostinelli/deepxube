@@ -27,16 +27,25 @@ For any issues, you can create a GitHub issue or contact Forest Agostinelli (for
 
 `pip install deepxube`
 
-See [INSTALL.md](INSTALL.md) for more details
+See [INSTALL.md](INSTALL.md) for more details and [documentation](https://forestagostinelli.github.io/deepxube/deepxube.html).
 
 The following information is not yet pip installable, but will be soon.
+
+Command line help: `deepxube --help`
+
+### Quick run
+Copy the contents of the `examples/` directory and run:\
+Get domain information: `deepxube domain_info`\
+Visualize domain: `deepxube viz --domain grid_example.7 --steps 10`\
+Get heuristic information: `deepxube heuristic_info`\
+Train heuristic function: \
 
 ## Domains
 User-defined domains should go in the `./domains/` folder.
 deepxube will recursively search this directory and import all modules so that domains are registered. 
 For example, see the `GridExample` domain in [`examples/domains/grid.py`](examples/domains/grid.py).
 
-`GridExample` inherits from Mixin classes from `deepxube.base.domain`, which give it additional functionality.
+`GridExample` inherits from Mixin classes from `deepxube.base.domain`, which give it additional functionality (see the [domain documentation](https://forestagostinelli.github.io/deepxube/deepxube/base/domain.html)).
 - `ActsEnumFixed`: `GridExample` implements `_get_actions_fixed` 
   - Methods obtained: `get_state_action_rand`, `expand`, `get_state_actions`, `get_num_acts`
 - `StartGoalWalkable`: `GridExample` implements `sample_goal` and `get_start_states`
