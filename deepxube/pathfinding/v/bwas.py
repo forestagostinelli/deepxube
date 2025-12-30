@@ -76,10 +76,10 @@ class InstanceBWAS(Instance[NodeV]):
         return case1 or case2
 
 
-E = TypeVar('E', bound=Domain)
+D = TypeVar('D', bound=Domain)
 
 
-class BWAS(PathFindV[E, InstanceBWAS], ABC):
+class BWAS(PathFindV[D, InstanceBWAS], ABC):
     def step(self, verbose: bool = False) -> List[NodeV]:
         instances: List[InstanceBWAS] = [instance for instance in self.instances if not instance.finished()]
         if len(instances) == 0:

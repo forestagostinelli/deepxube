@@ -71,10 +71,10 @@ class InstanceBWQS(Instance[NodeQ]):
         return (self.goal_node is not None) and (self.lb >= (self.weight * self.ub))
 
 
-E = TypeVar('E', bound=Domain)
+D = TypeVar('D', bound=Domain)
 
 
-class BWQS(PathFindQ[E, InstanceBWQS], ABC):
+class BWQS(PathFindQ[D, InstanceBWQS], ABC):
     def step(self, verbose: bool = False) -> List[Edge]:
         # split instances by iteration
         instances: List[InstanceBWQS] = [instance for instance in self.instances if not instance.finished()]
