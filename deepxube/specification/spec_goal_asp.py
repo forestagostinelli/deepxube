@@ -1,6 +1,6 @@
 from typing import Optional, List, Tuple, Set, Callable, cast
 from collections import OrderedDict
-from deepxube.base.domain import GoalGrndAtoms, State, Goal, Action, Vizable
+from deepxube.base.domain import GoalGrndAtoms, State, Goal, Action
 from deepxube.logic.asp import Spec
 from deepxube.logic.logic_objects import Clause, Model, Atom
 from deepxube.logic.logic_utils import atom_to_str

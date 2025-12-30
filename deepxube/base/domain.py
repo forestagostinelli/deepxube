@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Optional, Set, TypeVar, Generic, Protocol, runtime_checkable, Dict, Any
+from typing import List, Tuple, Optional, Set, TypeVar, Generic, Dict, Any
 import numpy as np
 from clingo.solving import Model as ModelCl
 
@@ -7,15 +7,10 @@ from deepxube.logic.logic_objects import Atom, Model
 from deepxube.utils import misc_utils
 from deepxube.nnet.nnet_utils import NNetPar, NNetCallable
 from deepxube.utils.timing_utils import Times
+from matplotlib.figure import Figure
 import random
 import time
 from numpy.typing import NDArray
-
-
-# Protocols
-@runtime_checkable
-class Vizable(Protocol):
-    def visualize(self) -> NDArray[np.float64]: ...
 
 
 class State(ABC):
@@ -171,7 +166,7 @@ class StateGoalVizable(Domain[S, A, G]):
 
     """
     @abstractmethod
-    def visualize_state_goal(self, state: S, goal: G) -> List[NDArray]:
+    def visualize_state_goal(self, state: S, goal: G) -> Figure:
         pass
 
 

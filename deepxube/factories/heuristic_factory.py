@@ -83,15 +83,15 @@ def build_heur_nnet_par(domain: Domain, domain_name: str, heur_nnet_mod_name: st
 
     for nnet_input_domain_key in nnet_input_domain_keys:
         nnet_input_cls: Type[NNetInput] = get_nnet_input_t(nnet_input_domain_key)
-        if heur_type == "V":
+        if heur_type.upper() == "V":
             if issubclass(nnet_input_cls, StateGoalIn) and issubclass(nnet_input_cls, nnet_input_t):
                 return HeurNNetParVConcrete(domain, nnet_input_domain_key, heur_nnet_mod_name, heur_nnet_mod_kwargs)
-        elif heur_type == "QFix":
+        elif heur_type.upper() == "QFIX":
             assert isinstance(domain, ActsEnumFixed)
             if issubclass(nnet_input_cls, StateGoalActFixIn) and issubclass(nnet_input_cls, nnet_input_t):
                 return HeurNNetParQFixOutConcrete(domain, nnet_input_domain_key, heur_nnet_mod_name, heur_nnet_mod_kwargs,
                                                   domain.get_num_acts())
-        elif heur_type == "QIn":
+        elif heur_type.upper() == "QIN":
             if issubclass(nnet_input_cls, StateGoalActIn) and issubclass(nnet_input_cls, nnet_input_t):
                 return HeurNNetParQActInConcrete(domain, nnet_input_domain_key, heur_nnet_mod_name, heur_nnet_mod_kwargs)
 
