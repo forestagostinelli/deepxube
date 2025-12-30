@@ -199,9 +199,6 @@ class FullyConnectedModel(nn.Module):
 
 
 class Conv2dModel(nn.Module):
-    def _forward_unimplemented(self, *input_val: Any) -> None:
-        pass
-
     def __init__(self, chan_in: int, channel_sizes: List[int], kernel_sizes: List[int], paddings: List[int],
                  layer_acts: List[str], batch_norms: Optional[List[bool]] = None, strides: Optional[List[int]] = None,
                  transpose: bool = False, weight_norms: Optional[List[bool]] = None,
