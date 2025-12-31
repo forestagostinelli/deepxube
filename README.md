@@ -34,15 +34,16 @@ The following information is not yet pip installable, but will be soon.
 Command line help: `deepxube --help`
 
 ### Quick run
-Copy the contents of the `examples/` directory and run:\
+Copy the contents of the `examples/` directory and run:
 
-- Get domain information: `deepxube domain_info`\
-- Visualize domain: `deepxube viz --domain grid_example.7 --steps 10`\
-- Get heuristic information: `deepxube heuristic_info`\
+- Get domain information: `deepxube domain_info`
+- Visualize domain: `deepxube viz --domain grid_example.7 --steps 10`
+- Get heuristic information: `deepxube heuristic_info`
 - Time to ensure basic functionality. Can use breakpoints in your code to debug: 
-  - With deepxube residual neural network: `deepxube time --domain grid_example.7 --heur resnet_fc.100H_2B_bn --heur_type V`\
-  - With custom neural network: `deepxube time --domain grid_example.7 --heur gridnet.8CH_200FC --heur_type V`\
-  Train heuristic function: \
+  - With deepxube residual neural network: `deepxube time --domain grid_example.7 --heur resnet_fc.100H_2B_bn --heur_type V`
+  - With deepxube residual neural network and deep Q-network: `deepxube time --domain grid_example.7 --heur resnet_fc.100H_2B_bn --heur_type QFix`
+  - With custom neural network: `deepxube time --domain grid_example.7 --heur gridnet.8CH_200FC --heur_type V`
+- Train heuristic function: 
 
 ## Domains
 User-defined domains should go in the `./domains/` folder.
@@ -66,6 +67,7 @@ Domain: grid_example
         NNet Inputs:
                 Name: grid_nnet_input, Type: <class 'domains.grid.GridNNetInput'>
                 Name: flat_sg_dynamic, Type: <class 'deepxube.factories.nnet_input_factory.register_nnet_input_dynamic.<locals>.FlatSGConcrete'>
+                Name: flat_sg_actfix_dynamic, Type: <class 'deepxube.factories.nnet_input_factory.register_nnet_input_dynamic.<locals>.FlatSGActFixConcrete'>
 ```
 
 See [Neural Network Inputs](#Neural-Network-Inputs) for more information on `NNet Inputs`.
@@ -84,48 +86,16 @@ Action string representations are 0, 1, 2, and 3. After applying an action, the 
 ## Neural Network Inputs
 `deepxube` trains heuristic functions represented as neural networks. Different kinds of neural networks expect different kinds of inputs.
 By inheriting from Mixins from `deepxube.base.nnet_input` a `NNetInput` class can be dynamically created for a domain.
-`GridExample` inherits from `HasFlatSGIn` and implements `get_input_info_flat_sg` and `to_np_flat_sg`.
-From this, if a neural network expects a flat (1D) input from a state/goal pair, then a `NNetInput` class that tells the neural network the 
-dimension of the input, the number of inputs, and that converts state/goal pairs to numpy arrays is dynamically created.
-Hence, the `NNet Inputs: flat_sg_dynamic` in the domain information.
 
+`GridExample` inherits from `HasFlatSGActsEnumFixedIn` and implements `get_input_info_flat_sg`, `to_np_flat_sg`, and `actions_to_indices`.
+From this, if a neural network expects a flat (1D) input from a state/goal pair, then a `NNetInput` class that tells the neural network the 
+dimension of the input, the number of inputs, and that converts state/goal pairs to numpy arrays is dynamically created. 
+Furthermore, if deep Q-network is used with an output for each action, then the heuristic function is automatically modified to have the correct output dimension.  
+Hence, the `flat_sg_dynamic` and `flat_sg_actfix_dynamic` in the domain information.
+
+With this dynamic `NNetInput` creation, `GridExample` can be used with deepxube's built in `resnet_fc` heuristic function, which expects a flat input.
+
+Custom neural network input types can also be created and registered. Given a heuristic function, deepxube searches for a registered `NNetInput` class that 
+matches its expected input. If multiple exist, it uses the first one it finds.
 
 ## Heuristics
-
-## Examples
-### Using DeepXube to train a heuristic function for the Rubik's cube (this part is not yet pip installable, but will be soon)
-```
-from deepxube.base.env import EnvEnumerableActs
-from deepxube.base.updater import UpHeurArgs, UpdateHeur
-from deepxube.implementations.cube3 import Cube3NNetParV
-from deepxube.updater.updaters import UpdateHeurBWAS
-
-# get environment
-env: EnvEnumerableActs = Cube3(True)
-
-# update every 1000 iterations, generate 1000 iterations worth of data, use 48 CPUs, generate data by doing search for 200 iterations, limit to 1000 searches at a time, limit neural network to process 20,000 instances at a time
-up_args: UpHeurArgs = UpHeurArgs(1000, 1000, 48, 200, 1000, 20000)
-
-# Update using value iteration and A* search to generate states
-updater: UpdateHeur = UpdateHeurBWAS(env, up_args, Cube3NNetParV())
-
-# Batch size, learning rate, learning rate decay, max training itrs, balance steps based on % solved, display iterations 
-train_args: TrainArgs = TrainArgs(10000, 0.001, 0.9999993, 1000000, False, 100)
-
-# Take between 0 and 100 steps to generate start/goal pairs, save to models/cube3/
-train(updater, 100, 'models/cube3/', train_args)
-```
-
-For Q-learning and using Q* search to generate states for learning and when the output of the DQN is fixed and represents
-the cost-to-go for all actions 
-```
-from deepxube.updater.updaters import UpdateHeurBWQSEnum
-from deepxube.implementations.cube3 import Cube3NNetParQFixOut
-updater: UpdateHeur = UpdateHeurBWQSEnum(env, up_args, Cube3NNetParQFixOut())
-```
-
-When the DQN takes the action as an input (can do Q* search in dynamic action spaces)
-```
-from deepxube.implementations.cube3 import Cube3NNetParQIn
-updater: UpdateHeur = UpdateHeurBWQSEnum(env, up_args, Cube3NNetParQIn())
-```

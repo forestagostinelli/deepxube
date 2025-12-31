@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib.figure import Figure
 
 from deepxube.base.domain import State, Action, Goal, ActsEnumFixed, StartGoalWalkable, StateGoalVizable, StringToAct, DomainParser
-from deepxube.base.nnet_input import StateGoalIn, HasFlatSGIn
+from deepxube.base.nnet_input import StateGoalIn, HasFlatSGActsEnumFixedIn
 from deepxube.factories.domain_factory import register_domain, register_domain_parser
 from deepxube.factories.nnet_input_factory import register_nnet_input
 from matplotlib.colors import ListedColormap
@@ -49,7 +49,7 @@ class GridAction(Action):
 @register_domain("grid_example")
 class GridExample(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalkable[GridState, GridAction, GridGoal],
                   StateGoalVizable[GridState, GridAction, GridGoal], StringToAct[GridState, GridAction, GridGoal],
-                  HasFlatSGIn[GridState, GridAction, GridGoal]):
+                  HasFlatSGActsEnumFixedIn[GridState, GridAction, GridGoal]):
     def __init__(self, dim: int = 7):
         super().__init__()
         self.dim: int = dim
@@ -84,6 +84,9 @@ class GridExample(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalka
     def to_np_flat_sg(self, states: List[GridState], goals: List[GridGoal]) -> List[NDArray]:
         return [np.stack([np.stack([state.robot_x for state in states]), np.stack([state.robot_y for state in states]),
                           np.stack([goal.robot_x for goal in goals]), np.stack([goal.robot_y for goal in goals])], axis=1)]
+
+    def actions_to_indices(self, actions: List[GridAction]) -> List[int]:
+        return [action_i.action for action_i in actions]
 
     def visualize_state_goal(self, state: GridState, goal: GridGoal, fig: Figure) -> None:
         ax = plt.axes()

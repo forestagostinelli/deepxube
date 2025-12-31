@@ -30,8 +30,8 @@ def parser_train(parser: ArgumentParser) -> None:
     train_group.add_argument('--lr_d', type=float, default=0.9999993, help="Learning rate decay.")
     train_group.add_argument('--max_itrs', type=int, default=100000, help="Maximum training iterations.")
     train_group.add_argument('--display', type=int, default=0, help="Display frequency for nnet training.")
-    train_group.add_argument('--no_bal', action='store_true', default=False, help="Balancing of number of steps to take to generate problem instances is on by "
-                                                                                  "default. Set for no balancing.")
+    train_group.add_argument('--bal', action='store_true', default=False, help="Set to balance of number of steps to take to generate problem instances based "
+                                                                               "on percentage of states solved.")
 
     # updater args
     update_group = parser.add_argument_group('update')
@@ -48,7 +48,7 @@ def parser_train(parser: ArgumentParser) -> None:
     update_group.add_argument('--up_v', action='store_true', default=False, help="Verbose update.")
 
     # update heur args
-    update_group.add_argument('--backup', type=int, default=-1, help="1 for Bellman backup, -1 for limited horizon bellman lookahead (LHBL)")
+    update_group.add_argument('--backup', type=int, default=1, help="1 for Bellman backup, -1 for limited horizon bellman lookahead (LHBL)")
 
     # update graph search args
     update_group.add_argument('--search_weight', type=int, default=1, help="Weight when performing graph search during update.")
@@ -86,7 +86,7 @@ def train_cli(args: argparse.Namespace) -> None:
                                       up_greedy_args)
 
     # train args
-    train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, not args.no_bal,
+    train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.bal,
                                       display=args.display)
 
     # test args

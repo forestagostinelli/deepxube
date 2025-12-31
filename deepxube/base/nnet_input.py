@@ -1,7 +1,7 @@
 from typing import Any, List, Tuple, Generic, TypeVar
 from abc import ABC, abstractmethod
 
-from deepxube.base.domain import Domain, State, Action, Goal, ActsEnumFixed
+from deepxube.base.domain import Domain, State, Action, Goal
 
 from numpy.typing import NDArray
 
@@ -50,7 +50,7 @@ class StateGoalActIn(NNetInput[D], Generic[D, S, G, A]):
 
 
 # Env mixins for inputs
-class HasActsEnumFixedIn(ActsEnumFixed[S, A, G]):
+class HasActsEnumFixedIn(Domain[S, A, G]):
     @abstractmethod
     def actions_to_indices(self, actions: List[A]) -> List[int]:
         pass
