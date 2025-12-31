@@ -35,7 +35,7 @@ namespaces = false
 test = ['pytest', 'pytest-cov', 'mypy', 'flake8', 'tox']
 
 [project.scripts]
-deepxube = "deepxube.cli:main"
+deepxube = "deepxube._cli:main"
 
 [tool.pytest.ini_options]
 addopts = "--cov=deepxube"

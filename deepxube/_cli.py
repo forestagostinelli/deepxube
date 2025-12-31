@@ -2,7 +2,7 @@ from typing import List, Optional, Tuple, cast, Type
 import argparse
 from argparse import ArgumentParser
 
-from deepxube.train_cli import parser_train
+from deepxube._train_cli import parser_train
 from deepxube.base.domain import DomainParser, StateGoalVizable, StringToAct, State, Action, Goal
 from deepxube.base.heuristic import HeurNNet, HeurNNetPar, HeurNNetParser
 from deepxube.factories.domain_factory import get_all_domain_names, get_domain_parser
@@ -83,6 +83,10 @@ def time_test_args(args: argparse.Namespace) -> None:
     time_test(domain, heur_nnet_par, args.num_insts, args.step_max)
 
 
+def prob_inst_gen(args: argparse.Namespace) -> None:
+    pass
+
+
 def main() -> None:
     parser = ArgumentParser(prog="deepxube", description="Solve pathfinding problems with deep reinforcement learning "
                                                          "and heuristic search.",
@@ -109,10 +113,15 @@ def main() -> None:
                                                                                     "'./heuristics/'")
     _parser_heur_info(parser_heur_info)
 
-    # test_domain_heur
+    # time functionality
     parser_time: ArgumentParser = subparsers.add_parser('time', help="Time basic functionality.",
                                                         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     _parse_time(parser_time)
+
+    # problem instance generation
+    parser_prob_instance: ArgumentParser = subparsers.add_parser('prob_inst', help="Generate problem instances (state/goal pairs) and save to a pickle file.",
+                                                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    _parse_prob_instance(parser_prob_instance)
 
     # train
     parser_tr: ArgumentParser = subparsers.add_parser('train', help="Train a heuristic function.",
@@ -145,3 +154,11 @@ def _parse_time(parser: ArgumentParser) -> None:
     parser.add_argument('--num_insts', type=int, default=10, help="Number of problem instances to generate.")
     parser.add_argument('--step_max', type=int, default=10, help="Randomly generates problem instances with between 0 and step_max steps.")
     parser.set_defaults(func=time_test_args)
+
+
+def _parse_prob_instance(parser: ArgumentParser) -> None:
+    parser.add_argument('--step_max', type=int, required=True, help="Randomly generates problem instances with between 0 and step_max steps.")
+    parser.add_argument('--num', type=int, required=True, help="Number of problem instances to generate.")
+    parser.add_argument('--file', type=str, required=True, help="File to which problem instances are stored.")
+    parser.add_argument('--redo', action='store_true', default=False, help="If true, generate problem instances even if file already exists.")
+    parser.set_defaults(func=prob_inst_gen)

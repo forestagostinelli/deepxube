@@ -19,7 +19,6 @@ For any issues, you can create a GitHub issue or contact Forest Agostinelli (for
 - [Domain Visualization](#domain-visualization)
 - [Neural Network Inputs](#Neural-Network-Inputs)
 - [Heuristic](#Heuristics)
-- [Examples](#examples)
 
 
 
@@ -34,7 +33,7 @@ The following information is not yet pip installable, but will be soon.
 Command line help: `deepxube --help`
 
 ### Quick run
-Copy the contents of the `examples/` directory and run:
+Copy the contents of the `examples/` directory or clone the project and cd input `examples/` and run:
 
 - Get domain information: `deepxube domain_info`
 - Visualize domain: `deepxube viz --domain grid_example.7 --steps 10`
@@ -44,6 +43,7 @@ Copy the contents of the `examples/` directory and run:
   - With deepxube residual neural network and deep Q-network: `deepxube time --domain grid_example.7 --heur resnet_fc.100H_2B_bn --heur_type QFix`
   - With custom neural network: `deepxube time --domain grid_example.7 --heur gridnet.8CH_200FC --heur_type V`
 - Train heuristic function: 
+- Generate problem instances for testing trained heuristic function:
 
 ## Domains
 User-defined domains should go in the `./domains/` folder.
