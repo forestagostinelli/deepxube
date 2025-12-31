@@ -144,41 +144,41 @@ def heur_fn_out(heur_nnet: HeurNNetPar, heur_fn: NNetCallable, states: List[Stat
         raise ValueError(f"Unknown heur fn class {heur_fn}")
 
 
-def test_heur_nnet(heur_nnet: HeurNNetPar, states: List[State], goals: List[Goal], actions: List[Action]) -> None:
+def test_heur_nnet_par(heur_nnet_par: HeurNNetPar, states: List[State], goals: List[Goal], actions: List[Action]) -> None:
     # nnet format
     start_time = time.time()
-    if isinstance(heur_nnet, HeurNNetParV):
-        heur_nnet.to_np(states, goals)
-    elif isinstance(heur_nnet, HeurNNetParQ):
-        heur_nnet.to_np(states, goals, [[action] for action in actions])
+    if isinstance(heur_nnet_par, HeurNNetParV):
+        heur_nnet_par.to_np(states, goals)
+    elif isinstance(heur_nnet_par, HeurNNetParQ):
+        heur_nnet_par.to_np(states, goals, [[action] for action in actions])
     else:
-        raise ValueError(f"Unknown heur nnet class {heur_nnet}")
+        raise ValueError(f"Unknown heur nnet class {heur_nnet_par}")
     elapsed_time = time.time() - start_time
     states_per_sec = len(states) / elapsed_time
     print("Converted %i states and goals to nnet format in "
           "%s seconds (%.2f/second)" % (len(states), elapsed_time, states_per_sec))
 
     # initialize nnet
-    nnet, device = init_nnet(heur_nnet)
+    nnet, device = init_nnet(heur_nnet_par)
     print("")
-    heur_fn: NNetCallable = heur_nnet.get_nnet_fn(nnet, None, device, None)
-    heur_fn_out(heur_nnet, heur_fn, states, goals, actions)
+    heur_fn: NNetCallable = heur_nnet_par.get_nnet_fn(nnet, None, device, None)
+    heur_fn_out(heur_nnet_par, heur_fn, states, goals, actions)
 
     # nnet heuristic
     start_time = time.time()
-    heur_fn_out(heur_nnet, heur_fn, states, goals, actions)
+    heur_fn_out(heur_nnet_par, heur_fn, states, goals, actions)
 
     nnet_time = time.time() - start_time
     states_per_sec = len(states) / nnet_time
     print("Computed heuristic for %i states in %s seconds (%.2f/second)" % (len(states), nnet_time, states_per_sec))
 
 
-def test(env: Domain, heur_nnet: Optional[HeurNNetPar], num_states: int, step_max: int) -> None:
-    states, goals, actions = test_env(env, num_states, step_max)
-    if isinstance(env, StartGoalWalkable):
-        test_envstartgoalrw(env, num_states)
-    if isinstance(env, ActsEnum):
-        test_envenumerableacts(env, states)
+def time_test(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], num_states: int, step_max: int) -> None:
+    states, goals, actions = test_env(domain, num_states, step_max)
+    if isinstance(domain, StartGoalWalkable):
+        test_envstartgoalrw(domain, num_states)
+    if isinstance(domain, ActsEnum):
+        test_envenumerableacts(domain, states)
 
-    if heur_nnet is not None:
-        test_heur_nnet(heur_nnet, states, goals, actions)
+    if heur_nnet_par is not None:
+        test_heur_nnet_par(heur_nnet_par, states, goals, actions)

@@ -57,8 +57,15 @@ class HasActsEnumFixedIn(ActsEnumFixed[S, A, G]):
 
 
 class HasFlatSGIn(Domain[S, A, G]):
+    """ Has a flat representation for state/goal inputs
+
+    """
     @abstractmethod
     def get_input_info_flat_sg(self) -> Tuple[List[int], List[int]]:
+        """
+        :return: A list of dimensions of given to the neural network, A list of depths for performing a one_hot representation on that corresponding input.
+        If 0, then no one_hot is performed.
+        """
         pass
 
     @abstractmethod

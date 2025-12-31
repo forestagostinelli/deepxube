@@ -5,6 +5,7 @@ from matplotlib.figure import Figure
 from deepxube.base.domain import State, Action, Goal, ActsEnumFixed, StartGoalWalkable, StateGoalVizable, StringToAct, DomainParser
 from deepxube.base.nnet_input import StateGoalIn, HasFlatSGIn
 from deepxube.factories.domain_factory import register_domain, register_domain_parser
+from deepxube.factories.nnet_input_factory import register_nnet_input
 from matplotlib.colors import ListedColormap
 
 import matplotlib.pyplot as plt
@@ -81,7 +82,8 @@ class GridExample(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalka
         return [4], [self.dim]
 
     def to_np_flat_sg(self, states: List[GridState], goals: List[GridGoal]) -> List[NDArray]:
-        return [np.stack([x.robot_x for x in states], axis=0)]
+        return [np.stack([np.stack([state.robot_x for state in states]), np.stack([state.robot_y for state in states]),
+                          np.stack([goal.robot_x for goal in goals]), np.stack([goal.robot_y for goal in goals])], axis=1)]
 
     def visualize_state_goal(self, state: GridState, goal: GridGoal, fig: Figure) -> None:
         ax = plt.axes()
@@ -113,9 +115,15 @@ class GridParser(DomainParser):
         return "An integer for the dimension. E.g. 'grid_example.7'"
 
 
+@register_nnet_input("grid_example", "grid_nnet_input")
 class GridNNetInput(StateGoalIn[GridExample, GridState, GridGoal]):
     def get_input_info(self) -> int:
         return self.domain.dim
 
     def to_np(self, states: List[GridState], goals: List[GridGoal]) -> List[NDArray]:
-        breakpoint()
+        np_rep: NDArray = np.zeros((len(states), 2, self.domain.dim, self.domain.dim))
+        for idx, (state, goal) in enumerate(zip(states, goals)):
+            np_rep[idx, 0, state.robot_x, state.robot_y] = 1
+            np_rep[idx, 1, goal.robot_x, goal.robot_y] = 1
+
+        return [np_rep]

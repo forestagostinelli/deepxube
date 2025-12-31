@@ -35,10 +35,14 @@ Command line help: `deepxube --help`
 
 ### Quick run
 Copy the contents of the `examples/` directory and run:\
-Get domain information: `deepxube domain_info`\
-Visualize domain: `deepxube viz --domain grid_example.7 --steps 10`\
-Get heuristic information: `deepxube heuristic_info`\
-Train heuristic function: \
+
+- Get domain information: `deepxube domain_info`\
+- Visualize domain: `deepxube viz --domain grid_example.7 --steps 10`\
+- Get heuristic information: `deepxube heuristic_info`\
+- Time to ensure basic functionality. Can use breakpoints in your code to debug: 
+  - With deepxube residual neural network: `deepxube time --domain grid_example.7 --heur resnet_fc.100H_2B_bn --heur_type V`\
+  - With custom neural network: `deepxube time --domain grid_example.7 --heur gridnet.8CH_200FC --heur_type V`\
+  Train heuristic function: \
 
 ## Domains
 User-defined domains should go in the `./domains/` folder.
@@ -59,7 +63,9 @@ Running `deepxube domain_info` in a directory with `domains/grid.py` should prod
 ```terminaloutput
 Domain: grid_example
         Parser: An integer for the dimension. E.g. 'grid_example.7'
-        NNet Inputs: flat_sg_dynamic
+        NNet Inputs:
+                Name: grid_nnet_input, Type: <class 'domains.grid.GridNNetInput'>
+                Name: flat_sg_dynamic, Type: <class 'deepxube.factories.nnet_input_factory.register_nnet_input_dynamic.<locals>.FlatSGConcrete'>
 ```
 
 See [Neural Network Inputs](#Neural-Network-Inputs) for more information on `NNet Inputs`.
