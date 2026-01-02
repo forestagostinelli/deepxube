@@ -6,10 +6,9 @@ from deepxube.factories.updater_factory import get_updater
 
 from deepxube.base.heuristic import HeurNNetPar
 from deepxube.base.updater import UpArgs, UpdateHeur, UpHeurArgs
-from deepxube.updater.updaters import UpGraphSearchArgs, UpGreedyPolicyArgs
 from deepxube.training.train_utils import TrainArgs
 from deepxube.training.train_heur import train, TestArgs
-from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg
+from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_pathfind_name_kwargs
 
 import os
 import pickle
@@ -20,6 +19,7 @@ def parser_train(parser: ArgumentParser) -> None:
 
     parser.add_argument('--heur', type=str, required=True, help="Heuristic neural network and arguments.")
     parser.add_argument('--heur_type', type=str, required=True, help="V, QFix, QIn.")
+    parser.add_argument('--pathfind', type=str, required=True, help="Pathfinding algorithm and arguments.")
 
     parser.add_argument('--dir', type=str, required=True, help="Directory to save neural networks.")
 
@@ -35,7 +35,6 @@ def parser_train(parser: ArgumentParser) -> None:
 
     # updater args
     update_group = parser.add_argument_group('update')
-    update_group.add_argument('--search', type=str, required=True, help="graph, greedy, sup.")
     update_group.add_argument('--procs', type=int, default=1, help="Number of processes to generate update data.")
     update_group.add_argument('--step_max', type=int, required=True, help="Maximum number of steps to take when generating problem instnaces.")
     update_group.add_argument('--up_itrs', type=int, default=100, help="Number of iterations to check for update.")
@@ -49,14 +48,6 @@ def parser_train(parser: ArgumentParser) -> None:
 
     # update heur args
     update_group.add_argument('--backup', type=int, default=1, help="1 for Bellman backup, -1 for limited horizon bellman lookahead (LHBL)")
-
-    # update graph search args
-    update_group.add_argument('--search_weight', type=int, default=1, help="Weight when performing graph search during update.")
-    update_group.add_argument('--search_eps', type=float, default=0.0, help="Probability of popping a random node during search.")
-
-    # update greedy policy args
-    update_group.add_argument('--search_temp', type=float, default=1, help="Temperatue for Boltzmann exploration if performing a greedy search. "
-                                                                           "Set to 0 to turn off.")
 
     # test args
     test_group = parser.add_argument_group('test')
@@ -72,18 +63,16 @@ def train_cli(args: argparse.Namespace) -> None:
     # parse domain and heur_nnet
     domain, domain_name = get_domain_from_arg(args.domain)
     heur_nnet: HeurNNetPar = get_heur_nnet_par_from_arg(domain, domain_name, args.heur, args.heur_type)[0]
+    pathfind_name, pathfind_kwargs = get_pathfind_name_kwargs(args.pathfind)
 
     # update args
     up_args: UpArgs = UpArgs(args.procs, args.up_itrs, args.step_max, args.search_itrs,
                              up_batch_size=args.up_batch_size, nnet_batch_size=args.up_nnet_batch_size,
                              sync_main=args.sync_main, v=args.up_v)
     up_heur_args: UpHeurArgs = UpHeurArgs(False, args.backup)
-    up_graphsch_args: UpGraphSearchArgs = UpGraphSearchArgs(args.search_weight, args.search_eps)
-    up_greedy_args: UpGreedyPolicyArgs = UpGreedyPolicyArgs(args.search_temp, args.search_eps)
 
     # updater
-    updater: UpdateHeur = get_updater(domain, heur_nnet, args.search, up_args, up_heur_args, up_graphsch_args,
-                                      up_greedy_args)
+    updater: UpdateHeur = get_updater(domain, heur_nnet, pathfind_name, pathfind_kwargs, up_args, up_heur_args)
 
     # train args
     train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.bal,

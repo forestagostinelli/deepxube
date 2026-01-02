@@ -1,10 +1,11 @@
-from typing import List, Tuple, Dict, Any, Optional
+from typing import List, Tuple, Dict, Any, Optional, Type
 import numpy as np
 from matplotlib.figure import Figure
 
-from deepxube.base.domain import State, Action, Goal, ActsEnumFixed, StartGoalWalkable, StateGoalVizable, StringToAct, DomainParser
+from deepxube.base.factory import Parser
+from deepxube.base.domain import State, Action, Goal, ActsEnumFixed, StartGoalWalkable, StateGoalVizable, StringToAct
 from deepxube.base.nnet_input import StateGoalIn, HasFlatSGActsEnumFixedIn
-from deepxube.factories.domain_factory import register_domain, register_domain_parser
+from deepxube.factories.domain_factory import domain_factory
 from deepxube.factories.nnet_input_factory import register_nnet_input
 from matplotlib.colors import ListedColormap
 
@@ -46,7 +47,7 @@ class GridAction(Action):
         return NotImplemented
 
 
-@register_domain("grid_example")
+@domain_factory.register_class("grid_example")
 class GridExample(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalkable[GridState, GridAction, GridGoal],
                   StateGoalVizable[GridState, GridAction, GridGoal], StringToAct[GridState, GridAction, GridGoal],
                   HasFlatSGActsEnumFixedIn[GridState, GridAction, GridGoal]):
@@ -109,8 +110,8 @@ class GridExample(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalka
         return f"Grid(dim={self.dim})"
 
 
-@register_domain_parser("grid_example")
-class GridParser(DomainParser):
+@domain_factory.register_parser("grid_example")
+class GridParser(Parser):
     def parse(self, args_str: str) -> Dict[str, Any]:
         return {"dim": int(args_str)}
 

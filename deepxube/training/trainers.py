@@ -4,7 +4,6 @@ import dataclasses
 from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ
 from deepxube.base.updater import UpdateHeur, UpHeurArgs
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, get_eq_weighted_perf
-from deepxube.updater.updaters import UpGreedyPolicyArgs, UpdateHeurGrPolVEnum, UpdateHeurGrPolQEnum
 from deepxube.training.train_utils import DataBuffer, train_heur_nnet_step, TrainArgs, ctgs_summary
 from deepxube.nnet.nnet_utils import nnet_in_out_shared_q
 from deepxube.utils.data_utils import get_nowait_noerr
@@ -277,9 +276,9 @@ class TrainHeur:
         up_args = dataclasses.replace(self.updater.up_args)
         up_args.sync_main = False
         if isinstance(heur_nnet, HeurNNetParV):
-            updater_greedy = UpdateHeurGrPolVEnum(self.updater.env, up_args, up_heur_args, up_greedy_args, heur_nnet)
+            updater_greedy = UpdateHeurGrPolVEnum(self.updater.domain, up_args, up_heur_args, up_greedy_args, heur_nnet)
         elif isinstance(heur_nnet, HeurNNetParQ):
-            updater_greedy = UpdateHeurGrPolQEnum(self.updater.env, up_args, up_heur_args, up_greedy_args, heur_nnet)
+            updater_greedy = UpdateHeurGrPolQEnum(self.updater.domain, up_args, up_heur_args, up_greedy_args, heur_nnet)
         else:
             raise ValueError(f"Unknown heuristic function type {heur_nnet}")
 

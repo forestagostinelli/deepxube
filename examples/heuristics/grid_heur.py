@@ -1,15 +1,16 @@
 from typing import List, Type, Dict, Any
 from torch import nn, Tensor
 
-from deepxube.base.heuristic import HeurNNet, HeurNNetParser
+from deepxube.base.factory import Parser
+from deepxube.base.heuristic import HeurNNet
 from deepxube.nnet.pytorch_models import Conv2dModel, FullyConnectedModel
-from deepxube.factories.heuristic_factory import register_heur_nnet, register_heur_nnet_parser
+from deepxube.factories.heuristic_factory import heuristic_factory
 
 from domains.grid import GridNNetInput
 import re
 
 
-@register_heur_nnet("gridnet")
+@heuristic_factory.register_class("gridnet")
 class GridNet(HeurNNet[GridNNetInput]):
     @staticmethod
     def nnet_input_type() -> Type[GridNNetInput]:
@@ -21,7 +22,7 @@ class GridNet(HeurNNet[GridNNetInput]):
         self.one_hots: nn.ModuleList = nn.ModuleList()
         grid_dim: int = self.nnet_input.get_input_info()
 
-        self.heur = nn.Sequential(
+        self.heur: nn.Module = nn.Sequential(
             Conv2dModel(2, [chan_size, chan_size], [3, 3], [1, 1], ["RELU", "RELU"], batch_norms=[True, True]),
             nn.Flatten(),
             FullyConnectedModel(grid_dim * grid_dim * chan_size, [fc_size], ["RELU"], batch_norms=[True]),
@@ -32,8 +33,8 @@ class GridNet(HeurNNet[GridNNetInput]):
         return self.heur(inputs[0])
 
 
-@register_heur_nnet_parser("gridnet")
-class GridNetParser(HeurNNetParser):
+@heuristic_factory.register_parser("gridnet")
+class GridNetParser(Parser):
     def parse(self, args_str: str) -> Dict[str, Any]:
         args_str_l: List[str] = args_str.split("_")
         kwargs: Dict[str, Any] = dict()

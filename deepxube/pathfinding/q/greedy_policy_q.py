@@ -1,7 +1,7 @@
 from typing import List, Any
 from abc import ABC
 from deepxube.base.domain import ActsEnum, Action
-from deepxube.base.pathfinding import D, Instance, NodeQ, PathFindQ, Edge, PathFindQExpandEnum
+from deepxube.base.pathfinding import D, Instance, NodeQ, PathFindQ, EdgeQ, PathFindQExpandEnum
 from deepxube.utils.misc_utils import boltzmann
 import numpy as np
 import random
@@ -11,7 +11,7 @@ import time
 class InstanceGrPolQ(Instance[NodeQ]):
     def __init__(self, root_node: NodeQ, temp: float, eps: float, inst_info: Any):
         super().__init__(root_node, inst_info)
-        self.curr_edge: Edge = Edge(self.root_node, None, self.root_node.heuristic)
+        self.curr_edge: EdgeQ = EdgeQ(self.root_node, None, self.root_node.heuristic)
         self.temp: float = temp
         assert (eps >= 0.0) and (eps <= 1.0)
         self.eps: float = eps
@@ -27,7 +27,7 @@ class InstanceGrPolQ(Instance[NodeQ]):
 
 
 class GreedyPolicyQ(PathFindQ[D, InstanceGrPolQ], ABC):
-    def step(self, verbose: bool = False) -> List[Edge]:
+    def step(self, verbose: bool = False) -> List[EdgeQ]:
         # get unsolved instances
         instances: List[InstanceGrPolQ] = [instance for instance in self.instances if not instance.finished()]
         if len(instances) == 0:
@@ -35,7 +35,7 @@ class GreedyPolicyQ(PathFindQ[D, InstanceGrPolQ], ABC):
             return []
 
         # get curr edges
-        edges: List[Edge] = [inst.curr_edge for inst in instances]
+        edges: List[EdgeQ] = [inst.curr_edge for inst in instances]
 
         # next node
         nodes_next_l: List[List[NodeQ]] = self.get_next_nodes(instances, [[edge] for edge in edges])
@@ -50,7 +50,7 @@ class GreedyPolicyQ(PathFindQ[D, InstanceGrPolQ], ABC):
 
         # sample next actions
         start_time = time.time()
-        edges_next: List[Edge] = []
+        edges_next: List[EdgeQ] = []
         for node_next, instance in zip(nodes_next, instances, strict=True):
             actions: List[Action] = node_next.actions
             assert node_next.q_values is not None
@@ -64,7 +64,7 @@ class GreedyPolicyQ(PathFindQ[D, InstanceGrPolQ], ABC):
                 next_idx = int(np.random.multinomial(1, np.array(probs)).argmax())
             else:
                 next_idx = int(np.argmin(q_vals))
-            edges_next.append(Edge(node_next, actions[next_idx], q_vals[next_idx]))
+            edges_next.append(EdgeQ(node_next, actions[next_idx], q_vals[next_idx]))
 
         self.times.record_time("samp_acts", time.time() - start_time)
 

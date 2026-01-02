@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABC
-from typing import Callable, List, Any, TypeVar, Generic, cast, Tuple, Optional, Dict, Type
+from typing import Callable, List, Any, TypeVar, Generic, cast, Tuple, Optional, Type
 
 import numpy as np
 from numpy.typing import NDArray
@@ -217,13 +217,3 @@ class HeurNNetParQIn(HeurNNetParQ[S, A, G], ABC):
         q_vals_flat: List[float] = q_vals_np.astype(np.float64).tolist()
         q_vals_l: List[List[float]] = misc_utils.unflatten(q_vals_flat, split_idxs)
         return q_vals_l
-
-
-class HeurNNetParser(ABC):
-    @abstractmethod
-    def parse(self, args_str: str) -> Dict[str, Any]:
-        pass
-
-    @abstractmethod
-    def help(self) -> str:
-        pass

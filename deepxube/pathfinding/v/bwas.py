@@ -1,7 +1,8 @@
 from abc import ABC
-from typing import List, Tuple, Dict, Optional, Any, TypeVar
-from deepxube.base.domain import Domain, ActsEnum, State
-from deepxube.base.pathfinding import Instance, NodeV, PathFindV, PathFindVExpandEnum
+from typing import List, Tuple, Dict, Optional, Any, TypeVar, Type
+from deepxube.base.domain import Domain, ActsEnum, State, Goal
+from deepxube.base.pathfinding import Instance, Node, PathFindVHeur, PathFindVExpandEnum
+from deepxube.factories.pathfinding_factory import pathfinding_factory
 import numpy as np
 from heapq import heappush, heappop, heapify
 import random
@@ -10,11 +11,11 @@ from deepxube.utils import misc_utils
 import time
 
 
-OpenSetElem = Tuple[float, int, NodeV]
+OpenSetElem = Tuple[float, int, Node]
 
 
-class InstanceBWAS(Instance[NodeV]):
-    def __init__(self, root_node: NodeV, batch_size: int, weight: float, eps: float, inst_info: Any):
+class InstanceBWAS(Instance):
+    def __init__(self, root_node: Node, batch_size: int, weight: float, eps: float, inst_info: Any):
         super().__init__(root_node, inst_info)
         self.open_set: List[OpenSetElem] = []
         self.heappush_count: int = 0
@@ -27,13 +28,13 @@ class InstanceBWAS(Instance[NodeV]):
 
         self.push_to_open([self.root_node], [self.root_node.heuristic])
 
-    def push_to_open(self, nodes: List[NodeV], costs: List[float]) -> None:
+    def push_to_open(self, nodes: List[Node], costs: List[float]) -> None:
         for node, cost in zip(nodes, costs, strict=True):
             heappush(self.open_set, (cost, self.heappush_count, node))
             self.heappush_count += 1
 
-    def check_closed(self, nodes: List[NodeV]) -> List[NodeV]:
-        nodes_ret: List[NodeV] = []
+    def check_closed(self, nodes: List[Node]) -> List[Node]:
+        nodes_ret: List[Node] = []
         for node in nodes:
             path_cost_prev: Optional[float] = self.closed_dict.get(node.state)
             if (path_cost_prev is None) or (path_cost_prev > node.path_cost):
@@ -41,7 +42,7 @@ class InstanceBWAS(Instance[NodeV]):
                 nodes_ret.append(node)
         return nodes_ret
 
-    def pop_from_open(self) -> List[NodeV]:
+    def pop_from_open(self) -> List[Node]:
         num_to_pop: int = min(self.batch_size, len(self.open_set))
 
         elems_popped: List[OpenSetElem] = []
@@ -53,7 +54,7 @@ class InstanceBWAS(Instance[NodeV]):
             else:
                 elems_popped.append(heappop(self.open_set))
 
-        nodes_popped: List[NodeV] = [elem_popped[2] for elem_popped in elems_popped]
+        nodes_popped: List[Node] = [elem_popped[2] for elem_popped in elems_popped]
 
         assert len(elems_popped) > 0
 
@@ -62,7 +63,7 @@ class InstanceBWAS(Instance[NodeV]):
 
         return nodes_popped
 
-    def update_ub(self, nodes: List[NodeV]) -> None:
+    def update_ub(self, nodes: List[Node]) -> None:
         # keep solved nodes for training
         for node in nodes:
             assert node.is_solved is not None
@@ -79,8 +80,24 @@ class InstanceBWAS(Instance[NodeV]):
 D = TypeVar('D', bound=Domain)
 
 
-class BWAS(PathFindV[D, InstanceBWAS], ABC):
-    def step(self, verbose: bool = False) -> List[NodeV]:
+class BWAS(PathFindVHeur[D, InstanceBWAS], ABC):
+    def __init__(self, domain: D, batch_size_default: int = 1, weight_default: float = 1.0, eps_default: float = 0.0):
+        super().__init__(domain)
+        self.batch_size_default: int = batch_size_default
+        self.weight_default: float = weight_default
+        self.eps_default: float = eps_default
+
+    def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_heur: bool = True,
+                       batch_size: Optional[int] = None, weight: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceBWAS]:
+        nodes_root: List[Node] = self._create_root_nodes(states, goals, compute_root_heur=compute_root_heur)
+        batch_size_inst: int = batch_size if batch_size is not None else self.batch_size_default
+        weight_inst: float = weight if weight is not None else self.weight_default
+        eps_inst: float = eps if eps is not None else self.eps_default
+        if inst_infos is None:
+            inst_infos = [None for _ in states]
+        return [InstanceBWAS(root_node, batch_size_inst, weight_inst, eps_inst, inst_info) for root_node, inst_info in zip(nodes_root, inst_infos, strict=True)]
+
+    def step(self, verbose: bool = False) -> List[Node]:
         instances: List[InstanceBWAS] = [instance for instance in self.instances if not instance.finished()]
         if len(instances) == 0:
             self.itr += 1  # TODO make more elegant
@@ -88,12 +105,12 @@ class BWAS(PathFindV[D, InstanceBWAS], ABC):
 
         # pop from open
         start_time = time.time()
-        nodes_popped_by_inst: List[List[NodeV]] = [instance.pop_from_open() for instance in instances]
+        nodes_popped_by_inst: List[List[Node]] = [instance.pop_from_open() for instance in instances]
         self.times.record_time("pop", time.time() - start_time)
 
         # is solved
         start_time = time.time()
-        nodes_popped_flat: List[NodeV] = misc_utils.flatten(nodes_popped_by_inst)[0]
+        nodes_popped_flat: List[Node] = misc_utils.flatten(nodes_popped_by_inst)[0]
         self.set_is_solved(nodes_popped_flat)
         self.times.record_time("is_solved", time.time() - start_time)
 
@@ -104,7 +121,7 @@ class BWAS(PathFindV[D, InstanceBWAS], ABC):
         self.times.record_time("ub", time.time() - start_time)
 
         # expand nodes
-        nodes_c_by_inst: List[List[NodeV]] = self.expand_nodes(instances, nodes_popped_by_inst)
+        nodes_c_by_inst: List[List[Node]] = self._expand_nodes(instances, nodes_popped_by_inst)
 
         # check closed
         start_time = time.time()
@@ -114,7 +131,7 @@ class BWAS(PathFindV[D, InstanceBWAS], ABC):
 
         # cost
         start_time = time.time()
-        nodes_c_flat: List[NodeV] = misc_utils.flatten(nodes_c_by_inst)[0]
+        nodes_c_flat: List[Node] = misc_utils.flatten(nodes_c_by_inst)[0]
         weights, split_idxs = misc_utils.flatten([[instance.weight] * len(nodes_c)
                                                   for instance, nodes_c in
                                                   zip(instances, nodes_c_by_inst, strict=True)])
@@ -156,5 +173,11 @@ class BWAS(PathFindV[D, InstanceBWAS], ABC):
         return nodes_popped_flat
 
 
-class BWASEnum(BWAS[ActsEnum], PathFindVExpandEnum[InstanceBWAS]):
-    pass
+@pathfinding_factory.register_class("BWASActsEnum")
+class BWASActsEnum(BWAS[ActsEnum], PathFindVExpandEnum[InstanceBWAS]):
+    @staticmethod
+    def domain_type() -> Type[ActsEnum]:
+        return ActsEnum
+
+    def __repr__(self) -> str:
+        return f"BWASActsEnum(batch_size={self.batch_size_default}, weight={self.weight_default}, eps={self.eps_default})"

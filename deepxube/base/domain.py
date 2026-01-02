@@ -557,13 +557,3 @@ class NextStateNPActsEnumFixed(NextStateNPActsEnum[S, A, G], ActsEnumFixed[S, A,
     def _get_state_np_actions(self, states_np: List[NDArray]) -> List[List[A]]:
         state_actions: List[A] = self._get_actions_fixed()
         return [state_actions.copy() for _ in range(states_np[0].shape[0])]
-
-
-class DomainParser(ABC):
-    @abstractmethod
-    def parse(self, args_str: str) -> Dict[str, Any]:
-        pass
-
-    @abstractmethod
-    def help(self) -> str:
-        pass

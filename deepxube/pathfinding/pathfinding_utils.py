@@ -26,7 +26,7 @@ class PathFindPerf:
     def update_perf(self, instance: Instance) -> None:
         self.is_solved_l.append(instance.has_soln())
         self.ctgs.append(instance.root_node.heuristic)
-        self.ctgs_bkup.append(instance.root_node.backup())
+        self.ctgs_bkup.append(instance.root_node.backup_val)
         if instance.has_soln():
             self.path_costs.append(instance.path_cost())
             self.search_itrs_l.append(instance.itr)

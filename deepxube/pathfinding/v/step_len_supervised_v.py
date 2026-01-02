@@ -1,10 +1,10 @@
 from typing import List, Any, Tuple
 from deepxube.base.domain import Domain, State, Goal, Action
-from deepxube.base.pathfinding import Instance, NodeV, PathFindV
+from deepxube.base.pathfinding import Instance, Node, PathFindV
 
 
-class InstanceStepLenSup(Instance[NodeV]):
-    def __init__(self, root_node: NodeV, step_num: int, inst_info: Any):
+class InstanceStepLenSup(Instance):
+    def __init__(self, root_node: Node, step_num: int, inst_info: Any):
         super().__init__(root_node, inst_info)
         self.step_num: int = step_num
 
@@ -13,19 +13,20 @@ class InstanceStepLenSup(Instance[NodeV]):
 
 
 class StepLenSupV(PathFindV[Domain, InstanceStepLenSup]):
-    def step(self, verbose: bool = False) -> List[NodeV]:
-        nodes: List[NodeV] = []
+    def step(self, verbose: bool = False) -> List[Node]:
+        nodes: List[Node] = []
         for instance in self.instances:
-            root_node: NodeV = instance.root_node
-            root_node.children = [NodeV(root_node.state, root_node.goal, 0.0, instance.step_num, None, None, 0.0,
-                                        root_node)]
-            root_node.t_costs = [0.0]
+            root_node: Node = instance.root_node
+            root_node.heuristic = instance.step_num
             nodes.append(root_node)
             instance.itr += 1
         self.set_is_solved(nodes)
 
         return nodes
 
-    def expand(self, states: List[State],
-               goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
+    def _expand(self, states: List[State],
+                goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
+        raise NotImplementedError
+
+    def make_instances(self, states: List[State], goals: List[Goal], inst_infos: List[Any], compute_root_heur: bool) -> List[InstanceStepLenSup]:
         raise NotImplementedError
