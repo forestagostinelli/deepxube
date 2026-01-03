@@ -68,6 +68,7 @@ def pathfinding_info(args: argparse.Namespace) -> None:
         parser: Optional[Parser] = pathfinding_factory.get_parser(name)
         if parser is not None:
             print(textwrap.indent("Parser: " + parser.help(), '\t'))
+        print("")
 
 
 def viz(args: argparse.Namespace) -> None:

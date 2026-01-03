@@ -3,9 +3,9 @@ from typing import List, Any, Type, Optional, TypeVar, Dict
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, ActsEnum, State, Goal
 from deepxube.base.pathfinding import Instance, Node, PathFindVHeur, PathFindVExpandEnum
+from deepxube.pathfinding.pathfinding_utils import greedy_next_idx
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 import numpy as np
-import random
 import time
 
 
@@ -36,9 +36,9 @@ class GreedyPolicyActAny(PathFindVHeur[D, InstanceGrPolV], ABC):
         self.eps_default: float = eps
 
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_heur: bool = True,
-                       batch_size: Optional[int] = None, weight: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceGrPolV]:
+                       temp: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceGrPolV]:
         nodes_root: List[Node] = self._create_root_nodes(states, goals, compute_root_heur=compute_root_heur)
-        temp_inst: int = batch_size if batch_size is not None else self.temp_default
+        temp_inst: float = temp if temp is not None else self.temp_default
         eps_inst: float = eps if eps is not None else self.eps_default
         if inst_infos is None:
             inst_infos = [None for _ in states]
@@ -64,29 +64,34 @@ class GreedyPolicyActAny(PathFindVHeur[D, InstanceGrPolV], ABC):
         # expand
         self._expand_nodes(instances, [[node_curr] for node_curr in nodes_curr])
 
-        # take action
-        # TODO add temp
+        # get q_vals
         start_time = time.time()
-        rand_vals = np.random.random(len(instances))
+        q_vals_l: List[List[float]] = []
+        nodes_next_l: List[List[Node]] = []
         for idx, instance in enumerate(instances):
-            # get next state
-            curr_node: Node = instance.curr_node
             t_costs: List[float] = []
-            children: List[Node] = []
-            for t_cost, child in curr_node.edge_dict.values():
+            nodes_next: List[Node] = []
+            for t_cost, child in instance.curr_node.edge_dict.values():
                 t_costs.append(t_cost)
-                children.append(child)
-            qvals: List[float] = [t_cost + child.heuristic for t_cost, child in zip(t_costs, children)]
+                nodes_next.append(child)
+            qvals: List[float] = [t_cost + node_next.heuristic for t_cost, node_next in zip(t_costs, nodes_next)]
+            q_vals_l.append(qvals)
+            nodes_next_l.append(nodes_next)
+        self.times.record_time("q_vals", time.time() - start_time)
 
-            next_idx: int
-            if rand_vals[idx] < instance.eps:
-                next_idx = random.choice(list(range(len(qvals))))
-            else:
-                next_idx = int(np.argmin(qvals))
-            node_next: Node = children[next_idx]
+        # get next idxs
+        start_time = time.time()
+        temps: List[float] = [instance.temp for instance in instances]
+        eps_l: List[float] = [instance.eps for instance in instances]
+        next_idxs: List[int] = greedy_next_idx(q_vals_l, temps, eps_l)
+        self.times.record_time("next_idx", time.time() - start_time)
 
-            instance.curr_node = node_next
+        # update inst
+        start_time = time.time()
+        for instance, nodes_next, next_idx in zip(instances, nodes_next_l, next_idxs):
+            instance.curr_node = nodes_next[next_idx]
             instance.itr += 1
+        self.times.record_time("set_next", time.time() - start_time)
 
         if verbose:
             heuristics: List[float] = [node.heuristic for node in nodes_curr]
@@ -103,7 +108,6 @@ class GreedyPolicyActAny(PathFindVHeur[D, InstanceGrPolV], ABC):
                   f"%%finished: {per_finished}" % (self.itr, min_heur, min_heur_pc, max_heur, max_heur_pc))
 
         self.itr += 1
-        self.times.record_time("get_next", time.time() - start_time)
 
         return nodes_curr
 
@@ -123,7 +127,7 @@ class GreedyVParser(Parser):
     def parse(self, args_str: str) -> Dict[str, Any]:
         args_str_l: List[str] = args_str.split("_")
         assert len(args_str_l) == 2
-        return {"temp": float(args_str_l[0]), "eps": float(args_str_l[2])}
+        return {"temp": float(args_str_l[0]), "eps": float(args_str_l[1])}
 
     def help(self) -> str:
         return ("The temperature for Boltzmann exploration (0 for deterministic) and random action probability (eps). "

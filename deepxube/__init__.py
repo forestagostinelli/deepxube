@@ -3,6 +3,7 @@ __author__ = 'Forest Agostinelli'
 
 # run registers
 from . import heuristics  # noqa: F401
+from . import pathfinding  # noqa: F401
 
 from deepxube.factories.nnet_input_factory import register_nnet_input_dynamic
 from deepxube.factories.factory_utils import import_local_modules

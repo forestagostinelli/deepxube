@@ -2,7 +2,7 @@ from typing import List, Tuple, Dict, Optional
 import dataclasses
 
 from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ
-from deepxube.base.updater import UpdateHeur, UpHeurArgs
+from deepxube.base.updater import UpdateHeurRL, UpHeurArgs
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, get_eq_weighted_perf
 from deepxube.training.train_utils import DataBuffer, train_heur_nnet_step, TrainArgs, ctgs_summary
 from deepxube.nnet.nnet_utils import nnet_in_out_shared_q
@@ -54,10 +54,10 @@ class Status:
 
 
 class TrainHeur:
-    def __init__(self, updater: UpdateHeur, to_main_q: Queue, from_main_qs: List[Queue], nnet_file: str,
+    def __init__(self, updater: UpdateHeurRL, to_main_q: Queue, from_main_qs: List[Queue], nnet_file: str,
                  nnet_targ_file: str, status_file: str, device: torch.device, on_gpu: bool, writer: SummaryWriter,
                  train_args: TrainArgs) -> None:
-        self.updater: UpdateHeur = updater
+        self.updater: UpdateHeurRL = updater
         self.to_main_q: Queue = to_main_q
         self.from_main_qs: List[Queue] = from_main_qs
         self.nnet: nn.Module = updater.get_heur_nnet().get_nnet()
@@ -269,7 +269,7 @@ class TrainHeur:
 
     def _update_greedy_perf(self, update_num: int) -> float:
         # get updater
-        updater_greedy: UpdateHeur
+        updater_greedy: UpdateHeurRL
         heur_nnet: HeurNNetPar = self.updater.get_heur_nnet()
         up_greedy_args: UpGreedyPolicyArgs = UpGreedyPolicyArgs(0.0, 0.0)
         up_heur_args: UpHeurArgs = UpHeurArgs(False, 1)

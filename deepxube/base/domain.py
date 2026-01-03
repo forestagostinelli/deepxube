@@ -289,11 +289,10 @@ class GoalSampleable(Domain[S, A, G]):
     """ Can sample goals from states"""
     @abstractmethod
     def sample_goal(self, states_start: List[S], states_goal: List[S]) -> List[G]:
-        """ Given a state, return a goal that represents a set of goal states of which the given state is a member.
-        Does not have to always return the same goal.
+        """ Given a state, sample a goal that represents a set of goal states of which the given state is a member.
 
-        :param states_start: List of start states
-        :param states_goal List of states from which goals will be sampled
+        :param states_start: List of start states. Can be used to sample goals that are difficult to achieve from the given start state.
+        :param states_goal: List of states from which goals will be sampled.
         :return: Goals
         """
         pass

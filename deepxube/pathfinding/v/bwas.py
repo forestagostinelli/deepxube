@@ -1,5 +1,6 @@
 from abc import ABC
 from typing import List, Tuple, Dict, Optional, Any, TypeVar, Type
+from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, ActsEnum, State, Goal
 from deepxube.base.pathfinding import Instance, Node, PathFindVHeur, PathFindVExpandEnum
 from deepxube.factories.pathfinding_factory import pathfinding_factory
@@ -81,11 +82,11 @@ D = TypeVar('D', bound=Domain)
 
 
 class BWASActsAny(PathFindVHeur[D, InstanceBWAS], ABC):
-    def __init__(self, domain: D, batch_size_default: int = 1, weight_default: float = 1.0, eps_default: float = 0.0):
+    def __init__(self, domain: D, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0):
         super().__init__(domain)
-        self.batch_size_default: int = batch_size_default
-        self.weight_default: float = weight_default
-        self.eps_default: float = eps_default
+        self.batch_size_default: int = batch_size
+        self.weight_default: float = weight
+        self.eps_default: float = eps
 
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_heur: bool = True,
                        batch_size: Optional[int] = None, weight: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceBWAS]:
@@ -95,7 +96,7 @@ class BWASActsAny(PathFindVHeur[D, InstanceBWAS], ABC):
         eps_inst: float = eps if eps is not None else self.eps_default
         if inst_infos is None:
             inst_infos = [None for _ in states]
-        return [InstanceBWAS(root_node, batch_size_inst, weight_inst, eps_inst, inst_info) for root_node, inst_info in zip(nodes_root, inst_infos, strict=True)]
+        return [InstanceBWAS(node_root, batch_size_inst, weight_inst, eps_inst, inst_info) for node_root, inst_info in zip(nodes_root, inst_infos, strict=True)]
 
     def step(self, verbose: bool = False) -> List[Node]:
         instances: List[InstanceBWAS] = [instance for instance in self.instances if not instance.finished()]
@@ -172,12 +173,24 @@ class BWASActsAny(PathFindVHeur[D, InstanceBWAS], ABC):
         # return
         return nodes_popped_flat
 
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}(batch_size={self.batch_size_default}, weight={self.weight_default}, eps={self.eps_default})"
 
-@pathfinding_factory.register_class("BWAS")
+
+@pathfinding_factory.register_class("bwas")
 class BWAS(BWASActsAny[ActsEnum], PathFindVExpandEnum[InstanceBWAS]):
     @staticmethod
     def domain_type() -> Type[ActsEnum]:
         return ActsEnum
 
-    def __repr__(self) -> str:
-        return f"BWASActsEnum(batch_size={self.batch_size_default}, weight={self.weight_default}, eps={self.eps_default})"
+
+@pathfinding_factory.register_parser("bwas")
+class BWASParser(Parser):
+    def parse(self, args_str: str) -> Dict[str, Any]:
+        args_str_l: List[str] = args_str.split("_")
+        assert len(args_str_l) == 3
+        return {"batch_size": int(args_str_l[0]), "weight": float(args_str_l[1]), "eps": float(args_str_l[2])}
+
+    def help(self) -> str:
+        return "The batch size, weight, and random node expansion probability (eps). E.g. 'bwas.1_0.9_0.1'"
+

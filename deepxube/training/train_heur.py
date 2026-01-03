@@ -7,7 +7,7 @@ from deepxube.base.pathfinding import PathFind, Node
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf
 from deepxube.pathfinding.q.bwqs import BWQSEnum, InstanceBWQS
 from deepxube.pathfinding.v.bwas import BWAS, InstanceBWAS
-from deepxube.base.updater import UpdateHeur
+from deepxube.base.updater import UpdateHeurRL
 from deepxube.training.train_utils import TrainArgs
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
@@ -38,7 +38,7 @@ class TestArgs:
                 f"test_up_freq={self.test_up_freq}, test_init={self.test_init})")
 
 
-def get_pathfind_w_instances(updater: UpdateHeur, train_heur: TrainHeur, test_args: TestArgs, param_idx: int) -> PathFind:
+def get_pathfind_w_instances(updater: UpdateHeurRL, train_heur: TrainHeur, test_args: TestArgs, param_idx: int) -> PathFind:
     heur_nnet: HeurNNetPar = updater.get_heur_nnet()
     if isinstance(heur_nnet, HeurNNetParV):
         heur_fn_v: HeurFnV = heur_nnet.get_nnet_fn(train_heur.nnet, test_args.test_nnet_batch_size, train_heur.device, None)
@@ -52,7 +52,7 @@ def get_pathfind_w_instances(updater: UpdateHeur, train_heur: TrainHeur, test_ar
         heur_fn_q: HeurFnQ = heur_nnet.get_nnet_fn(train_heur.nnet, test_args.test_nnet_batch_size,
                                                    train_heur.device, None)
         pathfind_q: BWQSEnum = BWQSEnum(updater.domain, heur_fn_q)
-        root_nodes_q: List[Node] = pathfind_q.create_root_nodes(test_args.test_states, test_args.test_goals)
+        root_nodes_q: List[Node] = pathfind_q._create_root_nodes(test_args.test_states, test_args.test_goals)
         instances_q: List[InstanceBWQS] = [InstanceBWQS(root_node, 1, test_args.search_weights[param_idx], 0.0, None)
                                            for root_node in root_nodes_q]
         pathfind_q.add_instances(instances_q)
@@ -62,7 +62,7 @@ def get_pathfind_w_instances(updater: UpdateHeur, train_heur: TrainHeur, test_ar
         raise ValueError(f"Unknown heuristic function type {heur_nnet}")
 
 
-def train(updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: Optional[TestArgs] = None,
+def train(updater: UpdateHeurRL, nnet_dir: str, train_args: TrainArgs, test_args: Optional[TestArgs] = None,
           debug: bool = False) -> None:
     """ Train a deep neural network heuristic (DNN) function with deep reinforcement learning.
 
@@ -145,7 +145,7 @@ def train(updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: 
     print("Done")
 
 
-def test(updater: UpdateHeur, train_heur: TrainHeur, test_args: TestArgs, writer: SummaryWriter) -> None:
+def test(updater: UpdateHeurRL, train_heur: TrainHeur, test_args: TestArgs, writer: SummaryWriter) -> None:
     print(f"Testing - itr: {train_heur.status.itr}, update_itr: {train_heur.status.update_num}, "
           f"targ_update: {train_heur.status.targ_update_num}, num_inst: {len(test_args.test_states)}, "
           f"num_search_params: {len(test_args.search_weights)}")

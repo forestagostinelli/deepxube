@@ -6,7 +6,7 @@ from deepxube.base.pathfinding import PathFind, PathFindHeur, PathFindVHeur, Pat
 from deepxube.factories.updater_factory import get_updater
 
 from deepxube.base.heuristic import HeurNNetPar
-from deepxube.base.updater import UpArgs, UpdateHeur, UpHeurArgs
+from deepxube.base.updater import UpArgs, UpdateHeurRL, UpHeurArgs
 from deepxube.training.train_utils import TrainArgs
 from deepxube.training.train_heur import train, TestArgs
 from deepxube.factories.pathfinding_factory import pathfinding_factory
@@ -23,7 +23,8 @@ def parser_train(parser: ArgumentParser) -> None:
     parser.add_argument('--heur_type', type=str, default=None, help="V, QFix, QIn. V maps state/goal tuples to cost-to-go. "
                                                                     "QFix maps state/goal tuples to q_values for a fixed action space. "
                                                                     "QIn maps state/goal/action tuples to q_value (can be used in arbitrary action spaces).")
-    parser.add_argument('--pathfind', type=str, required=True, help="Pathfinding algorithm and arguments.")
+    parser.add_argument('--pathfind', type=str, required=True, help="Pathfinding algorithm and arguments. Batch size of any pathfinding algorithm should be 1 "
+                                                                    "since updater assumes 1 instance is generated per iteration.")
 
     parser.add_argument('--dir', type=str, required=True, help="Directory to save neural networks.")
 
@@ -84,7 +85,7 @@ def train_cli(args: argparse.Namespace) -> None:
     up_heur_args: UpHeurArgs = UpHeurArgs(False, args.backup)
 
     # updater
-    updater: UpdateHeur = get_updater(domain, heur_nnet, pathfind_name, pathfind_kwargs, up_args, up_heur_args)
+    updater: UpdateHeurRL = get_updater(domain, heur_nnet, pathfind_name, pathfind_kwargs, up_args, up_heur_args)
 
     # train args
     train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.bal,

@@ -114,12 +114,12 @@ class PathFind(Generic[D, I], ABC):
         self.itr: int = 0
 
     @abstractmethod
-    def make_instances(self, states: List[State], goals: List[Goal], inst_infos: List[Any], compute_root_heur: bool) -> List[I]:
+    def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_heur: bool = True) -> List[I]:
         """ Make instances from states and goals
 
         :param states: List of states
         :param goals: List of goals
-        :param inst_infos: List of information to add to an instance
+        :param inst_infos: Optional list of information to add to an instance
         :param compute_root_heur: If true, compute the heuristic value of the root node
         :return: List of instances
         """
@@ -412,13 +412,13 @@ class PathFindQ(PathFind[D, I]):
         qvals_l: List[List[float]] = self._get_heur_vals(states, goals, actions_l)
         return qvals_l, actions_l
 
-    def create_root_nodes(self, states: List[State], goals: List[Goal], compute_init_heur: bool = True) -> List[Node]:
+    def _create_root_nodes(self, states: List[State], goals: List[Goal], compute_root_heur: bool = True) -> List[Node]:
         start_time = time.time()
 
         qvals_l: List[List[float]]
         actions_l: List[List[Action]]
         heuristics: List[float]
-        if compute_init_heur:
+        if compute_root_heur:
             qvals_l, actions_l = self.get_qvals_acts(states, goals)
             heuristics = [min(x) for x in qvals_l]
         else:
