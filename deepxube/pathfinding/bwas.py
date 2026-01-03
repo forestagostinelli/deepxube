@@ -193,4 +193,3 @@ class BWASParser(Parser):
 
     def help(self) -> str:
         return "The batch size, weight, and random node expansion probability (eps). E.g. 'bwas.1_0.9_0.1'"
-

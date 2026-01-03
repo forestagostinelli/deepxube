@@ -6,7 +6,7 @@ from deepxube.base.pathfinding import PathFind, PathFindHeur, PathFindVHeur, Pat
 from deepxube.factories.updater_factory import get_updater
 
 from deepxube.base.heuristic import HeurNNetPar
-from deepxube.base.updater import UpArgs, UpdateHeurRL, UpHeurArgs
+from deepxube.base.updater import UpArgs, UpdateHeur, UpHeurArgs
 from deepxube.training.train_utils import TrainArgs
 from deepxube.training.train_heur import train, TestArgs
 from deepxube.factories.pathfinding_factory import pathfinding_factory
@@ -67,7 +67,7 @@ def parser_train(parser: ArgumentParser) -> None:
 def train_cli(args: argparse.Namespace) -> None:
     # parse domain and heur_nnet
     domain, domain_name = get_domain_from_arg(args.domain)
-    heur_nnet: HeurNNetPar = get_heur_nnet_par_from_arg(domain, domain_name, args.heur, args.heur_type)[0]
+    heur_nnet_par: HeurNNetPar = get_heur_nnet_par_from_arg(domain, domain_name, args.heur, args.heur_type)[0]
     pathfind_name, pathfind_kwargs = get_pathfind_name_kwargs(args.pathfind)
     pathfind_t: Type[PathFind] = pathfinding_factory.get_type(pathfind_name)
     if issubclass(pathfind_t, PathFindHeur):
@@ -85,7 +85,7 @@ def train_cli(args: argparse.Namespace) -> None:
     up_heur_args: UpHeurArgs = UpHeurArgs(False, args.backup)
 
     # updater
-    updater: UpdateHeurRL = get_updater(domain, heur_nnet, pathfind_name, pathfind_kwargs, up_args, up_heur_args)
+    updater: UpdateHeur = get_updater(domain, heur_nnet_par, pathfind_name, pathfind_kwargs, up_args, up_heur_args)
 
     # train args
     train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.bal,
@@ -102,4 +102,4 @@ def train_cli(args: argparse.Namespace) -> None:
         test_args = None
 
     # test args
-    train(updater, args.dir, train_args, test_args=test_args, debug=args.debug)
+    train(heur_nnet_par, updater, args.dir, train_args, test_args=test_args, debug=args.debug)

@@ -3,7 +3,7 @@ from typing import List, Any, Type, Optional, TypeVar, Dict
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, ActsEnum, State, Goal
 from deepxube.base.pathfinding import Instance, Node, PathFindVHeur, PathFindVExpandEnum
-from deepxube.pathfinding.pathfinding_utils import greedy_next_idx
+from deepxube.pathfinding.utils.search import greedy_next_idx
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 import numpy as np
 import time

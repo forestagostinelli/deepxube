@@ -2,12 +2,12 @@ from typing import Optional, List
 from dataclasses import dataclass
 
 from deepxube.base.domain import State, Goal
-from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ, HeurFnV, HeurFnQ
+from deepxube.base.heuristic import HeurNNet, HeurNNetPar, HeurNNetParV, HeurNNetParQ, HeurFnV, HeurFnQ
 from deepxube.base.pathfinding import PathFind, Node
-from deepxube.pathfinding.pathfinding_utils import PathFindPerf
-from deepxube.pathfinding.q.bwqs import BWQSEnum, InstanceBWQS
-from deepxube.pathfinding.v.bwas import BWAS, InstanceBWAS
-from deepxube.base.updater import UpdateHeurRL
+from deepxube.pathfinding.utils.performance import PathFindPerf
+from deepxube.pathfinding.bwqs import BWQSEnum, InstanceBWQS
+from deepxube.pathfinding.bwas import BWAS, InstanceBWAS
+from deepxube.base.updater import UpdateHeur, UpdateHeurRL
 from deepxube.training.train_utils import TrainArgs
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
@@ -38,19 +38,19 @@ class TestArgs:
                 f"test_up_freq={self.test_up_freq}, test_init={self.test_init})")
 
 
-def get_pathfind_w_instances(updater: UpdateHeurRL, train_heur: TrainHeur, test_args: TestArgs, param_idx: int) -> PathFind:
-    heur_nnet: HeurNNetPar = updater.get_heur_nnet()
-    if isinstance(heur_nnet, HeurNNetParV):
-        heur_fn_v: HeurFnV = heur_nnet.get_nnet_fn(train_heur.nnet, test_args.test_nnet_batch_size, train_heur.device, None)
+def get_pathfind_w_instances(heur_nnet_par: HeurNNetPar, updater: UpdateHeur, train_heur: TrainHeur, test_args: TestArgs, param_idx: int) -> PathFind:
+    if isinstance(heur_nnet_par, HeurNNetParV):
+        heur_fn_v: HeurFnV = heur_nnet_par.get_nnet_fn(train_heur.nnet, test_args.test_nnet_batch_size, train_heur.device, None)
         pathfind_v: BWAS = BWAS(updater.domain)
         pathfind_v.set_heur_fn(heur_fn_v)
         instances_v: List[InstanceBWAS] = pathfind_v.make_instances(test_args.test_states, test_args.test_goals, batch_size=1,
                                                                     weight=test_args.search_weights[param_idx], eps=0.0)
         pathfind_v.add_instances(instances_v)
         return pathfind_v
-    elif isinstance(heur_nnet, HeurNNetParQ):
-        heur_fn_q: HeurFnQ = heur_nnet.get_nnet_fn(train_heur.nnet, test_args.test_nnet_batch_size,
-                                                   train_heur.device, None)
+
+    elif isinstance(heur_nnet_par, HeurNNetParQ):
+        heur_fn_q: HeurFnQ = heur_nnet_par.get_nnet_fn(train_heur.nnet, test_args.test_nnet_batch_size,
+                                                       train_heur.device, None)
         pathfind_q: BWQSEnum = BWQSEnum(updater.domain, heur_fn_q)
         root_nodes_q: List[Node] = pathfind_q._create_root_nodes(test_args.test_states, test_args.test_goals)
         instances_q: List[InstanceBWQS] = [InstanceBWQS(root_node, 1, test_args.search_weights[param_idx], 0.0, None)
@@ -59,10 +59,10 @@ def get_pathfind_w_instances(updater: UpdateHeurRL, train_heur: TrainHeur, test_
         return pathfind_q
 
     else:
-        raise ValueError(f"Unknown heuristic function type {heur_nnet}")
+        raise ValueError(f"Unknown heuristic function type {heur_nnet_par}")
 
 
-def train(updater: UpdateHeurRL, nnet_dir: str, train_args: TrainArgs, test_args: Optional[TestArgs] = None,
+def train(heur_nnet_par: HeurNNetPar, updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: Optional[TestArgs] = None,
           debug: bool = False) -> None:
     """ Train a deep neural network heuristic (DNN) function with deep reinforcement learning.
 
@@ -71,6 +71,7 @@ def train(updater: UpdateHeurRL, nnet_dir: str, train_args: TrainArgs, test_args
     Nature Machine Intelligence 1.8 (2019): 356-363.
     - Bertsekas, D. P. & Tsitsiklis, J. N. Neuro-dynamic Programming (Athena Scientific, 1996).
 
+    :param heur_nnet_par: heur_nnet_par object to be used with updater
     :param updater: an Updater object
     :param nnet_dir: directory where DNN will be saved
     :param train_args: training arguments
@@ -93,8 +94,12 @@ def train(updater: UpdateHeurRL, nnet_dir: str, train_args: TrainArgs, test_args
 
     # Print basic info
     # print("HOST: %s" % os.uname()[1])
-    updater.set_heur_file(heur_targ_file)
-    print(updater.get_heur_nnet().get_nnet())
+    if isinstance(updater, UpdateHeurRL):
+        updater.set_heur_nnet(heur_nnet_par)
+        updater.set_heur_file(heur_targ_file)
+
+    heur_nnet: HeurNNet = heur_nnet_par.get_nnet()
+    print(heur_nnet)
     print(updater.domain)
     print(updater.get_pathfind())
     print(f"{train_args}")
@@ -111,7 +116,7 @@ def train(updater: UpdateHeurRL, nnet_dir: str, train_args: TrainArgs, test_args
     print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
 
     to_main_q, from_main_qs = updater.start_procs()
-    train_heur: TrainHeur = TrainHeur(updater, to_main_q, from_main_qs, heur_file, heur_targ_file, status_file, device,
+    train_heur: TrainHeur = TrainHeur(heur_nnet, updater, to_main_q, from_main_qs, heur_file, heur_targ_file, status_file, device,
                                       on_gpu, writer, train_args)
 
     # training
@@ -127,7 +132,7 @@ def train(updater: UpdateHeurRL, nnet_dir: str, train_args: TrainArgs, test_args
 
         if do_test:
             assert test_args is not None
-            test(updater, train_heur, test_args, writer)
+            test(heur_nnet_par, updater, train_heur, test_args, writer)
 
         # train
         train_heur.update_step()
@@ -138,21 +143,21 @@ def train(updater: UpdateHeurRL, nnet_dir: str, train_args: TrainArgs, test_args
         up_itr_performed = True
 
     if (test_args is not None) and up_itr_performed:
-        test(updater, train_heur, test_args, writer)
+        test(heur_nnet_par, updater, train_heur, test_args, writer)
 
     updater.stop_procs()
 
     print("Done")
 
 
-def test(updater: UpdateHeurRL, train_heur: TrainHeur, test_args: TestArgs, writer: SummaryWriter) -> None:
+def test(heur_nnet_par: HeurNNetPar, updater: UpdateHeur, train_heur: TrainHeur, test_args: TestArgs, writer: SummaryWriter) -> None:
     print(f"Testing - itr: {train_heur.status.itr}, update_itr: {train_heur.status.update_num}, "
           f"targ_update: {train_heur.status.targ_update_num}, num_inst: {len(test_args.test_states)}, "
           f"num_search_params: {len(test_args.search_weights)}")
     for param_idx in range(len(test_args.search_weights)):
         start_time = time.time()
         # get pathfinding alg with test instances
-        pathfind: PathFind = get_pathfind_w_instances(updater, train_heur, test_args, param_idx)
+        pathfind: PathFind = get_pathfind_w_instances(heur_nnet_par, updater, train_heur, test_args, param_idx)
 
         # attempt to solve
         for _ in range(test_args.search_itrs):

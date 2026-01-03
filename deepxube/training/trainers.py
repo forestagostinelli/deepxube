@@ -1,9 +1,8 @@
 from typing import List, Tuple, Dict, Optional
-import dataclasses
 
-from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ
-from deepxube.base.updater import UpdateHeurRL, UpHeurArgs
-from deepxube.pathfinding.pathfinding_utils import PathFindPerf, get_eq_weighted_perf
+from deepxube.base.heuristic import HeurNNet
+from deepxube.base.updater import UpdateHeur
+from deepxube.pathfinding.utils.performance import PathFindPerf, get_eq_weighted_perf
 from deepxube.training.train_utils import DataBuffer, train_heur_nnet_step, TrainArgs, ctgs_summary
 from deepxube.nnet.nnet_utils import nnet_in_out_shared_q
 from deepxube.utils.data_utils import get_nowait_noerr
@@ -54,13 +53,13 @@ class Status:
 
 
 class TrainHeur:
-    def __init__(self, updater: UpdateHeurRL, to_main_q: Queue, from_main_qs: List[Queue], nnet_file: str,
+    def __init__(self, nnet: HeurNNet, updater: UpdateHeur, to_main_q: Queue, from_main_qs: List[Queue], nnet_file: str,
                  nnet_targ_file: str, status_file: str, device: torch.device, on_gpu: bool, writer: SummaryWriter,
                  train_args: TrainArgs) -> None:
-        self.updater: UpdateHeurRL = updater
+        self.updater: UpdateHeur = updater
         self.to_main_q: Queue = to_main_q
         self.from_main_qs: List[Queue] = from_main_qs
-        self.nnet: nn.Module = updater.get_heur_nnet().get_nnet()
+        self.nnet: nn.Module = nnet
         self.nnet_file = nnet_file
         self.nnet_targ_file: str = nnet_targ_file
         self.writer: SummaryWriter = writer
@@ -91,14 +90,16 @@ class TrainHeur:
         self.nnet.to(self.device)
         self.nnet = nn.DataParallel(self.nnet)
 
+        """
         # init greedy perf for update
         if self.train_args.targ_up_searches > 0:
             print("Getting init greedy performance")
             per_solved: float = self._update_greedy_perf(0)
             self.status.per_solved_best = per_solved
+        """
 
         # init data buffer
-        shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = updater.get_shapes_dtypes()
+        shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = updater.get_heur_train_shapes_dtypes()
         db_shapes: List[Tuple[int, ...]] = [x[0] for x in shapes_dtypes]
         db_dtypes: List[np.dtype] = [x[1] for x in shapes_dtypes]
         self.db: DataBuffer = DataBuffer(self.train_args.batch_size * self.updater.up_args.get_up_gen_itrs(), db_shapes,
@@ -150,6 +151,7 @@ class TrainHeur:
             if self.train_args.targ_up_searches <= 0:
                 update_targ = True
             else:
+                """
                 start_time = time.time()
                 per_solved: float = self._update_greedy_perf(self.status.targ_update_num + 1)
                 print(f"Greedy policy solved (best): {per_solved:.2f}% ({self.status.per_solved_best:.2f}%)")
@@ -157,6 +159,8 @@ class TrainHeur:
                     update_targ = True
                     self.status.per_solved_best = per_solved
                 times.record_time("greedy_policy_test", time.time() - start_time)
+                """
+                raise NotImplementedError
 
         if update_targ:
             shutil.copy(self.nnet_file, self.nnet_targ_file)
@@ -267,6 +271,7 @@ class TrainHeur:
         print(f"Data - {', '.join(post_up_info_l)}")
         times.record_time("up_end", time.time() - start_time)
 
+    """
     def _update_greedy_perf(self, update_num: int) -> float:
         # get updater
         updater_greedy: UpdateHeurRL
@@ -299,3 +304,4 @@ class TrainHeur:
         #      f"(greedy perf)")
 
         return per_solved_ave
+    """

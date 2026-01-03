@@ -11,11 +11,11 @@ import torch
 from numpy.typing import NDArray
 
 from deepxube.nnet.nnet_utils import NNetParInfo, NNetCallable, NNetPar, get_nnet_par_infos, start_nnet_fn_runners, stop_nnet_runners
-from deepxube.base.domain import Domain, State, Goal, Action, ActsEnum
-from deepxube.base.heuristic import HeurNNetPar, HeurFnV, HeurFnQ, HeurFn, HeurNNetParV, HeurNNetParQ
-from deepxube.base.pathfinding import PathFind, PathFindHeur, PathFindVHeur, PathFindQHeur, Instance, Node, EdgeQ
+from deepxube.base.domain import Domain
+from deepxube.base.heuristic import HeurNNetPar, HeurFn
+from deepxube.base.pathfinding import PathFind, PathFindHeur, Instance
 from deepxube.factories.pathfinding_factory import pathfinding_factory
-from deepxube.pathfinding.pathfinding_utils import PathFindPerf, print_pathfindperf
+from deepxube.pathfinding.utils.performance import PathFindPerf, print_pathfindperf
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd, get_nowait_noerr
 from deepxube.utils.misc_utils import split_evenly_w_max
 from deepxube.utils.timing_utils import Times
@@ -297,10 +297,6 @@ class Update(Generic[D, P], ABC):
     def get_up_args_repr(self) -> str:
         return self.up_args.__repr__()
 
-    @abstractmethod
-    def get_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
-        pass
-
     def get_pathfind(self) -> P:
         pathfind_kwargs: Dict[str, Any] = self.pathfind_kwargs.copy()
         pathfind_kwargs["domain"] = self.domain
@@ -404,6 +400,12 @@ class Update(Generic[D, P], ABC):
         pass
 
 
+class UpdateHeur(Update[D, P]):
+    @abstractmethod
+    def get_heur_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
+        pass
+
+
 HNet = TypeVar('HNet', bound=HeurNNetPar)
 H = TypeVar('H', bound=HeurFn)
 
@@ -436,11 +438,10 @@ class UpdateHasHeur(Update[D, P], Generic[D, P, HNet, H], ABC):
 PH = TypeVar('PH', bound=PathFindHeur)
 
 
-class UpdateHeurRL(UpdateHasHeur[D, PH, HNet, H], ABC):
-    def __init__(self, domain: D, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs, up_heur_args: UpHeurArgs, heur_nnet: HNet):
+class UpdateHeurRL(UpdateHeur[D, PH], UpdateHasHeur[D, PH, HNet, H], ABC):
+    def __init__(self, domain: D, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs, up_heur_args: UpHeurArgs):
         super().__init__(domain, pathfind_name, pathfind_kwargs, up_args)
         self.up_heur_args: UpHeurArgs = up_heur_args
-        self.set_heur_nnet(heur_nnet)
 
     def _get_targ_heur_fn(self) -> H:
         return self._get_heur_fn_from_dict()
@@ -455,223 +456,3 @@ class UpdateHeurRL(UpdateHasHeur[D, PH, HNet, H], ABC):
         times.add_times(times_states, ["get_states"])
 
         return pathfind.make_instances(states_gen, goals_gen, inst_infos=inst_infos, compute_root_heur=False)
-
-
-class UpdateHeurRLV(UpdateHeurRL[Domain, PathFindVHeur, HeurNNetParV, HeurFnV]):
-    def __init__(self, domain: Domain, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs, up_heur_args: UpHeurArgs,
-                 heur_nnet: HeurNNetParV):
-        super().__init__(domain, pathfind_name, pathfind_kwargs, up_args, up_heur_args, heur_nnet)
-        self.nodes_popped: List[Node] = []
-
-    def get_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
-        states, goals = self.domain.get_start_goal_pairs([0])
-        inputs_nnet: List[NDArray[Any]] = self.get_heur_nnet().to_np(states, goals)
-
-        shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = []
-        for inputs_nnet_i in inputs_nnet:
-            shapes_dtypes.append((inputs_nnet_i[0].shape, inputs_nnet_i.dtype))
-        shapes_dtypes.append((tuple(), np.dtype(np.float64)))
-
-        return shapes_dtypes
-
-    def _step(self, pathfind: PathFindVHeur, times: Times) -> List[NDArray]:
-        # take a step
-        nodes_popped: List[Node] = pathfind.step()
-        assert len(nodes_popped) == len(pathfind.instances), (f"Values were {len(nodes_popped)} and "
-                                                              f"{len(pathfind.instances)}")
-        if not self.up_args.sync_main:
-            self.nodes_popped.extend(nodes_popped)
-            return []
-        else:
-            # TODO implement for sync_main
-            raise NotImplementedError
-
-    def _get_instance_data(self, instances: List[Instance], times: Times) -> List[NDArray]:
-        # get backup
-        start_time = time.time()
-        ctgs_backup: List[float] = []
-        if self.up_heur_args.backup == 1:
-            for node in self.nodes_popped:
-                node.bellman_backup()
-            if self.up_heur_args.ub_heur_solns:
-                for node in self.nodes_popped:
-                    assert node.is_solved is not None
-                    if node.is_solved:
-                        node.upper_bound_parent_path(0.0)
-        elif self.up_heur_args.backup == -1:
-            for instance in instances:
-                root_node: Node = instance.root_node
-                root_node.tree_backup()
-        else:
-            raise ValueError(f"Unknown backup {self.up_heur_args.backup}")
-
-        for node in self.nodes_popped:
-            ctgs_backup.append(node.backup_val)
-        times.record_time("backup", time.time() - start_time)
-
-        start_time = time.time()
-        states: List[State] = [node.state for node in self.nodes_popped]
-        goals: List[Goal] = [node.goal for node in self.nodes_popped]
-        inputs_np: List[NDArray] = self.get_heur_nnet().to_np(states, goals)
-        times.record_time("to_np", time.time() - start_time)
-
-        self.nodes_popped = []
-        return inputs_np + [np.array(ctgs_backup)]
-
-
-def _split_init_vs_real_edges(edges: List[EdgeQ]) -> Tuple[List[EdgeQ], List[EdgeQ]]:
-    edges_init: List[EdgeQ] = []
-    edges_real: List[EdgeQ] = []
-    for edge in edges:
-        if edge.action is None:
-            edges_init.append(edge)
-        else:
-            edges_real.append(edge)
-    return edges_init, edges_real
-
-
-class UpdateHeurRLQ(UpdateHeurRL[D, PathFindQHeur, HeurNNetParQ, HeurFnQ], ABC):
-    def __init__(self, domain: D, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs, up_heur_args: UpHeurArgs,
-                 heur_nnet: HeurNNetParQ):
-        super().__init__(domain, pathfind_name, pathfind_kwargs, up_args, up_heur_args, heur_nnet)
-        self.edges_popped: List[EdgeQ] = []
-
-    def get_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
-        states, goals = self.domain.get_start_goal_pairs([0])
-        actions: List[Action] = self.domain.get_state_action_rand(states)
-        inputs_nnet: List[NDArray[Any]] = self.get_heur_nnet().to_np(states, goals, [[action] for action in actions])
-
-        shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = []
-        for inputs_nnet_i in inputs_nnet:
-            shapes_dtypes.append((inputs_nnet_i[0].shape, inputs_nnet_i.dtype))
-        shapes_dtypes.append((tuple(), np.dtype(np.float64)))
-
-        return shapes_dtypes
-
-    def _step(self, pathfind: PathFindQHeur, times: Times) -> List[NDArray]:
-        # take a step
-        edges_popped: List[EdgeQ] = pathfind.step()
-        assert len(edges_popped) == len(pathfind.instances), f"Values were {len(edges_popped)} and {len(pathfind.instances)}"
-
-        if not self.up_args.sync_main:
-            self.edges_popped.extend(edges_popped)
-            return []
-        else:
-            start_time = time.time()
-            states, goals, is_solved_l, actions, tcs, states_next = self._get_edge_data(edges_popped)
-            ctgs_backup: List[float] = self._q_learning_backup_targ(goals, is_solved_l, tcs, states_next)
-            times.record_time("backup_sync", time.time() - start_time)
-
-            return self._inputs_ctgs_np(states, goals, actions, ctgs_backup, times)
-
-    def _get_instance_data(self, instances: List[Instance], times: Times) -> List[NDArray]:
-        states, goals, actions, ctgs_backup = self._backup_edges(self.edges_popped, times)
-
-        # to_np
-        inputs_ctgs_np: List[NDArray] = self._inputs_ctgs_np(states, goals, actions, ctgs_backup, times)
-
-        self.edges_popped = []
-        return inputs_ctgs_np
-
-    def _backup_edges(self, edges: List[EdgeQ], times: Times) -> Tuple[List[State], List[Goal], List[Action], List[float]]:
-        start_time = time.time()
-        edges_init, edges_real = _split_init_vs_real_edges(edges)
-        times.record_time("split_edges", time.time() - start_time)
-
-        # get backup of initial edge with random action
-        # TODO this could be taking up a lot of GPU since includes more instances in parallel (i.e. both removed and current)
-        start_time = time.time()
-        states, goals, actions, ctgs_backup = self._backup_any_next_edge(edges_init)
-        assert len(states) == len(goals) == len(actions) == len(ctgs_backup), \
-            f"Values were {len(states)}, {len(goals)}, {len(actions)}, {len(ctgs_backup)}, "
-        times.record_time("backup_init", time.time() - start_time)
-
-        # get backup for real edges
-        start_time = time.time()
-        for edge_real in edges_real:
-            node: Node = edge_real.node
-            states.append(node.state)
-            goals.append(node.goal)
-            action: Optional[Action] = edge_real.action
-            assert action is not None
-
-            actions.append(action)
-            ctgs_backup.append(node.backup_act(action))
-        times.record_time("backup_real", time.time() - start_time)
-
-        return states, goals, actions, ctgs_backup
-
-    def _backup_any_next_edge(self, edges: List[EdgeQ]) -> Tuple[List[State], List[Goal], List[Action], List[float]]:
-        if len(edges) == 0:
-            return [], [], [], []
-        states, goals, is_solved_l, actions, tcs, states_next = self._edge_init_next_random(edges)
-        ctgs_backup: List[float] = self._q_learning_backup_targ(goals, is_solved_l, tcs, states_next)
-
-        return states, goals, actions, ctgs_backup
-
-    def _get_edge_data(self, edges: List[EdgeQ]) -> Tuple[List[State], List[Goal], List[bool], List[Action], List[float], List[State]]:
-        edges_init, edges_real = _split_init_vs_real_edges(edges)
-        states, goals, is_solved_l, actions, tcs, states_next = self._edge_init_next_random(edges_init)
-        for edge_real in edges_real:
-            node: Node = edge_real.node
-            states.append(node.state)
-            goals.append(node.goal)
-            assert node.is_solved is not None
-            is_solved_l.append(node.is_solved)
-            assert edge_real.action is not None
-            actions.append(edge_real.action)
-            tc, node_next = node.edge_dict[edge_real.action]
-            tcs.append(tc)
-            states_next.append(node_next.state)
-
-        return states, goals, is_solved_l, actions, tcs, states_next
-
-    def _edge_init_next_random(self, edges: List[EdgeQ]) -> Tuple[List[State], List[Goal], List[bool], List[Action], List[float], List[State]]:
-        if len(edges) == 0:
-            return [], [], [], [], [], []
-
-        node_l: List[Node] = [edge.node for edge in edges]
-        states: List[State] = [node.state for node in node_l]
-        goals: List[Goal] = [node.goal for node in node_l]
-        is_solved_l: List[bool] = []
-        for node in node_l:
-            assert node.is_solved is not None
-            is_solved_l.append(node.is_solved)
-
-        actions: List[Action] = self.domain.get_state_action_rand(states)
-
-        states_next, tcs = self.domain.next_state(states, actions)
-        assert len(states) == len(goals) == len(is_solved_l) == len(actions) == len(tcs) == len(states_next), \
-            f"Values were {len(states)}, {len(goals)}, {len(is_solved_l)}, {len(actions)}, {len(tcs)}, {len(states_next)}"
-
-        return states, goals, is_solved_l, actions, tcs, states_next
-
-    @abstractmethod
-    def _get_qvals_targ(self, states: List[State], goals: List[Goal]) -> List[List[float]]:
-        pass
-
-    def _q_learning_backup_targ(self, goals: List[Goal], is_solved_l: List[bool], tcs: List[float], states_next: List[State]) -> List[float]:
-        # min cost-to-go for next state
-        qvals_next_l: List[List[float]] = self._get_qvals_targ(states_next, goals)
-        qvals_next_min: List[float] = [min(qvals_next) for qvals_next in qvals_next_l]
-
-        # backup cost-to-go
-        ctg_backups: NDArray = np.array(tcs) + np.array(qvals_next_min)
-        ctg_backups = ctg_backups * np.logical_not(np.array(is_solved_l))
-
-        return cast(List[float], ctg_backups.tolist())
-
-    def _inputs_ctgs_np(self, states: List[State], goals: List[Goal], actions: List[Action], ctgs_backup: List[float], times: Times) -> List[NDArray]:
-        start_time = time.time()
-        inputs_np: List[NDArray] = self.get_heur_nnet().to_np(states, goals, [[action] for action in actions])
-        times.record_time("to_np", time.time() - start_time)
-
-        return inputs_np + [np.array(ctgs_backup)]
-
-
-class UpdateHeurRLQEnum(UpdateHeurRLQ[ActsEnum]):
-    def _get_qvals_targ(self, states: List[State], goals: List[Goal]) -> List[List[float]]:
-        actions_next: List[List[Action]] = self.domain.get_state_actions(states)
-        qvals: List[List[float]] = self._get_targ_heur_fn()(states, goals, actions_next)
-
-        return qvals
