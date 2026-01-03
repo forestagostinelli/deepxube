@@ -25,14 +25,12 @@
             <h2>Submodules</h2>
             <ul>
                     <li><a href="deepxube/base.html">base</a></li>
-                    <li><a href="deepxube/cli.html">cli</a></li>
                     <li><a href="deepxube/factories.html">factories</a></li>
                     <li><a href="deepxube/heuristics.html">heuristics</a></li>
                     <li><a href="deepxube/logic.html">logic</a></li>
                     <li><a href="deepxube/nnet.html">nnet</a></li>
                     <li><a href="deepxube/pathfinding.html">pathfinding</a></li>
                     <li><a href="deepxube/tests.html">tests</a></li>
-                    <li><a href="deepxube/train_cli.html">train_cli</a></li>
                     <li><a href="deepxube/training.html">training</a></li>
                     <li><a href="deepxube/updater.html">updater</a></li>
                     <li><a href="deepxube/utils.html">utils</a></li>
@@ -66,16 +64,17 @@ deepxube    </h1>
 </span><span id="L-3"><a href="#L-3"><span class="linenos"> 3</span></a>
 </span><span id="L-4"><a href="#L-4"><span class="linenos"> 4</span></a><span class="c1"># run registers</span>
 </span><span id="L-5"><a href="#L-5"><span class="linenos"> 5</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">heuristics</span>  <span class="c1"># noqa: F401</span>
-</span><span id="L-6"><a href="#L-6"><span class="linenos"> 6</span></a>
-</span><span id="L-7"><a href="#L-7"><span class="linenos"> 7</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">deepxube.factories.nnet_input_factory</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_nnet_input_dynamic</span>
-</span><span id="L-8"><a href="#L-8"><span class="linenos"> 8</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">deepxube.factories.factory_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">import_local_modules</span>
-</span><span id="L-9"><a href="#L-9"><span class="linenos"> 9</span></a><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
-</span><span id="L-10"><a href="#L-10"><span class="linenos">10</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-</span><span id="L-11"><a href="#L-11"><span class="linenos">11</span></a>
-</span><span id="L-12"><a href="#L-12"><span class="linenos">12</span></a><span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()))</span>
-</span><span id="L-13"><a href="#L-13"><span class="linenos">13</span></a><span class="n">import_local_modules</span><span class="p">(</span><span class="s2">&quot;domains/&quot;</span><span class="p">)</span>
-</span><span id="L-14"><a href="#L-14"><span class="linenos">14</span></a><span class="n">import_local_modules</span><span class="p">(</span><span class="s2">&quot;heuristics/&quot;</span><span class="p">)</span>
-</span><span id="L-15"><a href="#L-15"><span class="linenos">15</span></a><span class="n">register_nnet_input_dynamic</span><span class="p">()</span>
+</span><span id="L-6"><a href="#L-6"><span class="linenos"> 6</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">pathfinding</span>  <span class="c1"># noqa: F401</span>
+</span><span id="L-7"><a href="#L-7"><span class="linenos"> 7</span></a>
+</span><span id="L-8"><a href="#L-8"><span class="linenos"> 8</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">deepxube.factories.nnet_input_factory</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_nnet_input_dynamic</span>
+</span><span id="L-9"><a href="#L-9"><span class="linenos"> 9</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">deepxube.factories.factory_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">import_local_modules</span>
+</span><span id="L-10"><a href="#L-10"><span class="linenos">10</span></a><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+</span><span id="L-11"><a href="#L-11"><span class="linenos">11</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+</span><span id="L-12"><a href="#L-12"><span class="linenos">12</span></a>
+</span><span id="L-13"><a href="#L-13"><span class="linenos">13</span></a><span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()))</span>
+</span><span id="L-14"><a href="#L-14"><span class="linenos">14</span></a><span class="n">import_local_modules</span><span class="p">(</span><span class="s2">&quot;domains/&quot;</span><span class="p">)</span>
+</span><span id="L-15"><a href="#L-15"><span class="linenos">15</span></a><span class="n">import_local_modules</span><span class="p">(</span><span class="s2">&quot;heuristics/&quot;</span><span class="p">)</span>
+</span><span id="L-16"><a href="#L-16"><span class="linenos">16</span></a><span class="n">register_nnet_input_dynamic</span><span class="p">()</span>
 </span></pre></div>
 
 
