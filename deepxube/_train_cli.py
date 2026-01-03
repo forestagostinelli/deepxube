@@ -1,13 +1,15 @@
-from typing import Optional
+from typing import Optional, Type
 import argparse
 from argparse import ArgumentParser
 
+from deepxube.base.pathfinding import PathFind, PathFindHeur, PathFindVHeur, PathFindQHeur
 from deepxube.factories.updater_factory import get_updater
 
 from deepxube.base.heuristic import HeurNNetPar
 from deepxube.base.updater import UpArgs, UpdateHeur, UpHeurArgs
 from deepxube.training.train_utils import TrainArgs
 from deepxube.training.train_heur import train, TestArgs
+from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_pathfind_name_kwargs
 
 import os
@@ -18,7 +20,9 @@ def parser_train(parser: ArgumentParser) -> None:
     parser.add_argument('--domain', type=str, required=True, help="Domain name and arguments.")
 
     parser.add_argument('--heur', type=str, required=True, help="Heuristic neural network and arguments.")
-    parser.add_argument('--heur_type', type=str, required=True, help="V, QFix, QIn.")
+    parser.add_argument('--heur_type', type=str, default=None, help="V, QFix, QIn. V maps state/goal tuples to cost-to-go. "
+                                                                    "QFix maps state/goal tuples to q_values for a fixed action space. "
+                                                                    "QIn maps state/goal/action tuples to q_value (can be used in arbitrary action spaces).")
     parser.add_argument('--pathfind', type=str, required=True, help="Pathfinding algorithm and arguments.")
 
     parser.add_argument('--dir', type=str, required=True, help="Directory to save neural networks.")
@@ -64,6 +68,14 @@ def train_cli(args: argparse.Namespace) -> None:
     domain, domain_name = get_domain_from_arg(args.domain)
     heur_nnet: HeurNNetPar = get_heur_nnet_par_from_arg(domain, domain_name, args.heur, args.heur_type)[0]
     pathfind_name, pathfind_kwargs = get_pathfind_name_kwargs(args.pathfind)
+    pathfind_t: Type[PathFind] = pathfinding_factory.get_type(pathfind_name)
+    if issubclass(pathfind_t, PathFindHeur):
+        if issubclass(pathfind_t, PathFindVHeur):
+            assert args.heur_type.upper() == "V", f"must use a V heur_type for pathfinding algorithm {pathfind_name, pathfind_t}"
+        elif issubclass(pathfind_t, PathFindQHeur):
+            assert args.heur_type.upper() in {"QFIX", "QIN"}, f"must use a QFix or QIn heur_types for pathfinding algorithm {pathfind_name, pathfind_t}"
+        else:
+            raise ValueError(f"Unknown subclass of PathFindHeur {pathfind_t}")
 
     # update args
     up_args: UpArgs = UpArgs(args.procs, args.up_itrs, args.step_max, args.search_itrs,

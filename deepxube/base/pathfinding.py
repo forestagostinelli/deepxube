@@ -2,9 +2,8 @@ from typing import Generic, List, Optional, Any, Tuple, Callable, TypeVar, Dict,
 
 from numpy.typing import NDArray
 
-from deepxube.nnet.nnet_utils import NNetCallable
 from deepxube.base.domain import Domain, State, Goal, Action, ActsEnum
-from deepxube.base.heuristic import HeurFnV, HeurFnQ
+from deepxube.base.heuristic import HeurFnV, HeurFnQ, HeurFn
 from deepxube.utils import misc_utils
 from deepxube.utils.timing_utils import Times
 
@@ -198,10 +197,15 @@ def get_path(node: Node) -> Tuple[List[State], List[Action], float]:
     return path, actions, node.path_cost
 
 
-H = TypeVar('H', bound=NNetCallable)
+H = TypeVar('H', bound=HeurFn)
 
 
 class PathFindHeur(PathFind[D, I], Generic[D, I, H], ABC):
+    @staticmethod
+    @abstractmethod
+    def heur_fn_type() -> Type[H]:
+        pass
+
     def __init__(self, domain: D):
         super().__init__(domain)
         self.heur_fn: Optional[H] = None
@@ -313,7 +317,11 @@ class PathFindV(PathFind[D, I]):
         return root_nodes
 
 
-class PathFindVHeur(PathFindV[D, I], PathFindHeur[D, I, HeurFnV[State, Goal]], ABC):
+class PathFindVHeur(PathFindV[D, I], PathFindHeur[D, I, HeurFnV], ABC):
+    @staticmethod
+    def heur_fn_type() -> Type[HeurFnV]:
+        return HeurFnV
+
     def _get_heur_vals(self, states: List[State], goals: List[Goal]) -> List[float]:
         assert self.heur_fn is not None
         return self.heur_fn(states, goals)
@@ -435,7 +443,11 @@ class PathFindQ(PathFind[D, I]):
         pass
 
 
-class PathFindQHeur(PathFindQ[D, I], PathFindHeur[D, I, HeurFnQ[State, Goal, Action]], ABC):
+class PathFindQHeur(PathFindQ[D, I], PathFindHeur[D, I, HeurFnQ], ABC):
+    @staticmethod
+    def heur_fn_type() -> Type[HeurFnQ]:
+        return HeurFnQ
+
     def _get_heur_vals(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[List[float]]:
         assert self.heur_fn is not None
         return self.heur_fn(states, goals, actions_l)

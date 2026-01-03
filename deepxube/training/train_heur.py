@@ -6,7 +6,7 @@ from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ, Heu
 from deepxube.base.pathfinding import PathFind, Node
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf
 from deepxube.pathfinding.q.bwqs import BWQSEnum, InstanceBWQS
-from deepxube.pathfinding.v.bwas import BWASActsEnum, InstanceBWAS
+from deepxube.pathfinding.v.bwas import BWAS, InstanceBWAS
 from deepxube.base.updater import UpdateHeur
 from deepxube.training.train_utils import TrainArgs
 from deepxube.utils import data_utils
@@ -42,7 +42,7 @@ def get_pathfind_w_instances(updater: UpdateHeur, train_heur: TrainHeur, test_ar
     heur_nnet: HeurNNetPar = updater.get_heur_nnet()
     if isinstance(heur_nnet, HeurNNetParV):
         heur_fn_v: HeurFnV = heur_nnet.get_nnet_fn(train_heur.nnet, test_args.test_nnet_batch_size, train_heur.device, None)
-        pathfind_v: BWASActsEnum = BWASActsEnum(updater.domain)
+        pathfind_v: BWAS = BWAS(updater.domain)
         pathfind_v.set_heur_fn(heur_fn_v)
         instances_v: List[InstanceBWAS] = pathfind_v.make_instances(test_args.test_states, test_args.test_goals, batch_size=1,
                                                                     weight=test_args.search_weights[param_idx], eps=0.0)

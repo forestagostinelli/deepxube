@@ -10,10 +10,9 @@ import numpy as np
 import torch
 from numpy.typing import NDArray
 
-from deepxube.nnet.nnet_utils import (NNetParInfo, NNetCallable, NNetPar, get_nnet_par_infos, start_nnet_fn_runners,
-                                      stop_nnet_runners)
+from deepxube.nnet.nnet_utils import NNetParInfo, NNetCallable, NNetPar, get_nnet_par_infos, start_nnet_fn_runners, stop_nnet_runners
 from deepxube.base.domain import Domain, State, Goal, Action, ActsEnum
-from deepxube.base.heuristic import HeurNNetPar, HeurFnV, HeurFnQ, HeurNNetParV, HeurNNetParQ
+from deepxube.base.heuristic import HeurNNetPar, HeurFnV, HeurFnQ, HeurFn, HeurNNetParV, HeurNNetParQ
 from deepxube.base.pathfinding import PathFind, PathFindVHeur, PathFindQ, Instance, Node, EdgeQ
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.pathfinding.pathfinding_utils import PathFindPerf, print_pathfindperf
@@ -406,7 +405,7 @@ class Update(Generic[D, P], ABC):
 
 
 HNet = TypeVar('HNet', bound=HeurNNetPar)
-H = TypeVar('H', bound=NNetCallable)
+H = TypeVar('H', bound=HeurFn)
 
 
 class UpdateHasHeur(Update[D, P], Generic[D, P, HNet, H], ABC):
@@ -444,7 +443,7 @@ class UpdateHeur(UpdateHasHeur[D, P, HNet, H], ABC):
         return self._get_heur_fn_from_dict()
 
 
-class UpdateHeurV(UpdateHeur[Domain, PathFindVHeur, HeurNNetParV[State, Goal], HeurFnV[State, Goal]]):
+class UpdateHeurV(UpdateHeur[Domain, PathFindVHeur, HeurNNetParV, HeurFnV]):
     def __init__(self, domain: Domain, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs, up_heur_args: UpHeurArgs,
                  heur_nnet: HeurNNetParV):
         super().__init__(domain, pathfind_name, pathfind_kwargs, up_args, up_heur_args, heur_nnet)
@@ -531,7 +530,7 @@ def _split_init_vs_real_edges(edges: List[EdgeQ]) -> Tuple[List[EdgeQ], List[Edg
     return edges_init, edges_real
 
 
-class UpdateHeurQ(UpdateHeur[D, PQ, HeurNNetParQ[State, Action, Goal], HeurFnQ[State, Goal, Action]], ABC):
+class UpdateHeurQ(UpdateHeur[D, PQ, HeurNNetParQ, HeurFnQ], ABC):
     def __init__(self, domain: D, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs, up_heur_args: UpHeurArgs,
                  heur_nnet: HeurNNetParQ):
         super().__init__(domain, pathfind_name, pathfind_kwargs, up_args, up_heur_args, heur_nnet)

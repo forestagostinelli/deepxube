@@ -80,7 +80,7 @@ class InstanceBWAS(Instance):
 D = TypeVar('D', bound=Domain)
 
 
-class BWAS(PathFindVHeur[D, InstanceBWAS], ABC):
+class BWASActsAny(PathFindVHeur[D, InstanceBWAS], ABC):
     def __init__(self, domain: D, batch_size_default: int = 1, weight_default: float = 1.0, eps_default: float = 0.0):
         super().__init__(domain)
         self.batch_size_default: int = batch_size_default
@@ -173,8 +173,8 @@ class BWAS(PathFindVHeur[D, InstanceBWAS], ABC):
         return nodes_popped_flat
 
 
-@pathfinding_factory.register_class("BWASActsEnum")
-class BWASActsEnum(BWAS[ActsEnum], PathFindVExpandEnum[InstanceBWAS]):
+@pathfinding_factory.register_class("BWAS")
+class BWAS(BWASActsAny[ActsEnum], PathFindVExpandEnum[InstanceBWAS]):
     @staticmethod
     def domain_type() -> Type[ActsEnum]:
         return ActsEnum

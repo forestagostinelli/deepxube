@@ -40,6 +40,7 @@ def get_pathfind_name_kwargs(pathfind: str) -> Tuple[str, Dict[str, Any]]:
     pathfind_kwargs: Dict[str, Any] = pathfinding_factory.get_kwargs(name, args_str)
     return name, pathfind_kwargs
 
+
 def get_pathfind_from_arg(pathfind: str, domain: Domain) -> Tuple[PathFind, str]:
     name, args_str = get_name_args(pathfind)
     pathfind_kwargs: Dict[str, Any] = pathfinding_factory.get_kwargs(name, args_str)

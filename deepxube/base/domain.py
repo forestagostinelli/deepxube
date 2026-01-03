@@ -160,7 +160,7 @@ class Domain(ABC, Generic[S, A, G]):
         pass
 
 
-# Mixins
+# Visualization Mixins
 class StateGoalVizable(Domain[S, A, G]):
     """ Can visualize problem instances
 
@@ -178,56 +178,7 @@ class StringToAct(Domain[S, A, G]):
     def string_to_action(self, act_str: str) -> Optional[A]:
         """
         :param act_str: A string representation of an action
-        :return: An action if the string is a valid representation, None otherwise
-        """
-        pass
-
-
-class FixedGoalRevWalk(Domain[S, A, G]):
-    def get_start_goal_pairs(self, num_steps_l: List[int], times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
-        # Initialize
-        if times is None:
-            times = Times()
-
-        # Start states
-        start_time = time.time()
-        states_goal: List[S] = self.get_goal_states(len(num_steps_l))
-        times.record_time("get_start_states", time.time() - start_time)
-
-        # random walk
-        start_time = time.time()
-        states_start: List[S] = self.random_walk_rev(states_goal, num_steps_l)
-        times.record_time("random_walk", time.time() - start_time)
-
-        # state to goal
-        start_time = time.time()
-        goals: List[G] = [self.get_goal()] * len(states_start)
-        times.record_time("sample_goal", time.time() - start_time)
-
-        return states_start, goals
-
-    @abstractmethod
-    def random_walk_rev(self, states: List[S], num_steps_l: List[int]) -> List[S]:
-        pass
-
-    @abstractmethod
-    def get_goal_states(self, num_states: int) -> List[S]:
-        pass
-
-    @abstractmethod
-    def get_goal(self) -> G:
-        pass
-
-
-class GoalSampleable(Domain[S, A, G]):
-    @abstractmethod
-    def sample_goal(self, states_start: List[S], states_goal: List[S]) -> List[G]:
-        """ Given a state, return a goal that represents a set of goal states of which the given state is a member.
-        Does not have to always return the same goal.
-
-        :param states_start: List of start states
-        :param states_goal List of states from which goals will be sampled
-        :return: Goals
+        :return: The action represented by the string, if it is a valid representation, None otherwise
         """
         pass
 
@@ -242,10 +193,27 @@ class ActsFixed(Domain[S, A, G]):
 
 
 class ActsRev(Domain[S, A, G], ABC):
-    """ To indicate reversibility. Functionality to implement may come later.
+    """ Actions are reversible.
 
     """
-    pass
+    @abstractmethod
+    def rev_action(self, actions: List[A]) -> List[A]:
+        """ Get the reverse of the given action
+
+        :param actions: List of actions
+        :return: Reverse of given action
+        """
+        pass
+
+    @abstractmethod
+    def rev_state(self, states: List[S], actions: List[A]) -> Tuple[List[S], List[float]]:
+        """ Transition along the directed edge in the reverse direction.
+
+        :param states: List of states
+        :param actions: List of actions to take
+        :return: Reverse states, transition costs which are weights of edges taken in reverse
+        """
+        pass
 
 
 class ActsEnum(Domain[S, A, G]):
@@ -302,21 +270,60 @@ class ActsEnum(Domain[S, A, G]):
 
 class ActsEnumFixed(ActsEnum[S, A, G], ActsFixed[S, A, G]):
     def get_action_rand(self, num: int) -> List[A]:
-        actions_fixed: List[A] = self._get_actions_fixed()
+        actions_fixed: List[A] = self.get_actions_fixed()
         return [random.choice(actions_fixed) for _ in range(num)]
 
     def get_state_actions(self, states: List[S]) -> List[List[A]]:
-        return [self._get_actions_fixed().copy() for _ in range(len(states))]
+        return [self.get_actions_fixed().copy() for _ in range(len(states))]
 
     @abstractmethod
-    def _get_actions_fixed(self) -> List[A]:
+    def get_actions_fixed(self) -> List[A]:
         pass
 
     def get_num_acts(self) -> int:
-        return len(self._get_actions_fixed())
+        return len(self.get_actions_fixed())
+
+
+# Goal mixins
+class GoalSampleable(Domain[S, A, G]):
+    """ Can sample goals from states"""
+    @abstractmethod
+    def sample_goal(self, states_start: List[S], states_goal: List[S]) -> List[G]:
+        """ Given a state, return a goal that represents a set of goal states of which the given state is a member.
+        Does not have to always return the same goal.
+
+        :param states_start: List of start states
+        :param states_goal List of states from which goals will be sampled
+        :return: Goals
+        """
+        pass
+
+
+class GoalStateSampleable(Domain[S, A, G]):
+    """ Can sample states from goals """
+    @abstractmethod
+    def sample_goal_states(self, goals: List[G], num_states_l: List[int]) -> List[List[S]]:
+        """ Given a goal, sample states that are members of that goal.
+
+        :param goals: List of goals
+        :param num_states_l: List of integers representing how many states to sample for the corresponding goal
+        :return: List of list of states, where each element is a list of states sampled for the corresponding goal
+        """
+        pass
+
+
+class GoalFixed(Domain[S, A, G]):
+    """ Goal is the same for all problem instances """
+    @abstractmethod
+    def get_goal(self) -> G:
+        """
+        :return: Fixed goal
+        """
+        pass
 
 
 class StartGoalWalkable(GoalSampleable[S, A, G]):
+    """ Can sample start states, take actions to obtain another state, and sample a goal from that state"""
     @abstractmethod
     def get_start_states(self, num_states: int) -> List[S]:
         """ A method for generating start states. Should try to make this generate states that are as diverse as
@@ -350,109 +357,52 @@ class StartGoalWalkable(GoalSampleable[S, A, G]):
         return states_start, goals
 
 
+class GoalStateSampleableFixed(GoalStateSampleable[S, A, G], GoalFixed[S, A, G]):
+    """ Can sample states from goal, which is the same for all problem instances """
+
+    @abstractmethod
+    def sample_goal_states_fixed(self, num_states: int) -> List[S]:
+        pass
+
+    def sample_goal_states(self, goals: List[G], num_states_l: List[int]) -> List[List[S]]:
+        return [self.sample_goal_states_fixed(num_states) for num_states in num_states_l]
+
+
+# reverse walks
+class FixedGoalRevWalk(GoalStateSampleableFixed[S, A, G]):
+    def get_start_goal_pairs(self, num_steps_l: List[int], times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
+        # Initialize
+        if times is None:
+            times = Times()
+
+        # Start states
+        start_time = time.time()
+        states_goal: List[S] = self.sample_goal_states_fixed(len(num_steps_l))
+        times.record_time("get_start_states", time.time() - start_time)
+
+        # random walk
+        start_time = time.time()
+        states_start: List[S] = self.random_walk_rev(states_goal, num_steps_l)
+        times.record_time("random_walk", time.time() - start_time)
+
+        # state to goal
+        start_time = time.time()
+        goals: List[G] = [self.get_goal()] * len(states_start)
+        times.record_time("sample_goal", time.time() - start_time)
+
+        return states_start, goals
+
+    @abstractmethod
+    def random_walk_rev(self, states: List[S], num_steps_l: List[int]) -> List[S]:
+        pass
+
+
 class FixedGoalRevWalkActsRev(FixedGoalRevWalk[S, A, G], ActsRev[S, A, G], ABC):
     def random_walk_rev(self, states: List[S], num_steps_l: List[int]) -> List[S]:
         return self.random_walk(states, num_steps_l)[0]
 
 
-class SupportsPDDL(Domain[S, A, G], ABC):
-    @abstractmethod
-    def get_pddl_domain(self) -> List[str]:
-        pass
-
-    @abstractmethod
-    def state_goal_to_pddl_inst(self, state: S, goal: G) -> List[str]:
-        pass
-
-    @abstractmethod
-    def pddl_action_to_action(self, pddl_action: str) -> A:
-        pass
-
-
-class GoalGrndAtoms(GoalSampleable[S, A, G]):
-    @abstractmethod
-    def state_to_model(self, states: List[S]) -> List[Model]:
-        pass
-
-    @abstractmethod
-    def model_to_state(self, models: List[Model]) -> List[S]:
-        """ Assumes model is a fully specified state
-
-        :param models:
-        :return:
-        """
-        pass
-
-    @abstractmethod
-    def goal_to_model(self, goals: List[G]) -> List[Model]:
-        pass
-
-    @abstractmethod
-    def model_to_goal(self, models: List[Model]) -> List[G]:
-        pass
-
-    def is_solved(self, states: List[S], goals: List[G]) -> List[bool]:
-        """ Returns whether or not state is solved
-
-        :param states: List of states
-        :param goals: List of goals
-        :return: Boolean numpy array where the element at index i corresponds to whether or not the
-        state at index i is solved
-        """
-        models_g: List[Model] = self.goal_to_model(goals)
-        is_solved_l: List[bool] = []
-        models_s: List[Model] = self.state_to_model(states)
-        for model_state, model_goal in zip(models_s, models_g):
-            is_solved_l.append(model_goal.issubset(model_state))
-
-        return is_solved_l
-
-    def sample_goal(self, states_start: List[S], states_goal: List[S]) -> List[G]:
-        models_g: List[Model] = []
-
-        models_s: List[Model] = self.state_to_model(states_goal)
-        keep_probs: NDArray[np.float64] = np.random.rand(len(states_goal))
-        for model_s, keep_prob in zip(models_s, keep_probs):
-            rand_subset: Set[Atom] = misc_utils.random_subset(model_s, keep_prob)
-            models_g.append(frozenset(rand_subset))
-
-        return self.model_to_goal(models_g)
-
-    @abstractmethod
-    def get_bk(self) -> List[str]:
-        """ get background, each element in list is a line
-
-        :return:
-        """
-        pass
-
-    @abstractmethod
-    def get_ground_atoms(self) -> List[Atom]:
-        """ Get all possible ground atoms that can be used to make a state
-
-        :return:
-        """
-        pass
-
-    @abstractmethod
-    def on_model(self, m: ModelCl) -> Model:
-        """ Process results from clingo
-
-        :param m:
-        :return:
-        """
-        pass
-
-    @abstractmethod
-    def start_state_fixed(self, states: List[S]) -> List[Model]:
-        """ Given the start state, what must also be true for the goal state (i.e. immovable walls)
-
-        :param states:
-        :return:
-        """
-        pass
-
-
+# numpy convenience mixins
 class NextStateNP(Domain[S, A, G]):
     def next_state(self, states: List[S], actions: List[A]) -> Tuple[List[S], List[float]]:
         states_np: List[NDArray] = self._states_to_np(states)
@@ -555,5 +505,103 @@ class NextStateNPActsEnum(NextStateNP[S, A, G], ActsEnum[S, A, G], ABC):
 
 class NextStateNPActsEnumFixed(NextStateNPActsEnum[S, A, G], ActsEnumFixed[S, A, G], ABC):
     def _get_state_np_actions(self, states_np: List[NDArray]) -> List[List[A]]:
-        state_actions: List[A] = self._get_actions_fixed()
+        state_actions: List[A] = self.get_actions_fixed()
         return [state_actions.copy() for _ in range(states_np[0].shape[0])]
+
+
+class SupportsPDDL(Domain[S, A, G], ABC):
+    @abstractmethod
+    def get_pddl_domain(self) -> List[str]:
+        pass
+
+    @abstractmethod
+    def state_goal_to_pddl_inst(self, state: S, goal: G) -> List[str]:
+        pass
+
+    @abstractmethod
+    def pddl_action_to_action(self, pddl_action: str) -> A:
+        pass
+
+
+class GoalGrndAtoms(GoalSampleable[S, A, G]):
+    @abstractmethod
+    def state_to_model(self, states: List[S]) -> List[Model]:
+        pass
+
+    @abstractmethod
+    def model_to_state(self, models: List[Model]) -> List[S]:
+        """ Assumes model is a fully specified state
+
+        :param models:
+        :return:
+        """
+        pass
+
+    @abstractmethod
+    def goal_to_model(self, goals: List[G]) -> List[Model]:
+        pass
+
+    @abstractmethod
+    def model_to_goal(self, models: List[Model]) -> List[G]:
+        pass
+
+    def is_solved(self, states: List[S], goals: List[G]) -> List[bool]:
+        """ Returns whether or not state is solved
+
+        :param states: List of states
+        :param goals: List of goals
+        :return: Boolean numpy array where the element at index i corresponds to whether or not the
+        state at index i is solved
+        """
+        models_g: List[Model] = self.goal_to_model(goals)
+        is_solved_l: List[bool] = []
+        models_s: List[Model] = self.state_to_model(states)
+        for model_state, model_goal in zip(models_s, models_g):
+            is_solved_l.append(model_goal.issubset(model_state))
+
+        return is_solved_l
+
+    def sample_goal(self, states_start: List[S], states_goal: List[S]) -> List[G]:
+        models_g: List[Model] = []
+
+        models_s: List[Model] = self.state_to_model(states_goal)
+        keep_probs: NDArray[np.float64] = np.random.rand(len(states_goal))
+        for model_s, keep_prob in zip(models_s, keep_probs):
+            rand_subset: Set[Atom] = misc_utils.random_subset(model_s, keep_prob)
+            models_g.append(frozenset(rand_subset))
+
+        return self.model_to_goal(models_g)
+
+    @abstractmethod
+    def get_bk(self) -> List[str]:
+        """ get background, each element in list is a line
+
+        :return:
+        """
+        pass
+
+    @abstractmethod
+    def get_ground_atoms(self) -> List[Atom]:
+        """ Get all possible ground atoms that can be used to make a state
+
+        :return:
+        """
+        pass
+
+    @abstractmethod
+    def on_model(self, m: ModelCl) -> Model:
+        """ Process results from clingo
+
+        :param m:
+        :return:
+        """
+        pass
+
+    @abstractmethod
+    def start_state_fixed(self, states: List[S]) -> List[Model]:
+        """ Given the start state, what must also be true for the goal state (i.e. immovable walls)
+
+        :param states:
+        :return:
+        """
+        pass

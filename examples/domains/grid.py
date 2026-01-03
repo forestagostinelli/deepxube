@@ -103,7 +103,7 @@ class GridExample(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalka
         else:
             return None
 
-    def _get_actions_fixed(self) -> List[GridAction]:
+    def get_actions_fixed(self) -> List[GridAction]:
         return self.actions_fixed.copy()
 
     def __repr__(self) -> str:

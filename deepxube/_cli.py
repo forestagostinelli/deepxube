@@ -6,7 +6,7 @@ from deepxube._train_cli import parser_train
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, StateGoalVizable, StringToAct, State, Action, Goal
 from deepxube.base.heuristic import HeurNNet, HeurNNetPar
-from deepxube.base.pathfinding import PathFind
+from deepxube.base.pathfinding import PathFind, PathFindHeur
 from deepxube.factories.domain_factory import domain_factory
 from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys, get_nnet_input_t
 from deepxube.factories.heuristic_factory import heuristic_factory
@@ -26,12 +26,12 @@ def get_mixins(cls: Type[object], mixin_base: Type) -> List[Type[object]]:
 def domain_info(args: argparse.Namespace) -> None:
     domain_names: List[str] = domain_factory.get_all_class_names()
     for domain_name in domain_names:
-        print(f"Domain: {domain_name}")
+        domain_t: Type[Domain] = domain_factory.get_type(domain_name)
+        print(f"Domain: {domain_name}, {domain_t}")
         parser: Optional[Parser] = domain_factory.get_parser(domain_name)
         if parser is not None:
             print(textwrap.indent("Parser: " + parser.help(), '\t'))
 
-        domain_t: Type[Domain] = domain_factory.get_type(domain_name)
         mixin_str: str = ','.join([f"{x}" for x in get_mixins(domain_t, Domain)])
         print(textwrap.indent(f"Mixins: {mixin_str}", '\t'))
 
@@ -45,8 +45,8 @@ def domain_info(args: argparse.Namespace) -> None:
 def heur_info(args: argparse.Namespace) -> None:
     heur_nnet_names: List[str] = heuristic_factory.get_all_class_names()
     for heur_nnet_name in heur_nnet_names:
-        print(f"Heur NNet: {heur_nnet_name}")
         heur_nnet_t: Type[HeurNNet] = heuristic_factory.get_type(heur_nnet_name)
+        print(f"Heur NNet: {heur_nnet_name}, {heur_nnet_t}")
         print(textwrap.indent(f"NNet_Input type expected: {heur_nnet_t.nnet_input_type()}", '\t'))
         parser: Optional[Parser] = heuristic_factory.get_parser(heur_nnet_name)
         if parser is not None:
@@ -56,12 +56,14 @@ def heur_info(args: argparse.Namespace) -> None:
 def pathfinding_info(args: argparse.Namespace) -> None:
     names: List[str] = pathfinding_factory.get_all_class_names()
     for name in names:
-        print(f"PathFind: {name}")
         pathfind_t: Type[PathFind] = pathfinding_factory.get_type(name)
+        print(f"PathFind: {name}, {pathfind_t}")
         mixin_str: str = ','.join([f"{x}" for x in get_mixins(pathfind_t, PathFind)])
         print(textwrap.indent(f"Mixins: {mixin_str}", '\t'))
 
         print(textwrap.indent(f"Domain type expected: {pathfind_t.domain_type()}", '\t'))
+        if issubclass(pathfind_t, PathFindHeur):
+            print(textwrap.indent(f"Heuristic type expected: {pathfind_t.heur_fn_type()}", '\t'))
 
         parser: Optional[Parser] = pathfinding_factory.get_parser(name)
         if parser is not None:

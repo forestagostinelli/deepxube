@@ -67,7 +67,7 @@ class HeurNNetParFacClass(HeurNNetPar, ABC):
         return self.__dict__
 
 
-class HeurNNetParVConcrete(HeurNNetParV[State, Goal], HeurNNetParFacClass):
+class HeurNNetParVConcrete(HeurNNetParV, HeurNNetParFacClass):
     def __init__(self, domain: Domain, nnet_input_name: Tuple[str, str], heur_nnet_name: str,
                  heur_nnet_kwargs: Dict[str, Any]):
         HeurNNetParFacClass.__init__(self, domain, nnet_input_name, heur_nnet_name, heur_nnet_kwargs, False, 1)
@@ -81,7 +81,7 @@ class HeurNNetParVConcrete(HeurNNetParV[State, Goal], HeurNNetParFacClass):
         return nnet_input
 
 
-class HeurNNetParQFixOutConcrete(HeurNNetParQFixOut[State, Action, Goal], HeurNNetParFacClass):
+class HeurNNetParQFixOutConcrete(HeurNNetParQFixOut, HeurNNetParFacClass):
     def __init__(self, domain: Domain, nnet_input_name: Tuple[str, str],
                  heur_nnet_name: str, heur_nnet_kwargs: Dict[str, Any], out_dim: int):
         HeurNNetParFacClass.__init__(self, domain, nnet_input_name, heur_nnet_name, heur_nnet_kwargs, True, out_dim)
@@ -95,7 +95,7 @@ class HeurNNetParQFixOutConcrete(HeurNNetParQFixOut[State, Action, Goal], HeurNN
         return nnet_input
 
 
-class HeurNNetParQActInConcrete(HeurNNetParQIn[State, Action, Goal], HeurNNetParFacClass):
+class HeurNNetParQActInConcrete(HeurNNetParQIn, HeurNNetParFacClass):
     def __init__(self, domain: Domain, nnet_input_name: Tuple[str, str],
                  heur_nnet_name: str, heur_nnet_kwargs: Dict[str, Any]):
         HeurNNetParFacClass.__init__(self, domain, nnet_input_name, heur_nnet_name, heur_nnet_kwargs, False, 1)
