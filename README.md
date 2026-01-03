@@ -15,6 +15,7 @@ For any issues, you can create a GitHub issue or contact Forest Agostinelli (for
 **Outline**:
 
 - [Installation](#installation)
+- [Documentation](#documentation)
 - [Command line](#command-line)
   - [Domains](#domains)
   - [Domain Visualization](#domain-visualization)
@@ -25,23 +26,27 @@ For any issues, you can create a GitHub issue or contact Forest Agostinelli (for
 
 `pip install deepxube`
 
-See [INSTALL.md](INSTALL.md) for more details and [documentation](https://forestagostinelli.github.io/deepxube/deepxube.html).
+See [INSTALL.md](INSTALL.md) for more information.
 
-The following information is not yet pip installable, but will be soon.
+## Documentation
+Documentation of all modules is [here](https://forestagostinelli.github.io/deepxube/deepxube.html).
 
 
 ## Command Line
+The following information is not yet pip installable, but will be soon.
+
 deepxube can be run from the command line via the `deepxube` command.
 
 Run `deepxube --help` for detailed information. `--help` can also be run on 
 positional arguments (e.g. `deepxube train --help`).
 
 #### Quick run
-Copy the contents of the `examples/` directory or clone the project and cd input `examples/` and run:
+Copy the contents of the `examples/` directory or clone the project and cd to `examples/` and run:
 
 - Get domain information: `deepxube domain_info`
 - Visualize domain: `deepxube viz --domain grid_example.7 --steps 10`
 - Get heuristic information: `deepxube heuristic_info`
+- Get pathfinding information: `deepxube pathfinding_info`
 - Time to ensure basic functionality. Can use breakpoints in your code to debug: 
   - With deepxube residual neural network: `deepxube time --domain grid_example.7 --heur resnet_fc.100H_2B_bn --heur_type V`
   - With deepxube residual neural network and deep Q-network: `deepxube time --domain grid_example.7 --heur resnet_fc.100H_2B_bn --heur_type QFix`
