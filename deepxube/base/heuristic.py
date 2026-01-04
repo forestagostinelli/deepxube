@@ -23,6 +23,7 @@ class DeepXubeNNet(nn.Module, Generic[In], ABC):
 
     def __init__(self, nnet_input: In):
         super().__init__()
+        assert isinstance(nnet_input, self.nnet_input_type()), f"NNetInput {nnet_input} must be an instance of {self.nnet_input_type()}."
         self.nnet_input: In = nnet_input
 
     @abstractmethod

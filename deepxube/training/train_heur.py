@@ -7,7 +7,7 @@ from deepxube.base.pathfinding import PathFind, Node
 from deepxube.pathfinding.utils.performance import PathFindPerf
 from deepxube.pathfinding.bwqs import BWQSEnum, InstanceBWQS
 from deepxube.pathfinding.bwas import BWAS, InstanceBWAS
-from deepxube.base.updater import UpdateHeur, UpdateHeurRL
+from deepxube.base.updater import UpdateHeur
 from deepxube.training.train_utils import TrainArgs
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
@@ -94,9 +94,8 @@ def train(heur_nnet_par: HeurNNetPar, updater: UpdateHeur, nnet_dir: str, train_
 
     # Print basic info
     # print("HOST: %s" % os.uname()[1])
-    if isinstance(updater, UpdateHeurRL):
-        updater.set_heur_nnet(heur_nnet_par)
-        updater.set_heur_file(heur_targ_file)
+    updater.set_heur_nnet(heur_nnet_par)
+    updater.set_heur_file(heur_targ_file)
 
     heur_nnet: HeurNNet = heur_nnet_par.get_nnet()
     print(heur_nnet)

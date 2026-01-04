@@ -108,6 +108,7 @@ class PathFind(Generic[D, I], ABC):
         pass
 
     def __init__(self, domain: D):
+        assert isinstance(domain, self.domain_type()), f"Domain {domain} must be an instance of {self.domain_type()}."
         self.domain: D = domain
         self.instances: List[I] = []
         self.times: Times = Times()
@@ -214,10 +215,20 @@ class PathFindHeur(PathFind[D, I], Generic[D, I, H], ABC):
         self.heur_fn = heur_fn
 
 
-class PathFindV(PathFind[D, I]):
-    def __init__(self, env: D):
-        super().__init__(env)
+class PathFindSup(PathFind[D, I]):
+    def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None,
+                       compute_root_heur: bool = True) -> List[I]:
+        raise NotImplementedError
 
+    @abstractmethod
+    def make_instances_rw(self, steps_gen: List[int], inst_infos: Optional[List[Any]]) -> List[I]:
+        """ Make instances from a random walk
+
+        """
+        pass
+
+
+class PathFindV(PathFind[D, I]):
     @abstractmethod
     def step(self, verbose: bool = False) -> List[Node]:
         pass
@@ -257,7 +268,7 @@ class PathFindV(PathFind[D, I]):
 
         # Get is_solved on all states at once (for speed)
         # start_time = time.time()
-        # is_solved_c_flat: List[bool] = self.env.is_solved(states_c_flat, goals_c_flat)
+        # is_solved_c_flat: List[bool] = self.domain.is_solved(states_c_flat, goals_c_flat)
         # is_solved_c: List[List[bool]] = misc_utils.unflatten(is_solved_c_flat, split_idxs_c)
         # self.times.record_time("is_solved", time.time() - start_time)
 
@@ -317,6 +328,11 @@ class PathFindV(PathFind[D, I]):
         return root_nodes
 
 
+class PathFindVExpandEnum(PathFindV[ActsEnum, I], ABC):
+    def _expand(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
+        return self.domain.expand(states)
+
+
 class PathFindVHeur(PathFindV[D, I], PathFindHeur[D, I, HeurFnV], ABC):
     @staticmethod
     def heur_fn_type() -> Type[HeurFnV]:
@@ -325,11 +341,6 @@ class PathFindVHeur(PathFindV[D, I], PathFindHeur[D, I, HeurFnV], ABC):
     def _get_heur_vals(self, states: List[State], goals: List[Goal]) -> List[float]:
         assert self.heur_fn is not None
         return self.heur_fn(states, goals)
-
-
-class PathFindVExpandEnum(PathFindV[ActsEnum, I], ABC):
-    def _expand(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
-        return self.domain.expand(states)
 
 
 class EdgeQ:
@@ -342,9 +353,6 @@ class EdgeQ:
 
 
 class PathFindQ(PathFind[D, I]):
-    def __init__(self, env: D):
-        super().__init__(env)
-
     @abstractmethod
     def step(self, verbose: bool = False) -> List[EdgeQ]:
         pass
@@ -443,6 +451,11 @@ class PathFindQ(PathFind[D, I]):
         pass
 
 
+class PathFindQExpandEnum(PathFindQ[ActsEnum, I], ABC):
+    def _get_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
+        return self.domain.get_state_actions(states)
+
+
 class PathFindQHeur(PathFindQ[D, I], PathFindHeur[D, I, HeurFnQ], ABC):
     @staticmethod
     def heur_fn_type() -> Type[HeurFnQ]:
@@ -451,8 +464,3 @@ class PathFindQHeur(PathFindQ[D, I], PathFindHeur[D, I, HeurFnQ], ABC):
     def _get_heur_vals(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[List[float]]:
         assert self.heur_fn is not None
         return self.heur_fn(states, goals, actions_l)
-
-
-class PathFindQExpandEnum(PathFindQ[ActsEnum, I], ABC):
-    def _get_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
-        return self.domain.get_state_actions(states)

@@ -8,26 +8,15 @@ from numpy.typing import NDArray
 from deepxube.base.domain import Action, State, Goal, ActsEnum
 from deepxube.base.heuristic import HeurNNetParQ, HeurFnQ
 from deepxube.base.pathfinding import PathFindQHeur, EdgeQ, Instance, Node
-from deepxube.base.updater import UpdateHeurRL, D, UpArgs, UpHeurArgs
+from deepxube.base.updater import UpdateHeurQ, UpdateHeurRL, D, UpArgs, UpHeurArgs
 from deepxube.utils.timing_utils import Times
 
 
-class UpdateHeurRLQ(UpdateHeurRL[D, PathFindQHeur, HeurNNetParQ, HeurFnQ], ABC):
+class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur, HeurNNetParQ, HeurFnQ], ABC):
     def __init__(self, domain: D, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs, up_heur_args: UpHeurArgs):
-        super().__init__(domain, pathfind_name, pathfind_kwargs, up_args, up_heur_args)
+        super().__init__(domain, pathfind_name, pathfind_kwargs, up_args)
+        self.up_heur_args: UpHeurArgs = up_heur_args
         self.edges_popped: List[EdgeQ] = []
-
-    def get_heur_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
-        states, goals = self.domain.get_start_goal_pairs([0])
-        actions: List[Action] = self.domain.get_state_action_rand(states)
-        inputs_nnet: List[NDArray[Any]] = self.get_heur_nnet().to_np(states, goals, [[action] for action in actions])
-
-        shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = []
-        for inputs_nnet_i in inputs_nnet:
-            shapes_dtypes.append((inputs_nnet_i[0].shape, inputs_nnet_i.dtype))
-        shapes_dtypes.append((tuple(), np.dtype(np.float64)))
-
-        return shapes_dtypes
 
     def _step(self, pathfind: PathFindQHeur, times: Times) -> List[NDArray]:
         # take a step
@@ -144,13 +133,13 @@ class UpdateHeurRLQ(UpdateHeurRL[D, PathFindQHeur, HeurNNetParQ, HeurFnQ], ABC):
 
     def _inputs_ctgs_np(self, states: List[State], goals: List[Goal], actions: List[Action], ctgs_backup: List[float], times: Times) -> List[NDArray]:
         start_time = time.time()
-        inputs_np: List[NDArray] = self.get_heur_nnet().to_np(states, goals, [[action] for action in actions])
+        inputs_np: List[NDArray] = self.get_heur_nnet_par().to_np(states, goals, [[action] for action in actions])
         times.record_time("to_np", time.time() - start_time)
 
         return inputs_np + [np.array(ctgs_backup)]
 
 
-class UpdateHeurRLQEnum(UpdateHeurRLQ[ActsEnum]):
+class UpdateHeurQRLEnum(UpdateHeurQRL[ActsEnum]):
     def _get_qvals_targ(self, states: List[State], goals: List[Goal]) -> List[List[float]]:
         actions_next: List[List[Action]] = self.domain.get_state_actions(states)
         qvals: List[List[float]] = self._get_targ_heur_fn()(states, goals, actions_next)
