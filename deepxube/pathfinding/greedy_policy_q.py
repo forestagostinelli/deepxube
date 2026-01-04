@@ -103,7 +103,7 @@ class GreedyPolicyQ(GreedyPolicyQActsAny[ActsEnum], PathFindQExpandEnum[Instance
 
 
 @pathfinding_factory.register_parser("greedy_q")
-class GreedyVParser(Parser):
+class GreedyQParser(Parser):
     def parse(self, args_str: str) -> Dict[str, Any]:
         args_str_l: List[str] = args_str.split("_")
         assert len(args_str_l) == 2

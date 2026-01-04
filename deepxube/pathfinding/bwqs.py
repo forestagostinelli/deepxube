@@ -1,9 +1,11 @@
 import random
 from abc import ABC
-from typing import List, Tuple, Dict, Optional, Any, TypeVar
+from typing import List, Tuple, Dict, Optional, Any, TypeVar, Type
 
-from deepxube.base.domain import Domain, ActsEnum, State
+from deepxube.base.factory import Parser
+from deepxube.base.domain import Domain, ActsEnum, State, Goal
 from deepxube.base.pathfinding import Instance, Node, PathFindQHeur, EdgeQ, PathFindQExpandEnum
+from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.utils import misc_utils
 from heapq import heappush, heappop, heapify
 import numpy as np
@@ -74,7 +76,23 @@ class InstanceBWQS(Instance):
 D = TypeVar('D', bound=Domain)
 
 
-class BWQS(PathFindQHeur[D, InstanceBWQS], ABC):
+class BWQSActsAny(PathFindQHeur[D, InstanceBWQS], ABC):
+    def __init__(self, domain: D, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0):
+        super().__init__(domain)
+        self.batch_size_default: int = batch_size
+        self.weight_default: float = weight
+        self.eps_default: float = eps
+
+    def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_heur: bool = True,
+                       batch_size: Optional[int] = None, weight: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceBWQS]:
+        nodes_root: List[Node] = self._create_root_nodes(states, goals, compute_root_heur=compute_root_heur)
+        batch_size_inst: int = batch_size if batch_size is not None else self.batch_size_default
+        weight_inst: float = weight if weight is not None else self.weight_default
+        eps_inst: float = eps if eps is not None else self.eps_default
+        if inst_infos is None:
+            inst_infos = [None for _ in states]
+        return [InstanceBWQS(node_root, batch_size_inst, weight_inst, eps_inst, inst_info) for node_root, inst_info in zip(nodes_root, inst_infos, strict=True)]
+
     def step(self, verbose: bool = False) -> List[EdgeQ]:
         # split instances by iteration
         instances: List[InstanceBWQS] = [instance for instance in self.instances if not instance.finished()]
@@ -166,6 +184,23 @@ class BWQS(PathFindQHeur[D, InstanceBWQS], ABC):
         # nodes_popped_flat: List[NodeQ] = [nodeact_popped.node for nodeact_popped in nodesacts_popped_flat]
         return edges_popped_flat
 
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}(batch_size={self.batch_size_default}, weight={self.weight_default}, eps={self.eps_default})"
 
-class BWQSEnum(BWQS[ActsEnum], PathFindQExpandEnum[InstanceBWQS]):
-    pass
+
+@pathfinding_factory.register_class("bwqs")
+class BWQS(BWQSActsAny[ActsEnum], PathFindQExpandEnum[InstanceBWQS]):
+    @staticmethod
+    def domain_type() -> Type[ActsEnum]:
+        return ActsEnum
+
+
+@pathfinding_factory.register_parser("bwqs")
+class BWQSParser(Parser):
+    def parse(self, args_str: str) -> Dict[str, Any]:
+        args_str_l: List[str] = args_str.split("_")
+        assert len(args_str_l) == 3
+        return {"batch_size": int(args_str_l[0]), "weight": float(args_str_l[1]), "eps": float(args_str_l[2])}
+
+    def help(self) -> str:
+        return "The batch size, weight, and random node expansion probability (eps). E.g. 'bwqs.1_0.9_0.1'"
