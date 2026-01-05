@@ -112,7 +112,7 @@ def ctgs_summary(ctgs_l: List[NDArray]) -> Tuple[float, float, float]:
 
 
 def train_heur_nnet_step(nnet: nn.Module, inputs_np: List[NDArray], ctgs_np: NDArray, optimizer: Optimizer,
-                         criterion: nn.Module, device: torch.device, train_itr: int, train_args: TrainArgs) -> float:
+                         criterion: nn.Module, device: torch.device, train_itr: int, train_args: TrainArgs) -> Tuple[NDArray, float]:
     # train network
     nnet.train()
 
@@ -144,4 +144,4 @@ def train_heur_nnet_step(nnet: nn.Module, inputs_np: List[NDArray], ctgs_np: NDA
         print("Itr: %i, lr: %.2E, loss: %.2E, targ_ctg: %.2f, "
               "nnet_ctg: %.2f, " % (train_itr, lr_itr, loss.item(), ctgs_batch.mean().item(), ctgs_nnet.mean().item()))
 
-    return float(loss.item())
+    return ctgs_nnet.cpu().data.numpy(), float(loss.item())

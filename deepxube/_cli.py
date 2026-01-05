@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, cast, Type
+from typing import List, Optional, Tuple, cast, Type, Dict, Any
 import argparse
 from argparse import ArgumentParser
 
@@ -11,12 +11,29 @@ from deepxube.factories.domain_factory import domain_factory
 from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys, get_nnet_input_t
 from deepxube.factories.heuristic_factory import heuristic_factory
 from deepxube.factories.pathfinding_factory import pathfinding_factory
+from deepxube.pathfinding.utils.performance import PathFindPerf
+from deepxube.training.trainers import Status
 from deepxube.tests.time_tests import time_test
 from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg
 
 import matplotlib.pyplot as plt
-
+from matplotlib.axes import Axes
+from matplotlib.widgets import Slider
+import pickle
 import textwrap
+import numpy as np
+from numpy.typing import NDArray
+
+
+def plot_scatter(ax: Axes, x: Any, y: Any, x_label: str, y_label: str, xy_line: bool, title: str = "") -> None:
+    ax.scatter(x, y, s=10)
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    if xy_line:
+        np.linspace(0, max(x.max(), y.max()), 100)
+        ax.plot(x, x, color='k', ls="--")
+    ax.set_title(title)
+    ax.grid(True)
 
 
 def get_immediate_mixins(cls: Type[object], mixin_base: Type) -> List[Type]:
@@ -112,6 +129,58 @@ def time_test_args(args: argparse.Namespace) -> None:
     time_test(domain, heur_nnet_par, args.num_insts, args.step_max)
 
 
+def plot_itr_data(axs: List[Axes], itr: int, itr_to_in_out: Dict[int, Tuple[NDArray, NDArray]],
+                  itr_to_steps_to_pathfindperf: Dict[int, Dict[int, PathFindPerf]]) -> None:
+    steps_to_pathfindperf: Dict[int, PathFindPerf] = itr_to_steps_to_pathfindperf[itr]
+    steps_at_itr: List[int] = sorted(steps_to_pathfindperf.keys())
+    per_solved: List[float] = [steps_to_pathfindperf[step].per_solved() for step in steps_at_itr]
+    path_costs: List[float] = [steps_to_pathfindperf[step].stats()[1] for step in steps_at_itr]
+    search_itrs: List[float] = [steps_to_pathfindperf[step].stats()[2] for step in steps_at_itr]
+    targets: List[float] = [float(np.mean(steps_to_pathfindperf[step].ctgs_bkup)) for step in steps_at_itr]
+    num_instances: List[int] = [len(steps_to_pathfindperf[step].ctgs_bkup) for step in steps_at_itr]
+    plot_scatter(axs[0], steps_at_itr, per_solved, "Step", "Percent Solved", False)
+    plot_scatter(axs[1], steps_at_itr, path_costs, "Step", "Path Costs", False)
+    plot_scatter(axs[2], steps_at_itr, search_itrs, "Step", "Search Iterations", False)
+    plot_scatter(axs[3], steps_at_itr, targets, "Step", "Cost-to-Go Targets", False)
+    plot_scatter(axs[4], steps_at_itr, num_instances, "Step", "# Instances", False)
+    plot_scatter(axs[5], itr_to_in_out[itr][0], itr_to_in_out[itr][1], "Target", "Prediction", True)
+
+
+def train_summary(args: argparse.Namespace) -> None:
+    status_file: str = f"{args.dir}/status.pkl"
+    status: Status = pickle.load(open(status_file, "rb"))
+    itr_to_in_out: Dict[int, Tuple[NDArray, NDArray]] = status.itr_to_in_out
+    itr_to_steps_to_pathfindperf: Dict[int, Dict[int, PathFindPerf]] = status.itr_to_steps_to_pathfindperf
+    itrs: List[int] = sorted(itr_to_in_out.keys())
+    fig, axs_np = plt.subplots(3, 2)
+    axs: List[Axes] = axs_np.flatten().tolist()
+    plt.subplots_adjust(bottom=0.2)
+    axstep = fig.add_axes((0.25, 0.01, 0.65, 0.03))
+    step_slider = Slider(
+        ax=axstep,
+        label='Training Iteration',
+        valmin=0,
+        valmax=len(itrs) - 1,
+        valinit=0,
+        valstep=1,
+    )
+
+    itr_init: int = min(itrs)
+    plot_itr_data(axs, itr_init, itr_to_in_out, itr_to_steps_to_pathfindperf)
+
+    def update(idx: float) -> None:
+        itr: int = itrs[int(idx)]
+        for ax in axs:
+            ax.cla()
+        plot_itr_data(axs, itr, itr_to_in_out, itr_to_steps_to_pathfindperf)
+        fig.canvas.draw()
+
+    step_slider.valtext.set_visible(False)
+    step_slider.on_changed(update)
+    fig.tight_layout()
+    plt.show()
+
+
 def problem_inst_gen(args: argparse.Namespace) -> None:
     pass
 
@@ -162,6 +231,11 @@ def main() -> None:
                                                       formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser_train(parser_tr)
 
+    # train summary
+    parser_tr_summ: ArgumentParser = subparsers.add_parser('train_summary', help="Visualize training information not shown in tensorboard.",
+                                                           formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    _parse_train_summary(parser_tr_summ)
+
     args = parser.parse_args()
 
     args.func(args)
@@ -200,3 +274,8 @@ def _parse_problem_instance(parser: ArgumentParser) -> None:
     parser.add_argument('--file', type=str, required=True, help="File to which problem instances are stored.")
     parser.add_argument('--redo', action='store_true', default=False, help="If true, generate problem instances even if file already exists.")
     parser.set_defaults(func=problem_inst_gen)
+
+
+def _parse_train_summary(parser: ArgumentParser) -> None:
+    parser.add_argument('--dir', type=str, required=True, help="Training directory.")
+    parser.set_defaults(func=train_summary)
