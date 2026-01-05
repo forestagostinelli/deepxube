@@ -216,6 +216,10 @@ class PathFindHeur(PathFind[D, I], Generic[D, I, H], ABC):
 
 
 class PathFindSup(PathFind[D, I]):
+    """ Use the path cost of a random walk as the learning target.
+    See Chervov, Alexander, et al. "A Machine Learning Approach That Beats Large Rubik's Cubes." NeurIPS(2025).
+
+    """
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None,
                        compute_root_heur: bool = True) -> List[I]:
         raise NotImplementedError

@@ -19,8 +19,8 @@ import matplotlib.pyplot as plt
 import textwrap
 
 
-def get_mixins(cls: Type[object], mixin_base: Type) -> List[Type[object]]:
-    return [base for base in cls.__mro__[1:] if issubclass(base, mixin_base) and base is not mixin_base]
+def get_immediate_mixins(cls: Type[object], mixin_base: Type) -> List[Type]:
+    return [base for base in cls.__bases__ if issubclass(base, mixin_base) and base is not mixin_base]
 
 
 def domain_info(args: argparse.Namespace) -> None:
@@ -32,7 +32,7 @@ def domain_info(args: argparse.Namespace) -> None:
         if parser is not None:
             print(textwrap.indent("Parser: " + parser.help(), '\t'))
 
-        mixin_str: str = ','.join([f"{x}" for x in get_mixins(domain_t, Domain)])
+        mixin_str: str = ', '.join([f"{x}" for x in get_immediate_mixins(domain_t, Domain)])
         print(textwrap.indent(f"Mixins: {mixin_str}", '\t'))
 
         nnet_input_t_keys: List[Tuple[str, str]] = get_domain_nnet_input_keys(domain_name)
@@ -58,7 +58,7 @@ def pathfinding_info(args: argparse.Namespace) -> None:
     for name in names:
         pathfind_t: Type[PathFind] = pathfinding_factory.get_type(name)
         print(f"PathFind: {name}, {pathfind_t}")
-        mixin_str: str = ','.join([f"{x}" for x in get_mixins(pathfind_t, PathFind)])
+        mixin_str: str = ', '.join([f"{x}" for x in get_immediate_mixins(pathfind_t, PathFind)])
         print(textwrap.indent(f"Mixins: {mixin_str}", '\t'))
 
         print(textwrap.indent(f"Domain type expected: {pathfind_t.domain_type()}", '\t'))

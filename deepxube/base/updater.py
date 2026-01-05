@@ -13,7 +13,7 @@ from numpy.typing import NDArray
 from deepxube.nnet.nnet_utils import NNetParInfo, NNetCallable, NNetPar, get_nnet_par_infos, start_nnet_fn_runners, stop_nnet_runners
 from deepxube.base.domain import Domain, Action
 from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ, HeurFn, HeurFnV, HeurFnQ
-from deepxube.base.pathfinding import Node, PathFind, PathFindHeur, PathFindSup, Instance
+from deepxube.base.pathfinding import Node, EdgeQ, PathFind, PathFindHeur, PathFindSup, Instance
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.pathfinding.utils.performance import PathFindPerf, print_pathfindperf
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd, get_nowait_noerr
@@ -453,6 +453,10 @@ class UpdateHeurV(UpdateHeur[D, P, HeurNNetParV, HeurFnV], ABC):
 
 
 class UpdateHeurQ(UpdateHeur[D, P, HeurNNetParQ, HeurFnQ], ABC):
+    def __init__(self, domain: D, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs):
+        super().__init__(domain, pathfind_name, pathfind_kwargs, up_args)
+        self.edges_popped: List[EdgeQ] = []
+
     def get_heur_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.domain.get_start_goal_pairs([0])
         actions: List[Action] = self.domain.get_state_action_rand(states)

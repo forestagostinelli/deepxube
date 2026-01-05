@@ -26,13 +26,9 @@ class PathFindVSup(PathFindV[D, InstanceSupV], PathFindSup[D, InstanceSupV], ABC
             node_root.heuristic = instance.path_cost_sup
             nodes.append(node_root)
             instance.itr += 1
-        self.set_is_solved(nodes)
+        # self.set_is_solved(nodes)
 
         return nodes
-
-    def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None,
-                       compute_root_heur: bool = True) -> List[InstanceSupV]:
-        raise NotImplementedError
 
     def _expand(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
         raise NotImplementedError

@@ -16,7 +16,6 @@ class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur
     def __init__(self, domain: D, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs, up_heur_args: UpHeurArgs):
         super().__init__(domain, pathfind_name, pathfind_kwargs, up_args)
         self.up_heur_args: UpHeurArgs = up_heur_args
-        self.edges_popped: List[EdgeQ] = []
 
     def _step(self, pathfind: PathFindQHeur, times: Times) -> List[NDArray]:
         # take a step

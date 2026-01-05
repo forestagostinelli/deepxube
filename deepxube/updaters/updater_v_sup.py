@@ -3,16 +3,18 @@ from typing import List
 from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, State, Goal
-from deepxube.base.pathfinding import Node, Instance, PathFindSup
+
+from deepxube.base.pathfinding import Node, Instance
 from deepxube.base.updater import UpdateHeurV, UpdateHeurSup
 from deepxube.utils.timing_utils import Times
 from deepxube.base.heuristic import HeurNNetParV, HeurFnV
+from deepxube.pathfinding.supervised_v import PathFindVSup
 
 import numpy as np
 
 
-class UpdateHeurVSup(UpdateHeurV[Domain, PathFindSup], UpdateHeurSup[Domain, PathFindSup, HeurNNetParV, HeurFnV]):
-    def _step(self, pathfind: PathFindSup, times: Times) -> List[NDArray]:
+class UpdateHeurVSup(UpdateHeurV[Domain, PathFindVSup], UpdateHeurSup[Domain, PathFindVSup, HeurNNetParV, HeurFnV]):
+    def _step(self, pathfind: PathFindVSup, times: Times) -> List[NDArray]:
         nodes_popped: List[Node] = pathfind.step()
         assert len(nodes_popped) == len(pathfind.instances), f"Values were {len(nodes_popped)} and {len(pathfind.instances)}"
         if not self.up_args.sync_main:
