@@ -21,6 +21,8 @@ For any issues, you can create a GitHub issue or contact Forest Agostinelli (for
   - [Domain Visualization](#domain-visualization)
   - [Neural Network Inputs](#Neural-Network-Inputs)
   - [Heuristic](#Heuristics)
+- [Future Additions](#future-additions)
+- [References](#references)
 
 ## Installation
 
@@ -108,3 +110,70 @@ Custom neural network input types can also be created and registered. Given a he
 matches its expected input. If multiple exist, it uses the first one it finds.
 
 ### Heuristics
+
+
+## Future Additions
+DeepCubeAI: Learning world models for training and search ([code](https://github.com/misaghsoltani/DeepCubeAI), [paper](https://rlj.cs.umass.edu/2024/papers/RLJ_RLC_2024_225.pdf)).
+
+DeepCubeAg: Specifying goals with answer set programming ([code](https://github.com/forestagostinelli/SpecGoal), [paper](https://ojs.aaai.org/index.php/ICAPS/article/view/31454/33614)).
+
+CDGR: Conflict-driven goal reaching ([code](https://github.com/forestagostinelli/SpecGoalNegationAsFailure), [paper](https://ojs.aaai.org/index.php/SOCS/article/view/35970/38125)).
+
+## References
+DeepCubeA (Learning heuristic functions with reinforcement learning):
+```
+@article{agostinelli2019solving,
+  title={Solving the Rubik’s cube with deep reinforcement learning and search},
+  author={Agostinelli, Forest and McAleer, Stephen and Shmakov, Alexander and Baldi, Pierre},
+  journal={Nature Machine Intelligence},
+  volume={1},
+  number={8},
+  pages={356--363},
+  year={2019},
+  publisher={Nature Publishing Group UK London}
+}
+```
+
+DeepCubeAg (Learning heuristic functions that generalize across goals):
+```
+@inproceedings{agostinelli2024specifying,
+  title={Specifying goals to deep neural networks with answer set programming},
+  author={Agostinelli, Forest and Panta, Rojina and Khandelwal, Vedant},
+  booktitle={Proceedings of the International Conference on Automated Planning and Scheduling},
+  volume={34},
+  pages={2--10},
+  year={2024}
+}
+```
+
+Q* Search (Learning DQN heuristic functions and exploiting structure for faster search with Q* search):
+```
+@inproceedings{agostinelli2024q,
+  title={Q* search: Heuristic search with deep q-networks},
+  author={Agostinelli, Forest and Shperberg, Shahaf S and Shmakov, Alexander and McAleer, Stephen and Fox, Roy and Baldi, Pierre},
+  booktitle={ICAPS Workshop on Bridging the Gap between AI Planning and Reinforcement Learning},
+  year={2024}
+}
+```
+
+Limited-horizon Bellman-based learning (LHBL):
+```
+@inproceedings{hadar2025beyond,
+  title={Beyond Single-Step Updates: Reinforcement Learning of Heuristics with Limited-Horizon Search},
+  author={Hadar, Gal and Agostinelli, Forest and Shperberg, Shahaf S},
+  booktitle = {AAAI},
+  year={2026}
+}
+```
+
+CayleyPy (Training heuristic functions using supervised learning on the length of random walks):
+```
+@inproceedings{Chervov2025NeurIPSRubiks,
+  author    = {Alexander Chervov and Kirill Khoruzhii and Nikita Bukhal and Jalal Naghiyev and Vladislav Zamkovoy and Ivan Koltsov and Lyudmila Cheldieva and Arsenii Sychev and Arsenii Lenin and Mark Obozov and Egor Urvanov and Alexey M. Romanov},
+  title     = {A machine learning approach that beats Rubik’s cubes},
+  booktitle = {Proceedings of the 39th Conference on Neural Information Processing Systems (NeurIPS 2025)},
+  year      = {2025},
+  note      = {Spotlight},
+  url       = {https://neurips.cc/}
+}
+```
