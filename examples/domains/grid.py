@@ -76,7 +76,7 @@ class GridExample(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalka
 
         return states_next, [1.0] * len(states_next)
 
-    def sample_goal(self, states_start: List[GridState], states_goal: List[GridState]) -> List[GridGoal]:
+    def sample_goal_from_state(self, states_start: List[GridState], states_goal: List[GridState]) -> List[GridGoal]:
         return [GridGoal(state_goal.robot_x, state_goal.robot_y) for state_goal in states_goal]
 
     def get_input_info_flat_sg(self) -> Tuple[List[int], List[int]]:

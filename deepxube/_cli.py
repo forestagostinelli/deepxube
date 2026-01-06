@@ -129,7 +129,7 @@ def time_test_args(args: argparse.Namespace) -> None:
     time_test(domain, heur_nnet_par, args.num_insts, args.step_max)
 
 
-def plot_itr_data(axs: List[Axes], itr: int, itr_to_in_out: Dict[int, Tuple[NDArray, NDArray]],
+def plot_itr_data(axs: List[Axes], step_slider: Slider, itr: int, itr_to_in_out: Dict[int, Tuple[NDArray, NDArray]],
                   itr_to_steps_to_pathfindperf: Dict[int, Dict[int, PathFindPerf]]) -> None:
     steps_to_pathfindperf: Dict[int, PathFindPerf] = itr_to_steps_to_pathfindperf[itr]
     steps_at_itr: List[int] = sorted(steps_to_pathfindperf.keys())
@@ -144,6 +144,7 @@ def plot_itr_data(axs: List[Axes], itr: int, itr_to_in_out: Dict[int, Tuple[NDAr
     plot_scatter(axs[3], steps_at_itr, targets, "Step", "Cost-to-Go Targets", False)
     plot_scatter(axs[4], steps_at_itr, num_instances, "Step", "# Instances", False)
     plot_scatter(axs[5], itr_to_in_out[itr][0], itr_to_in_out[itr][1], "Target", "Prediction", True)
+    step_slider.valtext.set_text(f"Iteration {itr}")
 
 
 def train_summary(args: argparse.Namespace) -> None:
@@ -155,10 +156,10 @@ def train_summary(args: argparse.Namespace) -> None:
     fig, axs_np = plt.subplots(3, 2)
     axs: List[Axes] = axs_np.flatten().tolist()
     plt.subplots_adjust(bottom=0.2)
-    axstep = fig.add_axes((0.25, 0.01, 0.65, 0.03))
-    step_slider = Slider(
+    axstep = fig.add_axes((0.2, 0.01, 0.65, 0.03))
+    step_slider: Slider = Slider(
         ax=axstep,
-        label='Training Iteration',
+        label='',
         valmin=0,
         valmax=len(itrs) - 1,
         valinit=0,
@@ -166,16 +167,15 @@ def train_summary(args: argparse.Namespace) -> None:
     )
 
     itr_init: int = min(itrs)
-    plot_itr_data(axs, itr_init, itr_to_in_out, itr_to_steps_to_pathfindperf)
+    plot_itr_data(axs, step_slider, itr_init, itr_to_in_out, itr_to_steps_to_pathfindperf)
 
     def update(idx: float) -> None:
         itr: int = itrs[int(idx)]
         for ax in axs:
             ax.cla()
-        plot_itr_data(axs, itr, itr_to_in_out, itr_to_steps_to_pathfindperf)
+        plot_itr_data(axs, step_slider, itr, itr_to_in_out, itr_to_steps_to_pathfindperf)
         fig.canvas.draw()
 
-    step_slider.valtext.set_visible(False)
     step_slider.on_changed(update)
     fig.tight_layout()
     plt.show()

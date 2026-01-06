@@ -286,9 +286,19 @@ class ActsEnumFixed(ActsEnum[S, A, G], ActsFixed[S, A, G]):
 
 # Goal mixins
 class GoalSampleable(Domain[S, A, G]):
-    """ Can sample goals from states"""
+    """ Can sample goals """
     @abstractmethod
-    def sample_goal(self, states_start: List[S], states_goal: List[S]) -> List[G]:
+    def sample_goals(self, num: int) -> List[G]:
+        """ Sample goals
+        :return: Goals
+        """
+        pass
+
+
+class GoalSampleableFromState(Domain[S, A, G]):
+    """ Can sample goals from states such that the state is a member of the sampled goal """
+    @abstractmethod
+    def sample_goal_from_state(self, states_start: List[S], states_goal: List[S]) -> List[G]:
         """ Given a state, sample a goal that represents a set of goal states of which the given state is a member.
 
         :param states_start: List of start states. Can be used to sample goals that are difficult to achieve from the given start state.
@@ -298,21 +308,21 @@ class GoalSampleable(Domain[S, A, G]):
         pass
 
 
-class GoalStateSampleable(Domain[S, A, G]):
+class StateSampleableFromGoal(Domain[S, A, G]):
     """ Can sample states from goals """
     @abstractmethod
-    def sample_goal_states(self, goals: List[G], num_states_l: List[int]) -> List[List[S]]:
-        """ Given a goal, sample states that are members of that goal.
+    def sample_state_from_goal(self, goals: List[G]) -> List[S]:
+        """ Given a goal, sample a state that is a member of the set of states represneted by that goal.
 
         :param goals: List of goals
-        :param num_states_l: List of integers representing how many states to sample for the corresponding goal
-        :return: List of list of states, where each element is a list of states sampled for the corresponding goal
+        :return: List of list of states, where each state is a member of the set of goal states represented by the corresponding goal
         """
         pass
 
 
-class GoalFixed(Domain[S, A, G]):
+class GoalFixed(GoalSampleable[S, A, G]):
     """ Goal is the same for all problem instances """
+
     @abstractmethod
     def get_goal(self) -> G:
         """
@@ -320,8 +330,12 @@ class GoalFixed(Domain[S, A, G]):
         """
         pass
 
+    def sample_goals(self, num: int) -> List[G]:
+        return [self.get_goal()] * num
 
-class StartGoalWalkable(GoalSampleable[S, A, G]):
+
+# Problem instance mixins
+class StartGoalWalkable(GoalSampleableFromState[S, A, G]):
     """ Can sample start states, take actions to obtain another state, and sample a goal from that state"""
     @abstractmethod
     def get_start_states(self, num_states: int) -> List[S]:
@@ -350,44 +364,32 @@ class StartGoalWalkable(GoalSampleable[S, A, G]):
 
         # state to goal
         start_time = time.time()
-        goals: List[G] = self.sample_goal(states_start, states_goal)
+        goals: List[G] = self.sample_goal_from_state(states_start, states_goal)
         times.record_time("sample_goal", time.time() - start_time)
 
         return states_start, goals
 
 
-class GoalStateSampleableFixed(GoalStateSampleable[S, A, G], GoalFixed[S, A, G]):
-    """ Can sample states from goal, which is the same for all problem instances """
-
-    @abstractmethod
-    def sample_goal_states_fixed(self, num_states: int) -> List[S]:
-        pass
-
-    def sample_goal_states(self, goals: List[G], num_states_l: List[int]) -> List[List[S]]:
-        return [self.sample_goal_states_fixed(num_states) for num_states in num_states_l]
-
-
-# reverse walks
-class FixedGoalRevWalk(GoalStateSampleableFixed[S, A, G]):
+class GoalStateRevWalkable(GoalSampleable[S, A, G], StateSampleableFromGoal[S, A, G]):
     def get_start_goal_pairs(self, num_steps_l: List[int], times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
         # Initialize
         if times is None:
             times = Times()
 
-        # Start states
+        # goals
         start_time = time.time()
-        states_goal: List[S] = self.sample_goal_states_fixed(len(num_steps_l))
-        times.record_time("get_start_states", time.time() - start_time)
+        goals: List[G] = self.sample_goals(len(num_steps_l))
+        times.record_time("sample_goal", time.time() - start_time)
 
-        # random walk
+        # goal states
+        start_time = time.time()
+        states_goal: List[S] = self.sample_state_from_goal(goals)
+        times.record_time("get_goal_states", time.time() - start_time)
+
+        # random walk to get start states
         start_time = time.time()
         states_start: List[S] = self.random_walk_rev(states_goal, num_steps_l)
         times.record_time("random_walk", time.time() - start_time)
-
-        # state to goal
-        start_time = time.time()
-        goals: List[G] = [self.get_goal()] * len(states_start)
-        times.record_time("sample_goal", time.time() - start_time)
 
         return states_start, goals
 
@@ -396,7 +398,8 @@ class FixedGoalRevWalk(GoalStateSampleableFixed[S, A, G]):
         pass
 
 
-class FixedGoalRevWalkActsRev(FixedGoalRevWalk[S, A, G], ActsRev[S, A, G], ABC):
+
+class FixedGoalRevWalkActsRev(GoalStateRevWalkable[S, A, G], ActsRev[S, A, G], ABC):
     def random_walk_rev(self, states: List[S], num_steps_l: List[int]) -> List[S]:
         return self.random_walk(states, num_steps_l)[0]
 
@@ -522,7 +525,7 @@ class SupportsPDDL(Domain[S, A, G], ABC):
         pass
 
 
-class GoalGrndAtoms(GoalSampleable[S, A, G]):
+class GoalGrndAtoms(GoalSampleableFromState[S, A, G]):
     @abstractmethod
     def state_to_model(self, states: List[S]) -> List[Model]:
         pass
@@ -560,7 +563,7 @@ class GoalGrndAtoms(GoalSampleable[S, A, G]):
 
         return is_solved_l
 
-    def sample_goal(self, states_start: List[S], states_goal: List[S]) -> List[G]:
+    def sample_goal_from_state(self, states_start: List[S], states_goal: List[S]) -> List[G]:
         models_g: List[Model] = []
 
         models_s: List[Model] = self.state_to_model(states_goal)

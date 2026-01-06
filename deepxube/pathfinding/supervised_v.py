@@ -24,6 +24,7 @@ class PathFindVSup(PathFindV[D, InstanceSupV], PathFindSup[D, InstanceSupV], ABC
         for instance in self.instances:
             node_root: Node = instance.root_node
             node_root.heuristic = instance.path_cost_sup
+            node_root.backup_val = instance.path_cost_sup
             nodes.append(node_root)
             instance.itr += 1
         # self.set_is_solved(nodes)
@@ -54,7 +55,7 @@ class PathFindVSupRW(PathFindVSup[StartGoalWalkable]):
 
         # state to goal
         start_time = time.time()
-        goals: List[Goal] = self.domain.sample_goal(states_start, states_goal)
+        goals: List[Goal] = self.domain.sample_goal_from_state(states_start, states_goal)
         self.times.record_time("sample_goal", time.time() - start_time)
 
         nodes_root: List[Node] = self._create_root_nodes(states_start, goals, compute_root_heur=False)
@@ -69,3 +70,10 @@ class PathFindVSupRW(PathFindVSup[StartGoalWalkable]):
         self.times.record_time("instances", time.time() - start_time)
 
         return instances
+
+
+@pathfinding_factory.register_class("sup_v_rw_rev")
+class PathFindVSupRWRev(PathFindVSup[StartGoalWalkable]):
+    @staticmethod
+    def domain_type() -> Type[StartGoalWalkable]:
+        return StartGoalWalkable
