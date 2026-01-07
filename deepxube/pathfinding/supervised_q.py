@@ -124,5 +124,4 @@ class PathFindQSupRWRev(PathFindQSup[GoalStartRevWalkableActsRev]):
         path_costs = (np.array(path_costs_1step) + np.array(path_costs)).tolist()
         self.times.record_time("first_step", time.time() - start_time)
 
-
         return self._make_instances(states_start, goals, acts_init, path_costs, inst_infos)
