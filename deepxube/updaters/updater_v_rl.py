@@ -16,6 +16,9 @@ class UpdateHeurVRL(UpdateHeurV[Domain, PathFindVHeur], UpdateHeurRL[Domain, Pat
         super().__init__(domain, pathfind_name, pathfind_kwargs, up_args)
         self.up_heur_args: UpHeurArgs = up_heur_args
 
+    def get_up_args_repr(self) -> str:
+        return f"{super().get_up_args_repr()}\n{self.up_heur_args.__repr__()}"
+
     def _step(self, pathfind: PathFindVHeur, times: Times) -> List[NDArray]:
         # take a step
         nodes_popped: List[Node] = pathfind.step()
@@ -41,8 +44,7 @@ class UpdateHeurVRL(UpdateHeurV[Domain, PathFindVHeur], UpdateHeurRL[Domain, Pat
                         node.upper_bound_parent_path(0.0)
         elif self.up_heur_args.backup == -1:
             for instance in instances:
-                root_node: Node = instance.root_node
-                root_node.tree_backup()
+                instance.root_node.tree_backup()
         else:
             raise ValueError(f"Unknown backup {self.up_heur_args.backup}")
 

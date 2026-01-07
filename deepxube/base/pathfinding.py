@@ -67,8 +67,11 @@ class Node:
             return 0.0
         else:
             tc, node_next = self.edge_dict[action]
-            assert node_next.q_values is not None
-            return tc + min(node_next.q_values[1])
+            # assert node_next.q_values is not None
+            if node_next.backup_val < np.inf:
+                return tc + node_next.backup_val
+            else:
+                return tc + node_next.heuristic
 
 
 class Instance(ABC):

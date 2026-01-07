@@ -17,6 +17,9 @@ class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur
         super().__init__(domain, pathfind_name, pathfind_kwargs, up_args)
         self.up_heur_args: UpHeurArgs = up_heur_args
 
+    def get_up_args_repr(self) -> str:
+        return f"{super().get_up_args_repr()}\n{self.up_heur_args.__repr__()}"
+
     def _step(self, pathfind: PathFindQHeur, times: Times) -> List[NDArray]:
         # take a step
         edges_popped: List[EdgeQ] = pathfind.step()
@@ -34,6 +37,20 @@ class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur
             return self._inputs_ctgs_np(states, goals, actions, ctgs_backup, times)
 
     def _get_instance_data(self, instances: List[Instance], times: Times) -> List[NDArray]:
+        start_time = time.time()
+        if self.up_heur_args.backup == 1:
+            if self.up_heur_args.ub_heur_solns:
+                for edge in self.edges_popped:
+                    assert edge.node.is_solved is not None
+                    if edge.node.is_solved:
+                        edge.node.upper_bound_parent_path(0.0)
+        elif self.up_heur_args.backup == -1:
+            for instance in instances:
+                instance.root_node.tree_backup()
+        else:
+            raise ValueError(f"Unknown backup {self.up_heur_args.backup}")
+        times.record_time("backup_nodes", time.time() - start_time)
+
         states, goals, actions, ctgs_backup = self._backup_edges(self.edges_popped, times)
 
         # to_np
@@ -51,6 +68,8 @@ class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur
         # TODO this could be taking up a lot of GPU since includes more instances in parallel (i.e. both removed and current)
         start_time = time.time()
         states, goals, actions, ctgs_backup = self._backup_any_next_edge(edges_init)
+        for edge_init, ctg_backup in zip(edges_init, ctgs_backup):
+            edge_init.node.backup_val = ctg_backup
         assert len(states) == len(goals) == len(actions) == len(ctgs_backup), \
             f"Values were {len(states)}, {len(goals)}, {len(actions)}, {len(ctgs_backup)}, "
         times.record_time("backup_init", time.time() - start_time)
@@ -65,7 +84,9 @@ class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur
             assert action is not None
 
             actions.append(action)
-            ctgs_backup.append(node.backup_act(action))
+            ctg_backup: float = node.backup_act(action)
+            node.backup_val = ctg_backup
+            ctgs_backup.append(ctg_backup)
         times.record_time("backup_real", time.time() - start_time)
 
         return states, goals, actions, ctgs_backup
