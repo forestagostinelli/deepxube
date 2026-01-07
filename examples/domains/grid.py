@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict, Any, Optional, Type
+from typing import List, Tuple, Dict, Any, Optional
 import numpy as np
 from matplotlib.figure import Figure
 
@@ -102,6 +102,9 @@ class GridExample(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalka
             return GridAction(int(act_str))
         else:
             return None
+
+    def string_to_action_help(self) -> str:
+        return "0, 1, 2, or 3 for down, up, right, and left, respectively."
 
     def get_actions_fixed(self) -> List[GridAction]:
         return self.actions_fixed.copy()

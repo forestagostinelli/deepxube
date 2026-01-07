@@ -99,6 +99,7 @@ def viz(args: argparse.Namespace) -> None:
     print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
 
     if isinstance(domain, StringToAct):
+        print(domain.string_to_action_help())
         plt.show(block=False)
         while True:
             act_str = input("Write action (make blank to quit): ")

@@ -182,6 +182,13 @@ class StringToAct(Domain[S, A, G]):
         """
         pass
 
+    @abstractmethod
+    def string_to_action_help(self) -> str:
+        """
+        :return: A description of how actions are represented as strings
+        """
+        pass
+
 
 class ActsFixed(Domain[S, A, G]):
     @abstractmethod
