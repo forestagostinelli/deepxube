@@ -10,7 +10,7 @@ from deepxube.base.pathfinding import PathFind, PathFindHeur
 from deepxube.factories.domain_factory import domain_factory
 from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys, get_nnet_input_t
 from deepxube.factories.heuristic_factory import heuristic_factory
-from deepxube.factories.pathfinding_factory import pathfinding_factory
+from deepxube.factories.pathfinding_factory import pathfinding_factory, get_domain_compat_pathfind_names
 from deepxube.pathfinding.utils.performance import PathFindPerf
 from deepxube.training.trainers import Status
 from deepxube.tests.time_tests import time_test
@@ -49,14 +49,21 @@ def domain_info(args: argparse.Namespace) -> None:
         if parser is not None:
             print(textwrap.indent("Parser: " + parser.help(), '\t'))
 
+        # mixins
         mixin_str: str = ', '.join([f"{x}" for x in get_immediate_mixins(domain_t, Domain)])
         print(textwrap.indent(f"Mixins: {mixin_str}", '\t'))
 
+        # nnet inputs
         nnet_input_t_keys: List[Tuple[str, str]] = get_domain_nnet_input_keys(domain_name)
-        if len(nnet_input_t_keys) > 0:
-            print(textwrap.indent("NNet Inputs:", '\t'))
-            for nnet_input_t_key in nnet_input_t_keys:
-                print(textwrap.indent(f"Name: {nnet_input_t_key[1]}, Type: {get_nnet_input_t(nnet_input_t_key)}", '\t\t'))
+        print(textwrap.indent("NNet Inputs:", '\t'))
+        for nnet_input_t_key in nnet_input_t_keys:
+            print(textwrap.indent(f"Name: {nnet_input_t_key[1]}, Type: {get_nnet_input_t(nnet_input_t_key)}", '\t\t'))
+
+        # pathfinding
+        pathfind_names: List[str] = get_domain_compat_pathfind_names(domain_t)
+        print(textwrap.indent("Pathfinding:", '\t'))
+        for pathfind_name in pathfind_names:
+            print(textwrap.indent(f"Name: {pathfind_name}, Type: {pathfinding_factory.get_type(pathfind_name)}", '\t\t'))
 
 
 def heur_info(args: argparse.Namespace) -> None:

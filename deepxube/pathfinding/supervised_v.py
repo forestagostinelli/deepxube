@@ -1,6 +1,6 @@
 from abc import ABC
 from typing import List, Any, Optional, Type, TypeVar, Tuple
-from deepxube.base.domain import Domain, State, Goal, StartGoalWalkable, GoalStartRevWalkable, Action
+from deepxube.base.domain import Domain, State, Goal, StartGoalWalkable, GoalStartRevWalkableActsRev, Action
 from deepxube.base.pathfinding import Instance, Node, PathFindV, PathFindSup
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 import time
@@ -51,6 +51,7 @@ class PathFindVSup(PathFindV[D, InstanceSupV], PathFindSup[D, InstanceSupV], ABC
 
         return instances
 
+
 @pathfinding_factory.register_class("sup_v_rw")
 class PathFindVSupRW(PathFindVSup[StartGoalWalkable]):
     @staticmethod
@@ -75,10 +76,10 @@ class PathFindVSupRW(PathFindVSup[StartGoalWalkable]):
 
 
 @pathfinding_factory.register_class("sup_v_rw_rev")
-class PathFindVSupRWRev(PathFindVSup[GoalStartRevWalkable]):
+class PathFindVSupRWRev(PathFindVSup[GoalStartRevWalkableActsRev]):
     @staticmethod
-    def domain_type() -> Type[GoalStartRevWalkable]:
-        return GoalStartRevWalkable
+    def domain_type() -> Type[GoalStartRevWalkableActsRev]:
+        return GoalStartRevWalkableActsRev
 
     def make_instances_rw(self, steps_gen: List[int], inst_infos: Optional[List[Any]]) -> List[InstanceSupV]:
         start_time = time.time()
