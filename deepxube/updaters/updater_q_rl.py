@@ -128,7 +128,7 @@ class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur
             assert node.is_solved is not None
             is_solved_l.append(node.is_solved)
 
-        actions: List[Action] = self.domain.sample_state_action_rand(states)
+        actions: List[Action] = self.domain.sample_state_action(states)
 
         states_next, tcs = self.domain.next_state(states, actions)
         assert len(states) == len(goals) == len(is_solved_l) == len(actions) == len(tcs) == len(states_next), \

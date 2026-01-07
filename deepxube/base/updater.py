@@ -459,7 +459,7 @@ class UpdateHeurQ(UpdateHeur[D, P, HeurNNetParQ, HeurFnQ], ABC):
 
     def get_heur_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.domain.sample_start_goal_pairs([0])
-        actions: List[Action] = self.domain.sample_state_action_rand(states)
+        actions: List[Action] = self.domain.sample_state_action(states)
         inputs_nnet: List[NDArray[Any]] = self.get_heur_nnet_par().to_np(states, goals, [[action] for action in actions])
 
         shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = []

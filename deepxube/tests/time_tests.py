@@ -37,7 +37,7 @@ def test_env(env: Domain, num_states: int, step_max: int) -> Tuple[List[State], 
 
     # get state action
     start_time = time.time()
-    actions: List[Action] = env.sample_state_action_rand(states)
+    actions: List[Action] = env.sample_state_action(states)
 
     elapsed_time = time.time() - start_time
     states_per_sec = len(states) / elapsed_time
@@ -62,7 +62,7 @@ def test_env(env: Domain, num_states: int, step_max: int) -> Tuple[List[State], 
 
     # next state
     start_time = time.time()
-    states_next: List[State] = env.next_state_rand(states)[0]
+    states_next: List[State] = env.sample_next_state(states)[0]
 
     elapsed_time = time.time() - start_time
     states_per_sec = len(states_next) / elapsed_time

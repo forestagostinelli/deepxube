@@ -84,7 +84,7 @@ class Domain(ABC, Generic[S, A, G]):
         pass
 
     @abstractmethod
-    def sample_state_action_rand(self, states: List[S]) -> List[A]:
+    def sample_state_action(self, states: List[S]) -> List[A]:
         """ Get a random action that is applicable to the current state
 
         :param states: List of states
@@ -113,13 +113,13 @@ class Domain(ABC, Generic[S, A, G]):
         """
         pass
 
-    def next_state_rand(self, states: List[S]) -> Tuple[List[S], List[float]]:
+    def sample_next_state(self, states: List[S]) -> Tuple[List[S], List[float]]:
         """ Get random next state and transition cost given the current state
 
         :param states: List of states
         :return: Next states, transition costs
         """
-        actions_rand: List[A] = self.sample_state_action_rand(states)
+        actions_rand: List[A] = self.sample_state_action(states)
         return self.next_state(states, actions_rand)
 
     def random_walk(self, states: List[S], num_steps_l: List[int]) -> Tuple[List[S], List[float]]:
@@ -139,7 +139,7 @@ class Domain(ABC, Generic[S, A, G]):
             idxs: NDArray[np.int_] = np.where(steps_lt)[0]
             states_to_move = [states_walk[idx] for idx in idxs]
 
-            states_moved, tcs = self.next_state_rand(states_to_move)
+            states_moved, tcs = self.sample_next_state(states_to_move)
 
             idx: int
             for move_idx, idx in enumerate(idxs):
@@ -195,7 +195,7 @@ class ActsFixed(Domain[S, A, G]):
     def sample_action(self, num: int) -> List[A]:
         pass
 
-    def sample_state_action_rand(self, states: List[S]) -> List[A]:
+    def sample_state_action(self, states: List[S]) -> List[A]:
         return self.sample_action(len(states))
 
 
@@ -224,7 +224,7 @@ class ActsEnum(Domain[S, A, G]):
         """
         pass
 
-    def sample_state_action_rand(self, states: List[S]) -> List[A]:
+    def sample_state_action(self, states: List[S]) -> List[A]:
         state_actions_l: List[List[A]] = self.get_state_actions(states)
         return [random.choice(state_actions) for state_actions in state_actions_l]
 
