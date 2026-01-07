@@ -27,7 +27,7 @@ def test_env(env: Domain, num_states: int, step_max: int) -> Tuple[List[State], 
     # get data
     start_time = time.time()
     sg_times: Times = Times()
-    states, goals = env.get_start_goal_pairs(list(np.random.randint(step_max + 1, size=num_states)), times=sg_times)
+    states, goals = env.sample_start_goal_pairs(list(np.random.randint(step_max + 1, size=num_states)), times=sg_times)
     assert len(states) == len(goals), f"state({len(states)}) and goal({len(goals)}) pairs not same length"
 
     elapsed_time = time.time() - start_time
@@ -37,7 +37,7 @@ def test_env(env: Domain, num_states: int, step_max: int) -> Tuple[List[State], 
 
     # get state action
     start_time = time.time()
-    actions: List[Action] = env.get_state_action_rand(states)
+    actions: List[Action] = env.sample_state_action_rand(states)
 
     elapsed_time = time.time() - start_time
     states_per_sec = len(states) / elapsed_time
@@ -98,7 +98,7 @@ def test_env(env: Domain, num_states: int, step_max: int) -> Tuple[List[State], 
 def test_envstartgoalrw(env: StartGoalWalkable, num_states: int) -> None:
     # generate start/goal states
     start_time = time.time()
-    states: List[State] = env.get_start_states(num_states)
+    states: List[State] = env.sample_start_states(num_states)
 
     elapsed_time = time.time() - start_time
     states_per_sec = len(states) / elapsed_time

@@ -84,7 +84,7 @@ class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur
             assert action is not None
 
             actions.append(action)
-            ctg_backup: float = node.backup_act(action)
+            ctg_backup = node.backup_act(action)
             node.backup_val = ctg_backup
             ctgs_backup.append(ctg_backup)
         times.record_time("backup_real", time.time() - start_time)
@@ -128,7 +128,7 @@ class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur
             assert node.is_solved is not None
             is_solved_l.append(node.is_solved)
 
-        actions: List[Action] = self.domain.get_state_action_rand(states)
+        actions: List[Action] = self.domain.sample_state_action_rand(states)
 
         states_next, tcs = self.domain.next_state(states, actions)
         assert len(states) == len(goals) == len(is_solved_l) == len(actions) == len(tcs) == len(states_next), \

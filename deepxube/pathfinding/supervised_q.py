@@ -26,6 +26,7 @@ class PathFindQSup(PathFindQ[D, InstanceSupQ], PathFindSup[D, InstanceSupQ], ABC
         for instance in self.instances:
             node_root: Node = instance.root_node
             edges.append(EdgeQ(node_root, instance.action, instance.path_cost_sup))
+            node_root.backup_val = instance.path_cost_sup
             instance.itr += 1
         # self.set_is_solved(nodes)
 
@@ -44,12 +45,12 @@ class PathFindQSupRW(PathFindQSup[StartGoalWalkable]):
     def make_instances_rw(self, steps_gen: List[int], inst_infos: Optional[List[Any]]) -> List[InstanceSupQ]:
         # start states
         start_time = time.time()
-        states_start: List[State] = self.domain.get_start_states(len(steps_gen))
+        states_start: List[State] = self.domain.sample_start_states(len(steps_gen))
         self.times.record_time("get_start_states", time.time() - start_time)
 
         # first step
         start_time = time.time()
-        acts_init: List[Action] = self.domain.get_state_action_rand(states_start)
+        acts_init: List[Action] = self.domain.sample_state_action_rand(states_start)
         states_start_1step, path_costs_1step = self.domain.next_state(states_start, acts_init)
         for idx in np.where(np.array(steps_gen) == 0)[0]:
             states_start_1step[idx] = states_start[idx]
@@ -64,7 +65,7 @@ class PathFindQSupRW(PathFindQSup[StartGoalWalkable]):
 
         # state to goal
         start_time = time.time()
-        goals: List[Goal] = self.domain.sample_goal(states_start, states_goal)
+        goals: List[Goal] = self.domain.sample_goal_from_state(states_start, states_goal)
         self.times.record_time("sample_goal", time.time() - start_time)
 
         # get root nodes

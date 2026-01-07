@@ -441,7 +441,7 @@ class UpdateHeurV(UpdateHeur[D, P, HeurNNetParV, HeurFnV], ABC):
         self.nodes_popped: List[Node] = []
 
     def get_heur_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
-        states, goals = self.domain.get_start_goal_pairs([0])
+        states, goals = self.domain.sample_start_goal_pairs([0])
         inputs_nnet: List[NDArray[Any]] = self.get_heur_nnet_par().to_np(states, goals)
 
         shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = []
@@ -458,8 +458,8 @@ class UpdateHeurQ(UpdateHeur[D, P, HeurNNetParQ, HeurFnQ], ABC):
         self.edges_popped: List[EdgeQ] = []
 
     def get_heur_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
-        states, goals = self.domain.get_start_goal_pairs([0])
-        actions: List[Action] = self.domain.get_state_action_rand(states)
+        states, goals = self.domain.sample_start_goal_pairs([0])
+        actions: List[Action] = self.domain.sample_state_action_rand(states)
         inputs_nnet: List[NDArray[Any]] = self.get_heur_nnet_par().to_np(states, goals, [[action] for action in actions])
 
         shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = []
@@ -486,7 +486,7 @@ class UpdateHeurRL(UpdateHeur[D, PH, HNet, H], ABC):
     def _make_instances(self, pathfind: PH, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[Instance]:
         # get states/goals
         times_states: Times = Times()
-        states_gen, goals_gen = self.domain.get_start_goal_pairs(steps_gen, times=times_states)
+        states_gen, goals_gen = self.domain.sample_start_goal_pairs(steps_gen, times=times_states)
         times.add_times(times_states, ["get_states"])
 
         return pathfind.make_instances(states_gen, goals_gen, inst_infos=inst_infos, compute_root_heur=False)

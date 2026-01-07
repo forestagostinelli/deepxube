@@ -91,7 +91,7 @@ def pathfinding_info(args: argparse.Namespace) -> None:
 def viz(args: argparse.Namespace) -> None:
     domain, domain_name = get_domain_from_arg(args.domain)
     assert isinstance(domain, StateGoalVizable)
-    states, goals = domain.get_start_goal_pairs([args.steps])
+    states, goals = domain.sample_start_goal_pairs([args.steps])
     state: State = states[0]
     goal: Goal = goals[0]
     fig = plt.figure(figsize=(5, 5))

@@ -30,7 +30,7 @@ def test_get_state_actions(env_name: str):
 def test_get_start_goal_pairs(env_name: str):
     env: Domain = get_environment(env_name)
     for num_states in [1, 5, 10]:
-        states, goals = env.get_start_goal_pairs(list(range(0, num_states)))
+        states, goals = env.sample_start_goal_pairs(list(range(0, num_states)))
         assert len(states) == num_states
         assert len(goals) == num_states
 
@@ -50,7 +50,7 @@ def test_states_goals_to_nnet_input(env_name: str):
 def test_heurfn_v(env_name: str):
     env: Domain = get_environment(env_name)
     for num_states in [1, 5, 10]:
-        states, goals = env.get_start_goal_pairs(list(np.random.randint(0, num_states, size=num_states)))
+        states, goals = env.sample_start_goal_pairs(list(np.random.randint(0, num_states, size=num_states)))
         device, _, _ = get_device()
         nnet = env.get_v_nnet()
         heur_fn = get_heuristic_fn(nnet, device, env, is_v=True)
@@ -64,14 +64,14 @@ def test_heurfn_v(env_name: str):
 def test_is_solved(env_name: str):
     env: Domain = get_environment(env_name)
     for num_states in [1, 5, 10]:
-        states, goals = env.get_start_goal_pairs([0] * num_states)
+        states, goals = env.sample_start_goal_pairs([0] * num_states)
         assert all(env.is_solved(states, goals))
 
 
 @pytest.mark.parametrize("env_name", env_names)
 def test_expand(env_name: str):
     env: Domain = get_environment(env_name)
-    states, goals = env.get_start_goal_pairs([1] * 10)
+    states, goals = env.sample_start_goal_pairs([1] * 10)
     states_next_l, _, tcs_l = env.expand(states)
 
     for states_next, tcs, goal in zip(states_next_l, tcs_l, goals):

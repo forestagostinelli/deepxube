@@ -19,7 +19,7 @@ batch_sizes: List[int] = [1, 10]
 def test_search(env_name: str, num_steps_l: List[int], batch_size: int):
     # get instances
     env: Domain = get_environment(env_name)
-    states, goals = env.get_start_goal_pairs(num_steps_l)
+    states, goals = env.sample_start_goal_pairs(num_steps_l)
     print(env.env_name, len(states))
 
     # get random init heur fn

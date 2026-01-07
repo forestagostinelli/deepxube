@@ -74,8 +74,7 @@ class Domain(ABC, Generic[S, A, G]):
         self.nnet_pars: List[Tuple[str, str, NNetPar]] = []
 
     @abstractmethod
-    def get_start_goal_pairs(self, num_steps_l: List[int],
-                             times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
+    def sample_start_goal_pairs(self, num_steps_l: List[int], times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
         """ Return start goal pairs with num_steps_l between start and goal
 
         :param num_steps_l: Number of steps to take between start and goal
@@ -85,7 +84,7 @@ class Domain(ABC, Generic[S, A, G]):
         pass
 
     @abstractmethod
-    def get_state_action_rand(self, states: List[S]) -> List[A]:
+    def sample_state_action_rand(self, states: List[S]) -> List[A]:
         """ Get a random action that is applicable to the current state
 
         :param states: List of states
@@ -120,7 +119,7 @@ class Domain(ABC, Generic[S, A, G]):
         :param states: List of states
         :return: Next states, transition costs
         """
-        actions_rand: List[A] = self.get_state_action_rand(states)
+        actions_rand: List[A] = self.sample_state_action_rand(states)
         return self.next_state(states, actions_rand)
 
     def random_walk(self, states: List[S], num_steps_l: List[int]) -> Tuple[List[S], List[float]]:
@@ -160,7 +159,7 @@ class Domain(ABC, Generic[S, A, G]):
         pass
 
 
-# Visualization Mixins
+# Visualization mixins
 class StateGoalVizable(Domain[S, A, G]):
     """ Can visualize problem instances
 
@@ -190,13 +189,14 @@ class StringToAct(Domain[S, A, G]):
         pass
 
 
+# Action mixins
 class ActsFixed(Domain[S, A, G]):
     @abstractmethod
-    def get_action_rand(self, num: int) -> List[A]:
+    def sample_action(self, num: int) -> List[A]:
         pass
 
-    def get_state_action_rand(self, states: List[S]) -> List[A]:
-        return self.get_action_rand(len(states))
+    def sample_state_action_rand(self, states: List[S]) -> List[A]:
+        return self.sample_action(len(states))
 
 
 class ActsRev(Domain[S, A, G], ABC):
@@ -204,21 +204,12 @@ class ActsRev(Domain[S, A, G], ABC):
 
     """
     @abstractmethod
-    def rev_action(self, actions: List[A]) -> List[A]:
+    def rev_action(self, states: List[S], actions: List[A]) -> List[A]:
         """ Get the reverse of the given action
 
-        :param actions: List of actions
-        :return: Reverse of given action
-        """
-        pass
-
-    @abstractmethod
-    def rev_state(self, states: List[S], actions: List[A]) -> Tuple[List[S], List[float]]:
-        """ Transition along the directed edge in the reverse direction.
-
         :param states: List of states
-        :param actions: List of actions to take
-        :return: Reverse states, transition costs which are weights of edges taken in reverse
+        :param actions: List of actions
+        :return: Reverse of given action in the given state
         """
         pass
 
@@ -233,7 +224,7 @@ class ActsEnum(Domain[S, A, G]):
         """
         pass
 
-    def get_state_action_rand(self, states: List[S]) -> List[A]:
+    def sample_state_action_rand(self, states: List[S]) -> List[A]:
         state_actions_l: List[List[A]] = self.get_state_actions(states)
         return [random.choice(state_actions) for state_actions in state_actions_l]
 
@@ -276,7 +267,7 @@ class ActsEnum(Domain[S, A, G]):
 
 
 class ActsEnumFixed(ActsEnum[S, A, G], ActsFixed[S, A, G]):
-    def get_action_rand(self, num: int) -> List[A]:
+    def sample_action(self, num: int) -> List[A]:
         actions_fixed: List[A] = self.get_actions_fixed()
         return [random.choice(actions_fixed) for _ in range(num)]
 
@@ -302,13 +293,23 @@ class GoalSampleable(Domain[S, A, G]):
         pass
 
 
+class GoalStateSampleable(Domain[S, A, G]):
+    """ Can sample goal states """
+    @abstractmethod
+    def sample_goal_states(self, num: int) -> List[S]:
+        """ Sample goal states
+        :return: Goal states
+        """
+        pass
+
+
 class GoalSampleableFromState(Domain[S, A, G]):
     """ Can sample goals from states such that the state is a member of the sampled goal """
     @abstractmethod
-    def sample_goal_from_state(self, states_start: List[S], states_goal: List[S]) -> List[G]:
+    def sample_goal_from_state(self, states_start: Optional[List[S]], states_goal: List[S]) -> List[G]:
         """ Given a state, sample a goal that represents a set of goal states of which the given state is a member.
 
-        :param states_start: List of start states. Can be used to sample goals that are difficult to achieve from the given start state.
+        :param states_start: Optional list of start states. Can be used to sample goals that are difficult to achieve from the given start state.
         :param states_goal: List of states from which goals will be sampled.
         :return: Goals
         """
@@ -341,11 +342,34 @@ class GoalFixed(GoalSampleable[S, A, G]):
         return [self.get_goal()] * num
 
 
-# Problem instance mixins
+class GoalStateGoalPairSampleable(Domain[S, A, G]):
+    """ Can sample pairs of states and corresponding goals of which the sampled state is a member """
+    @abstractmethod
+    def sample_goal_state_goal_pairs(self, num: int) -> Tuple[List[S], List[G]]:
+        pass
+
+
+class GoalStateSampGoalSamp(GoalStateGoalPairSampleable[S, A, G], GoalStateSampleable[S, A, G], GoalSampleableFromState[S, A, G], ABC):
+    """ Sample goal state and then sample goals from goal states """
+    def sample_goal_state_goal_pairs(self, num: int) -> Tuple[List[S], List[G]]:
+        states_goal: List[S] = self.sample_goal_states(num)
+        goals: List[G] = self.sample_goal_from_state(None, states_goal)
+        return states_goal, goals
+
+
+class GoalSampGoalStateSamp(GoalStateGoalPairSampleable[S, A, G], GoalSampleable[S, A, G], StateSampleableFromGoal[S, A, G], ABC):
+    """ Sample goals and then sample goal states from goals """
+    def sample_goal_state_goal_pairs(self, num: int) -> Tuple[List[S], List[G]]:
+        goals: List[G] = self.sample_goals(num)
+        states_goal: List[S] = self.sample_state_from_goal(goals)
+        return states_goal, goals
+
+
+# Problem instance generation mixins
 class StartGoalWalkable(GoalSampleableFromState[S, A, G]):
     """ Can sample start states, take actions to obtain another state, and sample a goal from that state"""
     @abstractmethod
-    def get_start_states(self, num_states: int) -> List[S]:
+    def sample_start_states(self, num_states: int) -> List[S]:
         """ A method for generating start states. Should try to make this generate states that are as diverse as
         possible so that the trained heuristic function generalizes well.
 
@@ -354,15 +378,15 @@ class StartGoalWalkable(GoalSampleableFromState[S, A, G]):
         """
         pass
 
-    def get_start_goal_pairs(self, num_steps_l: List[int], times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
+    def sample_start_goal_pairs(self, num_steps_l: List[int], times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
         # Initialize
         if times is None:
             times = Times()
 
         # Start states
         start_time = time.time()
-        states_start: List[S] = self.get_start_states(len(num_steps_l))
-        times.record_time("get_start_states", time.time() - start_time)
+        states_start: List[S] = self.sample_start_states(len(num_steps_l))
+        times.record_time("sample_start_states", time.time() - start_time)
 
         # random walk
         start_time = time.time()
@@ -377,21 +401,16 @@ class StartGoalWalkable(GoalSampleableFromState[S, A, G]):
         return states_start, goals
 
 
-class GoalStateRevWalkable(GoalSampleable[S, A, G], StateSampleableFromGoal[S, A, G]):
-    def get_start_goal_pairs(self, num_steps_l: List[int], times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
+class GoalStartRevWalkable(GoalStateGoalPairSampleable[S, A, G]):
+    def sample_start_goal_pairs(self, num_steps_l: List[int], times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
         # Initialize
         if times is None:
             times = Times()
 
         # goals
         start_time = time.time()
-        goals: List[G] = self.sample_goals(len(num_steps_l))
-        times.record_time("sample_goal", time.time() - start_time)
-
-        # goal states
-        start_time = time.time()
-        states_goal: List[S] = self.sample_state_from_goal(goals)
-        times.record_time("get_goal_states", time.time() - start_time)
+        states_goal, goals = self.sample_goal_state_goal_pairs(len(num_steps_l))
+        times.record_time("sample_goal_state_goal_pairs", time.time() - start_time)
 
         # random walk to get start states
         start_time = time.time()
@@ -402,11 +421,16 @@ class GoalStateRevWalkable(GoalSampleable[S, A, G], StateSampleableFromGoal[S, A
 
     @abstractmethod
     def random_walk_rev(self, states: List[S], num_steps_l: List[int]) -> List[S]:
+        """ Domain need not be reversible as the distance of a path obtained by a number reverse steps can be roughly correlated with the number of steps
+
+        :param states: List of states
+        :param num_steps_l: List of integers
+        :return: states resulting from reverse random walk
+        """
         pass
 
 
-
-class FixedGoalRevWalkActsRev(GoalStateRevWalkable[S, A, G], ActsRev[S, A, G], ABC):
+class GoalStartRevWalkableActsRev(GoalStartRevWalkable[S, A, G], ActsRev[S, A, G], ABC):
     def random_walk_rev(self, states: List[S], num_steps_l: List[int]) -> List[S]:
         return self.random_walk(states, num_steps_l)[0]
 
@@ -430,7 +454,7 @@ class NextStateNP(Domain[S, A, G]):
         while np.any(steps_lt):
             idxs: NDArray[np.int_] = np.where(steps_lt)[0]
             states_np_tomove: List[NDArray] = [states_np_i[idxs] for states_np_i in states_np]
-            actions_rand: List[A] = self._get_state_np_action_rand(states_np_tomove)
+            actions_rand: List[A] = self._sample_state_np_action(states_np_tomove)
 
             states_moved, tcs = self._next_state_np(states_np_tomove, actions_rand)
 
@@ -458,7 +482,7 @@ class NextStateNP(Domain[S, A, G]):
     def _get_state_np_actions(self, states_np_l: List[NDArray]) -> List[List[A]]:
         pass
 
-    def _get_state_np_action_rand(self, states_np: List[NDArray]) -> List[A]:
+    def _sample_state_np_action(self, states_np: List[NDArray]) -> List[A]:
         state_actions_l: List[List[A]] = self._get_state_np_actions(states_np)
         return [random.choice(state_actions) for state_actions in state_actions_l]
 
@@ -518,6 +542,7 @@ class NextStateNPActsEnumFixed(NextStateNPActsEnum[S, A, G], ActsEnumFixed[S, A,
         return [state_actions.copy() for _ in range(states_np[0].shape[0])]
 
 
+# PDDL Mixins
 class SupportsPDDL(Domain[S, A, G], ABC):
     @abstractmethod
     def get_pddl_domain(self) -> List[str]:
@@ -532,6 +557,7 @@ class SupportsPDDL(Domain[S, A, G], ABC):
         pass
 
 
+# Logic mixins
 class GoalGrndAtoms(GoalSampleableFromState[S, A, G]):
     @abstractmethod
     def state_to_model(self, states: List[S]) -> List[Model]:
@@ -570,7 +596,7 @@ class GoalGrndAtoms(GoalSampleableFromState[S, A, G]):
 
         return is_solved_l
 
-    def sample_goal_from_state(self, states_start: List[S], states_goal: List[S]) -> List[G]:
+    def sample_goal_from_state(self, states_start: Optional[List[S]], states_goal: List[S]) -> List[G]:
         models_g: List[Model] = []
 
         models_s: List[Model] = self.state_to_model(states_goal)

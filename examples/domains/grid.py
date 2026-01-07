@@ -59,7 +59,7 @@ class GridExample(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalka
     def is_solved(self, states: List[GridState], goals: List[GridGoal]) -> List[bool]:
         return [(state.robot_x == goal.robot_x) and (state.robot_y == goal.robot_y) for state, goal in zip(states, goals)]
 
-    def get_start_states(self, num_states: int) -> List[GridState]:
+    def sample_start_states(self, num_states: int) -> List[GridState]:
         return [GridState(np.random.randint(self.dim), np.random.randint(self.dim)) for _ in range(num_states)]
 
     def next_state(self, states: List[GridState], actions: List[GridAction]) -> Tuple[List[GridState], List[float]]:
