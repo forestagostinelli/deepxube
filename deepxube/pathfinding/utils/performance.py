@@ -102,9 +102,9 @@ def print_pathfindperf(step_to_pathfindperf: Dict[int, PathFindPerf]) -> None:
                                               float(np.max(ctgs_bkup))))
 
 
-def is_valid_soln(state: State, goal: Goal, soln: List[Action], env: Domain) -> bool:
+def is_valid_soln(state: State, goal: Goal, soln: List[Action], domain: Domain) -> bool:
     state_soln: State = state
     for action in soln:
-        state_soln = env.next_state([state_soln], [action])[0][0]
+        state_soln = domain.next_state([state_soln], [action])[0][0]
 
-    return env.is_solved([state_soln], [goal])[0]
+    return domain.is_solved([state_soln], [goal])[0]

@@ -10,7 +10,7 @@ from deepxube.base.updater import UpArgs, UpdateHeur, UpHeurArgs
 from deepxube.training.train_utils import TrainArgs
 from deepxube.training.train_heur import train, TestArgs
 from deepxube.factories.pathfinding_factory import pathfinding_factory
-from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_pathfind_name_kwargs
+from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_pathfind_name_kwargs, get_pathfind_from_arg
 
 import os
 import pickle
@@ -69,14 +69,7 @@ def train_cli(args: argparse.Namespace) -> None:
     domain, domain_name = get_domain_from_arg(args.domain)
     heur_nnet_par: HeurNNetPar = get_heur_nnet_par_from_arg(domain, domain_name, args.heur, args.heur_type)[0]
     pathfind_name, pathfind_kwargs = get_pathfind_name_kwargs(args.pathfind)
-    pathfind_t: Type[PathFind] = pathfinding_factory.get_type(pathfind_name)
-    if issubclass(pathfind_t, PathFindHeur):
-        if issubclass(pathfind_t, PathFindVHeur):
-            assert args.heur_type.upper() == "V", f"must use a V heur_type for pathfinding algorithm {pathfind_name, pathfind_t}"
-        elif issubclass(pathfind_t, PathFindQHeur):
-            assert args.heur_type.upper() in {"QFIX", "QIN"}, f"must use a QFix or QIn heur_types for pathfinding algorithm {pathfind_name, pathfind_t}"
-        else:
-            raise ValueError(f"Unknown subclass of PathFindHeur {pathfind_t}")
+    get_pathfind_from_arg(domain, args.heur_type, args.pathfind)  # check heur type
 
     # update args
     up_args: UpArgs = UpArgs(args.procs, args.up_itrs, args.step_max, args.search_itrs,

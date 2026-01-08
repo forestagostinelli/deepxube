@@ -21,6 +21,8 @@ future/
 jobs/
 submit.sh
 *dummy*
+results_ex/
+examples/valid.pkl
 *__pycache__*
 *figures.pptx
 notes.txt

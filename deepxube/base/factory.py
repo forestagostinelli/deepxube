@@ -46,6 +46,7 @@ class Factory(Generic[T]):
             return None
 
     def get_kwargs(self, name: str, args_str: Optional[str]) -> Dict[str, Any]:
+        self.get_type(name)
         kwargs: Dict[str, Any] = dict()
         parser: Optional[Parser] = self.get_parser(name)
         if (parser is not None) and (args_str is not None):

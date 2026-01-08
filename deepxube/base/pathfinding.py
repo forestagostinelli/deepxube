@@ -133,7 +133,7 @@ class PathFind(Generic[D, I], ABC):
         self.instances.extend(instances)
 
     @abstractmethod
-    def step(self) -> Any:
+    def step(self, verbose: bool = False) -> Any:
         pass
 
     def remove_finished_instances(self, itr_max: int) -> List[I]:

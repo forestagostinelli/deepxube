@@ -3,6 +3,7 @@ import argparse
 from argparse import ArgumentParser
 
 from deepxube._train_cli import parser_train
+from deepxube._solve import parse_solve
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, StateGoalVizable, StringToAct, State, Action, Goal
 from deepxube.base.heuristic import HeurNNet, HeurNNetPar
@@ -23,6 +24,8 @@ import pickle
 import textwrap
 import numpy as np
 from numpy.typing import NDArray
+import os
+import time
 
 
 def plot_scatter(ax: Axes, x: Any, y: Any, x_label: str, y_label: str, xy_line: bool, title: str = "") -> None:
@@ -190,7 +193,26 @@ def train_summary(args: argparse.Namespace) -> None:
 
 
 def problem_inst_gen(args: argparse.Namespace) -> None:
-    pass
+    if os.path.isfile(args.file) and (not args.redo):
+        print(f"File {args.file} already exists and redo not set. Not generating data.")
+        return
+
+    domain, _ = get_domain_from_arg(args.domain)
+    num_steps_l: List[int] = list(np.random.randint(args.step_max + 1, size=args.num))
+    print(f"Generating {args.num} states")
+    start_time = time.time()
+    states, goals = domain.sample_start_goal_pairs(num_steps_l)
+    print(f"Time: {time.time() - start_time}")
+
+    print(f"Saving data to {args.file}")
+    start_time = time.time()
+    data: Dict = dict()
+    data['states'] = states
+    data['goals'] = goals
+    # noinspection PyTypeChecker
+    pickle.dump(data, open(args.file, "wb"), protocol=-1)
+    print(f"Time: {time.time() - start_time}")
+
 
 
 def main() -> None:
@@ -229,11 +251,6 @@ def main() -> None:
                                                         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     _parse_time(parser_time)
 
-    # problem instance generation
-    parser_problem_instance: ArgumentParser = subparsers.add_parser('problem_inst', help="Generate problem instances (state/goal pairs) and save to a "
-                                                                                         "pickle file.", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    _parse_problem_instance(parser_problem_instance)
-
     # train
     parser_tr: ArgumentParser = subparsers.add_parser('train', help="Train a heuristic function.",
                                                       formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -243,6 +260,15 @@ def main() -> None:
     parser_tr_summ: ArgumentParser = subparsers.add_parser('train_summary', help="Visualize training information not shown in tensorboard.",
                                                            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     _parse_train_summary(parser_tr_summ)
+
+    # problem instance generation
+    parser_problem_instance: ArgumentParser = subparsers.add_parser('problem_inst', help="Generate problem instances (state/goal pairs) and save to a "
+                                                                                         "pickle file.", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    _parse_problem_instance(parser_problem_instance)
+
+    # solve
+    parser_solve: ArgumentParser = subparsers.add_parser('solve', help="Solve problem instnaces.", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parse_solve(parser_solve)
 
     args = parser.parse_args()
 
@@ -277,6 +303,7 @@ def _parse_time(parser: ArgumentParser) -> None:
 
 
 def _parse_problem_instance(parser: ArgumentParser) -> None:
+    parser.add_argument('--domain', type=str, required=True, help="Domain name and arguments.")
     parser.add_argument('--step_max', type=int, required=True, help="Randomly generates problem instances with between 0 and step_max steps.")
     parser.add_argument('--num', type=int, required=True, help="Number of problem instances to generate.")
     parser.add_argument('--file', type=str, required=True, help="File to which problem instances are stored.")
