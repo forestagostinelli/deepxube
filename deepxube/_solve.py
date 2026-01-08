@@ -3,7 +3,7 @@ import argparse
 from argparse import ArgumentParser
 
 from deepxube.base.domain import State, Action, Goal
-from deepxube.base.heuristic import HeurNNetPar, HeurFn
+from deepxube.base.heuristic import HeurNNetPar, HeurFn, HeurFnV, HeurFnQ
 from deepxube.base.pathfinding import Node, Instance, PathFind, PathFindHeur, get_path
 from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_pathfind_from_arg
 from deepxube.utils import data_utils
@@ -41,6 +41,7 @@ def parse_solve(parser: ArgumentParser) -> None:
     parser.add_argument('--debug', action='store_true', default=False, help="Set when debugging with breakpoints")
     parser.set_defaults(func=solve_cli)
 
+
 def solve_cli(args: argparse.Namespace) -> None:
     if not os.path.exists(args.results):
         os.makedirs(args.results)
@@ -59,8 +60,18 @@ def solve_cli(args: argparse.Namespace) -> None:
         heur_fn = heur_nnet_par.get_nnet_fn(nnet, args.nnet_batch_size, device, None)
     else:
         if args.heur_type.upper() == "V":
-            def heur_fn(states_in: List[State], _) -> List[float]:
-                return [0.0 for _ in states_in]
+            class HeurFnZerosV(HeurFnV):
+                def __call__(self, states_in: List[State], goals_in: List[Goal]) -> List[float]:
+                    return [0.0] * len(states_in)
+            heur_fn = HeurFnZerosV()
+        elif args.heur_type.upper() in {"QFIX", "QIN"}:
+            class HeurFnZerosQ(HeurFnQ):
+                def __call__(self, states_in: List[State], goals_in: List[Goal], actions_l_in: List[List[Action]]) -> List[List[float]]:
+                    heur_vals_l: List[List[float]] = []
+                    for actions_in in actions_l_in:
+                        heur_vals_l.append([0.0] * len(actions_in))
+                    return heur_vals_l
+            heur_fn = HeurFnZerosQ()
         else:
             raise ValueError(f"Unknown heur type {args.heur_type}")
 
@@ -138,10 +149,10 @@ def solve_cli(args: argparse.Namespace) -> None:
                                itrs_per_sec, solve_time))
 
         print("Times - %s, num_itrs: %i" % (pathfind.times.get_time_str(), num_itrs))
-        print(f"Means, SolnCost: %.2f, # Nodes Gen: %.2f, Itrs: %.2f, Itrs/sec: %.2f, Solved: %.2f%%, "
-              f"Time: %.2f" % (_get_mean(results, "path_costs"), _get_mean(results, "num_nodes_generated"),
-                               _get_mean(results, "iterations"), _get_mean(results, "itrs/sec"),
-                               100.0 * np.mean(results["solved"]), _get_mean(results, "times")))
+        print("Means - SolnCost: %.2f, # Nodes Gen: %.2f, Itrs: %.2f, Itrs/sec: %.2f, Solved: %.2f%%, "
+              "Time: %.2f" % (_get_mean(results, "path_costs"), _get_mean(results, "num_nodes_generated"),
+                              _get_mean(results, "iterations"), _get_mean(results, "itrs/sec"),
+                              100.0 * np.mean(results["solved"]), _get_mean(results, "times")))
         print("")
 
         # noinspection PyTypeChecker

@@ -107,15 +107,15 @@ def viz(args: argparse.Namespace) -> None:
     goal: Goal
     if args.file is not None:
         data: Dict = pickle.load(open(args.file, "rb"))
-        state: State = data['states'][args.idx]
-        goal: Goal = data['goals'][args.idx]
+        state = data['states'][args.idx]
+        goal = data['goals'][args.idx]
     else:
-        assert isinstance(domain, StateGoalVizable)
         states, goals = domain.sample_start_goal_pairs([args.steps])
-        state: State = states[0]
-        goal: Goal = goals[0]
+        state = states[0]
+        goal = goals[0]
 
     fig = plt.figure(figsize=(5, 5))
+    assert isinstance(domain, StateGoalVizable)
     domain.visualize_state_goal(state, goal, fig)
     print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
 
