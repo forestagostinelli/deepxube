@@ -45,21 +45,25 @@ positional arguments (e.g. `deepxube train --help`).
 #### Quick run
 Copy the contents of the `examples/` directory or clone the project and cd to `examples/` and run:
 
-- Get domain information: `deepxube domain_info`
-- Visualize domain: `deepxube viz --domain grid_example.7 --steps 10`
-- Generate problem instances for solving: `deepxube problem_inst --domain grid_example.7 --step_max 1000 --num 100 --file valid.pkl --redo`
-- Visualize a problem instance: `deepxube viz --domain grid_example.7 --file valid.pkl --idx 13`
-- Solve problem instances with all-zeros heuristic: `deepxube solve --domain grid_example.7 --heur_type V --pathfind bwas.1_1.0_0.0 --file valid.pkl --results results_zeros_ex/ --redo`
-- Get heuristic information: `deepxube heuristic_info`
-- Get pathfinding information: `deepxube pathfinding_info`
-- Time to ensure basic functionality. Can use breakpoints in your code to debug: 
+- **Information**
+  - Domain information: `deepxube domain_info`
+  - Heuristic information: `deepxube heuristic_info`
+  - Pathfinding information: `deepxube pathfinding_info`
+- **Generate problem instances for solving:** `deepxube problem_inst --domain grid_example.7 --step_max 1000 --num 100 --file valid.pkl --redo`
+- **Visualization**
+  - Visualize random problem instance: `deepxube viz --domain grid_example.7 --steps 10`
+  - Visualize a problem instance from a file: `deepxube viz --domain grid_example.7 --file valid.pkl --idx 13`
+- **Time to ensure basic functionality** (Can use breakpoints in your code to debug): 
   - With deepxube residual neural network: `deepxube time --domain grid_example.7 --heur resnet_fc.100H_2B_bn --heur_type V`
   - With deepxube residual neural network and deep Q-network: `deepxube time --domain grid_example.7 --heur resnet_fc.100H_2B_bn --heur_type QFix`
   - With custom neural network: `deepxube time --domain grid_example.7 --heur gridnet.8CH_200FC --heur_type V`
-- Train heuristic function: `deepxube train --domain grid_example.7 --heur resnet_fc.100H_2B_bn --heur_type V --pathfind bwas --step_max 100 --up_itrs 100 --search_itrs 20 --backup -1 --procs 1 --batch_size 50 --max_itrs 5000 --dir dummy/`
-- Use tensorboard to see training progress: `tensorboard --logdir=dummy/`
-- Plot more detailed training information with interactive slider for training iteration: `deepxube train_summary --dir dummy` 
-- Solve problem instances with trained heuristic: `deepxube solve --domain grid_example.7 --heur resnet_fc.100H_2B_bn --heur_file dummy/heur.pt --heur_type V --pathfind bwas.1_1.0_0.0 --file valid.pkl --results results_trained_ex/ --redo`
+- **Training**
+  - Train heuristic function: `deepxube train --domain grid_example.7 --heur resnet_fc.100H_2B_bn --heur_type V --pathfind bwas --step_max 100 --up_itrs 100 --search_itrs 20 --backup -1 --procs 1 --batch_size 50 --max_itrs 5000 --dir dummy/`
+  - Use tensorboard to see training progress: `tensorboard --logdir=dummy/`
+  - Plot more detailed training information with interactive slider for training iteration: `deepxube train_summary --dir dummy` 
+- **Solving**
+  - Solve problem instances with all-zeros heuristic: `deepxube solve --domain grid_example.7 --heur_type V --pathfind bwas.1_1.0_0.0 --file valid.pkl --results results_zeros_ex/ --redo`
+  - Solve problem instances with trained heuristic: `deepxube solve --domain grid_example.7 --heur resnet_fc.100H_2B_bn --heur_file dummy/heur.pt --heur_type V --pathfind bwas.1_1.0_0.0 --file valid.pkl --results results_trained_ex/ --redo`
 
 ### Domains
 User-defined domains should go in the `./domains/` folder.
