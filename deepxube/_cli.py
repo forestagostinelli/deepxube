@@ -99,12 +99,22 @@ def pathfinding_info(args: argparse.Namespace) -> None:
 
 
 def viz(args: argparse.Namespace) -> None:
+    # domain
     domain, domain_name = get_domain_from_arg(args.domain)
-    # if args.file is not None:
-    assert isinstance(domain, StateGoalVizable)
-    states, goals = domain.sample_start_goal_pairs([args.steps])
-    state: State = states[0]
-    goal: Goal = goals[0]
+
+    # state and goal
+    state: State
+    goal: Goal
+    if args.file is not None:
+        data: Dict = pickle.load(open(args.file, "rb"))
+        state: State = data['states'][args.idx]
+        goal: Goal = data['goals'][args.idx]
+    else:
+        assert isinstance(domain, StateGoalVizable)
+        states, goals = domain.sample_start_goal_pairs([args.steps])
+        state: State = states[0]
+        goal: Goal = goals[0]
+
     fig = plt.figure(figsize=(5, 5))
     domain.visualize_state_goal(state, goal, fig)
     print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")

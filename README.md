@@ -48,6 +48,7 @@ Copy the contents of the `examples/` directory or clone the project and cd to `e
 - Get domain information: `deepxube domain_info`
 - Visualize domain: `deepxube viz --domain grid_example.7 --steps 10`
 - Generate problem instances for solving: `deepxube problem_inst --domain grid_example.7 --step_max 1000 --num 100 --file valid.pkl --redo`
+- Visualize a problem instance: `deepxube viz --domain grid_example.7 --file valid.pkl --idx 13`
 - Solve problem instances with all-zeros heuristic: `deepxube solve --domain grid_example.7 --heur_type V --pathfind bwas.1_1.0_0.0 --file valid.pkl --results results_zeros_ex/ --redo`
 - Get heuristic information: `deepxube heuristic_info`
 - Get pathfinding information: `deepxube pathfinding_info`
