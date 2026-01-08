@@ -21,6 +21,8 @@ For any issues, you can create a GitHub issue or contact Forest Agostinelli (for
   - [Domain Visualization](#domain-visualization)
   - [Neural Network Inputs](#Neural-Network-Inputs)
   - [Heuristic](#Heuristics)
+  - [Pathfinding](#pathfinding)
+  - [Training](#training)
 - [Future Additions](#future-additions)
 - [References](#references)
 
@@ -62,7 +64,7 @@ Copy the contents of the `examples/` directory or clone the project and cd to `e
   - Use tensorboard to see training progress: `tensorboard --logdir=dummy/`
   - Plot more detailed training information with interactive slider for training iteration: `deepxube train_summary --dir dummy` 
 - **Solving**
-  - Solve problem instances with all-zeros heuristic: `deepxube solve --domain grid_example.7 --heur_type V --pathfind bwas.1_1.0_0.0 --file valid.pkl --results results_zeros_ex/ --redo`
+  - Solve problem instances with all-zero heuristic: `deepxube solve --domain grid_example.7 --heur_type V --pathfind bwas.1_1.0_0.0 --file valid.pkl --results results_zeros_ex/ --redo`
   - Solve problem instances with trained heuristic: `deepxube solve --domain grid_example.7 --heur resnet_fc.100H_2B_bn --heur_file dummy/heur.pt --heur_type V --pathfind bwas.1_1.0_0.0 --file valid.pkl --results results_trained_ex/ --redo`
 
 ### Domains
@@ -71,27 +73,16 @@ deepxube will recursively search this directory and import all modules so that d
 For example, see the `GridExample` domain in [`examples/domains/grid.py`](examples/domains/grid.py).
 
 `GridExample` inherits from Mixin classes from `deepxube.base.domain`, which give it additional functionality (see the [domain documentation](https://forestagostinelli.github.io/deepxube/deepxube/base/domain.html)).
-- `ActsEnumFixed`: `GridExample` implements `_get_actions_fixed` 
-  - Methods obtained: `get_state_action_rand`, `expand`, `get_state_actions`, `get_num_acts`
-- `StartGoalWalkable`: `GridExample` implements `sample_goal` and `get_start_states`
-  - Methods obtained: `get_start_goal_pairs`
+- `ActsEnumFixed`: `GridExample` implements `get_actions_fixed` 
+  - Methods obtained: `sample_action`, `get_state_actions`, `expand`, `get_num_acts`
+- `StartGoalWalkable`: `GridExample` implements `sample_goal_from_state` and `sample_start_states`
+  - Methods obtained: `sample_start_goal_pairs`
 
 By using registers from `deepxube.factories.domain_factory`, `GridExample` can be obtained from its name.
 Furthermore, a parser can be implemetned and registered to allow one to specify arguments for the constructor via the command line.
-By convention, everything after the '.' are considered arguments.
+By convention, everything after '.' are considered arguments.
 
-Running `deepxube domain_info` in a directory with `domains/grid.py` should produce (amongst other available domains):
-```terminaloutput
-Domain: grid_example
-        Parser: An integer for the dimension. E.g. 'grid_example.7'
-        NNet Inputs:
-                Name: grid_nnet_input, Type: <class 'domains.grid.GridNNetInput'>
-                Name: flat_sg, Type: <class 'deepxube.base.nnet_input.HasFlatSGIn.FlatSGConcrete'>
-                Name: flat_sg_actfix, Type: <class 'deepxube.base.nnet_input.HasFlatSGActsEnumFixedIn.FlatSGActFixConcrete'>
-```
-
-See [Neural Network Inputs](#Neural-Network-Inputs) for more information on `NNet Inputs`.
-
+Running `deepxube domain_info` in a directory with `domains/grid.py` should produce information about grid_example (amongst other available domains):
 
 ### Domain Visualization
 Visualization of states/goals and the domain transition function can be useful to validating it.
@@ -100,7 +91,7 @@ and inherit from `StringToAct` to be able to type actions into the command line 
 
 By running `deepxube viz --domain grid_example.7 --steps 10` will create a start/goal pair by taking a random walk of length 10 and visualize it.
 One can vary the grid size by simply changing the number (e.g. `deepxube viz --domain grid_example.10 --steps 10`).
-Action string representations are 0, 1, 2, and 3. After applying an action, the transition cost and whether or not the goal is reached will be printed.
+After applying an action, the transition cost and whether or not the goal is reached will be printed.
 
 
 ### Neural Network Inputs
@@ -113,13 +104,37 @@ dimension of the input, the number of inputs, and that converts state/goal pairs
 Furthermore, if deep Q-network is used with an output for each action, then the heuristic function is automatically modified to have the correct output dimension.  
 Hence, the `flat_sg` and `flat_sg_actfix` in the domain information.
 
+A `NNetInput` object has a `to_np` function which converts a problem instance, or a problem instance along with actions in the case of a deep Q-network that 
+takes an action as input, to a list of numpy arrays. Each row of each array in the list of numpy arrays represents a different problem instance. Therefore, 
+multiple arrays of different sizes can be used to represent a single problem instance, if needed.
+
 With this dynamic `NNetInput` creation, `GridExample` can be used with deepxube's built in `resnet_fc` heuristic function, which expects a flat input.
 
 Custom neural network input types can also be created and registered. Given a heuristic function, deepxube searches for a registered `NNetInput` class that 
-matches its expected input. If multiple exist, it uses the first one it finds.
+matches its expected input. If multiple exist, it uses the first one it finds. An example of a custom network is shown in `GridNetParser` in `grid.py`.
 
 ### Heuristics
+A heuristic function is constructed given a neural network input of a pre-determined type, the dimensionality of the output, and a boolean indicating whether 
+or not the neural network represents a deep Q-network with a fixed output size. The forward portion of the neural network expects a list of Tensors 
+(this corresponds to the list of numpy arrays from the `NNetInput`) and returns a Tensor representing heuristic values. If the output is a fixed set of actions,
+the heuristic neural network automatically obtains the corresponding indices from the output.
 
+An example of a custom neural network along with its parser is shown in `GridNet` and `GridNetParser` in `grid_heur.py`.
+
+
+### Pathfinding
+The current pathfinding algorithms implemented include the batched and weighted versions of A* and Q* search, a greedy policy with a standard 
+heuristic function (V) and a deep Q-network (Q). There are other pathfinding algorithms specifically used for training a heuristic function via 
+supervised learning that sets the target cost-to-go to be that of the path cost obtained from a random walk 
+(see [References](#references) for more information).
+
+### Training
+Training is given the update frequency $U$ and a batch size of $N$ and a total of $U \cdot N$ training instances are generated. 
+
+When doing reinforcement learning based training, search is performed with the heuristic function with the given pathfinding algorithm for $I$ iterations and all states expanded 
+during search are added to the training set. deepxube expects the pathfinding algorithm to expand exactly one state for each search iteration.  Therefore, 
+$\frac{U\cdot N}{I}$ problem instances are first generated, where problem instance $i$ is generated with a random walk of length $K_i$. 
+If problem instance $i$ is solved, then a new problem is generated, also with a random walk of length $K_i$. deepxube expects $U\cdot N$ to be divisible by $I$.
 
 ## Future Additions
 DeepCubeAI: Learning world models for training and search ([code](https://github.com/misaghsoltani/DeepCubeAI), [paper](https://rlj.cs.umass.edu/2024/papers/RLJ_RLC_2024_225.pdf)).
