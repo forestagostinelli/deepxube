@@ -47,6 +47,8 @@ Copy the contents of the `examples/` directory or clone the project and cd to `e
 
 - Get domain information: `deepxube domain_info`
 - Visualize domain: `deepxube viz --domain grid_example.7 --steps 10`
+- Generate problem instances for solving: `deepxube problem_inst --domain grid_example.7 --step_max 1000 --num 100 --file valid.pkl --redo`
+- Solve problem instances with all-zeros heuristic: `deepxube solve --domain grid_example.7 --heur_type V --pathfind bwas.1_1.0_0.0 --file valid.pkl --results results_zeros_ex/ --redo`
 - Get heuristic information: `deepxube heuristic_info`
 - Get pathfinding information: `deepxube pathfinding_info`
 - Time to ensure basic functionality. Can use breakpoints in your code to debug: 
@@ -56,8 +58,7 @@ Copy the contents of the `examples/` directory or clone the project and cd to `e
 - Train heuristic function: `deepxube train --domain grid_example.7 --heur resnet_fc.100H_2B_bn --heur_type V --pathfind bwas --step_max 100 --up_itrs 100 --search_itrs 20 --backup -1 --procs 1 --batch_size 50 --max_itrs 5000 --dir dummy/`
 - Use tensorboard to see training progress: `tensorboard --logdir=dummy/`
 - Plot more detailed training information with interactive slider for training iteration: `deepxube train_summary --dir dummy` 
-- Generate problem instances for testing trained heuristic function: `deepxube problem_inst --domain grid_example.7 --step_max 100 --num 100 --file valid.pkl --redo`
-- Solve problem instances: `deepxube solve --domain grid_example.7 --heur resnet_fc.100H_2B_bn --heur_type V --pathfind bwas.10_0.9_0.0 --dir dummy/ --file valid.pkl --results results_ex/ --redo`
+- Solve problem instances with trained heuristic: `deepxube solve --domain grid_example.7 --heur resnet_fc.100H_2B_bn --heur_file dummy/heur.pt --heur_type V --pathfind bwas.1_1.0_0.0 --file valid.pkl --results results_trained_ex/ --redo`
 
 ### Domains
 User-defined domains should go in the `./domains/` folder.

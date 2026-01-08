@@ -100,6 +100,7 @@ def pathfinding_info(args: argparse.Namespace) -> None:
 
 def viz(args: argparse.Namespace) -> None:
     domain, domain_name = get_domain_from_arg(args.domain)
+    # if args.file is not None:
     assert isinstance(domain, StateGoalVizable)
     states, goals = domain.sample_start_goal_pairs([args.steps])
     state: State = states[0]
@@ -214,7 +215,6 @@ def problem_inst_gen(args: argparse.Namespace) -> None:
     print(f"Time: {time.time() - start_time}")
 
 
-
 def main() -> None:
     parser = ArgumentParser(prog="deepxube", description="Solve pathfinding problems with deep reinforcement learning "
                                                          "and heuristic search.",
@@ -290,6 +290,8 @@ def _parser_pathfind_info(parser: ArgumentParser) -> None:
 def _parse_viz_info(parser: ArgumentParser) -> None:
     parser.add_argument('--domain', type=str, required=True, help="Domain name and arguments.")
     parser.add_argument('--steps', type=int, default=0, help="Number of steps to take to generate problem instnace.")
+    parser.add_argument('--file', type=str, default=None, help="If given, visualize results from file.")
+    parser.add_argument('--idx', type=int, default=0, help="Index of problem instance in file.")
     parser.set_defaults(func=viz)
 
 

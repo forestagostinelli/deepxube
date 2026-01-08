@@ -10,7 +10,7 @@ from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
 from deepxube.pathfinding.utils.performance import is_valid_soln
 import numpy as np
-import torch
+from torch import nn
 
 import pickle
 import os
@@ -20,12 +20,13 @@ import sys
 
 def parse_solve(parser: ArgumentParser) -> None:
     parser.add_argument('--domain', type=str, required=True, help="Domain name and arguments.")
-    parser.add_argument('--heur', type=str, required=True, help="Heuristic neural network and arguments.")
+    parser.add_argument('--heur', type=str, default=None, help="Heuristic neural network and arguments. If None then a heuristic whose output is always zero "
+                                                               "is used.")
+    parser.add_argument('--heur_file', type=str, default=None, help="File that has heuristic nnet. Can be None if using all zeros heuristic.")
     parser.add_argument('--heur_type', type=str, default=None, help="V, QFix, QIn. V maps state/goal tuples to cost-to-go. "
                                                                     "QFix maps state/goal tuples to q_values for a fixed action space. "
                                                                     "QIn maps state/goal/action tuples to q_value (can be used in arbitrary action spaces).")
     parser.add_argument('--pathfind', type=str, required=True, help="Pathfinding algorithm and arguments.")
-    parser.add_argument('--dir', type=str, required=True, help="Directory of saved neural network.")
     parser.add_argument('--file', type=str, required=True, help="File containing problem instances to solve")
 
     parser.add_argument('--time_limit', type=float, default=-1.0, help="A time limit for search. Default is -1, which means infinite.")
@@ -44,14 +45,24 @@ def solve_cli(args: argparse.Namespace) -> None:
     if not os.path.exists(args.results):
         os.makedirs(args.results)
 
-    # domain, heur_nnet_par
+    # domain
     domain, domain_name = get_domain_from_arg(args.domain)
-    heur_nnet_par: HeurNNetPar = get_heur_nnet_par_from_arg(domain, domain_name, args.heur, args.heur_type)[0]
 
-    # set heur fn
-    device, devices, on_gpu = nnet_utils.get_device()
-    print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
-    heur_fn: HeurFn = heur_nnet_par.get_nnet_fn(heur_nnet_par.get_nnet(), args.nnet_batch_size, device, None)
+    # heur fn
+    heur_fn: HeurFn
+    if args.heur is not None:
+        heur_nnet_par: HeurNNetPar = get_heur_nnet_par_from_arg(domain, domain_name, args.heur, args.heur_type)[0]
+        device, devices, on_gpu = nnet_utils.get_device()
+        print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
+
+        nnet: nn.Module = nnet_utils.load_nnet(args.heur_file, heur_nnet_par.get_nnet())
+        heur_fn = heur_nnet_par.get_nnet_fn(nnet, args.nnet_batch_size, device, None)
+    else:
+        if args.heur_type.upper() == "V":
+            def heur_fn(states_in: List[State], _) -> List[float]:
+                return [0.0 for _ in states_in]
+        else:
+            raise ValueError(f"Unknown heur type {args.heur_type}")
 
     # get data
     data: Dict = pickle.load(open(args.file, "rb"))
@@ -65,13 +76,14 @@ def solve_cli(args: argparse.Namespace) -> None:
     if os.path.isfile(results_file):
         has_results = True
 
+    results: Dict[str, Any]
     if has_results and (not args.redo):
-        results: Dict[str, Any] = pickle.load(open(results_file, "rb"))
+        results = pickle.load(open(results_file, "rb"))
         if not args.debug:
             sys.stdout = data_utils.Logger(output_file, "a")
     else:
-        results: Dict[str, Any] = {"states": states, "goals": goals, "actions": [], "states_on_path": [], "path_costs": [],
-                                   "iterations": [], "times": [], "itrs/sec": [], "num_nodes_generated": [], "solved": []}
+        results = {"states": states, "goals": goals, "actions": [], "states_on_path": [], "path_costs": [], "iterations": [], "times": [], "itrs/sec": [],
+                   "num_nodes_generated": [], "solved": []}
         if not args.debug:
             sys.stdout = data_utils.Logger(output_file, "w")
 
@@ -125,11 +137,11 @@ def solve_cli(args: argparse.Namespace) -> None:
               f"Time: %.2f" % (state_idx, path_cost, format(num_nodes_gen_idx, ","), num_itrs,
                                itrs_per_sec, solve_time))
 
+        print("Times - %s, num_itrs: %i" % (pathfind.times.get_time_str(), num_itrs))
         print(f"Means, SolnCost: %.2f, # Nodes Gen: %.2f, Itrs: %.2f, Itrs/sec: %.2f, Solved: %.2f%%, "
               f"Time: %.2f" % (_get_mean(results, "path_costs"), _get_mean(results, "num_nodes_generated"),
                                _get_mean(results, "iterations"), _get_mean(results, "itrs/sec"),
                                100.0 * np.mean(results["solved"]), _get_mean(results, "times")))
-        print("Times - %s, num_itrs: %i" % (pathfind.times.get_time_str(), num_itrs))
         print("")
 
         # noinspection PyTypeChecker
