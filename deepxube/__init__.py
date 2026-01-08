@@ -2,6 +2,7 @@ __version__ = "0.1.6"
 __author__ = 'Forest Agostinelli'
 
 # run registers
+from . import domains  # noqa: F401
 from . import heuristics  # noqa: F401
 from . import pathfinding  # noqa: F401
 

@@ -44,7 +44,12 @@ def get_immediate_mixins(cls: Type[object], mixin_base: Type) -> List[Type]:
 
 
 def domain_info(args: argparse.Namespace) -> None:
-    domain_names: List[str] = domain_factory.get_all_class_names()
+    domain_names: List[str]
+    if args.names is None:
+        domain_names = domain_factory.get_all_class_names()
+    else:
+        domain_names = args.names.split(",")
+
     for domain_name in domain_names:
         domain_t: Type[Domain] = domain_factory.get_type(domain_name)
         print(f"Domain: {domain_name}, {domain_t}")
@@ -67,10 +72,16 @@ def domain_info(args: argparse.Namespace) -> None:
         print(textwrap.indent("Pathfinding:", '\t'))
         for pathfind_name in pathfind_names:
             print(textwrap.indent(f"Name: {pathfind_name}, Type: {pathfinding_factory.get_type(pathfind_name)}", '\t\t'))
+        print("")
 
 
 def heur_info(args: argparse.Namespace) -> None:
-    heur_nnet_names: List[str] = heuristic_factory.get_all_class_names()
+    heur_nnet_names: List[str]
+    if args.names is None:
+        heur_nnet_names = heuristic_factory.get_all_class_names()
+    else:
+        heur_nnet_names = args.names.split(",")
+
     for heur_nnet_name in heur_nnet_names:
         heur_nnet_t: Type[HeurNNet] = heuristic_factory.get_type(heur_nnet_name)
         print(f"Heur NNet: {heur_nnet_name}, {heur_nnet_t}")
@@ -78,10 +89,16 @@ def heur_info(args: argparse.Namespace) -> None:
         parser: Optional[Parser] = heuristic_factory.get_parser(heur_nnet_name)
         if parser is not None:
             print(textwrap.indent("Parser: " + parser.help(), '\t'))
+        print("")
 
 
 def pathfinding_info(args: argparse.Namespace) -> None:
-    names: List[str] = pathfinding_factory.get_all_class_names()
+    names: List[str]
+    if args.names is None:
+        names = pathfinding_factory.get_all_class_names()
+    else:
+        names = args.names.split(",")
+
     for name in names:
         pathfind_t: Type[PathFind] = pathfinding_factory.get_type(name)
         print(f"PathFind: {name}, {pathfind_t}")
@@ -286,14 +303,17 @@ def main() -> None:
 
 
 def _parser_domain_info(parser: ArgumentParser) -> None:
+    parser.add_argument('--names', type=str, default=None, help="Comma separated value for only specific names. List all if None.")
     parser.set_defaults(func=domain_info)
 
 
 def _parser_heur_info(parser: ArgumentParser) -> None:
+    parser.add_argument('--names', type=str, default=None, help="Comma separated value for only specific names. List all if None.")
     parser.set_defaults(func=heur_info)
 
 
 def _parser_pathfind_info(parser: ArgumentParser) -> None:
+    parser.add_argument('--names', type=str, default=None, help="Comma separated value for only specific names. List all if None.")
     parser.set_defaults(func=pathfinding_info)
 
 
