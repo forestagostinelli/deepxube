@@ -1,16 +1,16 @@
-from typing import Optional
+from typing import Optional, List
 import argparse
 from argparse import ArgumentParser
 
 from deepxube.factories.updater_factory import get_updater
 
+from deepxube.base.domain import State, Goal
 from deepxube.base.heuristic import HeurNNetPar
 from deepxube.base.updater import UpArgs, UpdateHeur, UpHeurArgs
 from deepxube.training.train_utils import TrainArgs
 from deepxube.training.train_heur import train, TestArgs
 from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_pathfind_name_kwargs, get_pathfind_from_arg
 
-import os
 import pickle
 
 
@@ -54,8 +54,10 @@ def parser_train(parser: ArgumentParser) -> None:
 
     # test args
     test_group = parser.add_argument_group('test')
-    test_group.add_argument('--t_search_itrs', type=int, default=1000, help="Number of search iterations when testing.")
+    test_group.add_argument('--t_file', type=str, default=None, help="File to use when testing.")
+    test_group.add_argument('--t_search_itrs', type=int, default=100, help="Number of search iterations when testing.")
     test_group.add_argument('--t_up_freq', type=int, default=10, help="Test every t_up_freq updates.")
+    test_group.add_argument('--t_pathfinds', type=str, default="bwas", help="Comma separated list of pathfinding algorithms to use when testing.")
 
     # other
     parser.add_argument('--debug', action='store_true', default=False, help="Set for debug mode.")
@@ -83,14 +85,14 @@ def train_cli(args: argparse.Namespace) -> None:
                                       display=args.display)
 
     # test args
-    valid_file: str = f"data/{args.domain}/valid.pkl"
     test_args: Optional[TestArgs]
-    if os.path.isfile(valid_file):
-        states, goals = pickle.load(open(valid_file, "rb"))
-        test_args = TestArgs(states, goals, args.t_search_itrs, [0.0], args.up_nnet_batch_size, args.t_up_freq,
-                             False)
+    if args.t_file is not None:
+        data = pickle.load(open(args.t_file, "rb"))
+        states: List[State] = data['states']
+        goals: List[Goal] = data['goals']
+        test_args = TestArgs(states, goals, args.t_search_itrs, args.t_pathfinds.split(","), args.up_nnet_batch_size, args.t_up_freq, False)
     else:
         test_args = None
 
     # test args
-    train(heur_nnet_par, updater, args.dir, train_args, test_args=test_args, debug=args.debug)
+    train(heur_nnet_par, args.heur_type, updater, args.dir, train_args, test_args=test_args, debug=args.debug)

@@ -2,13 +2,12 @@ from typing import Optional, List
 from dataclasses import dataclass
 
 from deepxube.base.domain import State, Goal
-from deepxube.base.heuristic import HeurNNet, HeurNNetPar, HeurNNetParV, HeurNNetParQ, HeurFnV, HeurFnQ
-from deepxube.base.pathfinding import PathFind, Node
+from deepxube.base.heuristic import HeurNNet, HeurNNetPar, HeurFn
+from deepxube.base.pathfinding import PathFind, Instance, PathFindHeur
 from deepxube.pathfinding.utils.performance import PathFindPerf
-from deepxube.pathfinding.bwqs import BWQS, InstanceBWQS
-from deepxube.pathfinding.bwas import BWAS, InstanceBWAS
 from deepxube.base.updater import UpdateHeur
 from deepxube.training.train_utils import TrainArgs
+from deepxube.utils.command_line_utils import get_pathfind_from_arg
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
 from deepxube.training.trainers import TrainHeur
@@ -27,42 +26,32 @@ class TestArgs:
     test_states: List[State]
     test_goals: List[Goal]
     search_itrs: int
-    search_weights: List[float]
+    pathfinds: List[str]
     test_nnet_batch_size: int
     test_up_freq: int
     test_init: bool
 
     def __repr__(self) -> str:
         return (f"TestArgs(instances={len(self.test_states)}, search_itrs={self.search_itrs}, "
-                f"search_weights={self.search_weights}, test_nnet_batch_size={self.test_nnet_batch_size}, "
+                f"pathfinds={self.pathfinds}, test_nnet_batch_size={self.test_nnet_batch_size}, "
                 f"test_up_freq={self.test_up_freq}, test_init={self.test_init})")
 
 
-def get_pathfind_w_instances(heur_nnet_par: HeurNNetPar, updater: UpdateHeur, train_heur: TrainHeur, test_args: TestArgs, param_idx: int) -> PathFind:
-    if isinstance(heur_nnet_par, HeurNNetParV):
-        heur_fn_v: HeurFnV = heur_nnet_par.get_nnet_fn(train_heur.nnet, test_args.test_nnet_batch_size, train_heur.device, None)
-        pathfind_v: BWAS = BWAS(updater.domain)
-        pathfind_v.set_heur_fn(heur_fn_v)
-        instances_v: List[InstanceBWAS] = pathfind_v.make_instances(test_args.test_states, test_args.test_goals, batch_size=1,
-                                                                    weight=test_args.search_weights[param_idx], eps=0.0)
-        pathfind_v.add_instances(instances_v)
-        return pathfind_v
+def get_pathfind_w_instances(heur_nnet_par: HeurNNetPar, heur_type: str, updater: UpdateHeur, train_heur: TrainHeur, test_args: TestArgs,
+                             pathfind_arg: str) -> PathFind:
+    pathfind: PathFind = get_pathfind_from_arg(updater.domain, heur_type, pathfind_arg)[0]
+    assert isinstance(pathfind, PathFindHeur)
 
-    elif isinstance(heur_nnet_par, HeurNNetParQ):
-        heur_fn_q: HeurFnQ = heur_nnet_par.get_nnet_fn(train_heur.nnet, test_args.test_nnet_batch_size,
-                                                       train_heur.device, None)
-        pathfind_q: BWQS = BWQS(updater.domain, heur_fn_q)
-        root_nodes_q: List[Node] = pathfind_q._create_root_nodes(test_args.test_states, test_args.test_goals)
-        instances_q: List[InstanceBWQS] = [InstanceBWQS(root_node, 1, test_args.search_weights[param_idx], 0.0, None)
-                                           for root_node in root_nodes_q]
-        pathfind_q.add_instances(instances_q)
-        return pathfind_q
+    heur_fn: HeurFn = heur_nnet_par.get_nnet_fn(train_heur.nnet, test_args.test_nnet_batch_size, train_heur.device, None)
+    pathfind.set_heur_fn(heur_fn)
 
-    else:
-        raise ValueError(f"Unknown heuristic function type {heur_nnet_par}")
+    instances: List[Instance] = pathfind.make_instances(test_args.test_states, test_args.test_goals, None, True)
+    pathfind.add_instances(instances)
+
+    return pathfind
 
 
-def train(heur_nnet_par: HeurNNetPar, updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: Optional[TestArgs] = None,
+def train(heur_nnet_par: HeurNNetPar, heur_type: str, updater: UpdateHeur, nnet_dir: str, train_args: TrainArgs, test_args: Optional[TestArgs] = None,
           debug: bool = False) -> None:
     """ Train a deep neural network heuristic (DNN) function with deep reinforcement learning.
 
@@ -72,6 +61,7 @@ def train(heur_nnet_par: HeurNNetPar, updater: UpdateHeur, nnet_dir: str, train_
     - Bertsekas, D. P. & Tsitsiklis, J. N. Neuro-dynamic Programming (Athena Scientific, 1996).
 
     :param heur_nnet_par: heur_nnet_par object to be used with updater
+    :param heur_type: heuristic function type
     :param updater: an Updater object
     :param nnet_dir: directory where DNN will be saved
     :param train_args: training arguments
@@ -131,7 +121,7 @@ def train(heur_nnet_par: HeurNNetPar, updater: UpdateHeur, nnet_dir: str, train_
 
         if do_test:
             assert test_args is not None
-            test(heur_nnet_par, updater, train_heur, test_args, writer)
+            test(heur_nnet_par, heur_type, updater, train_heur, test_args, writer)
 
         # train
         train_heur.update_step()
@@ -142,21 +132,22 @@ def train(heur_nnet_par: HeurNNetPar, updater: UpdateHeur, nnet_dir: str, train_
         up_itr_performed = True
 
     if (test_args is not None) and up_itr_performed:
-        test(heur_nnet_par, updater, train_heur, test_args, writer)
+        test(heur_nnet_par, heur_type, updater, train_heur, test_args, writer)
 
     updater.stop_procs()
 
     print("Done")
 
 
-def test(heur_nnet_par: HeurNNetPar, updater: UpdateHeur, train_heur: TrainHeur, test_args: TestArgs, writer: SummaryWriter) -> None:
+def test(heur_nnet_par: HeurNNetPar, heur_type: str, updater: UpdateHeur, train_heur: TrainHeur, test_args: TestArgs, writer: SummaryWriter) -> None:
     print(f"Testing - itr: {train_heur.status.itr}, update_itr: {train_heur.status.update_num}, "
           f"targ_update: {train_heur.status.targ_update_num}, num_inst: {len(test_args.test_states)}, "
-          f"num_search_params: {len(test_args.search_weights)}")
-    for param_idx in range(len(test_args.search_weights)):
+          f"num_pathfinds: {len(test_args.pathfinds)}")
+    for pathfind_idx in range(len(test_args.pathfinds)):
         start_time = time.time()
         # get pathfinding alg with test instances
-        pathfind: PathFind = get_pathfind_w_instances(heur_nnet_par, updater, train_heur, test_args, param_idx)
+        pathfind_arg: str = test_args.pathfinds[pathfind_idx]
+        pathfind: PathFind = get_pathfind_w_instances(heur_nnet_par, heur_type, updater, train_heur, test_args, pathfind_arg)
 
         # attempt to solve
         for _ in range(test_args.search_itrs):
@@ -170,11 +161,10 @@ def test(heur_nnet_par: HeurNNetPar, updater: UpdateHeur, train_heur: TrainHeur,
 
         # log
         per_solved_ave, path_cost_ave, search_itrs_ave = pathfind_perf.stats()
-        w_val: float = test_args.search_weights[param_idx]
         test_info_l: List[str] = [f"%solved: {per_solved_ave:.2f}", f"path_costs: {path_cost_ave:.3f}",
                                   f"search_itrs: {search_itrs_ave:.3f}",
                                   f"test_time: {test_time:.2f}"]
-        writer.add_scalar(f"val/w{w_val}/solved", per_solved_ave, train_heur.status.itr)
-        writer.add_scalar(f"val/w{w_val}/path_cost", path_cost_ave, train_heur.status.itr)
-        writer.add_scalar(f"val/w{w_val}/search_itrs", search_itrs_ave, train_heur.status.itr)
-        print(f"Test w{w_val} - {', '.join(test_info_l)}")
+        writer.add_scalar(f"val/{pathfind_arg}/solved", per_solved_ave, train_heur.status.itr)
+        writer.add_scalar(f"val/{pathfind_arg}/path_cost", path_cost_ave, train_heur.status.itr)
+        writer.add_scalar(f"val/{pathfind_arg}/search_itrs", search_itrs_ave, train_heur.status.itr)
+        print(f"Test {pathfind_arg} - {', '.join(test_info_l)}")
