@@ -6,7 +6,7 @@ from deepxube.base.heuristic import HeurNNet
 from deepxube.nnet.pytorch_models import Conv2dModel, FullyConnectedModel
 from deepxube.factories.heuristic_factory import heuristic_factory
 
-from domains.grid import GridNNetInput
+from deepxube.domains.grid import GridNNetInput
 import re
 
 
@@ -30,7 +30,8 @@ class GridNet(HeurNNet[GridNNetInput]):
         )
 
     def _forward(self, inputs: List[Tensor]) -> Tensor:
-        return self.heur(inputs[0])
+        x: Tensor = self.heur(inputs[0])
+        return x
 
 
 @heuristic_factory.register_parser("gridnet")

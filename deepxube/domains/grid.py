@@ -47,10 +47,10 @@ class GridAction(Action):
         return NotImplemented
 
 
-@domain_factory.register_class("grid_example")
-class GridExample(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalkable[GridState, GridAction, GridGoal],
-                  StateGoalVizable[GridState, GridAction, GridGoal], StringToAct[GridState, GridAction, GridGoal],
-                  HasFlatSGActsEnumFixedIn[GridState, GridAction, GridGoal]):
+@domain_factory.register_class("grid")
+class Grid(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalkable[GridState, GridAction, GridGoal],
+           StateGoalVizable[GridState, GridAction, GridGoal], StringToAct[GridState, GridAction, GridGoal],
+           HasFlatSGActsEnumFixedIn[GridState, GridAction, GridGoal]):
     def __init__(self, dim: int = 7):
         super().__init__()
         self.dim: int = dim
@@ -76,7 +76,7 @@ class GridExample(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalka
 
         return states_next, [1.0] * len(states_next)
 
-    def sample_goal_from_state(self, states_start: List[GridState], states_goal: List[GridState]) -> List[GridGoal]:
+    def sample_goal_from_state(self, states_start: Optional[List[GridState]], states_goal: List[GridState]) -> List[GridGoal]:
         return [GridGoal(state_goal.robot_x, state_goal.robot_y) for state_goal in states_goal]
 
     def get_input_info_flat_sg(self) -> Tuple[List[int], List[int]]:
@@ -113,17 +113,17 @@ class GridExample(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalka
         return f"Grid(dim={self.dim})"
 
 
-@domain_factory.register_parser("grid_example")
+@domain_factory.register_parser("grid")
 class GridParser(Parser):
     def parse(self, args_str: str) -> Dict[str, Any]:
         return {"dim": int(args_str)}
 
     def help(self) -> str:
-        return "An integer for the dimension. E.g. 'grid_example.7'"
+        return "An integer for the dimension. E.g. 'grid.7'"
 
 
-@register_nnet_input("grid_example", "grid_nnet_input")
-class GridNNetInput(StateGoalIn[GridExample, GridState, GridGoal]):
+@register_nnet_input("grid", "grid_nnet_input")
+class GridNNetInput(StateGoalIn[Grid, GridState, GridGoal]):
     def get_input_info(self) -> int:
         return self.domain.dim
 
