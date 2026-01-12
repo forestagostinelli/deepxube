@@ -23,7 +23,7 @@ submit.sh
 *dummy*
 results_zeros_ex/
 results_trained_ex/
-examples/valid.pkl
+valid.pkl
 *__pycache__*
 *figures.pptx
 notes.txt

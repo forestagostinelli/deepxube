@@ -1,25 +1,23 @@
 from typing import List, cast
-import pytest
+import pytest  # type: ignore
 
-import sys
-from pathlib import Path
-
-PARENT = Path(__file__).resolve().parent.parent  # parent of this file's folder
-sys.path.insert(0, str(PARENT))
 from deepxube.factories.domain_factory import domain_factory
 from deepxube.base.domain import Domain, State, Action, Goal, GoalSampleableFromState, GoalSampleable, ActsRev
 
 
 DOMAIN_NAMES: List[str] = domain_factory.get_all_class_names()
 
+
 def build_domain_from_name(domain_id: str) -> Domain:
     return domain_factory.build_class(domain_id, {})
 
-@pytest.fixture(params=DOMAIN_NAMES, ids=lambda dom_name: dom_name)
+
+@pytest.fixture(params=DOMAIN_NAMES, ids=lambda dom_name: dom_name)  # type: ignore
 def domain_name(request) -> str:  # type: ignore
     return cast(str, request.param)
 
-@pytest.fixture
+
+@pytest.fixture  # type: ignore
 def domain(domain_name: str) -> Domain:
     return build_domain_from_name(domain_name)
 
@@ -27,7 +25,7 @@ def domain(domain_name: str) -> Domain:
 @pytest.fixture(
     params=[dom_id for dom_id in DOMAIN_NAMES if issubclass(domain_factory.get_type(dom_id), GoalSampleable)],
     ids=lambda dom_id: dom_id,
-)
+)  # type: ignore
 def domain_goalsamp(request) -> Domain:  # type: ignore
     return build_domain_from_name(request.param)
 
@@ -35,7 +33,7 @@ def domain_goalsamp(request) -> Domain:  # type: ignore
 @pytest.fixture(
     params=[dom_id for dom_id in DOMAIN_NAMES if issubclass(domain_factory.get_type(dom_id), GoalSampleableFromState)],
     ids=lambda dom_id: dom_id,
-)
+)  # type: ignore
 def domain_goalsamp_fromstate(request) -> Domain:  # type: ignore
     return build_domain_from_name(request.param)
 
@@ -43,32 +41,32 @@ def domain_goalsamp_fromstate(request) -> Domain:  # type: ignore
 @pytest.fixture(
     params=[dom_id for dom_id in DOMAIN_NAMES if issubclass(domain_factory.get_type(dom_id), GoalSampleable)],
     ids=lambda dom_id: dom_id,
-)
+)  # type: ignore
 def domain_actsrev(request) -> Domain:  # type: ignore
     return build_domain_from_name(request.param)
 
 
-@pytest.mark.parametrize("num_states", [1, 5, 10])
+@pytest.mark.parametrize("num_states", [1, 5, 10])  # type: ignore
 def test_get_start_goal_pairs(domain: Domain, num_states: int) -> None:
     states, goals = domain.sample_start_goal_pairs(list(range(0, num_states)))
     assert len(states) == num_states
     assert len(goals) == num_states
 
 
-@pytest.mark.parametrize("num_states", [1, 5, 10])
+@pytest.mark.parametrize("num_states", [1, 5, 10])  # type: ignore
 def test_get_start_goal_pairs_0steps(domain: Domain, num_states: int) -> None:
     states, goals = domain.sample_start_goal_pairs([0] * num_states)
     assert all(domain.is_solved(states, goals))
 
 
-@pytest.mark.parametrize("num_states", [1, 5, 10])
+@pytest.mark.parametrize("num_states", [1, 5, 10])  # type: ignore
 def test_goalsamp(domain_goalsamp_fromstate: GoalSampleableFromState, num_states: int) -> None:
     states, _ = domain_goalsamp_fromstate.sample_start_goal_pairs(list(range(0, num_states)))
     goals_samp: List[Goal] = domain_goalsamp_fromstate.sample_goal_from_state(None, states)
     assert all(domain_goalsamp_fromstate.is_solved(states, goals_samp))
 
 
-@pytest.mark.parametrize("num_states", [1, 5, 10])
+@pytest.mark.parametrize("num_states", [1, 5, 10])  # type: ignore
 def test_actsrev(domain_actsrev: ActsRev, num_states: int) -> None:
     states, _ = domain_actsrev.sample_start_goal_pairs(list(range(0, num_states)))
     actions: List[Action] = domain_actsrev.sample_state_action(states)
@@ -76,6 +74,7 @@ def test_actsrev(domain_actsrev: ActsRev, num_states: int) -> None:
     actions_rev: List[Action] = domain_actsrev.rev_action(states_next, actions)
     states_rev: List[State] = domain_actsrev.next_state(states_next, actions_rev)[0]
     assert all(state == state_rev for state, state_rev in zip(states, states_rev))
+
 
 """
 def test_get_start_states(domain_id: str):
