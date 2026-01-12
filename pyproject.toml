@@ -10,7 +10,7 @@ authors = [
   {name = "Forest Agostinelli", email = "foresta@cse.sc.edu"},
 ]
 requires-python = ">= 3.10"
-dependencies = ['torch>=2.0', 'numpy == 2.*', 'matplotlib', 'clingo', 'wget', 'filelock', 'pillow', 'types-Pillow', 'imageio']
+dependencies = ['torch>=2.0', 'numpy == 2.*', 'matplotlib', 'clingo', 'wget', 'filelock', 'pillow', 'types-Pillow', 'imageio', 'tensorboard']
 license = {file = "LICENSE.txt"}
 readme = "README.md"
 

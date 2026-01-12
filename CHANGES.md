@@ -1,6 +1,9 @@
 # Changes
 
-## 0.1.7
+## 0.2.0
+* Domain -> NNetInput -> Heuristic -> Pathfinding -> Updater
+* Command line tool addition
+* LHBL backup added
 * Intializing solver checks if number of ground atoms > 0
 * Updater now balances number of steps to generate states when taking multiple update steps
 * Optimizer now persists across data generation and test
@@ -10,10 +13,9 @@
 * Consolidate updater for DAVI
 * Use SharedMemory for update and heuristic function runners
 * Add option to skip computation of initial heuristic value for search
-* Faster replay buffer initialization
+* Faster data buffer initialization
 * Get more statistics when solving with clingo
-* Environment has a function for getting a random action that is applicable to a given state
-* base: env, heuristic, pathfinding, updater
+* Domain has a function for getting a random action that is applicable to a given state
 * option to adjust step_max based on solve percentage
 * option to test on test set during training
 

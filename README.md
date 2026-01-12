@@ -37,8 +37,6 @@ Documentation of all modules is [here](https://forestagostinelli.github.io/deepx
 
 
 ## Command Line
-The following information is not yet pip installable, but will be soon.
-
 deepxube can be run from the command line via the `deepxube` command.
 
 Run `deepxube --help` for detailed information. `--help` can also be run on 
@@ -69,6 +67,7 @@ After installing deepxube run:
 - **Solving**
   - Solve problem instances with all-zero heuristic: `deepxube solve --domain grid.7 --heur_type V --pathfind bwas.1_1.0_0.0 --file valid.pkl --results results_zeros_ex/ --redo`
   - Solve problem instances with trained heuristic: `deepxube solve --domain grid.7 --heur resnet_fc.100H_2B_bn --heur_file dummy/heur.pt --heur_type V --pathfind bwas.1_1.0_0.0 --file valid.pkl --results results_trained_ex/ --redo`
+  - Solving with the trained heuristic should have a significantly lower number of nodes generated and number of iterations.
 
 ### Domains
 User-defined domains should go in the `./domains/` folder.
@@ -116,6 +115,9 @@ Custom neural network input types can also be created and registered. Given a he
 matches its expected input. If multiple exist, it uses the first one it finds.
 
 ### Heuristics
+User-defined neural networks for heuristic functions should go in the `./heuristics/` folder. 
+deepxube will recursively search this directory and import all modules so that domains are registered. 
+
 A heuristic function is constructed given a neural network input of a pre-determined type, the dimensionality of the output, and a boolean indicating whether 
 or not the neural network represents a deep Q-network with a fixed output size. The forward portion of the neural network expects a list of Tensors 
 (this corresponds to the list of numpy arrays from the `NNetInput`) and returns a Tensor representing heuristic values. If the output is a fixed set of actions,
