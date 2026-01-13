@@ -17,6 +17,13 @@ cuda = { features = ["cuda"], solve-group = "default" }
 
 [dependencies]
 python = ">=3.10"
+# These packages from conda-forge will be installed first
+# (these will be prioraritzed over the packages in `[pypi-dependencies]`)
+numpy = ">=2.0, <3"
+matplotlib = ">=3.10.8, <4"
+clingo = ">=5.8.0, <6"
+filelock = ">=3.20.3, <4"
+pillow = ">=12.1.0, <13"
 
 [feature.py310.dependencies]
 python = "~=3.10.0"
@@ -73,8 +80,15 @@ torch = ">=2.0, <3"
 [target.win-64.pypi-dependencies]
 torch = ">=2.0, <3"
 
-# Fallback/Specifics can be added here if needed
-
+[feature.test.dependencies]
+# These packages from conda-forge will be installed first
+# (these will be prioraritzed over the packages in `[feature.test.pypi-dependencies]`)
+pytest = ">=9.0.2, <10"
+pytest-cov = ">=7.0.0, <8"
+mypy = ">=1.19.1, <2"
+flake8 = ">=7.3.0, <8"
+tox = ">=4.34.1, <5"
+tox-uv = ">=1.29.0, <2"
 
 [feature.test.pypi-dependencies]
 deepxube = { path = ".", editable = true, extras = ["test"] }
