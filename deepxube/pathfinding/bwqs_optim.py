@@ -7,7 +7,7 @@ from deepxube.base.factory import Parser
 
 
 class BWQSActsOptim(BWQSActsAny[ActsOptim]):
-    """Batch Weighted Queue Search with domain-driven optimized action proposals.
+    """Batch Weighted Q* Search with domain-driven action proposals.
 
     The domain provides candidate actions via ``ActsOptim.get_state_actions_opt`` which
     can leverage the current heuristic ``h(s, g, a)`` to search effectively in
