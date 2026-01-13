@@ -85,19 +85,20 @@ torch = ">=2.0, <3"
 # (these will be prioraritzed over the packages in `[feature.test.pypi-dependencies]`)
 pytest = ">=9.0.2, <10"
 pytest-cov = ">=7.0.0, <8"
-mypy = ">=1.19.1, <2"
+# mypy = ">=1.19.1, <2"
 flake8 = ">=7.3.0, <8"
 tox = ">=4.34.1, <5"
 tox-uv = ">=1.29.0, <2"
+orjson = ">=3.11.4, <4" # Used by mypy's 'faster-cache' extra
 
 [feature.test.pypi-dependencies]
 deepxube = { path = ".", editable = true, extras = ["test"] }
 pytest = ">=9.0.2, <10"
 pytest-cov = ">=7.0.0, <8"
-mypy = ">=1.19.1, <2"
 flake8 = ">=7.3.0, <8"
 tox = ">=4.34.1, <5"
 tox-uv = ">=1.29.0, <2"
+mypy = { version = ">=1.19.1, <2", extras = ["faster-cache"] }
 
 [feature.test.tasks]
 check = "flake8 --append-config tox.ini --append-config setup.cfg deepxube tests; mypy deepxube tests --config-file=mypy.ini"
