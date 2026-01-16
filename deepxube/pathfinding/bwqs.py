@@ -165,7 +165,7 @@ class BWQSActsAny(PathFindQHeur[D, InstanceBWQS], ABC):
                 max_heur = float(np.max(heuristics))
                 max_heur_pc = float(path_costs[np.argmax(heuristics)])
                 per_has_soln: float = 100.0 * float(np.mean([inst.has_soln() for inst in instances]))
-                per_finished: float = 100.0 * float(np.mean([inst.finished for inst in instances]))
+                per_finished: float = 100.0 * float(np.mean([inst.finished() for inst in instances]))
 
                 print(f"Itr: %i, Added to OPEN - Min/Max Heur(PathCost): "
                       f"%.2f(%.2f)/%.2f(%.2f), %%has_soln: {per_has_soln}, "

@@ -1,5 +1,8 @@
 # Changes
 
+## 0.2.1
+* Fix BWQS verbose
+
 ## 0.2.0
 * Domain -> NNetInput -> Heuristic -> Pathfinding -> Updater
 * Command line tool addition

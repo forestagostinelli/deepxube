@@ -5,7 +5,7 @@
 
 DeepXube (pronounced "Deep Cube") aims to solve pathfinding using a combination of deep reinforcement learning and heuristic search.
 
-1) Learn a heuristic function that maps states and goals to an estimate of the cost-to-go from the given state to the state given goal.
+1) Learn a heuristic function that maps states and goals to an estimate of the cost-to-go from the given state to the given goal.
 2) Use the learned heuristic function with heuristic search algorithms, such as batch weighted A* search or batch weighted Q* search, to solve problem instances.
 
 DeepXube is a generalization of DeepCubeA ([code](https://github.com/forestagostinelli/DeepCubeA/), [paper](https://cse.sc.edu/~foresta/assets/files/SolvingTheRubiksCubeWithDeepReinforcementLearningAndSearch_Final.pdf)).
