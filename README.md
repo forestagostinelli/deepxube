@@ -23,6 +23,7 @@ For any issues, you can create a GitHub issue or contact Forest Agostinelli (for
   - [Heuristic](#Heuristics)
   - [Pathfinding](#pathfinding)
   - [Training](#training)
+  - [Solving](#solving)
 - [Future Additions](#future-additions)
 - [References](#references)
 
@@ -68,6 +69,9 @@ After installing deepxube run:
   - Solve problem instances with all-zero heuristic: `deepxube solve --domain grid.7 --heur_type V --pathfind bwas.1_1.0_0.0 --file valid.pkl --results results_zeros_ex/ --redo`
   - Solve problem instances with trained heuristic: `deepxube solve --domain grid.7 --heur resnet_fc.100H_2B_bn --heur_file dummy/heur.pt --heur_type V --pathfind bwas.1_1.0_0.0 --file valid.pkl --results results_trained_ex/ --redo`
   - Solving with the trained heuristic should have a significantly lower number of nodes generated and number of iterations.
+  - You can get the actions taken for each instance with the "actions" key in the dictionary saved in the `results.pkl` file in the `--results` directory.
+  - Visualize solutions with `deepxube viz --domain grid.7 --file results_trained_ex/results.pkl --idx 3 --soln` (This is not yet pip installable). 
+This prints actions taken. You can implement `__repr__` for the action class to determine what gets printed for each action.
 
 ### Domains
 User-defined domains should go in the `./domains/` folder.

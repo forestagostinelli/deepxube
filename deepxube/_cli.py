@@ -20,6 +20,7 @@ from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.widgets import Slider
+from matplotlib.figure import Figure
 import pickle
 import textwrap
 import numpy as np
@@ -122,8 +123,9 @@ def viz(args: argparse.Namespace) -> None:
     # state and goal
     state: State
     goal: Goal
+    data: Dict = dict()
     if args.file is not None:
-        data: Dict = pickle.load(open(args.file, "rb"))
+        data = pickle.load(open(args.file, "rb"))
         state = data['states'][args.idx]
         goal = data['goals'][args.idx]
     else:
@@ -131,33 +133,72 @@ def viz(args: argparse.Namespace) -> None:
         state = states[0]
         goal = goals[0]
 
-    fig = plt.figure(figsize=(5, 5))
+    fig: Figure = plt.figure(figsize=(5, 5))
     assert isinstance(domain, StateGoalVizable)
     domain.visualize_state_goal(state, goal, fig)
     print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
 
-    if isinstance(domain, StringToAct):
-        print(domain.string_to_action_help())
-        plt.show(block=False)
-        while True:
-            act_str = input("Write action (make blank to quit): ")
-            if len(act_str) == 0:
-                break
-            action: Optional[Action] = domain.string_to_action(act_str)
-            if action is None:
-                print(f"No action {act_str}")
-            else:
-                states_next, tcs = domain.next_state([state], [action])
-                state = states_next[0]
-                tc: float = tcs[0]
-                fig.clear()
-                cast(StateGoalVizable, domain).visualize_state_goal(state, goal, fig)
-                print(f"Transition cost: {tc}")
-                fig.canvas.draw()
+    if args.soln:
+        solved: bool = data['solved'][args.idx]
+        if solved:
+            states_on_path: List[State] = data['states_on_path'][args.idx]
+            state_idx: int = 0
+            state_idx_max: int = len(states_on_path) - 1
+            plt.show(block=False)
+            while True:
+                act_str = input(f"State {state_idx + 1} of {state_idx_max + 1} on solution path. Next state (n), Previous state (p): ")
+                if len(act_str) == 0:
+                    break
+                if (act_str.upper() == "N") and (state_idx < state_idx_max):
+                    action: Action = data['actions'][args.idx][state_idx]
+                    print(f"Action: {action}")
+                    state_next_l, tcs = domain.next_state([state], [action])
+                    state_next: State = state_next_l[0]
+                    tc: float = tcs[0]
+                    print(f"Transition cost: {tc}")
+                    state_idx += 1
+                    assert state_next == states_on_path[state_idx]
+                    state = state_next
 
-                print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
+                    _viz_state_goal_update(cast(StateGoalVizable, domain), state, goal, fig)
+
+                    print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
+                    if state_idx == state_idx_max:
+                        assert domain.is_solved([state], [goal])[0]
+                if (act_str.upper() == "P") and (state_idx > 0):
+                    state_idx -= 1
+                    state = states_on_path[state_idx]
+                    _viz_state_goal_update(cast(StateGoalVizable, domain), state, goal, fig)
+
+                    print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
+        else:
+            input("Not solved (press enter to quit): ")
     else:
-        plt.show(block=True)
+        if isinstance(domain, StringToAct):
+            print(domain.string_to_action_help())
+            plt.show(block=False)
+            while True:
+                act_str = input("Write action (press enter to quit): ")
+                if len(act_str) == 0:
+                    break
+                action: Optional[Action] = domain.string_to_action(act_str)
+                if action is None:
+                    print(f"No action {act_str}")
+                else:
+                    states_next, tcs = domain.next_state([state], [action])
+                    state = states_next[0]
+                    tc: float = tcs[0]
+                    print(f"Transition cost: {tc}")
+                    print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
+                    _viz_state_goal_update(cast(StateGoalVizable, domain), state, goal, fig)
+        else:
+            plt.show(block=True)
+
+
+def _viz_state_goal_update(domain: StateGoalVizable, state: State, goal: Goal, fig: Figure):
+    fig.clear()
+    domain.visualize_state_goal(state, goal, fig)
+    fig.canvas.draw()
 
 
 def time_test_args(args: argparse.Namespace) -> None:
@@ -322,6 +363,8 @@ def _parse_viz_info(parser: ArgumentParser) -> None:
     parser.add_argument('--steps', type=int, default=0, help="Number of steps to take to generate problem instnace.")
     parser.add_argument('--file', type=str, default=None, help="If given, visualize results from file.")
     parser.add_argument('--idx', type=int, default=0, help="Index of problem instance in file.")
+    parser.add_argument('--soln', action='store_true', default=False, help="If true, then assumes file contains solutions for problem instances and will "
+                                                                           "visualize them.")
     parser.set_defaults(func=viz)
 
 

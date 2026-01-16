@@ -1,6 +1,7 @@
 # Changes
 
 ## 0.2.1
+* Visualize solutions
 * Fix BWQS verbose
 
 ## 0.2.0
