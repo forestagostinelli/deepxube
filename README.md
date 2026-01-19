@@ -38,7 +38,7 @@ Documentation of all modules is [here](https://forestagostinelli.github.io/deepx
 
 
 ## Command Line
-deepxube can be run from the command line via the `deepxube` command.
+deepxube can be run from the command line via the `deepxube` command (you may have to use `python -m deepxube` on Windows).
 
 Run `deepxube --help` for detailed information. `--help` can also be run on 
 positional arguments (e.g. `deepxube train --help`).

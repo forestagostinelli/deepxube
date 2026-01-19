@@ -86,8 +86,9 @@ class HasFlatSGIn(DynamicNNetInput[S, A, G]):
     @abstractmethod
     def get_input_info_flat_sg(self) -> Tuple[List[int], List[int]]:
         """
-        :return: A list of dimensions of given to the neural network, A list of depths for performing a one_hot representation on that corresponding input.
-        If 0, then no one_hot is performed.
+        :return: A list of dimensions of the arrays given to the neural network (pre one_hot), A list of depths for performing a one_hot representation on
+        that corresponding input.
+        If 1, then no one_hot is performed.
         """
         pass
 
