@@ -146,30 +146,38 @@ def viz(args: argparse.Namespace) -> None:
             state_idx_max: int = len(states_on_path) - 1
             plt.show(block=False)
             while True:
-                act_str = input(f"State {state_idx + 1} of {state_idx_max + 1} on solution path. Next state (n), Previous state (p): ")
+                act_str = input(f"State idx {state_idx} of {state_idx_max} on solution path. Next state (n), Previous state (p), or state idx: ")
                 if len(act_str) == 0:
                     break
-                if (act_str.upper() == "N") and (state_idx < state_idx_max):
-                    action: Action = data['actions'][args.idx][state_idx]
-                    print(f"Action: {action}")
-                    state_next_l, tcs = domain.next_state([state], [action])
-                    state_next: State = state_next_l[0]
-                    tc: float = tcs[0]
-                    print(f"Transition cost: {tc}")
-                    state_idx += 1
-                    assert state_next == states_on_path[state_idx]
-                    state = state_next
+                if act_str.upper() == "N":
+                    if state_idx < state_idx_max:
+                        action: Action = data['actions'][args.idx][state_idx]
+                        print(f"Action: {action}")
+                        state_next_l, tcs = domain.next_state([state], [action])
+                        state_next: State = state_next_l[0]
+                        tc: float = tcs[0]
+                        print(f"Transition cost: {tc}")
+                        state_idx += 1
+                        assert state_next == states_on_path[state_idx]
+                        state = state_next
 
-                    _viz_state_goal_update(cast(StateGoalVizable, domain), state, goal, fig)
+                        _viz_state_goal_update(cast(StateGoalVizable, domain), state, goal, fig)
 
-                    print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
-                    if state_idx == state_idx_max:
-                        assert domain.is_solved([state], [goal])[0]
-                if (act_str.upper() == "P") and (state_idx > 0):
-                    state_idx -= 1
+                        print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
+                        if state_idx == state_idx_max:
+                            assert domain.is_solved([state], [goal])[0]
+                elif act_str.upper() == "P":
+                    if state_idx > 0:
+                        state_idx -= 1
+                        state = states_on_path[state_idx]
+                        _viz_state_goal_update(cast(StateGoalVizable, domain), state, goal, fig)
+
+                        print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
+                else:
+                    state_idx = int(act_str)
+                    assert state_idx >= 0
                     state = states_on_path[state_idx]
                     _viz_state_goal_update(cast(StateGoalVizable, domain), state, goal, fig)
-
                     print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
         else:
             input("Not solved (press enter to quit): ")
