@@ -112,7 +112,7 @@ def ctgs_summary(ctgs_l: List[NDArray]) -> Tuple[float, float, float]:
 
 
 def train_heur_nnet_step(nnet: nn.Module, inputs_np: List[NDArray], ctgs_np: NDArray, optimizer: Optimizer,
-                         criterion: nn.Module, device: torch.device, train_itr: int, train_args: TrainArgs) -> Tuple[NDArray, float]:
+                         criterion: nn.Module, device: torch.device, train_itr: int, train_args: TrainArgs, start_time: float) -> Tuple[NDArray, float]:
     # train network
     nnet.train()
 
@@ -142,6 +142,6 @@ def train_heur_nnet_step(nnet: nn.Module, inputs_np: List[NDArray], ctgs_np: NDA
     # display progress
     if (train_args.display > 0) and (train_itr % train_args.display == 0):
         print("Itr: %i, lr: %.2E, loss: %.2E, targ_ctg: %.2f, "
-              "nnet_ctg: %.2f, " % (train_itr, lr_itr, loss.item(), ctgs_batch.mean().item(), ctgs_nnet.mean().item()))
+              f"nnet_ctg: %.2f, time: {time.time() - start_time:.2f}" % (train_itr, lr_itr, loss.item(), ctgs_batch.mean().item(), ctgs_nnet.mean().item()))
 
     return ctgs_nnet.cpu().data.numpy(), float(loss.item())

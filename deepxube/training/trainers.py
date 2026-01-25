@@ -110,6 +110,7 @@ class TrainHeur:
         # optimizer and criterion
         self.optimizer: Optimizer = optim.Adam(self.nnet.parameters(), lr=self.train_args.lr)
         self.criterion = nn.MSELoss()
+        self.train_start_time = time.time()
 
     def update_step(self) -> None:
         self.db.clear()
@@ -133,6 +134,7 @@ class TrainHeur:
         times.record_time("up_start", time.time() - start_time)
 
         # do training
+        self.train_start_time = time.time()
         loss: float
         ctgs_l: List[NDArray]
         if not self.updater.up_args.sync_main:
@@ -249,7 +251,7 @@ class TrainHeur:
         ctgs_batch_np = np.expand_dims(ctgs_batch_np.astype(np.float32), 1)
         self.nnet.train()
         ctgs_batch_nnet, loss = train_heur_nnet_step(self.nnet, inputs_batch_np, ctgs_batch_np, self.optimizer, self.criterion, self.device, self.status.itr,
-                                                     self.train_args)
+                                                     self.train_args, self.train_start_time)
         self.writer.add_scalar("train/loss", loss, self.status.itr)
 
         if log_in_out:

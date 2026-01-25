@@ -1,6 +1,8 @@
 # Changes
 
 ## 0.2.1
+* map_location=torch.device('cpu') when loading on cpu
+* DataParallel during solve
 * add ctg_backup when doing sync_main for updater_q_rl
 * resnet_2d heuristic function
 * Visualize solutions
