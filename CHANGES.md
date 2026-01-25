@@ -1,6 +1,7 @@
 # Changes
 
 ## 0.2.1
+* resnet_2d heuristic function
 * Visualize solutions
 * Fix BWQS verbose
 

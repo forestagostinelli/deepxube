@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Generic, TypeVar, Type, ClassVar, Dict
+from typing import Any, List, Tuple, Generic, TypeVar, Type, ClassVar, Dict, Optional
 from abc import ABC, abstractmethod
 
 from deepxube.base.domain import Domain, State, Action, Goal
@@ -30,6 +30,22 @@ class NNetInput(ABC, Generic[D]):
 class FlatIn(NNetInput[D]):
     @abstractmethod
     def get_input_info(self) -> Tuple[List[int], List[int]]:
+        """
+        :return: A list of dimensions of the arrays given to the neural network (pre one_hot), A list of depths for performing a one_hot representation on
+        that corresponding input.
+        If 1, then no one_hot is performed.
+        """
+        pass
+
+
+class TwoDIn(NNetInput[D]):
+    @abstractmethod
+    def get_input_info(self) -> Tuple[List[int], Tuple[int, int], List[int], Optional[int]]:
+        """
+        :return: A list of channels of the arrays given to the neural network (pre one_hot), (height, width),
+        a list of depths for performing a one_hot representation on that corresponding input, optional 1x1 conv channel out for qfix.
+        The one_hot is applied to the channel dimension. If 1, then no one_hot is performed.
+        """
         pass
 
 
@@ -111,8 +127,7 @@ class HasFlatSGActsEnumFixedIn(HasFlatSGIn[S, A, G], HasActsEnumFixedIn[S, A, G]
         def get_input_info(self) -> Tuple[List[int], List[int]]:
             return self.domain.get_input_info_flat_sg()
 
-        def to_np(self, states: List[State], goals: List[Goal],
-                  actions_l: List[List[Action]]) -> List[NDArray]:
+        def to_np(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[NDArray]:
             num_actions: int = len(actions_l[0])
             actions_np: NDArray = np.zeros((len(actions_l), num_actions)).astype(int)
             for i, actions in enumerate(actions_l):
@@ -147,3 +162,62 @@ class HasFlatSGAIn(DynamicNNetInput[S, A, G]):
     @abstractmethod
     def to_np_flat_sga(self, states: List[S], goals: List[G], actions: List[A]) -> List[NDArray]:
         pass
+
+
+class HasTwoDSGIn(DynamicNNetInput[S, A, G]):
+    """ Has a 2d representation for state/goal inputs
+
+    """
+
+    class TwoDSGConcrete(TwoDIn["HasTwoDSGIn"], StateGoalIn["HasTwoDSGIn", State, Goal]):
+        def __init__(self, domain: "HasTwoDSGIn"):
+            super().__init__(domain)
+
+        def get_input_info(self) -> Tuple[List[int], Tuple[int, int], List[int], Optional[int]]:
+            return self.domain.get_input_info_2d_sg()
+
+        def to_np(self, states: List[State], goals: List[Goal]) -> List[NDArray]:
+            return self.domain.to_np_2d_sg(states, goals)
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        cls.register_nnet_input(cls.TwoDSGConcrete, "2d_sg")
+
+    @abstractmethod
+    def get_input_info_2d_sg(self) -> Tuple[List[int], Tuple[int, int], List[int], Optional[int]]:
+        """
+        :return: A list of channels of the arrays given to the neural network (pre one_hot), (height, width),
+        a list of depths for performing a one_hot representation on that corresponding input, optional 1x1 conv channel out for qfix.
+        The one_hot is applied to the channel dimension. If 1, then no one_hot is performed.
+        """
+        pass
+
+    @abstractmethod
+    def to_np_2d_sg(self, states: List[S], goals: List[G]) -> List[NDArray]:
+        """
+        :param states: List of states
+        :param goals: List of goals
+
+        :return: list of arrays representing states and goals in (chan, height, width) format
+        """
+
+
+class HasTwoDSGActsEnumFixedIn(HasTwoDSGIn[S, A, G], HasActsEnumFixedIn[S, A, G], ABC):
+    class TwoDSGActFixConcrete(TwoDIn["HasTwoDSGActsEnumFixedIn"], StateGoalActFixIn["HasTwoDSGActsEnumFixedIn", State, Goal, Action]):
+        def __init__(self, domain: "HasTwoDSGActsEnumFixedIn"):
+            super().__init__(domain)
+
+        def get_input_info(self) -> Tuple[List[int], Tuple[int, int], List[int], Optional[int]]:
+            return self.domain.get_input_info_2d_sg()
+
+        def to_np(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[NDArray]:
+            num_actions: int = len(actions_l[0])
+            actions_np: NDArray = np.zeros((len(actions_l), num_actions)).astype(int)
+            for i, actions in enumerate(actions_l):
+                actions_np[i] = np.array(self.domain.actions_to_indices(actions))
+
+            return self.domain.to_np_2d_sg(states, goals) + [actions_np]
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        cls.register_nnet_input(cls.TwoDSGActFixConcrete, "2d_sg_actfix")

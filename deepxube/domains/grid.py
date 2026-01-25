@@ -49,6 +49,7 @@ class GridAction(Action):
     def __repr__(self) -> str:
         return f"{self.action}"
 
+
 @domain_factory.register_class("grid")
 class Grid(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalkable[GridState, GridAction, GridGoal],
            StateGoalVizable[GridState, GridAction, GridGoal], StringToAct[GridState, GridAction, GridGoal],
