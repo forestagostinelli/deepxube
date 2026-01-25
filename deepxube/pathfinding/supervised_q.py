@@ -28,7 +28,7 @@ class PathFindQSup(PathFindQ[D, InstanceSupQ], PathFindSup[D, InstanceSupQ], ABC
             edges.append(EdgeQ(node_root, instance.action, instance.path_cost_sup))
             node_root.backup_val = instance.path_cost_sup
             instance.itr += 1
-        # self.set_is_solved(nodes)
+        self.set_is_solved([edge.node for edge in edges])
 
         return edges
 

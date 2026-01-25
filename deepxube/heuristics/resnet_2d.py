@@ -49,8 +49,9 @@ class Resnet2D(HeurNNet[TwoDIn]):
             )
         else:
             self.out = nn.Sequential(
+                Conv2dModel(num_chan, [1], [1], [0], ["LINEAR"]),
                 nn.Flatten(),
-                nn.Linear(height * width * num_chan, out_dim)
+                nn.Linear(height * width, out_dim)
             )
 
     def _forward(self, inputs: List[Tensor]) -> Tensor:
