@@ -356,7 +356,8 @@ class Update(Generic[D, P], ABC):
                     if self.up_args.sync_main:
                         _put_from_q([data], from_q, times)
                     else:
-                        put_from_q.append(self._get_instance_data(insts_rem_last_itr, times))
+                        if len(insts_rem_last_itr) > 0:
+                            put_from_q.append(self._get_instance_data(insts_rem_last_itr, times))
 
                     # performance
                     start_time = time.time()
