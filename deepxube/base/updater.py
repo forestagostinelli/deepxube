@@ -366,7 +366,9 @@ class Update(Generic[D, P], ABC):
                     # insts_rem_all.extend(insts_rem_last_itr)
 
                 if not self.up_args.sync_main:
-                    _put_from_q(put_from_q + [self._get_instance_data(pathfind.instances, times)], from_q, times)
+                    if len(pathfind.instances) > 0:
+                        put_from_q.append(self._get_instance_data(pathfind.instances, times))
+                    _put_from_q(put_from_q, from_q, times)
 
                 # pathfinding performance
                 # start_time = time.time()
