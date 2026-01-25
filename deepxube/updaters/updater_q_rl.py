@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Tuple, Optional, cast
 
 import numpy as np
-from networkx.algorithms.traversal import edge_dfs
 from numpy.typing import NDArray
 
 from deepxube.base.domain import Action, State, Goal, ActsEnum
