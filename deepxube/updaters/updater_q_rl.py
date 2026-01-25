@@ -7,12 +7,12 @@ from numpy.typing import NDArray
 
 from deepxube.base.domain import Action, State, Goal, ActsEnum
 from deepxube.base.heuristic import HeurNNetParQ, HeurFnQ
-from deepxube.base.pathfinding import PathFindQHeur, EdgeQ, Instance, Node
+from deepxube.base.pathfinding import PathFindQHeur, EdgeQ, InstanceQ, Node
 from deepxube.base.updater import UpdateHeurQ, UpdateHeurRL, D, UpArgs, UpHeurArgs
 from deepxube.utils.timing_utils import Times
 
 
-class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur, HeurNNetParQ, HeurFnQ], ABC):
+class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur, InstanceQ, HeurNNetParQ, HeurFnQ], ABC):
     def __init__(self, domain: D, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs, up_heur_args: UpHeurArgs):
         super().__init__(domain, pathfind_name, pathfind_kwargs, up_args)
         self.up_heur_args: UpHeurArgs = up_heur_args
@@ -26,7 +26,6 @@ class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur
         assert len(edges_popped) == len(pathfind.instances), f"Values were {len(edges_popped)} and {len(pathfind.instances)}"
 
         if not self.up_args.sync_main:
-            self.edges_popped.extend(edges_popped)
             return []
         else:
             start_time = time.time()
@@ -38,11 +37,14 @@ class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur
 
             return self._inputs_ctgs_np(states, goals, actions, ctgs_backup, times)
 
-    def _get_instance_data(self, instances: List[Instance], times: Times) -> List[NDArray]:
+    def _get_instance_data(self, instances: List[InstanceQ], times: Times) -> List[NDArray]:
         start_time = time.time()
+        edges_popped: List[EdgeQ] = []
+        for instance in instances:
+            edges_popped.extend(instance.edges_popped)
         if self.up_heur_args.backup == 1:
             if self.up_heur_args.ub_heur_solns:
-                for edge in self.edges_popped:
+                for edge in edges_popped:
                     assert edge.node.is_solved is not None
                     if edge.node.is_solved:
                         edge.node.upper_bound_parent_path(0.0)
@@ -53,12 +55,11 @@ class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur
             raise ValueError(f"Unknown backup {self.up_heur_args.backup}")
         times.record_time("backup_nodes", time.time() - start_time)
 
-        states, goals, actions, ctgs_backup = self._backup_edges(self.edges_popped, times)
+        states, goals, actions, ctgs_backup = self._backup_edges(edges_popped, times)
 
         # to_np
         inputs_ctgs_np: List[NDArray] = self._inputs_ctgs_np(states, goals, actions, ctgs_backup, times)
 
-        self.edges_popped = []
         return inputs_ctgs_np
 
     def _backup_edges(self, edges: List[EdgeQ], times: Times) -> Tuple[List[State], List[Goal], List[Action], List[float]]:

@@ -1,12 +1,12 @@
 from abc import ABC
 from typing import List, Any, Optional, Type, TypeVar, Tuple
 from deepxube.base.domain import Domain, State, Goal, StartGoalWalkable, GoalStartRevWalkableActsRev, Action
-from deepxube.base.pathfinding import Instance, Node, PathFindV, PathFindSup
+from deepxube.base.pathfinding import InstanceV, Node, PathFindV, PathFindSup
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 import time
 
 
-class InstanceSupV(Instance):
+class InstanceSupV(InstanceV):
     def __init__(self, root_node: Node, path_cost_sup: float, inst_info: Any):
         super().__init__(root_node, inst_info)
         self.path_cost_sup: float = path_cost_sup
@@ -26,6 +26,7 @@ class PathFindVSup(PathFindV[D, InstanceSupV], PathFindSup[D, InstanceSupV], ABC
             node_root.heuristic = instance.path_cost_sup
             node_root.backup_val = instance.path_cost_sup
             nodes.append(node_root)
+            instance.nodes_popped.append(node_root)
             instance.itr += 1
         start_time = time.time()
         self.set_is_solved(nodes)

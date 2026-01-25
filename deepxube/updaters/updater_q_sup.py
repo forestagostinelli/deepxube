@@ -3,7 +3,7 @@ from typing import List
 from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, State, Action, Goal
-from deepxube.base.pathfinding import EdgeQ, Instance
+from deepxube.base.pathfinding import EdgeQ, InstanceQ
 from deepxube.base.updater import UpdateHeurQ, UpdateHeurSup
 from deepxube.utils.timing_utils import Times
 from deepxube.base.heuristic import HeurNNetParQ, HeurFnQ
@@ -12,19 +12,21 @@ from deepxube.pathfinding.supervised_q import PathFindQSup
 import numpy as np
 
 
-class UpdateHeurQSup(UpdateHeurQ[Domain, PathFindQSup], UpdateHeurSup[Domain, PathFindQSup, HeurNNetParQ, HeurFnQ]):
+class UpdateHeurQSup(UpdateHeurQ[Domain, PathFindQSup], UpdateHeurSup[Domain, PathFindQSup, InstanceQ, HeurNNetParQ, HeurFnQ]):
     def _step(self, pathfind: PathFindQSup, times: Times) -> List[NDArray]:
         edges_popped: List[EdgeQ] = pathfind.step()
         assert len(edges_popped) == len(pathfind.instances), f"Values were {len(edges_popped)} and {len(pathfind.instances)}"
         if not self.up_args.sync_main:
-            self.edges_popped.extend(edges_popped)
             return []
         else:
             return self._get_inputs_ctgs(edges_popped)
 
-    def _get_instance_data(self, instances: List[Instance], times: Times) -> List[NDArray]:
-        inputs_ctgs: List[NDArray] = self._get_inputs_ctgs(self.edges_popped)
-        self.edges_popped = []
+    def _get_instance_data(self, instances: List[InstanceQ], times: Times) -> List[NDArray]:
+        edges_popped: List[EdgeQ] = []
+        for instance in instances:
+            edges_popped.extend(instance.edges_popped)
+
+        inputs_ctgs: List[NDArray] = self._get_inputs_ctgs(edges_popped)
         return inputs_ctgs
 
     def _get_inputs_ctgs(self, edges_popped: List[EdgeQ]) -> List[NDArray]:

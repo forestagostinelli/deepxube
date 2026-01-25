@@ -235,7 +235,16 @@ class PathFindSup(PathFind[D, I]):
         pass
 
 
-class PathFindV(PathFind[D, I]):
+class InstanceV(Instance, ABC):
+    def __init__(self, root_node: Node, inst_info: Any):
+        super().__init__(root_node, inst_info)
+        self.nodes_popped: List[Node] = []
+
+
+IV = TypeVar('IV', bound=InstanceV)
+
+
+class PathFindV(PathFind[D, IV]):
     @abstractmethod
     def step(self, verbose: bool = False) -> List[Node]:
         pass
@@ -248,7 +257,7 @@ class PathFindV(PathFind[D, I]):
     def _get_heur_vals(self, states: List[State], goals: List[Goal]) -> List[float]:
         pass
 
-    def _expand_nodes(self, instances: List[I], nodes_by_inst: List[List[Node]]) -> List[List[Node]]:
+    def _expand_nodes(self, instances: List[IV], nodes_by_inst: List[List[Node]]) -> List[List[Node]]:
         start_time = time.time()
         # flatten (for speed)
         nodes: List[Node]
@@ -311,7 +320,8 @@ class PathFindV(PathFind[D, I]):
         for nodes_c_by_inst_state_i in nodes_c_by_inst_state:
             nodes_c_by_inst.append(misc_utils.flatten(nodes_c_by_inst_state_i)[0])
 
-        for instance, nodes_c_by_inst_i in zip(instances, nodes_c_by_inst, strict=True):
+        for instance, nodes_by_inst_i, nodes_c_by_inst_i in zip(instances, nodes_by_inst, nodes_c_by_inst, strict=True):
+            instance.nodes_popped.extend(nodes_by_inst_i)
             instance.num_nodes_generated += len(nodes_c_by_inst_i)
 
         self.times.record_time("up_inst", time.time() - start_time)
@@ -335,12 +345,12 @@ class PathFindV(PathFind[D, I]):
         return root_nodes
 
 
-class PathFindVExpandEnum(PathFindV[ActsEnum, I], ABC):
+class PathFindVExpandEnum(PathFindV[ActsEnum, IV], ABC):
     def _expand(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
         return self.domain.expand(states)
 
 
-class PathFindVHeur(PathFindV[D, I], PathFindHeur[D, I, HeurFnV], ABC):
+class PathFindVHeur(PathFindV[D, IV], PathFindHeur[D, IV, HeurFnV], ABC):
     @staticmethod
     def heur_fn_type() -> Type[HeurFnV]:
         return HeurFnV
@@ -359,12 +369,21 @@ class EdgeQ:
         self.q_val: float = q_val
 
 
-class PathFindQ(PathFind[D, I]):
+class InstanceQ(Instance, ABC):
+    def __init__(self, root_node: Node, inst_info: Any):
+        super().__init__(root_node, inst_info)
+        self.edges_popped: List[EdgeQ] = []
+
+
+IQ = TypeVar('IQ', bound=InstanceQ)
+
+
+class PathFindQ(PathFind[D, IQ]):
     @abstractmethod
     def step(self, verbose: bool = False) -> List[EdgeQ]:
         pass
 
-    def get_next_nodes(self, instances: List[I], edges_by_inst: List[List[EdgeQ]]) -> List[List[Node]]:
+    def get_next_nodes(self, instances: List[IQ], edges_by_inst: List[List[EdgeQ]]) -> List[List[Node]]:
         if len(instances) == 0:
             return []
         start_time = time.time()
@@ -416,7 +435,8 @@ class PathFindQ(PathFind[D, I]):
         # updater instances
         start_time = time.time()
         nodes_next_by_inst: List[List[Node]] = misc_utils.unflatten(nodes_next, split_idxs)
-        for instance, nodes_next_by_inst_i in zip(instances, nodes_next_by_inst, strict=True):
+        for instance, edges_by_inst_i, nodes_next_by_inst_i in zip(instances, edges_by_inst, nodes_next_by_inst, strict=True):
+            instance.edges_popped.extend(edges_by_inst_i)
             instance.num_nodes_generated += len(nodes_next_by_inst_i)
         self.times.record_time("up_inst", time.time() - start_time)
 
@@ -458,12 +478,12 @@ class PathFindQ(PathFind[D, I]):
         pass
 
 
-class PathFindQExpandEnum(PathFindQ[ActsEnum, I], ABC):
+class PathFindQExpandEnum(PathFindQ[ActsEnum, IQ], ABC):
     def _get_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
         return self.domain.get_state_actions(states)
 
 
-class PathFindQHeur(PathFindQ[D, I], PathFindHeur[D, I, HeurFnQ], ABC):
+class PathFindQHeur(PathFindQ[D, IQ], PathFindHeur[D, IQ, HeurFnQ], ABC):
     @staticmethod
     def heur_fn_type() -> Type[HeurFnQ]:
         return HeurFnQ

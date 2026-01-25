@@ -1,13 +1,13 @@
 from abc import ABC
 from typing import List, Any, Optional, Type, TypeVar
 from deepxube.base.domain import Domain, State, Goal, StartGoalWalkable, GoalStartRevWalkableActsRev, Action
-from deepxube.base.pathfinding import Instance, Node, EdgeQ, PathFindQ, PathFindSup
+from deepxube.base.pathfinding import InstanceQ, Node, EdgeQ, PathFindQ, PathFindSup
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 import numpy as np
 import time
 
 
-class InstanceSupQ(Instance):
+class InstanceSupQ(InstanceQ):
     def __init__(self, root_node: Node, action: Action, path_cost_sup: float, inst_info: Any):
         super().__init__(root_node, inst_info)
         self.action: Action = action
@@ -25,9 +25,11 @@ class PathFindQSup(PathFindQ[D, InstanceSupQ], PathFindSup[D, InstanceSupQ], ABC
         edges: List[EdgeQ] = []
         for instance in self.instances:
             node_root: Node = instance.root_node
-            edges.append(EdgeQ(node_root, instance.action, instance.path_cost_sup))
+            edge: EdgeQ = EdgeQ(node_root, instance.action, instance.path_cost_sup)
+            edges.append(edge)
             node_root.backup_val = instance.path_cost_sup
             instance.itr += 1
+            instance.edges_popped.append(edge)
         start_time = time.time()
         self.set_is_solved([edge.node for edge in edges])
         self.times.record_time("is_solved", time.time() - start_time)

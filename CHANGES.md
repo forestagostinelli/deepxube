@@ -1,6 +1,7 @@
 # Changes
 
 ## 0.2.1
+* InstanceV tracks nodes_popped, InstanceQ tracks edges_popped, more memory efficient updater
 * map_location=torch.device('cpu') when loading on cpu
 * DataParallel during solve
 * add ctg_backup when doing sync_main for updater_q_rl

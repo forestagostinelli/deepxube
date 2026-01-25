@@ -2,7 +2,7 @@ from abc import ABC
 from typing import List, Tuple, Dict, Optional, Any, TypeVar, Type
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, ActsEnum, State, Goal
-from deepxube.base.pathfinding import Instance, Node, PathFindVHeur, PathFindVExpandEnum
+from deepxube.base.pathfinding import InstanceV, Node, PathFindVHeur, PathFindVExpandEnum
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 import numpy as np
 from heapq import heappush, heappop, heapify
@@ -15,7 +15,7 @@ import time
 OpenSetElem = Tuple[float, int, Node]
 
 
-class InstanceBWAS(Instance):
+class InstanceBWAS(InstanceV):
     def __init__(self, root_node: Node, batch_size: int, weight: float, eps: float, inst_info: Any):
         super().__init__(root_node, inst_info)
         self.open_set: List[OpenSetElem] = []

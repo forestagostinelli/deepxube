@@ -4,7 +4,7 @@ from typing import List, Tuple, Dict, Optional, Any, TypeVar, Type
 
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, ActsEnum, State, Goal
-from deepxube.base.pathfinding import Instance, Node, PathFindQHeur, EdgeQ, PathFindQExpandEnum
+from deepxube.base.pathfinding import InstanceQ, Node, PathFindQHeur, EdgeQ, PathFindQExpandEnum
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.utils import misc_utils
 from heapq import heappush, heappop, heapify
@@ -15,7 +15,7 @@ import time
 OpenSetElem = Tuple[float, int, EdgeQ]
 
 
-class InstanceBWQS(Instance):
+class InstanceBWQS(InstanceQ):
     def __init__(self, root_node: Node, batch_size: int, weight: float, eps: float, inst_info: Any):
         super().__init__(root_node, inst_info)
         self.open_set: List[OpenSetElem] = []
