@@ -27,7 +27,9 @@ class PathFindVSup(PathFindV[D, InstanceSupV], PathFindSup[D, InstanceSupV], ABC
             node_root.backup_val = instance.path_cost_sup
             nodes.append(node_root)
             instance.itr += 1
+        start_time = time.time()
         self.set_is_solved(nodes)
+        self.times.record_time("is_solved", time.time() - start_time)
 
         return nodes
 
