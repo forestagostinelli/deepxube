@@ -57,7 +57,9 @@ def solve_cli(args: argparse.Namespace) -> None:
         print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
 
         nnet: nn.Module = nnet_utils.load_nnet(args.heur_file, heur_nnet_par.get_nnet())
+        nnet.eval()
         nnet.to(device)
+        nnet = nn.DataParallel(nnet)
         heur_fn = heur_nnet_par.get_nnet_fn(nnet, args.nnet_batch_size, device, None)
     else:
         if args.heur_type.upper() == "V":
