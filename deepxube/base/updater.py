@@ -338,8 +338,9 @@ class Update(Generic[D, P], ABC):
                 pathfind: P = self.get_pathfind()
                 self._set_pathfind_nnet_fns(pathfind)
 
-                insts_rem_all: List[Instance] = []
+                # insts_rem_all: List[Instance] = []
                 insts_rem_last_itr: List[Instance] = []
+                put_from_q: List[List[NDArray]] = []
                 for _ in range(self.up_args.search_itrs):
                     # add instances
                     self._add_instances(pathfind, insts_rem_last_itr, batch_size, step_probs, times)
@@ -347,20 +348,30 @@ class Update(Generic[D, P], ABC):
 
                     # step
                     data: List[NDArray] = self._step(pathfind, times)
-                    if self.up_args.sync_main:
-                        _put_from_q([data], from_q, times)
 
                     # remove instances
                     insts_rem_last_itr = pathfind.remove_finished_instances(self.up_args.search_itrs)
-                    insts_rem_all.extend(insts_rem_last_itr)
+
+                    # put
+                    if self.up_args.sync_main:
+                        _put_from_q([data], from_q, times)
+                    else:
+                        put_from_q.append(self._get_instance_data(insts_rem_last_itr, times))
+
+                    # performance
+                    start_time = time.time()
+                    self._update_perf(insts_rem_last_itr, step_to_pathperf)
+                    times.record_time("update_perf", time.time() - start_time)
+
+                    # insts_rem_all.extend(insts_rem_last_itr)
 
                 if not self.up_args.sync_main:
-                    _put_from_q([self._get_instance_data(insts_rem_all + pathfind.instances, times)], from_q, times)
+                    _put_from_q(put_from_q + [self._get_instance_data(pathfind.instances, times)], from_q, times)
 
                 # pathfinding performance
-                start_time = time.time()
-                self._update_perf(insts_rem_all, step_to_pathperf)
-                times.record_time("update_perf", time.time() - start_time)
+                # start_time = time.time()
+                # self._update_perf(insts_rem_all, step_to_pathperf)
+                # times.record_time("update_perf", time.time() - start_time)
 
                 times.add_times(pathfind.times, path=["pathfinding"])
 
