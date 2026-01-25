@@ -1,6 +1,7 @@
 # Changes
 
 ## 0.2.1
+* add ctg_backup when doing sync_main for updater_q_rl
 * resnet_2d heuristic function
 * Visualize solutions
 * Fix BWQS verbose

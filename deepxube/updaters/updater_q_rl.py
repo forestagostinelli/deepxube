@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Tuple, Optional, cast
 
 import numpy as np
+from networkx.algorithms.traversal import edge_dfs
 from numpy.typing import NDArray
 
 from deepxube.base.domain import Action, State, Goal, ActsEnum
@@ -32,6 +33,8 @@ class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur
             start_time = time.time()
             states, goals, is_solved_l, actions, tcs, states_next = self._get_edge_data(edges_popped)
             ctgs_backup: List[float] = self._q_learning_backup_targ(goals, is_solved_l, tcs, states_next)
+            for edge_popped, ctg_backup in zip(edges_popped, ctgs_backup):
+                edge_popped.node.backup_val = ctg_backup
             times.record_time("backup_sync", time.time() - start_time)
 
             return self._inputs_ctgs_np(states, goals, actions, ctgs_backup, times)
