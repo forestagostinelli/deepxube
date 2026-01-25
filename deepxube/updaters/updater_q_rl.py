@@ -30,9 +30,9 @@ class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur
             return []
         else:
             start_time = time.time()
-            states, goals, is_solved_l, actions, tcs, states_next = self._get_edge_data(edges_popped)
+            states, goals, is_solved_l, actions, tcs, states_next, edges_init_real = self._get_edge_data(edges_popped)
             ctgs_backup: List[float] = self._q_learning_backup_targ(goals, is_solved_l, tcs, states_next)
-            for edge_popped, ctg_backup in zip(edges_popped, ctgs_backup):
+            for edge_popped, ctg_backup in zip(edges_init_real, ctgs_backup):
                 edge_popped.node.backup_val = ctg_backup
             times.record_time("backup_sync", time.time() - start_time)
 
@@ -101,7 +101,7 @@ class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur
 
         return states, goals, actions, ctgs_backup
 
-    def _get_edge_data(self, edges: List[EdgeQ]) -> Tuple[List[State], List[Goal], List[bool], List[Action], List[float], List[State]]:
+    def _get_edge_data(self, edges: List[EdgeQ]) -> Tuple[List[State], List[Goal], List[bool], List[Action], List[float], List[State], List[EdgeQ]]:
         edges_init, edges_real = _split_init_vs_real_edges(edges)
         states, goals, is_solved_l, actions, tcs, states_next = self._edge_init_next_random(edges_init)
         for edge_real in edges_real:
@@ -116,7 +116,7 @@ class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur
             tcs.append(tc)
             states_next.append(node_next.state)
 
-        return states, goals, is_solved_l, actions, tcs, states_next
+        return states, goals, is_solved_l, actions, tcs, states_next, edges_init + edges_real
 
     def _edge_init_next_random(self, edges: List[EdgeQ]) -> Tuple[List[State], List[Goal], List[bool], List[Action], List[float], List[State]]:
         if len(edges) == 0:
