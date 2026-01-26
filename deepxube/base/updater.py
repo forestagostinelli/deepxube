@@ -19,6 +19,7 @@ from deepxube.pathfinding.utils.performance import PathFindPerf, print_pathfindp
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd, get_nowait_noerr
 from deepxube.utils.misc_utils import split_evenly_w_max
 from deepxube.utils.timing_utils import Times
+import os, psutil
 
 import copy
 from torch.multiprocessing import get_context
@@ -70,15 +71,15 @@ class UpHeurArgs:
 def _put_from_q(data_l: List[List[NDArray]], from_q: Queue, times: Times) -> None:
     start_time = time.time()
 
-    data_shm_l: List[List[SharedNDArray]] = []
-    for data in data_l:
-        data_shm_l.append([np_to_shnd(data_i) for data_i in data])
+    # data_shm_l: List[List[SharedNDArray]] = []
+    # for data in data_l:
+    #    data_shm_l.append([np_to_shnd(data_i) for data_i in data])
 
-    from_q.put(data_shm_l)
+    from_q.put(data_l)
 
-    for data_shm in data_shm_l:
-        for arr_shm in data_shm:
-            arr_shm.close()
+    # for data_shm in data_shm_l:
+    #    for arr_shm in data_shm:
+    #        arr_shm.close()
 
     times.record_time("put", time.time() - start_time)
 
@@ -217,7 +218,7 @@ class Update(Generic[D, P, Inst], ABC):
     def get_update_data(self, nowait: bool = False) -> List[List[NDArray]]:
         assert self.from_q is not None
         data_l: List[List[NDArray]] = []
-        data_get_l: Optional[List[List[SharedNDArray]]]
+        data_get_l: Optional[List[List[NDArray]]]
         if nowait:
             data_get_l = get_nowait_noerr(self.from_q)
         else:
@@ -229,16 +230,16 @@ class Update(Generic[D, P, Inst], ABC):
             # to np
             data_get_np: List[NDArray] = []
             for data_get_i in data_get:
-                data_get_np.append(data_get_i.array.copy())
+                data_get_np.append(data_get_i)
             data_l.append(data_get_np)
 
             # status tracking
             self.num_generated += data_get_np[0].shape[0]
 
             # unlink shared mem
-            for arr_shm in data_get:
-                arr_shm.close()
-                arr_shm.unlink()
+            # for arr_shm in data_get:
+            #    arr_shm.close()
+            #    arr_shm.unlink()
 
         return data_l
 
@@ -338,6 +339,9 @@ class Update(Generic[D, P, Inst], ABC):
 
                 pathfind: P = self.get_pathfind()
                 self._set_pathfind_nnet_fns(pathfind)
+
+                p = psutil.Process(os.getpid())
+                print("RSS MB:", p.memory_info().rss / 1024 / 1024)
 
                 # insts_rem_all: List[I] = []
                 insts_rem_last_itr: List[Inst] = []
