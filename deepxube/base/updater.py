@@ -384,7 +384,6 @@ class Update(Generic[D, P, Inst], ABC):
                 del put_from_q
                 del pathfind
                 gc.collect()
-                print(time.time() - start_time)
 
             from_q.put((times, step_to_pathperf))
             self.clear_nnet_fn_dict()
