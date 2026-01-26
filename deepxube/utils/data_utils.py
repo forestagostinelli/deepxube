@@ -125,6 +125,7 @@ class SharedNDArray:
 
     def unlink(self) -> None:
         """Free system resource (call once when all processes are done)."""
+        del self.array
         self.shm.unlink()
 
     # --- Pickling support ---
