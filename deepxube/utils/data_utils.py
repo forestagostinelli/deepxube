@@ -112,6 +112,7 @@ class SharedNDArray:
         else:
             # attach to existing shared block
             self.shm = shared_memory.SharedMemory(name=name)
+            resource_tracker.unregister(self.shm._name, "shared_memory")  # TODO hacky
 
         # numpy view backed by shared memory
         self.array: NDArray = np.ndarray(self.shape, dtype=self.dtype, buffer=self.shm.buf)
