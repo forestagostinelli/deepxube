@@ -382,6 +382,11 @@ class Update(Generic[D, P, Inst], ABC):
                 # times.record_time("update_perf", time.time() - start_time)
 
                 times.add_times(pathfind.times, path=["pathfinding"])
+                del insts_rem_last_itr
+                del put_from_q
+                del pathfind
+                import gc
+                gc.collect()
 
             from_q.put((times, step_to_pathperf))
             self.clear_nnet_fn_dict()
