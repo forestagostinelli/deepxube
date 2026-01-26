@@ -119,22 +119,21 @@ class NNetParInfo:
     proc_id: int
 
 
-def nnet_in_out_shared_q(nnet: nn.Module, inputs_nnet: List[NDArray], batch_size: Optional[int],
+def nnet_in_out_shared_q(nnet: nn.Module, inputs_nnet_shm: List[SharedNDArray], batch_size: Optional[int],
                          device: torch.device, nnet_o_q: Queue) -> None:
     # get outputs
-    # inputs_nnet: List[NDArray] = []
-    # for inputs_idx in range(len(inputs_nnet_shm)):
-    #    inputs_nnet.append(inputs_nnet_shm[inputs_idx].array)
+    inputs_nnet: List[NDArray] = []
+    for inputs_idx in range(len(inputs_nnet_shm)):
+        inputs_nnet.append(inputs_nnet_shm[inputs_idx].array)
 
     outputs_l: List[NDArray[np.float64]] = nnet_batched(nnet, inputs_nnet, batch_size, device)
-    nnet_o_q.put(outputs_l)
 
     # send outputs
-    # outputs_l_shm: List[SharedNDArray] = [np_to_shnd(outputs) for outputs in outputs_l]
-    # nnet_o_q.put(outputs_l_shm)
+    outputs_l_shm: List[SharedNDArray] = [np_to_shnd(outputs) for outputs in outputs_l]
+    nnet_o_q.put(outputs_l_shm)
 
-    # for arr_shm in inputs_nnet_shm + outputs_l_shm:
-    #    arr_shm.close()
+    for arr_shm in inputs_nnet_shm + outputs_l_shm:
+        arr_shm.close()
 
 
 # parallel neural networks
@@ -153,13 +152,13 @@ def nnet_fn_runner(nnet_i_q: Queue, nnet_o_qs: List[Queue], model_file: str, dev
 
     while True:
         # get from input q
-        inputs_nnet: Optional[List[NDArray]]
-        proc_id, inputs_nnet = nnet_i_q.get()
+        inputs_nnet_shm: Optional[List[SharedNDArray]]
+        proc_id, inputs_nnet_shm = nnet_i_q.get()
         if proc_id is None:
             break
 
         # nnet in/out
-        nnet_in_out_shared_q(nnet, inputs_nnet, batch_size, device, nnet_o_qs[proc_id])
+        nnet_in_out_shared_q(nnet, inputs_nnet_shm, batch_size, device, nnet_o_qs[proc_id])
 
 
 def get_nnet_par_infos(num_procs: int) -> List[NNetParInfo]:
@@ -230,17 +229,16 @@ class NNetPar(ABC, Generic[NNetFn]):
 
 
 def get_nnet_par_out(inputs_nnet: List[NDArray], nnet_par_info: NNetParInfo) -> List[NDArray]:
-    # inputs_nnet_shm: List[SharedNDArray] = [np_to_shnd(inputs_nnet_i)
-    #                                        for input_idx, inputs_nnet_i in enumerate(inputs_nnet)]
+    inputs_nnet_shm: List[SharedNDArray] = [np_to_shnd(inputs_nnet_i)
+                                            for input_idx, inputs_nnet_i in enumerate(inputs_nnet)]
 
-    nnet_par_info.nnet_i_q.put((nnet_par_info.proc_id, inputs_nnet))
+    nnet_par_info.nnet_i_q.put((nnet_par_info.proc_id, inputs_nnet_shm))
 
-    out_l: List[NDArray] = nnet_par_info.nnet_o_q.get()
-    # out_shm_l: List[SharedNDArray] = nnet_par_info.nnet_o_q.get()
-    # out_l: List[NDArray] = [out_shm.array.copy() for out_shm in out_shm_l]
+    out_shm_l: List[SharedNDArray] = nnet_par_info.nnet_o_q.get()
+    out_l: List[NDArray] = [out_shm.array.copy() for out_shm in out_shm_l]
 
-    # for arr_shm in inputs_nnet_shm + out_shm_l:
-    #    arr_shm.close()
-    #    arr_shm.unlink()
+    for arr_shm in inputs_nnet_shm + out_shm_l:
+        arr_shm.close()
+        arr_shm.unlink()
 
     return out_l
