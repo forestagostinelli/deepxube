@@ -19,7 +19,6 @@ from deepxube.pathfinding.utils.performance import PathFindPerf, print_pathfindp
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd, get_nowait_noerr
 from deepxube.utils.misc_utils import split_evenly_w_max
 from deepxube.utils.timing_utils import Times
-import os, psutil
 import gc
 
 import copy
@@ -341,9 +340,6 @@ class Update(Generic[D, P, Inst], ABC):
                 pathfind: P = self.get_pathfind()
                 self._set_pathfind_nnet_fns(pathfind)
 
-                p = psutil.Process(os.getpid())
-                print("RSS MB:", p.memory_info().rss / 1024 / 1024)
-
                 # insts_rem_all: List[I] = []
                 insts_rem_last_itr: List[Inst] = []
                 put_from_q: List[List[NDArray]] = []
@@ -383,10 +379,12 @@ class Update(Generic[D, P, Inst], ABC):
                 # times.record_time("update_perf", time.time() - start_time)
 
                 times.add_times(pathfind.times, path=["pathfinding"])
+                start_time = time.time()
                 del insts_rem_last_itr
                 del put_from_q
                 del pathfind
                 gc.collect()
+                print(time.time() - start_time)
 
             from_q.put((times, step_to_pathperf))
             self.clear_nnet_fn_dict()
