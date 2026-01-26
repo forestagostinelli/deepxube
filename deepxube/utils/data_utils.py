@@ -9,7 +9,7 @@ import shutil
 import numpy as np
 from numpy.typing import NDArray, ArrayLike
 
-from multiprocessing import shared_memory, resource_tracker
+from multiprocessing import shared_memory
 from multiprocessing.shared_memory import SharedMemory
 
 
@@ -108,11 +108,9 @@ class SharedNDArray:
             assert name is None, "Let SharedMemory do name creation"
             nbytes: int = int(np.prod(self.shape)) * self.dtype.itemsize
             self.shm = shared_memory.SharedMemory(create=True, size=nbytes, name=name)
-            resource_tracker.unregister(self.shm._name, "shared_memory")  # TODO hacky
         else:
             # attach to existing shared block
             self.shm = shared_memory.SharedMemory(name=name)
-            resource_tracker.unregister(self.shm._name, "shared_memory")  # TODO hacky
 
         # numpy view backed by shared memory
         self.array: NDArray = np.ndarray(self.shape, dtype=self.dtype, buffer=self.shm.buf)
