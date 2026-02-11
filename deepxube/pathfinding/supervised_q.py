@@ -36,7 +36,7 @@ class PathFindQSup(PathFindQ[D, InstanceSupQ], PathFindSup[D, InstanceSupQ], ABC
 
         return edges
 
-    def _get_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
+    def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
         raise NotImplementedError
 
     def _get_heur_vals(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[List[float]]:

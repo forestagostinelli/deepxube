@@ -1,4 +1,4 @@
-import time
+from abc import ABC
 from typing import Dict, Any, List, Tuple, Optional, cast
 
 import numpy as np
@@ -9,6 +9,8 @@ from deepxube.base.heuristic import HeurNNetParQ, HeurFnQ
 from deepxube.base.pathfinding import PathFindQHeur, EdgeQ, InstanceQ, Node
 from deepxube.base.updater import UpdateHER, UpdateHeurQ, UpdateHeurRL, D, UpArgs, UpHeurArgs
 from deepxube.utils.timing_utils import Times
+
+import time
 
 
 def _pathfind_q_step(pathfind: PathFindQHeur) -> List[EdgeQ]:
@@ -29,7 +31,7 @@ def _split_init_vs_real_edges(edges: List[EdgeQ]) -> Tuple[List[EdgeQ], List[Edg
     return edges_init, edges_real
 
 
-class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur, InstanceQ, HeurNNetParQ, HeurFnQ]):
+class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur, InstanceQ, HeurNNetParQ, HeurFnQ], ABC):
     def __init__(self, domain: D, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs, up_heur_args: UpHeurArgs):
         super().__init__(domain, pathfind_name, pathfind_kwargs, up_args)
         self.up_heur_args: UpHeurArgs = up_heur_args
@@ -118,7 +120,7 @@ class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur
         return states, goals, is_solved_l, actions, tcs, states_next
 
     def _get_qvals_targ(self, states: List[State], goals: List[Goal]) -> List[List[float]]:
-        actions_next: List[List[Action]] = self._get_state_actions(states)
+        actions_next: List[List[Action]] = self.get_pathfind().get_state_actions(states, goals)
         qvals: List[List[float]] = self._get_targ_heur_fn()(states, goals, actions_next)
 
         return qvals

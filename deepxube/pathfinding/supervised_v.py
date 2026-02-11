@@ -34,7 +34,7 @@ class PathFindVSup(PathFindV[D, InstanceSupV], PathFindSup[D, InstanceSupV], ABC
 
         return nodes
 
-    def _expand(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
+    def expand_states(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
         raise NotImplementedError
 
     def _get_heur_vals(self, states: List[State], goals: List[Goal]) -> List[float]:

@@ -250,7 +250,7 @@ class PathFindV(PathFind[D, IV]):
         pass
 
     @abstractmethod
-    def _expand(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
+    def expand_states(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
         pass
 
     @abstractmethod
@@ -274,7 +274,7 @@ class PathFindV(PathFind[D, IV]):
         states_c_l: List[List[State]]
         actions: List[List[Action]]
         tcs: List[List[float]]
-        states_c_l, actions, tcs = self._expand(states, goals)
+        states_c_l, actions, tcs = self.expand_states(states, goals)
 
         goals_c: List[List[Goal]] = [[node.goal] * len(state_c) for node, state_c in zip(nodes, states_c_l, strict=True)]
         states_c_flat: List[State]
@@ -346,7 +346,7 @@ class PathFindV(PathFind[D, IV]):
 
 
 class PathFindVExpandEnum(PathFindV[ActsEnum, IV], ABC):
-    def _expand(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
+    def expand_states(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
         return self.domain.expand(states)
 
 
@@ -381,6 +381,10 @@ IQ = TypeVar('IQ', bound=InstanceQ)
 class PathFindQ(PathFind[D, IQ]):
     @abstractmethod
     def step(self, verbose: bool = False) -> List[EdgeQ]:
+        pass
+
+    @abstractmethod
+    def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
         pass
 
     def get_next_nodes(self, instances: List[IQ], edges_by_inst: List[List[EdgeQ]]) -> List[List[Node]]:
@@ -443,7 +447,7 @@ class PathFindQ(PathFind[D, IQ]):
         return nodes_next_by_inst
 
     def get_qvals_acts(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[float]], List[List[Action]]]:
-        actions_l: List[List[Action]] = self._get_actions(states, goals)
+        actions_l: List[List[Action]] = self.get_state_actions(states, goals)
         qvals_l: List[List[float]] = self._get_heur_vals(states, goals, actions_l)
         return qvals_l, actions_l
 
@@ -457,7 +461,7 @@ class PathFindQ(PathFind[D, IQ]):
             qvals_l, actions_l = self.get_qvals_acts(states, goals)
             heuristics = [min(x) for x in qvals_l]
         else:
-            actions_l = self._get_actions(states, goals)
+            actions_l = self.get_state_actions(states, goals)
             qvals_l = [[0.0] * len(actions) for _, actions in zip(states, actions_l, strict=True)]
             heuristics = [0.0 for _ in states]
 
@@ -470,16 +474,12 @@ class PathFindQ(PathFind[D, IQ]):
         return root_nodes
 
     @abstractmethod
-    def _get_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
-        pass
-
-    @abstractmethod
     def _get_heur_vals(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[List[float]]:
         pass
 
 
 class PathFindQExpandEnum(PathFindQ[ActsEnum, IQ], ABC):
-    def _get_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
+    def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
         return self.domain.get_state_actions(states)
 
 

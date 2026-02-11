@@ -417,12 +417,6 @@ class Update(Generic[D, P, Inst], ABC):
     def _make_instances(self, pathfind: P, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[Inst]:
         pass
 
-    def _get_state_actions(self, states: List[State]) -> List[List[Action]]:
-        if isinstance(self.domain, ActsEnum):
-            return self.domain.get_state_actions(states)
-        else:
-            raise NotImplementedError
-
 
 class UpdateHER(Update[D, P, Inst], ABC):
     def _step_sync_main(self, pathfind: P, times: Times) -> List[NDArray]:
