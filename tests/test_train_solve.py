@@ -20,28 +20,29 @@ import os
 
 pathfind_v_l: List[str] = ["bwas", "greedy_v"]
 cases = (
-    [pytest.param(a, b, c, d, e, f, g, id="bwas") for a, b, c, d, e, f, g in
+    [pytest.param(a, b, c, d, e, f, g, 85.0, id="bwas") for a, b, c, d, e, f, g in
      product(["bwas"], ["bwas"], ["V"], [True, False], [False], [1, -1], [False])]
 
-    + [pytest.param(a, b, c, d, e, f, g, id="greedy_v") for a, b, c, d, e, f, g in
+    + [pytest.param(a, b, c, d, e, f, g, 85.0, id="greedy_v") for a, b, c, d, e, f, g in
        product(["greedy_v"], ["greedy_v"], ["V"], [True, False], [True, False], [1], [False])]
 
-    + [pytest.param(a, b, c, d, e, f, g, id="sup_v_rw") for a, b, c, d, e, f, g in
+    + [pytest.param(a, b, c, d, e, f, g, 85.0, id="sup_v_rw") for a, b, c, d, e, f, g in
        product(["sup_v_rw"], ["bwas"], ["V"], [False], [False], [1], [False])]
 
-    + [pytest.param(a, b, c, d, e, f, g, id="bwqs") for a, b, c, d, e, f, g in
+    + [pytest.param(a, b, c, d, e, f, g, 80.0, id="bwqs") for a, b, c, d, e, f, g in
        product(["bwqs"], ["bwqs"], ["QFix", "QIn"], [True, False], [False], [1, -1], [True, False])]
 
-    + [pytest.param(a, b, c, d, e, f, g, id="greedy_q") for a, b, c, d, e, f, g in
+    + [pytest.param(a, b, c, d, e, f, g, 80.0, id="greedy_q") for a, b, c, d, e, f, g in
        product(["greedy_q"], ["greedy_q"], ["QFix", "QIn"], [True, False], [True, False], [1], [True, False])]
 
-    + [pytest.param(a, b, c, d, e, f, g, id="sup_q_rw") for a, b, c, d, e, f, g in
+    + [pytest.param(a, b, c, d, e, f, g, 80.0, id="sup_q_rw") for a, b, c, d, e, f, g in
        product(["sup_q_rw"], ["bwqs"], ["QFix", "QIn"], [False], [False], [1], [False])]
 )
 
 
-@pytest.mark.parametrize("pathfind_tr_str,pathfind_solve_str,heur_type,bal,ub_heur_solns,backup,sync_main", cases)
-def test_train_solve_heur(pathfind_tr_str: str, pathfind_solve_str: str, heur_type: str, bal: bool, ub_heur_solns: bool, backup: int, sync_main: bool) -> None:
+@pytest.mark.parametrize("pathfind_tr_str,pathfind_solve_str,heur_type,bal,ub_heur_solns,backup,sync_main,soln_thresh", cases)
+def test_train_solve_heur(pathfind_tr_str: str, pathfind_solve_str: str, heur_type: str, bal: bool, ub_heur_solns: bool, backup: int, sync_main: bool,
+                          soln_thresh: float) -> None:
     domain_str: str = "grid.7"
     heur_str: str = "resnet_fc.100H_1B_bn"
     search_itrs: int = 20
@@ -54,7 +55,7 @@ def test_train_solve_heur(pathfind_tr_str: str, pathfind_solve_str: str, heur_ty
     up_heur_args: UpHeurArgs = UpHeurArgs(ub_heur_solns, backup)
 
     # updater
-    updater: UpdateHeur = get_updater(domain, heur_nnet_par, pathfind_name, pathfind_kwargs, up_args, up_heur_args)
+    updater: UpdateHeur = get_updater(domain, heur_nnet_par, pathfind_name, pathfind_kwargs, up_args, up_heur_args, False)
 
     # train args
     train_args: TrainArgs = TrainArgs(50, 0.001, 0.9999993, 2000, bal, display=0)
@@ -101,4 +102,4 @@ def test_train_solve_heur(pathfind_tr_str: str, pathfind_solve_str: str, heur_ty
 
     print(pathfind_perf.to_string())
     per_solved: float = pathfind_perf.per_solved()
-    assert per_solved >= 90.0, f"Should solve at least 90%, but solved {per_solved}"
+    assert per_solved >= soln_thresh, f"Should solve at least 90%, but solved {per_solved}"

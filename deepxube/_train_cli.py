@@ -46,6 +46,8 @@ def parser_train(parser: ArgumentParser) -> None:
                                                                              "of memory.")
     update_group.add_argument('--up_nnet_batch_size', type=int, default=20000, help="Maximum number of inputs to give to any nnet at a time during update. "
                                                                                     "Lower if running out of memory.")
+    update_group.add_argument('--her', action='store_true', default=False, help="Do hindsight experience replay (HER) by relabeling deepest node in search "
+                                                                                "tree as a goal state and sampling a goal from it.")
     update_group.add_argument('--sync_main', action='store_true', default=False, help="Use main nnet to search during update.")
     update_group.add_argument('--up_v', action='store_true', default=False, help="Verbose update.")
 
@@ -78,7 +80,7 @@ def train_cli(args: argparse.Namespace) -> None:
     up_heur_args: UpHeurArgs = UpHeurArgs(False, args.backup)
 
     # updater
-    updater: UpdateHeur = get_updater(domain, heur_nnet_par, pathfind_name, pathfind_kwargs, up_args, up_heur_args)
+    updater: UpdateHeur = get_updater(domain, heur_nnet_par, pathfind_name, pathfind_kwargs, up_args, up_heur_args, args.her)
 
     # train args
     train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.bal,

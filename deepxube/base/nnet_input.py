@@ -71,6 +71,11 @@ class StateGoalActIn(NNetInput[D], Generic[D, S, G, A]):
 class DynamicNNetInput(Domain[S, A, G], ABC):
     _nnet_input_register: ClassVar[Dict[str, Type[NNetInput]]] = dict()
 
+    def __init_subclass__(cls, **kwargs: Any):
+        super().__init_subclass__(**kwargs)
+        # Create a fresh dict for THIS subclass
+        cls._nnet_input_register = {}
+
     @classmethod
     def register_nnet_input(cls, nnet_input_t: Type[NNetInput], nnet_input_name: str) -> None:
         cls._nnet_input_register[nnet_input_name] = nnet_input_t

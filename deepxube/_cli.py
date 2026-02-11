@@ -29,8 +29,8 @@ import os
 import time
 
 
-def plot_scatter(ax: Axes, x: Any, y: Any, x_label: str, y_label: str, xy_line: bool, title: str = "") -> None:
-    ax.scatter(x, y, s=10)
+def plot_scatter(ax: Axes, x: Any, y: Any, x_label: str, y_label: str, xy_line: bool, alpha: float = 1.0, title: str = "") -> None:
+    ax.scatter(x, y, s=10, alpha=alpha)
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
     if xy_line:
@@ -155,13 +155,12 @@ def viz(args: argparse.Namespace) -> None:
                         print(f"Action: {action}")
                         state_next_l, tcs = domain.next_state([state], [action])
                         state_next: State = state_next_l[0]
-                        tc: float = tcs[0]
-                        print(f"Transition cost: {tc}")
+                        print(f"Transition cost: {tcs[0]}")
                         state_idx += 1
                         assert state_next == states_on_path[state_idx]
                         state = state_next
 
-                        _viz_state_goal_update(cast(StateGoalVizable, domain), state, goal, fig)
+                        _viz_state_goal_update(domain, state, goal, fig)
 
                         print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
                         if state_idx == state_idx_max:
@@ -170,14 +169,14 @@ def viz(args: argparse.Namespace) -> None:
                     if state_idx > 0:
                         state_idx -= 1
                         state = states_on_path[state_idx]
-                        _viz_state_goal_update(cast(StateGoalVizable, domain), state, goal, fig)
+                        _viz_state_goal_update(domain, state, goal, fig)
 
                         print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
                 else:
                     state_idx = int(act_str)
                     assert state_idx >= 0
                     state = states_on_path[state_idx]
-                    _viz_state_goal_update(cast(StateGoalVizable, domain), state, goal, fig)
+                    _viz_state_goal_update(domain, state, goal, fig)
                     print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
         else:
             input("Not solved (press enter to quit): ")
@@ -189,21 +188,20 @@ def viz(args: argparse.Namespace) -> None:
                 act_str = input("Write action (press enter to quit): ")
                 if len(act_str) == 0:
                     break
-                action: Optional[Action] = domain.string_to_action(act_str)
-                if action is None:
+                action_op: Optional[Action] = domain.string_to_action(act_str)
+                if action_op is None:
                     print(f"No action {act_str}")
                 else:
-                    states_next, tcs = domain.next_state([state], [action])
+                    states_next, tcs = domain.next_state([state], [action_op])
                     state = states_next[0]
-                    tc: float = tcs[0]
-                    print(f"Transition cost: {tc}")
+                    print(f"Transition cost: {tcs[0]}")
                     print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
                     _viz_state_goal_update(cast(StateGoalVizable, domain), state, goal, fig)
         else:
             plt.show(block=True)
 
 
-def _viz_state_goal_update(domain: StateGoalVizable, state: State, goal: Goal, fig: Figure):
+def _viz_state_goal_update(domain: StateGoalVizable, state: State, goal: Goal, fig: Figure) -> None:
     fig.clear()
     domain.visualize_state_goal(state, goal, fig)
     fig.canvas.draw()
@@ -231,7 +229,7 @@ def plot_itr_data(axs: List[Axes], step_slider: Slider, itr: int, itr_to_in_out:
     plot_scatter(axs[2], steps_at_itr, search_itrs, "Step", "Search Iterations", False)
     plot_scatter(axs[3], steps_at_itr, targets, "Step", "Cost-to-Go Targets", False)
     plot_scatter(axs[4], steps_at_itr, num_instances, "Step", "# Instances", False)
-    plot_scatter(axs[5], itr_to_in_out[itr][0], itr_to_in_out[itr][1], "Target", "Prediction", True)
+    plot_scatter(axs[5], itr_to_in_out[itr][0], itr_to_in_out[itr][1], "Target", "Prediction", True, alpha=0.2)
     step_slider.valtext.set_text(f"Iteration {itr}")
 
 

@@ -14,13 +14,12 @@ import numpy as np
 
 
 class UpdateHeurVSup(UpdateHeurV[Domain, PathFindVSup], UpdateHeurSup[Domain, PathFindVSup, InstanceV, HeurNNetParV, HeurFnV]):
-    def _step(self, pathfind: PathFindVSup, times: Times) -> List[NDArray]:
+    def _step(self, pathfind: PathFindVSup, times: Times) -> None:
         nodes_popped: List[Node] = pathfind.step()
         assert len(nodes_popped) == len(pathfind.instances), f"Values were {len(nodes_popped)} and {len(pathfind.instances)}"
-        if not self.up_args.sync_main:
-            return []
-        else:
-            return self._get_inputs_ctgs(nodes_popped)
+
+    def _step_sync_main(self, pathfind: PathFindVSup, times: Times) -> List[NDArray]:
+        raise NotImplementedError
 
     def _get_instance_data(self, instances: List[InstanceV], times: Times) -> List[NDArray]:
         nodes_popped: List[Node] = []

@@ -1,6 +1,8 @@
 # Changes
 
 ## 0.2.1
+* add method to Updater to get state actions
+* separate step and step_sync_main method in Updater
 * Explicitly call del and gc during update to better free memory
 * InstanceV tracks nodes_popped, InstanceQ tracks edges_popped, more memory efficient updater
 * map_location=torch.device('cpu') when loading on cpu

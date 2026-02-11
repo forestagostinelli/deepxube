@@ -11,7 +11,7 @@ import torch
 from numpy.typing import NDArray
 
 from deepxube.nnet.nnet_utils import NNetParInfo, NNetCallable, NNetPar, get_nnet_par_infos, start_nnet_fn_runners, stop_nnet_runners
-from deepxube.base.domain import Domain, Action
+from deepxube.base.domain import Domain, State, Action, ActsEnum
 from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ, HeurFn, HeurFnV, HeurFnQ
 from deepxube.base.pathfinding import PathFind, PathFindHeur, PathFindSup, Instance, InstanceV, InstanceQ
 from deepxube.factories.pathfinding_factory import pathfinding_factory
@@ -304,18 +304,6 @@ class Update(Generic[D, P, Inst], ABC):
         pathfind_kwargs["domain"] = self.domain
         return cast(P, pathfinding_factory.build_class(self.pathfind_name, pathfind_kwargs))
 
-    @abstractmethod
-    def _set_pathfind_nnet_fns(self, pathfind: P) -> None:
-        pass
-
-    @abstractmethod
-    def _step(self, pathfind: P, times: Times) -> List[NDArray]:
-        pass
-
-    @abstractmethod
-    def _get_instance_data(self, instances: List[Inst], times: Times) -> List[NDArray]:
-        pass
-
     def set_targ_update_num(self, targ_update_num: Optional[int]) -> None:
         self.targ_update_num = targ_update_num
 
@@ -340,7 +328,6 @@ class Update(Generic[D, P, Inst], ABC):
                 pathfind: P = self.get_pathfind()
                 self._set_pathfind_nnet_fns(pathfind)
 
-                # insts_rem_all: List[I] = []
                 insts_rem_last_itr: List[Inst] = []
                 put_from_q: List[List[NDArray]] = []
                 for _ in range(self.up_args.search_itrs):
@@ -349,41 +336,35 @@ class Update(Generic[D, P, Inst], ABC):
                     assert len(pathfind.instances) == batch_size, f"Values were {len(pathfind.instances)} and {batch_size}"
 
                     # step
-                    data: List[NDArray] = self._step(pathfind, times)
+                    if self.up_args.sync_main:
+                        data: List[NDArray] = self._step_sync_main(pathfind, times)
+                        _put_from_q([data], from_q, times)
+                    else:
+                        self._step(pathfind, times)
 
                     # remove instances
                     insts_rem_last_itr = pathfind.remove_finished_instances(self.up_args.search_itrs)
-
-                    # put
-                    if self.up_args.sync_main:
-                        _put_from_q([data], from_q, times)
-                    else:
-                        if len(insts_rem_last_itr) > 0:
-                            put_from_q.append(self._get_instance_data(insts_rem_last_itr, times))
+                    if len(insts_rem_last_itr) > 0:
+                        put_from_q.append(self._get_instance_data(insts_rem_last_itr, times))
 
                     # performance
                     start_time = time.time()
                     self._update_perf(insts_rem_last_itr, step_to_pathperf)
                     times.record_time("update_perf", time.time() - start_time)
 
-                    # insts_rem_all.extend(insts_rem_last_itr)
-
                 if not self.up_args.sync_main:
                     if len(pathfind.instances) > 0:
                         put_from_q.append(self._get_instance_data(pathfind.instances, times))
                     _put_from_q(put_from_q, from_q, times)
 
-                # pathfinding performance
-                # start_time = time.time()
-                # self._update_perf(insts_rem_all, step_to_pathperf)
-                # times.record_time("update_perf", time.time() - start_time)
-
                 times.add_times(pathfind.times, path=["pathfinding"])
+
                 start_time = time.time()
                 del insts_rem_last_itr
                 del put_from_q
                 del pathfind
                 gc.collect()
+                times.record_time("gc", time.time() - start_time)
 
             from_q.put((times, step_to_pathperf))
             self.clear_nnet_fn_dict()
@@ -417,8 +398,36 @@ class Update(Generic[D, P, Inst], ABC):
             times.record_time("inst_add", time.time() - start_time)
 
     @abstractmethod
+    def _set_pathfind_nnet_fns(self, pathfind: P) -> None:
+        pass
+
+    @abstractmethod
+    def _step(self, pathfind: P, times: Times) -> None:
+        pass
+
+    @abstractmethod
+    def _step_sync_main(self, pathfind: P, times: Times) -> List[NDArray]:
+        pass
+
+    @abstractmethod
+    def _get_instance_data(self, instances: List[Inst], times: Times) -> List[NDArray]:
+        pass
+
+    @abstractmethod
     def _make_instances(self, pathfind: P, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[Inst]:
         pass
+
+    def _get_state_actions(self, states: List[State]) -> List[List[Action]]:
+        if isinstance(self.domain, ActsEnum):
+            return self.domain.get_state_actions(states)
+        else:
+            raise NotImplementedError
+
+
+class UpdateHER(Update[D, P, Inst], ABC):
+    def _step_sync_main(self, pathfind: P, times: Times) -> List[NDArray]:
+        raise NotImplementedError("Cannot train with sync_main if also doing hindsight experience replay (HER) since goal relabeling is done after search is "
+                                  "complete.")
 
 
 HNet = TypeVar('HNet', bound=HeurNNetPar)

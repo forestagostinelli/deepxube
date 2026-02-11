@@ -7,8 +7,16 @@ from numpy.typing import NDArray
 from deepxube.base.domain import Domain, State, Goal
 from deepxube.base.heuristic import HeurNNetParV, HeurFnV
 from deepxube.base.pathfinding import PathFindVHeur, Node, InstanceV
-from deepxube.base.updater import UpdateHeurV, UpdateHeurRL, UpArgs, UpHeurArgs
+from deepxube.base.updater import UpdateHeurV, UpdateHeurRL, UpArgs, UpHeurArgs, P
 from deepxube.utils.timing_utils import Times
+
+
+def _pathfind_v_step(pathfind: PathFindVHeur) -> List[Node]:
+    # take a step
+    nodes_popped: List[Node] = pathfind.step()
+    assert len(nodes_popped) == len(pathfind.instances), f"Values were {len(nodes_popped)} and {len(pathfind.instances)}"
+
+    return nodes_popped
 
 
 class UpdateHeurVRL(UpdateHeurV[Domain, PathFindVHeur], UpdateHeurRL[Domain, PathFindVHeur, InstanceV, HeurNNetParV, HeurFnV]):
@@ -19,15 +27,11 @@ class UpdateHeurVRL(UpdateHeurV[Domain, PathFindVHeur], UpdateHeurRL[Domain, Pat
     def get_up_args_repr(self) -> str:
         return f"{super().get_up_args_repr()}\n{self.up_heur_args.__repr__()}"
 
-    def _step(self, pathfind: PathFindVHeur, times: Times) -> List[NDArray]:
-        # take a step
-        nodes_popped: List[Node] = pathfind.step()
-        assert len(nodes_popped) == len(pathfind.instances), f"Values were {len(nodes_popped)} and {len(pathfind.instances)}"
-        if not self.up_args.sync_main:
-            return []
-        else:
-            # TODO implement for sync_main
-            raise NotImplementedError
+    def _step(self, pathfind: PathFindVHeur, times: Times) -> None:
+        _pathfind_v_step(pathfind)
+
+    def _step_sync_main(self, pathfind: P, times: Times) -> List[NDArray]:
+        raise NotImplementedError
 
     def _get_instance_data(self, instances: List[InstanceV], times: Times) -> List[NDArray]:
         # get backup

@@ -13,13 +13,12 @@ import numpy as np
 
 
 class UpdateHeurQSup(UpdateHeurQ[Domain, PathFindQSup], UpdateHeurSup[Domain, PathFindQSup, InstanceQ, HeurNNetParQ, HeurFnQ]):
-    def _step(self, pathfind: PathFindQSup, times: Times) -> List[NDArray]:
+    def _step(self, pathfind: PathFindQSup, times: Times) -> None:
         edges_popped: List[EdgeQ] = pathfind.step()
         assert len(edges_popped) == len(pathfind.instances), f"Values were {len(edges_popped)} and {len(pathfind.instances)}"
-        if not self.up_args.sync_main:
-            return []
-        else:
-            return self._get_inputs_ctgs(edges_popped)
+
+    def _step_sync_main(self, pathfind: PathFindQSup, times: Times) -> List[NDArray]:
+        raise NotImplementedError
 
     def _get_instance_data(self, instances: List[InstanceQ], times: Times) -> List[NDArray]:
         edges_popped: List[EdgeQ] = []
