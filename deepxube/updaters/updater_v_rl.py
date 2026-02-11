@@ -50,7 +50,14 @@ class UpdateHeurVRL(UpdateHeurV[Domain, PathFindVHeur], UpdateHeurRL[Domain, Pat
         for node in nodes_popped:
             assert node.is_solved is not None
             is_solved_l.append(node.is_solved)
+            tcs: List[float] = []
+            state_exp: List[State] = []
+            for tc, node_c in node.edge_dict.values():
+                tcs.append(tc)
+                state_exp.append(node_c.state)
 
+            tcs_l.append(tcs)
+            states_exp.append(state_exp)
 
         # value iteration update
         ctgs_backup: List[float] = self._value_iteration_target(goals, is_solved_l, tcs_l, states_exp)

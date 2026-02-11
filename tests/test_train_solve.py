@@ -21,10 +21,10 @@ import os
 pathfind_v_l: List[str] = ["bwas", "greedy_v"]
 cases = (
     [pytest.param(a, b, c, d, e, f, g, 85.0, id="bwas") for a, b, c, d, e, f, g in
-     product(["bwas"], ["bwas"], ["V"], [True, False], [False], [1, -1], [False])]
+     product(["bwas"], ["bwas"], ["V"], [True, False], [False], [1, -1], [True, False])]
 
     + [pytest.param(a, b, c, d, e, f, g, 85.0, id="greedy_v") for a, b, c, d, e, f, g in
-       product(["greedy_v"], ["greedy_v"], ["V"], [True, False], [True, False], [1], [False])]
+       product(["greedy_v"], ["greedy_v"], ["V"], [True, False], [True, False], [1], [True, False])]
 
     + [pytest.param(a, b, c, d, e, f, g, 85.0, id="sup_v_rw") for a, b, c, d, e, f, g in
        product(["sup_v_rw"], ["bwas"], ["V"], [False], [False], [1], [False])]
