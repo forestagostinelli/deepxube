@@ -11,7 +11,7 @@ import torch
 from numpy.typing import NDArray
 
 from deepxube.nnet.nnet_utils import NNetParInfo, NNetCallable, NNetPar, get_nnet_par_infos, start_nnet_fn_runners, stop_nnet_runners
-from deepxube.base.domain import Domain, State, Action, ActsEnum
+from deepxube.base.domain import Domain, Action
 from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ, HeurFn, HeurFnV, HeurFnQ
 from deepxube.base.pathfinding import PathFind, PathFindHeur, PathFindSup, Instance, InstanceV, InstanceQ
 from deepxube.factories.pathfinding_factory import pathfinding_factory

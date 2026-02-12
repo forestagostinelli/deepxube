@@ -4,7 +4,7 @@ from deepxube.base.domain import Domain, GoalSampleableFromState, ActsEnum
 from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ
 from deepxube.base.pathfinding import PathFind, PathFindHeur, PathFindSup
 from deepxube.base.updater import UpdateHeur, UpdateHeurRL, UpdateHeurSup, UpArgs, UpHeurArgs
-from deepxube.updaters.updater_v_rl import UpdateHeurVRL
+from deepxube.updaters.updater_v_rl import UpdateHeurVRLKeepGoal, UpdateHeurVRLHER
 from deepxube.updaters.updater_q_rl import UpdateHeurQRLKeepGoal, UpdateHeurQRLHER
 from deepxube.updaters.updater_v_sup import UpdateHeurVSup
 from deepxube.updaters.updater_q_sup import UpdateHeurQSup
@@ -13,6 +13,7 @@ from deepxube.factories.pathfinding_factory import pathfinding_factory
 
 def get_updater(domain: Domain, heur_nnet_par: HeurNNetPar, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs,
                 up_heur_args: UpHeurArgs, her: bool) -> UpdateHeur:
+    # TODO how to handle backup and ub_parent_path for HER?
 
     pathfind_t: Type[PathFind] = pathfinding_factory.get_type(pathfind_name)
     if issubclass(pathfind_t, PathFindHeur):
@@ -20,7 +21,11 @@ def get_updater(domain: Domain, heur_nnet_par: HeurNNetPar, pathfind_name: str, 
                                               f"{ActsEnum}")
         updater_rl: UpdateHeurRL
         if isinstance(heur_nnet_par, HeurNNetParV):
-            updater_rl = UpdateHeurVRL(domain, pathfind_name, pathfind_kwargs, up_args, up_heur_args)
+            if not her:
+                updater_rl = UpdateHeurVRLKeepGoal(domain, pathfind_name, pathfind_kwargs, up_args, up_heur_args)
+            else:
+                assert isinstance(domain, GoalSampleableFromState)
+                updater_rl = UpdateHeurVRLHER(domain, pathfind_name, pathfind_kwargs, up_args, up_heur_args)
         elif isinstance(heur_nnet_par, HeurNNetParQ):
             if not her:
                 updater_rl = UpdateHeurQRLKeepGoal(domain, pathfind_name, pathfind_kwargs, up_args, up_heur_args)
