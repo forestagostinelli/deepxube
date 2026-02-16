@@ -1,6 +1,7 @@
 # Changes
 
 ## 0.2.1
+* HER added for V
 * add method to Updater to get state actions
 * separate step and step_sync_main method in Updater
 * Explicitly call del and gc during update to better free memory

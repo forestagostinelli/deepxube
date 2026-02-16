@@ -73,17 +73,6 @@ class Node:
             else:
                 return tc + node_next.heuristic
 
-    def get_deepest_node(self, node_depth: int) -> Tuple['Node', int]:
-        node_deepest: Node = self
-        depth_deepest: int = node_depth
-        for _, node in self.edge_dict.values():
-            node_ret, depth_deepest_ret = node.get_deepest_node(node_depth + 1)
-            if depth_deepest_ret > depth_deepest:
-                node_deepest = node_ret
-                depth_deepest = depth_deepest_ret
-
-        return node_deepest, depth_deepest
-
 
 class Instance(ABC):
     def __init__(self, root_node: Node, inst_info: Any):

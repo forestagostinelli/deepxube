@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, GoalSampleableFromState, State, Goal
 from deepxube.base.heuristic import HeurNNetParV, HeurFnV
-from deepxube.base.pathfinding import PathFindVHeur, Node, InstanceV
+from deepxube.base.pathfinding import PathFindVHeur, Node, InstanceV, get_path
 from deepxube.base.updater import UpdateHER, UpdateHeurV, UpdateHeurRL, UpArgs, UpHeurArgs, D
 from deepxube.utils import misc_utils
 from deepxube.utils.timing_utils import Times
@@ -37,7 +37,7 @@ class UpdateHeurVRL(UpdateHeurV[D, PathFindVHeur], UpdateHeurRL[D, PathFindVHeur
         # get cost-to-go of expanded states
         states_exp_flat, split_idxs = misc_utils.flatten(states_exp)
         goals_flat: List[Goal] = []
-        for goal, state_exp in zip(goals, states_exp):
+        for goal, state_exp in zip(goals, states_exp, strict=True):
             goals_flat.extend([goal] * len(state_exp))
         ctg_next: List[float] = self._get_targ_heur_fn()(states_exp_flat, goals_flat)
 
@@ -145,7 +145,14 @@ class UpdateHeurVRLHER(UpdateHeurVRL[GoalSampleableFromState], UpdateHER[GoalSam
             states_deepest: List[State] = []
             for instance in instances_relabel:
                 states_start.append(instance.root_node.state)
-                states_deepest.append(instance.root_node.get_deepest_node(0)[0].state)
+                state_deepest: State = instance.root_node.state
+                deepest_depth: int = 0
+                for node in instance.nodes_popped:
+                    depth: int = len(get_path(node)[0])
+                    if depth > deepest_depth:
+                        deepest_depth = depth
+                        state_deepest = node.state
+                states_deepest.append(state_deepest)
 
             times.record_time("her_node_deepest", time.time() - start_time)
 
@@ -156,7 +163,7 @@ class UpdateHeurVRLHER(UpdateHeurVRL[GoalSampleableFromState], UpdateHER[GoalSam
             times.record_time("her_relabel", time.time() - start_time)
 
         # get states and goals
-        for instance, goal in zip(instances_goalkeep + instances_relabel, goals_goalkeep + goals_relabel):
+        for instance, goal in zip(instances_goalkeep + instances_relabel, goals_goalkeep + goals_relabel, strict=True):
             states_inst: List[State] = [node.state for node in instance.nodes_popped]
             states.extend(states_inst)
             goals.extend([goal] * len(states_inst))
