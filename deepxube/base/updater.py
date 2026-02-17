@@ -11,13 +11,13 @@ import torch
 from numpy.typing import NDArray
 
 from deepxube.nnet.nnet_utils import NNetParInfo, NNetCallable, NNetPar, get_nnet_par_infos, start_nnet_fn_runners, stop_nnet_runners
-from deepxube.base.domain import Domain, Action
+from deepxube.base.domain import Domain, State, Action, Goal, GoalSampleableFromState
 from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ, HeurFn, HeurFnV, HeurFnQ
-from deepxube.base.pathfinding import PathFind, PathFindHeur, PathFindSup, Instance, InstanceV, InstanceQ
+from deepxube.base.pathfinding import PathFind, PathFindHeur, PathFindSup, Instance, InstanceV, InstanceQ, get_path, Node
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.pathfinding.utils.performance import PathFindPerf, print_pathfindperf
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd, get_nowait_noerr
-from deepxube.utils.misc_utils import split_evenly_w_max
+from deepxube.utils.misc_utils import split_evenly, split_evenly_w_max
 from deepxube.utils.timing_utils import Times
 import gc
 
@@ -160,7 +160,7 @@ class Update(Generic[D, P, Inst], ABC):
         self.q_id = q_id
         self.nnet_par_info_main = NNetParInfo(self.to_main_q, self.from_main_q, self.q_id)
 
-    def start_procs(self) -> Tuple[Queue, List[Queue]]:
+    def start_procs(self, rb_size: int) -> Tuple[Queue, List[Queue]]:
         # start updater procs
         # TODO implement safer copy?
         updaters: List[Update] = [copy.deepcopy(self) for _ in range(self.up_args.procs)]
@@ -177,12 +177,18 @@ class Update(Generic[D, P, Inst], ABC):
             for nnet_name in self.nnet_par_info_l_dict.keys():
                 updater.set_nnet_par_info(nnet_name, self.nnet_par_info_l_dict[nnet_name][proc_idx])
 
+        # get rb sizes
+        rb_sizes_q: List[int] = [0] * len(updaters)
+        if rb_size > 0:
+            rb_sizes_q = split_evenly(rb_size, len(updaters))
+            assert min(rb_sizes_q) > 0, "Number of processes must not exceed that of the size of the replay buffer"
+
+        # start procs
         self.to_q = ctx.Queue()
         self.from_q = ctx.Queue()
         self.procs = []
-
-        for updater in updaters:
-            proc: BaseProcess = ctx.Process(target=updater.update_runner, args=(self.to_q, self.from_q))
+        for updater, rb_size in zip(updaters, rb_sizes_q):
+            proc: BaseProcess = ctx.Process(target=updater.update_runner, args=(self.to_q, self.from_q, rb_size))
             proc.daemon = True
             proc.start()
             self.procs.append(proc)
@@ -307,7 +313,11 @@ class Update(Generic[D, P, Inst], ABC):
     def set_targ_update_num(self, targ_update_num: Optional[int]) -> None:
         self.targ_update_num = targ_update_num
 
-    def update_runner(self, to_q: Queue, from_q: Queue) -> None:
+    def update_runner(self, to_q: Queue, from_q: Queue, rb_size: int) -> None:
+        if self.up_args.sync_main:
+            assert rb_size > 0, "must use a replay buffer if doing sync_main"
+        self._init_replay_buffer(rb_size)
+
         while True:
             assert self.from_main_q is not None
             data_q: Optional[Tuple[List[int], Optional[int]]] = self.from_main_q.get()
@@ -345,7 +355,7 @@ class Update(Generic[D, P, Inst], ABC):
                     # remove instances
                     insts_rem_last_itr = pathfind.remove_finished_instances(self.up_args.search_itrs)
                     if len(insts_rem_last_itr) > 0:
-                        put_from_q.append(self._get_instance_data(insts_rem_last_itr, times))
+                        put_from_q.append(self._get_instance_data(insts_rem_last_itr, rb_size, times))
 
                     # performance
                     start_time = time.time()
@@ -354,7 +364,7 @@ class Update(Generic[D, P, Inst], ABC):
 
                 if not self.up_args.sync_main:
                     if len(pathfind.instances) > 0:
-                        put_from_q.append(self._get_instance_data(pathfind.instances, times))
+                        put_from_q.append(self._get_instance_data(pathfind.instances, rb_size, times))
                     _put_from_q(put_from_q, from_q, times)
 
                 times.add_times(pathfind.times, path=["pathfinding"])
@@ -381,8 +391,7 @@ class Update(Generic[D, P, Inst], ABC):
             if len(insts_rem) > 0:
                 steps_gen = [int(inst.inst_info[0]) for inst in insts_rem]
             else:
-                steps_gen = np.random.choice(self.up_args.step_max + 1, size=batch_size,
-                                             p=np.array(step_probs)).tolist()
+                steps_gen = np.random.choice(self.up_args.step_max + 1, size=batch_size, p=np.array(step_probs)).tolist()
             times.record_time("steps_gen", time.time() - start_time)
 
             # get instance information and kwargs
@@ -409,19 +418,88 @@ class Update(Generic[D, P, Inst], ABC):
     def _step_sync_main(self, pathfind: P, times: Times) -> List[NDArray]:
         pass
 
+    def _get_instance_data(self, instances: List[Inst], rb_size: int, times: Times) -> List[NDArray]:
+        if rb_size == 0:
+            return self._get_instance_data_norb(instances, times)
+        else:
+            return self._get_instance_data_rb(instances, times)
+
     @abstractmethod
-    def _get_instance_data(self, instances: List[Inst], times: Times) -> List[NDArray]:
+    def _get_instance_data_norb(self, instances: List[Inst], times: Times) -> List[NDArray]:
+        pass
+
+    @abstractmethod
+    def _get_instance_data_rb(self, instances: List[Inst], times: Times) -> List[NDArray]:
         pass
 
     @abstractmethod
     def _make_instances(self, pathfind: P, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[Inst]:
         pass
 
+    @abstractmethod
+    def _init_replay_buffer(self, max_size: int) -> None:
+        pass
 
-class UpdateHER(Update[D, P, Inst], ABC):
+
+class UpdateHER(Update[GoalSampleableFromState, P, Inst], ABC):
     def _step_sync_main(self, pathfind: P, times: Times) -> List[NDArray]:
         raise NotImplementedError("Cannot train with sync_main if also doing hindsight experience replay (HER) since goal relabeling is done after search is "
                                   "complete.")
+
+    def _get_instance_data_norb(self, instances: List[Inst], times: Times) -> List[NDArray]:
+        raise NotImplementedError("Must use replay buffer if doing HER.")
+
+    def _get_her_goals(self, instances: List[Inst], times: Times) -> Tuple[List[Inst], List[Goal]]:
+        """ If instance is not finisheed and solved, get deepest states out all nodes that have children + root node for relabeled goal.
+            :return: Instances and their corresponding goals (order of instances changes)
+        """
+        # get states/goals or mark for goal relabelling
+        instances_goalkeep: List[Inst] = []
+        instances_relabel: List[Inst] = []
+
+        rand_keeps: List[float] = cast(List[float], np.random.uniform(0, 1, size=len(instances)).tolist())
+        for instance, rand_keep in zip(instances, rand_keeps):
+            if instance.finished() and instance.has_soln():
+                instances_goalkeep.append(instance)
+            else:
+                instances_relabel.append(instance)
+
+        # get goals goalkeep
+        goals_goalkeep: List[Goal] = [instance.root_node.goal for instance in instances_goalkeep]
+
+        # get relabeled goals
+        goals_relabel: List[Goal] = []
+        if len(instances_relabel) > 0:
+            # get start states and deepest states
+            start_time = time.time()
+            states_start: List[State] = []
+            states_deepest: List[State] = []
+            for instance in instances_relabel:
+                states_start.append(instance.root_node.state)
+
+                # get all descendants that have children
+                nodes_desc: List[Node] = instance.root_node.get_all_descendants()
+                node_desc_w_children: List[Node] = [node_desc for node_desc in nodes_desc if len(node_desc.edge_dict) > 0]
+
+                # get state of deepest node
+                state_deepest: State = instance.root_node.state
+                deepest_depth: int = 0
+                for node in node_desc_w_children:
+                    depth: int = len(get_path(node)[0])
+                    if depth > deepest_depth:
+                        deepest_depth = depth
+                        state_deepest = node.state
+                states_deepest.append(state_deepest)
+
+            times.record_time("her_node_deepest", time.time() - start_time)
+
+            # relabel
+            start_time = time.time()
+            goals_relabel = self.domain.sample_goal_from_state(states_start, states_deepest)
+            times.record_time("her_relabel", time.time() - start_time)
+
+        return instances_goalkeep + instances_relabel, goals_goalkeep + goals_relabel
+
 
 
 HNet = TypeVar('HNet', bound=HeurNNetPar)
@@ -517,3 +595,12 @@ class UpdateHeurSup(UpdateHeur[D, PS, Inst, HNet, H], ABC):
 
     def _make_instances(self, pathfind: PathFindSup, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[Inst]:
         return pathfind.make_instances_rw(steps_gen, inst_infos)
+
+    def _step_sync_main(self, pathfind: PathFindSup, times: Times) -> List[NDArray]:
+        raise NotImplementedError("No sync_main option for supervised update")
+
+    def _get_instance_data_rb(self, instances: List[Inst], times: Times) -> List[NDArray]:
+        raise NotImplementedError("No replay buffer used with supervised update")
+
+    def _init_replay_buffer(self, max_size: int) -> None:
+        pass

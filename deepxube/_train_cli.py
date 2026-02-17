@@ -35,6 +35,11 @@ def parser_train(parser: ArgumentParser) -> None:
     train_group.add_argument('--display', type=int, default=0, help="Display frequency for nnet training.")
     train_group.add_argument('--bal', action='store_true', default=False, help="Set to balance of number of steps to take to generate problem instances based "
                                                                                "on percentage of states solved.")
+    train_group.add_argument('--rb', type=int, default=0, help="Number of updates worth of data to keep in replay buffer. If 0 then no replay buffer is used "
+                                                               "and training waits for update to finish to get data and randomly sample from that data. "
+                                                               "No replay buffer results in faster updates due to not having to use a separate network to "
+                                                               "compute the update, but is more susceptible to instability due to shifts in the distribution "
+                                                               "of states seen during search.")
 
     # updater args
     update_group = parser.add_argument_group('update')
@@ -84,7 +89,7 @@ def train_cli(args: argparse.Namespace) -> None:
     updater: UpdateHeur = get_updater(domain, heur_nnet_par, pathfind_name, pathfind_kwargs, up_args, up_heur_args, args.her)
 
     # train args
-    train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.bal,
+    train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.bal, rb=args.rb,
                                       display=args.display)
 
     # test args

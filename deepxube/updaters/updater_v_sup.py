@@ -18,10 +18,7 @@ class UpdateHeurVSup(UpdateHeurV[Domain, PathFindVSup], UpdateHeurSup[Domain, Pa
         nodes_popped: List[Node] = pathfind.step()
         assert len(nodes_popped) == len(pathfind.instances), f"Values were {len(nodes_popped)} and {len(pathfind.instances)}"
 
-    def _step_sync_main(self, pathfind: PathFindVSup, times: Times) -> List[NDArray]:
-        raise NotImplementedError
-
-    def _get_instance_data(self, instances: List[InstanceV], times: Times) -> List[NDArray]:
+    def _get_instance_data_norb(self, instances: List[InstanceV], times: Times) -> List[NDArray]:
         nodes_popped: List[Node] = []
         for instance in instances:
             nodes_popped.extend(instance.nodes_popped)

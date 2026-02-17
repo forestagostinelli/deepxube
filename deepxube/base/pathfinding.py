@@ -73,6 +73,20 @@ class Node:
             else:
                 return tc + node_next.heuristic
 
+    def get_all_descendants(self) -> List['Node']:
+        """ Get all descendants of node (excluding self)
+
+        :return: List of nodes that are descendants
+        """
+        fifo: List[Node] = [x[1] for x in self.edge_dict.values()]
+        descendants: List[Node] = []
+        while len(fifo) > 0:
+            descendant: Node = fifo.pop(0)
+            for _, descendant_c in descendant.edge_dict.values():
+                fifo.append(descendant_c)
+            descendants.append(descendant)
+        return descendants
+
 
 class Instance(ABC):
     def __init__(self, root_node: Node, inst_info: Any):

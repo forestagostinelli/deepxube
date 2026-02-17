@@ -17,10 +17,7 @@ class UpdateHeurQSup(UpdateHeurQ[Domain, PathFindQSup], UpdateHeurSup[Domain, Pa
         edges_popped: List[EdgeQ] = pathfind.step()
         assert len(edges_popped) == len(pathfind.instances), f"Values were {len(edges_popped)} and {len(pathfind.instances)}"
 
-    def _step_sync_main(self, pathfind: PathFindQSup, times: Times) -> List[NDArray]:
-        raise NotImplementedError
-
-    def _get_instance_data(self, instances: List[InstanceQ], times: Times) -> List[NDArray]:
+    def _get_instance_data_norb(self, instances: List[InstanceQ], times: Times) -> List[NDArray]:
         edges_popped: List[EdgeQ] = []
         for instance in instances:
             edges_popped.extend(instance.edges_popped)

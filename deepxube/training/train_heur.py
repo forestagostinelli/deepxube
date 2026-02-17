@@ -104,7 +104,7 @@ def train(heur_nnet_par: HeurNNetPar, heur_type: str, updater: UpdateHeur, nnet_
     device, devices, on_gpu = nnet_utils.get_device()
     print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
 
-    to_main_q, from_main_qs = updater.start_procs()
+    to_main_q, from_main_qs = updater.start_procs(train_args.rb * train_args.batch_size * updater.up_args.up_itrs)
     train_heur: TrainHeur = TrainHeur(heur_nnet, updater, to_main_q, from_main_qs, heur_file, heur_targ_file, status_file, device,
                                       on_gpu, writer, train_args)
 
