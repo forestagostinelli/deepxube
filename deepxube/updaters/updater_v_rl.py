@@ -71,7 +71,7 @@ class UpdateHeurVRL(UpdateHeurV[D, PathFindVHeur], UpdateHeurRL[D, PathFindVHeur
 
         return ctgs_backup_l
 
-    def _data_to_np(self, states: List[State], goals: List[Goal], ctgs_backup: List[float], times: Times) -> List[NDArray]:
+    def _inputs_ctgs_to_np(self, states: List[State], goals: List[Goal], ctgs_backup: List[float], times: Times) -> List[NDArray]:
         start_time = time.time()
         inputs_np: List[NDArray] = self.get_heur_nnet_par().to_np(states, goals)
         data_np: List[NDArray] = inputs_np + [np.array(ctgs_backup)]
@@ -118,7 +118,7 @@ class UpdateHeurVRLKeepGoal(UpdateHeurVRL[Domain]):
         # rb value iteration update
         states, goals, ctgs_backup = self._sample_rb_vi_target(len(nodes_popped), times)
 
-        return self._data_to_np(states, goals, ctgs_backup, times)
+        return self._inputs_ctgs_to_np(states, goals, ctgs_backup, times)
 
     def _get_instance_data_norb(self, instances: List[InstanceV], times: Times) -> List[NDArray]:
         # get popped node data
@@ -145,7 +145,7 @@ class UpdateHeurVRLKeepGoal(UpdateHeurVRL[Domain]):
         ctgs_backup: List[float] = [node.backup_val for node in nodes_popped]
         times.record_time("backup", time.time() - start_time)
 
-        return self._data_to_np(states, goals, ctgs_backup, times)
+        return self._inputs_ctgs_to_np(states, goals, ctgs_backup, times)
 
     def _get_instance_data_rb(self, instances: List[InstanceV], times: Times) -> List[NDArray]:
         # get popped node data
@@ -160,7 +160,7 @@ class UpdateHeurVRLKeepGoal(UpdateHeurVRL[Domain]):
         # rb value iteration update
         states, goals, ctgs_backup = self._sample_rb_vi_target(len(nodes_popped), times)
 
-        return self._data_to_np(states, goals, ctgs_backup, times)
+        return self._inputs_ctgs_to_np(states, goals, ctgs_backup, times)
 
 
 class UpdateHeurVRLHER(UpdateHeurVRL[GoalSampleableFromState], UpdateHER[PathFindVHeur, InstanceV]):
@@ -187,4 +187,4 @@ class UpdateHeurVRLHER(UpdateHeurVRL[GoalSampleableFromState], UpdateHER[PathFin
         # rb value iteration update
         states, goals, ctgs_backup = self._sample_rb_vi_target(len(states_her), times)
 
-        return self._data_to_np(states, goals, ctgs_backup, times)
+        return self._inputs_ctgs_to_np(states, goals, ctgs_backup, times)
