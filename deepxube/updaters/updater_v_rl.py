@@ -71,9 +71,6 @@ class UpdateHeurVRL(UpdateHeurV[D, PathFindVHeur], UpdateHeurRL[D, PathFindVHeur
 
         return ctgs_backup_l
 
-    def _init_replay_buffer(self, max_size: int) -> None:
-        self.rb = ReplayBufferV(max_size)
-
     def _data_to_np(self, states: List[State], goals: List[Goal], ctgs_backup: List[float], times: Times) -> List[NDArray]:
         start_time = time.time()
         inputs_np: List[NDArray] = self.get_heur_nnet_par().to_np(states, goals)
@@ -81,6 +78,9 @@ class UpdateHeurVRL(UpdateHeurV[D, PathFindVHeur], UpdateHeurRL[D, PathFindVHeur
         times.record_time("to_np", time.time() - start_time)
 
         return data_np
+
+    def _init_replay_buffer(self, max_size: int) -> None:
+        self.rb = ReplayBufferV(max_size)
 
     def _rb_add(self, states: List[State], goals: List[Goal], is_solved_l: List[bool], times: Times) -> None:
         start_time = time.time()
