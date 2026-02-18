@@ -33,7 +33,7 @@ def _get_nodes_popped_data(nodes_popped: List[Node], times: Times) -> Tuple[List
         assert node.is_solved is not None
         is_solved_l.append(node.is_solved)
 
-    times.record_time("inst_popped", time.time() - start_time)
+    times.record_time("nodes_popped", time.time() - start_time)
 
     return states, goals, is_solved_l
 
@@ -125,7 +125,6 @@ class UpdateHeurVRLKeepGoal(UpdateHeurVRL[Domain]):
         nodes_popped: List[Node] = []
         for instance in instances:
             nodes_popped.extend(instance.nodes_popped)
-        states, goals, is_solved_l = _get_nodes_popped_data(nodes_popped, times)
 
         # get backup
         start_time = time.time()
@@ -133,8 +132,9 @@ class UpdateHeurVRLKeepGoal(UpdateHeurVRL[Domain]):
             for node in nodes_popped:
                 node.bellman_backup()
             if self.up_heur_args.ub_heur_solns:
-                for node, is_solved in zip(nodes_popped, is_solved_l, strict=True):
-                    if is_solved:
+                for node in nodes_popped:
+                    assert node.is_solved is not None
+                    if node.is_solved:
                         node.upper_bound_parent_path(0.0)
         elif self.up_heur_args.backup == -1:
             for instance in instances:
@@ -142,8 +142,11 @@ class UpdateHeurVRLKeepGoal(UpdateHeurVRL[Domain]):
         else:
             raise ValueError(f"Unknown backup {self.up_heur_args.backup}")
 
-        ctgs_backup: List[float] = [node.backup_val for node in nodes_popped]
         times.record_time("backup", time.time() - start_time)
+
+        states: List[State] = [node.state for node in nodes_popped]
+        goals: List[Goal] = [node.goal for node in nodes_popped]
+        ctgs_backup: List[float] = [node.backup_val for node in nodes_popped]
 
         return self._inputs_ctgs_to_np(states, goals, ctgs_backup, times)
 
@@ -178,11 +181,11 @@ class UpdateHeurVRLHER(UpdateHeurVRL[GoalSampleableFromState], UpdateHER[PathFin
 
         # is solved
         start_time = time.time()
-        is_solved_her_l: List[bool] = self.domain.is_solved(states_her, goals_her)
+        is_solved_l_her: List[bool] = self.domain.is_solved(states_her, goals_her)
         times.record_time("is_solved_her", time.time() - start_time)
 
         # add to replay buffer
-        self._rb_add(states_her, goals_her, is_solved_her_l, times)
+        self._rb_add(states_her, goals_her, is_solved_l_her, times)
 
         # rb value iteration update
         states, goals, ctgs_backup = self._sample_rb_vi_target(len(states_her), times)
