@@ -28,10 +28,8 @@ class UpdateHeurQSup(UpdateHeurQ[Domain, PathFindQSup], UpdateHeurSup[Domain, Pa
     def _get_inputs_ctgs(self, edges_popped: List[EdgeQ]) -> List[NDArray]:
         states: List[State] = [edge.node.state for edge in edges_popped]
         goals: List[Goal] = [edge.node.goal for edge in edges_popped]
-        actions: List[Action] = []
-        for edge in edges_popped:
-            assert edge.action is not None
-            actions.append(edge.action)
+        actions: List[Action] = [edge.action for edge in edges_popped]
+
         ctgs_backup: List[float] = [edge.q_val for edge in edges_popped]
         inputs_np: List[NDArray] = self.get_heur_nnet_par().to_np(states, goals, [[action] for action in actions])
         return inputs_np + [np.array(ctgs_backup)]

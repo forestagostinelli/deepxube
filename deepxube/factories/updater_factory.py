@@ -30,9 +30,8 @@ def get_updater(domain: Domain, heur_nnet_par: HeurNNetPar, pathfind_name: str, 
             if not her:
                 updater_rl = UpdateHeurQRLKeepGoal(domain, pathfind_name, pathfind_kwargs, up_args, up_heur_args)
             else:
-                raise NotImplementedError("HER not yet implemented for UpdateHeurQRL")
-                # assert isinstance(domain, GoalSampleableFromState)
-                # updater_rl = UpdateHeurQRLHER(domain, pathfind_name, pathfind_kwargs, up_args, up_heur_args)
+                assert isinstance(domain, GoalSampleableFromState)
+                updater_rl = UpdateHeurQRLHER(domain, pathfind_name, pathfind_kwargs, up_args, up_heur_args)
         else:
             raise ValueError(f"No update implementation for {heur_nnet_par}")
         return updater_rl

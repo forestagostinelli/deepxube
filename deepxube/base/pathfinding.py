@@ -1,4 +1,4 @@
-from typing import Generic, List, Optional, Any, Tuple, Callable, TypeVar, Dict, cast, Type
+from typing import Generic, List, Optional, Any, Tuple, Callable, TypeVar, Dict, Type
 
 from numpy.typing import NDArray
 
@@ -138,7 +138,7 @@ class PathFind(Generic[D, I], ABC):
         :param states: List of states
         :param goals: List of goals
         :param inst_infos: Optional list of information to add to an instance
-        :param compute_root_heur: If true, compute the heuristic value of the root node
+        :param compute_root_heur: If true, compute the heuristic value of the root node. Some algorithms may have to ignore this argument and always compute it.
         :return: List of instances
         """
         pass
@@ -377,9 +377,9 @@ class PathFindVHeur(PathFindV[D, IV], PathFindHeur[D, IV, HeurFnV], ABC):
 class EdgeQ:
     __slots__ = ['node', 'action', 'q_val']
 
-    def __init__(self, node: Node, action: Optional[Action], q_val: float):
+    def __init__(self, node: Node, action: Action, q_val: float):
         self.node: Node = node
-        self.action: Optional[Action] = action
+        self.action: Action = action
         self.q_val: float = q_val
 
 
@@ -411,20 +411,11 @@ class PathFindQ(PathFind[D, IQ]):
 
         states: List[State] = [node.state for node in nodes]
         goals: List[Goal] = [node.goal for node in nodes]
-        actions: List[Optional[Action]] = [node_act.action for node_act in edges]
-        path_costs: List[float] = [popped_node.path_cost for popped_node in nodes]
+        path_costs: List[float] = [node.path_cost for node in nodes]
+        actions: List[Action] = [edge.action for edge in edges]
 
         # next states
-        states_next = states.copy()
-        tcs: List[float] = [0.0] * len(states_next)
-        idxs_op: List[int] = [idx for idx, action in enumerate(actions) if action is not None]
-        if len(idxs_op) > 0:
-            states_op: List[State] = [states[idx_op] for idx_op in idxs_op]
-            actions_op: List[Action] = [cast(Action, actions[idx_op]) for idx_op in idxs_op]
-            states_next_op, tcs_op = self.domain.next_state(states_op, actions_op)
-            for idx_op, state, tc in zip(idxs_op, states_next_op, tcs_op):
-                states_next[idx_op] = state
-                tcs[idx_op] = tc
+        states_next, tcs = self.domain.next_state(states, actions)
         path_costs_next: List[float] = (np.array(path_costs) + np.array(tcs)).tolist()
         self.times.record_time("next_state", time.time() - start_time)
 
@@ -438,15 +429,10 @@ class PathFindQ(PathFind[D, IQ]):
         start_time = time.time()
         nodes_next: List[Node] = []
         for idx in range(len(edges)):
-            node_next: Node
-            action_i: Optional[Action] = actions[idx]
-            if action_i is not None:
-                node_next = Node(states_next[idx], goals[idx], path_costs_next[idx], heurs_next[idx], (actions_next_l[idx], q_vals_next[idx]), None, action_i,
-                                 tcs[idx], nodes[idx])
-                nodes[idx].add_edge(action_i, tcs[idx], node_next)
-            else:
-                node_next = nodes[idx]
-                node_next.q_values = (actions_next_l[idx], q_vals_next[idx])
+            node_next: Node = Node(states_next[idx], goals[idx], path_costs_next[idx], heurs_next[idx], (actions_next_l[idx], q_vals_next[idx]), None,
+                                   actions[idx], tcs[idx], nodes[idx])
+
+            nodes[idx].add_edge(actions[idx], tcs[idx], node_next)
             nodes_next.append(node_next)
         self.times.record_time("make_nodes", time.time() - start_time)
 

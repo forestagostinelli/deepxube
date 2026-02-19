@@ -27,7 +27,9 @@ class InstanceBWQS(InstanceQ):
         self.weight: float = weight
         self.eps: float = eps
 
-        self.push_to_open([EdgeQ(self.root_node, None, self.root_node.heuristic)], [self.root_node.heuristic])
+        self.popped_nodes_last: List[Node] = [self.root_node]
+
+        # self.push_to_open([EdgeQ(self.root_node, None, self.root_node.heuristic)], [self.root_node.heuristic])
 
     def push_to_open(self, edges: List[EdgeQ], costs: List[float]) -> None:
         for edge, cost in zip(edges, costs, strict=True):
@@ -85,7 +87,11 @@ class BWQSActsAny(PathFindQHeur[D, InstanceBWQS], ABC):
 
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_heur: bool = True,
                        batch_size: Optional[int] = None, weight: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceBWQS]:
-        nodes_root: List[Node] = self._create_root_nodes(states, goals, compute_root_heur=compute_root_heur)
+        """ Always computes the root heurisitc always (regardless of argument)
+
+        """
+
+        nodes_root: List[Node] = self._create_root_nodes(states, goals, compute_root_heur=True)
         batch_size_inst: int = batch_size if batch_size is not None else self.batch_size_default
         weight_inst: float = weight if weight is not None else self.weight_default
         eps_inst: float = eps if eps is not None else self.eps_default
@@ -100,70 +106,75 @@ class BWQSActsAny(PathFindQHeur[D, InstanceBWQS], ABC):
             self.itr += 1  # TODO make more elegant
             return []
 
-        # pop from open
-        start_time = time.time()
-        edges_popped_by_inst: List[List[EdgeQ]] = [instance.pop_from_open() for instance in instances]
-        self.times.record_time("pop", time.time() - start_time)
-
-        # next state
-        nodes_next_by_inst: List[List[Node]] = self.get_next_nodes(instances, edges_popped_by_inst)
+        # get last popped nodes
+        nodes_popped_last_by_inst: List[List[Node]] = [instance.popped_nodes_last for instance in instances]
 
         # is solved
         start_time = time.time()
-        nodes_next_flat: List[Node] = misc_utils.flatten(nodes_next_by_inst)[0]
+        nodes_next_flat: List[Node] = misc_utils.flatten(nodes_popped_last_by_inst)[0]
         self.set_is_solved(nodes_next_flat)
         self.times.record_time("is_solved", time.time() - start_time)
 
         # ub
         start_time = time.time()
-        for instance, nodes_next in zip(instances, nodes_next_by_inst, strict=True):
-            instance.update_ub(nodes_next)
+        for instance, nodes_popped_last in zip(instances, nodes_popped_last_by_inst, strict=True):
+            instance.update_ub(nodes_popped_last)
         self.times.record_time("ub", time.time() - start_time)
 
         # check closed
         start_time = time.time()
         for inst_idx, instance in enumerate(instances):
-            nodes_next_by_inst[inst_idx] = instance.check_closed(nodes_next_by_inst[inst_idx])
+            nodes_popped_last_by_inst[inst_idx] = instance.check_closed(nodes_popped_last_by_inst[inst_idx])
         self.times.record_time("check", time.time() - start_time)
 
         # make edges
         start_time = time.time()
-        edges_next_by_inst: List[List[EdgeQ]] = []
+        edges_by_inst: List[List[EdgeQ]] = []
 
-        for nodes_next in nodes_next_by_inst:
-            edges_next: List[EdgeQ] = []
-            for node in nodes_next:
+        for nodes_popped_last in nodes_popped_last_by_inst:
+            edges: List[EdgeQ] = []
+            for node in nodes_popped_last:
                 assert node.q_values is not None
                 for action, q_val in zip(node.q_values[0], node.q_values[1], strict=True):
-                    edges_next.append(EdgeQ(node, action, q_val))
-            edges_next_by_inst.append(edges_next)
+                    edges.append(EdgeQ(node, action, q_val))
+            edges_by_inst.append(edges)
         self.times.record_time("edges", time.time() - start_time)
 
         # costs
         start_time = time.time()
-        edges_next_flat: List[EdgeQ] = misc_utils.flatten(edges_next_by_inst)[0]
-        weights, split_idxs = misc_utils.flatten([[instance.weight] * len(edges_next)
-                                                  for instance, edges_next in
-                                                  zip(instances, edges_next_by_inst, strict=True)])
-        path_costs: List[float] = [edge.node.path_cost for edge in edges_next_flat]
-        heuristics: List[float] = [edge.q_val for edge in edges_next_flat]
-        costs_flat: List[float] = ((np.array(weights) * np.array(path_costs)) + np.array(heuristics)).tolist()
+        edges_flat: List[EdgeQ] = misc_utils.flatten(edges_by_inst)[0]
+        weights_flat, split_idxs = misc_utils.flatten([[instance.weight] * len(edges) for instance, edges in zip(instances, edges_by_inst, strict=True)])
+        path_costs_flat: List[float] = [edge.node.path_cost for edge in edges_flat]
+        qvals_flat: List[float] = [edge.q_val for edge in edges_flat]
+        costs_flat: List[float] = ((np.array(weights_flat) * np.array(path_costs_flat)) + np.array(qvals_flat)).tolist()
         costs_by_inst: List[List[float]] = misc_utils.unflatten(costs_flat, split_idxs)
         self.times.record_time("cost", time.time() - start_time)
 
         # push to open
         start_time = time.time()
-        for instance, edges_next, costs in zip(instances, edges_next_by_inst, costs_by_inst, strict=True):
-            instance.push_to_open(edges_next, costs)
+        for instance, edges, costs in zip(instances, edges_by_inst, costs_by_inst, strict=True):
+            instance.push_to_open(edges, costs)
         self.times.record_time("push", time.time() - start_time)
 
+        # pop from open
+        start_time = time.time()
+        edges_popped_by_inst: List[List[EdgeQ]] = [instance.pop_from_open() for instance in instances]
+        self.times.record_time("pop", time.time() - start_time)
+
+        # next nodes
+        nodes_next_by_inst: List[List[Node]] = self.get_next_nodes(instances, edges_popped_by_inst)
+        for instance, nodes_next in zip(instances, nodes_next_by_inst):
+            instance.popped_nodes_last = nodes_next
+
         # verbose
+        edges_popped_flat: List[EdgeQ] = misc_utils.flatten(edges_popped_by_inst)[0]
         if verbose:
-            if len(heuristics) > 0:
-                min_heur = float(np.min(heuristics))
-                min_heur_pc = float(path_costs[np.argmin(heuristics)])
-                max_heur = float(np.max(heuristics))
-                max_heur_pc = float(path_costs[np.argmax(heuristics)])
+            if len(edges_popped_flat) > 0:
+                qvals_popped_flat: List[float] = [edge.q_val for edge in edges_popped_flat]
+                min_heur = float(np.min(qvals_popped_flat))
+                min_heur_pc = float(path_costs_flat[np.argmin(qvals_popped_flat)])
+                max_heur = float(np.max(qvals_popped_flat))
+                max_heur_pc = float(path_costs_flat[np.argmax(qvals_popped_flat)])
                 per_has_soln: float = 100.0 * float(np.mean([inst.has_soln() for inst in instances]))
                 per_finished: float = 100.0 * float(np.mean([inst.finished() for inst in instances]))
 
@@ -180,8 +191,6 @@ class BWQSActsAny(PathFindQHeur[D, InstanceBWQS], ABC):
             instance.itr += 1
 
         # return
-        edges_popped_flat: List[EdgeQ] = misc_utils.flatten(edges_popped_by_inst)[0]
-        # nodes_popped_flat: List[NodeQ] = [nodeact_popped.node for nodeact_popped in nodesacts_popped_flat]
         return edges_popped_flat
 
     def __repr__(self) -> str:

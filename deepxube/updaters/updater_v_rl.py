@@ -144,9 +144,12 @@ class UpdateHeurVRLKeepGoal(UpdateHeurVRL[Domain]):
 
         times.record_time("backup", time.time() - start_time)
 
+        start_time = time.time()
         states: List[State] = [node.state for node in nodes_popped]
         goals: List[Goal] = [node.goal for node in nodes_popped]
         ctgs_backup: List[float] = [node.backup_val for node in nodes_popped]
+
+        times.record_time("get_tr_data", time.time() - start_time)
 
         return self._inputs_ctgs_to_np(states, goals, ctgs_backup, times)
 
@@ -172,12 +175,15 @@ class UpdateHeurVRLHER(UpdateHeurVRL[GoalSampleableFromState], UpdateHER[PathFin
         instances, goals_inst_her = self._get_her_goals(instances, times)
 
         # get states and goals
+        start_time = time.time()
         states_her: List[State] = []
         goals_her: List[Goal] = []
         for instance, goal_her in zip(instances, goals_inst_her, strict=True):
             states_inst: List[State] = [node.state for node in instance.nodes_popped]
             states_her.extend(states_inst)
             goals_her.extend([goal_her] * len(states_inst))
+
+        times.record_time("data_her", time.time() - start_time)
 
         # is solved
         start_time = time.time()
