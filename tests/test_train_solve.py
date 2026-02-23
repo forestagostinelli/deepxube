@@ -6,7 +6,7 @@ from deepxube.factories.updater_factory import get_updater
 from deepxube.base.heuristic import HeurNNetPar
 from deepxube.base.pathfinding import Node, Instance, get_path
 from deepxube.pathfinding.utils.performance import is_valid_soln, PathFindPerf
-from deepxube.base.pathfinding import PathFind, PathFindHeur
+from deepxube.base.pathfinding import PathFind, PathFindHasHeur
 from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_pathfind_name_kwargs, get_pathfind_from_arg
 from deepxube.base.updater import UpArgs, UpdateHeur, UpHeurArgs
 from deepxube.training.train_utils import TrainArgs
@@ -70,7 +70,7 @@ def test_train_solve_heur(pathfind_tr_str: str, pathfind_solve_str: str, heur_ty
     # solve
     heur_file: str = f"{save_dir}/heur.pt"
     pathfind: PathFind = get_pathfind_from_arg(domain, heur_type, pathfind_solve_str)[0]
-    assert isinstance(pathfind, PathFindHeur), f"Current implementation only uses {PathFindHeur}"
+    assert isinstance(pathfind, PathFindHasHeur), f"Current implementation only uses {PathFindHasHeur}"
     device, devices, on_gpu = nnet_utils.get_device()
 
     nnet: nn.Module = nnet_utils.load_nnet(heur_file, heur_nnet_par.get_nnet())

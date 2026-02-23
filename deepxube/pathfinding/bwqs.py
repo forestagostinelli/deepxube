@@ -4,7 +4,7 @@ from typing import List, Tuple, Dict, Optional, Any, TypeVar, Type
 
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, ActsEnum, State, Goal
-from deepxube.base.pathfinding import InstanceQ, Node, PathFindQHeur, EdgeQ, PathFindQExpandEnum
+from deepxube.base.pathfinding import InstanceEdge, Node, PathFindEdgeHasHeur, EdgeQ, PathFindEdgeActsEnum
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.utils import misc_utils
 from heapq import heappush, heappop, heapify
@@ -15,7 +15,7 @@ import time
 OpenSetElem = Tuple[float, int, EdgeQ]
 
 
-class InstanceBWQS(InstanceQ):
+class InstanceBWQS(InstanceEdge):
     def __init__(self, root_node: Node, batch_size: int, weight: float, eps: float, inst_info: Any):
         super().__init__(root_node, inst_info)
         self.open_set: List[OpenSetElem] = []
@@ -78,7 +78,7 @@ class InstanceBWQS(InstanceQ):
 D = TypeVar('D', bound=Domain)
 
 
-class BWQSActsAny(PathFindQHeur[D, InstanceBWQS], ABC):
+class BWQSActsAny(PathFindEdgeHasHeur[D, InstanceBWQS], ABC):
     def __init__(self, domain: D, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0):
         super().__init__(domain)
         self.batch_size_default: int = batch_size
@@ -91,7 +91,7 @@ class BWQSActsAny(PathFindQHeur[D, InstanceBWQS], ABC):
 
         """
 
-        nodes_root: List[Node] = self._create_root_nodes(states, goals, compute_root_heur=True)
+        nodes_root: List[Node] = self._create_root_nodes_heur(states, goals, compute_root_heur=True)
         batch_size_inst: int = batch_size if batch_size is not None else self.batch_size_default
         weight_inst: float = weight if weight is not None else self.weight_default
         eps_inst: float = eps if eps is not None else self.eps_default
@@ -198,7 +198,7 @@ class BWQSActsAny(PathFindQHeur[D, InstanceBWQS], ABC):
 
 
 @pathfinding_factory.register_class("bwqs")
-class BWQS(BWQSActsAny[ActsEnum], PathFindQExpandEnum[InstanceBWQS]):
+class BWQS(BWQSActsAny[ActsEnum], PathFindEdgeActsEnum[ActsEnum, InstanceBWQS]):
     @staticmethod
     def domain_type() -> Type[ActsEnum]:
         return ActsEnum

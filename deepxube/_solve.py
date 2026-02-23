@@ -1,10 +1,10 @@
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Tuple
 import argparse
 from argparse import ArgumentParser
 
-from deepxube.base.domain import State, Action, Goal
-from deepxube.base.heuristic import HeurNNetPar, HeurFn, HeurFnV, HeurFnQ
-from deepxube.base.pathfinding import Node, Instance, PathFind, PathFindHeur, get_path
+from deepxube.base.domain import Domain, State, Action, Goal
+from deepxube.base.heuristic import HeurNNetPar, HeurFn, HeurFnV, HeurFnQ, PolicyFn
+from deepxube.base.pathfinding import Node, Instance, PathFind, PathFindHasHeur, PathFindHasPolicy, get_path
 from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_pathfind_from_arg
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
@@ -20,12 +20,19 @@ import sys
 
 def parse_solve(parser: ArgumentParser) -> None:
     parser.add_argument('--domain', type=str, required=True, help="Domain name and arguments.")
+
     parser.add_argument('--heur', type=str, default=None, help="Heuristic neural network and arguments. If None then a heuristic whose output is always zero "
                                                                "is used.")
     parser.add_argument('--heur_file', type=str, default=None, help="File that has heuristic nnet. Can be None if using all zeros heuristic.")
     parser.add_argument('--heur_type', type=str, default=None, help="V, QFix, QIn. V maps state/goal tuples to cost-to-go. "
                                                                     "QFix maps state/goal tuples to q_values for a fixed action space. "
                                                                     "QIn maps state/goal/action tuples to q_value (can be used in arbitrary action spaces).")
+
+    parser.add_argument('--policy', type=str, default=None, help="Policy neural network and arguments. If None then a policy that randomly samples actions "
+                                                                 "with equal probability is used.")
+    parser.add_argument('--policy_file', type=str, default=None, help="File that has policy nnet. Can be None if using random policy.")
+    parser.add_argument('--policy_samp', type=int, default=None, help="Number of actions to sample.")
+
     parser.add_argument('--pathfind', type=str, required=True, help="Pathfinding algorithm and arguments.")
     parser.add_argument('--file', type=str, required=True, help="File containing problem instances to solve")
 
@@ -42,6 +49,75 @@ def parse_solve(parser: ArgumentParser) -> None:
     parser.set_defaults(func=solve_cli)
 
 
+def get_heur_fn(domain: Domain, domain_name: str, heur_nnet_str: Optional[str], heur_file: Optional[str], heur_type: Optional[str],
+                nnet_batch_size: Optional[int]) -> Optional[HeurFn]:
+    heur_fn: Optional[HeurFn] = None
+    if heur_nnet_str is not None:
+        assert heur_file is not None
+        assert heur_type is not None
+        heur_nnet_par: HeurNNetPar = get_heur_nnet_par_from_arg(domain, domain_name, heur_nnet_str, heur_type)[0]
+        device, devices, on_gpu = nnet_utils.get_device()
+        print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
+
+        nnet: nn.Module = nnet_utils.load_nnet(heur_file, heur_nnet_par.get_nnet())
+        nnet.eval()
+        nnet.to(device)
+        nnet = nn.DataParallel(nnet)
+        heur_fn = heur_nnet_par.get_nnet_fn(nnet, nnet_batch_size, device, None)
+    elif heur_type is not None:
+        if heur_type.upper() == "V":
+            class HeurFnZerosV(HeurFnV):
+                def __call__(self, states_in: List[State], goals_in: List[Goal]) -> List[float]:
+                    return [0.0] * len(states_in)
+
+            heur_fn = HeurFnZerosV()
+        elif heur_type.upper() in {"QFIX", "QIN"}:
+            class HeurFnZerosQ(HeurFnQ):
+                def __call__(self, states_in: List[State], goals_in: List[Goal], actions_l_in: List[List[Action]]) -> List[List[float]]:
+                    heur_vals_l: List[List[float]] = []
+                    for actions_in in actions_l_in:
+                        heur_vals_l.append([0.0] * len(actions_in))
+                    return heur_vals_l
+
+            heur_fn = HeurFnZerosQ()
+        else:
+            raise ValueError(f"Unknown heur type {heur_type}")
+
+    return heur_fn
+
+
+def get_policy_fn(domain: Domain, domain_name: str, policy_nnet_str: Optional[str], policy_file: Optional[str], use_policy: bool,
+                  nnet_batch_size: Optional[int]) -> Optional[PolicyFn]:
+    policy_fn: Optional[PolicyFn] = None
+    if policy_nnet_str is not None:
+        assert policy_file is not None
+        raise NotImplementedError
+    elif use_policy:
+        class PolicyFnRand(PolicyFn):
+            def __call__(self, domain_in: Domain, states: List[State], goals: List[Goal], num_samp_in: int) -> Tuple[List[List[Action]], List[List[float]]]:
+                # sample actions
+                states_rep_flat: List[State] = []
+                for state in states:
+                    states_rep_flat.extend([state] * num_samp_in)
+
+                actions_samp_flat: List[Action] = domain_in.sample_state_action(states_rep_flat)
+
+                # unflatten
+                actions_samp: List[List[Action]] = []
+                probs_l: List[List[float]] = []
+                for _ in states:
+                    actions_samp_i: List[Action] = list(set(actions_samp_flat[:num_samp_in]))  # make unique
+                    actions_samp.append(actions_samp_i)
+                    probs_l.append([1.0/len(actions_samp_i)] * len(actions_samp_i))
+                    actions_samp_flat = actions_samp_flat[num_samp_in:]
+
+                return actions_samp, probs_l
+
+        policy_fn = PolicyFnRand()
+
+    return policy_fn
+
+
 def solve_cli(args: argparse.Namespace) -> None:
     if not os.path.exists(args.results):
         os.makedirs(args.results)
@@ -49,34 +125,13 @@ def solve_cli(args: argparse.Namespace) -> None:
     # domain
     domain, domain_name = get_domain_from_arg(args.domain)
 
-    # heur fn
-    heur_fn: HeurFn
-    if args.heur is not None:
-        heur_nnet_par: HeurNNetPar = get_heur_nnet_par_from_arg(domain, domain_name, args.heur, args.heur_type)[0]
-        device, devices, on_gpu = nnet_utils.get_device()
-        print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
-
-        nnet: nn.Module = nnet_utils.load_nnet(args.heur_file, heur_nnet_par.get_nnet())
-        nnet.eval()
-        nnet.to(device)
-        nnet = nn.DataParallel(nnet)
-        heur_fn = heur_nnet_par.get_nnet_fn(nnet, args.nnet_batch_size, device, None)
-    else:
-        if args.heur_type.upper() == "V":
-            class HeurFnZerosV(HeurFnV):
-                def __call__(self, states_in: List[State], goals_in: List[Goal]) -> List[float]:
-                    return [0.0] * len(states_in)
-            heur_fn = HeurFnZerosV()
-        elif args.heur_type.upper() in {"QFIX", "QIN"}:
-            class HeurFnZerosQ(HeurFnQ):
-                def __call__(self, states_in: List[State], goals_in: List[Goal], actions_l_in: List[List[Action]]) -> List[List[float]]:
-                    heur_vals_l: List[List[float]] = []
-                    for actions_in in actions_l_in:
-                        heur_vals_l.append([0.0] * len(actions_in))
-                    return heur_vals_l
-            heur_fn = HeurFnZerosQ()
-        else:
-            raise ValueError(f"Unknown heur type {args.heur_type}")
+    # heur and policy fn
+    pathfind: PathFind = get_pathfind_from_arg(domain, args.heur_type, args.pathfind)[0]
+    heur_fn: Optional[HeurFn] = get_heur_fn(domain, domain_name, args.heur, args.heur_file, args.heur_type, args.nnet_batch_size)
+    policy_fn: Optional[PolicyFn] = get_policy_fn(domain, domain_name, args.policy, args.policy_file, isinstance(pathfind, PathFindHasPolicy),
+                                                  args.nnet_batch_size)
+    print(domain)
+    print(pathfind)
 
     # get data
     data: Dict = pickle.load(open(args.file, "rb"))
@@ -108,9 +163,13 @@ def solve_cli(args: argparse.Namespace) -> None:
         goal: Goal = goals[state_idx]
 
         # get pathfinding alg
-        pathfind: PathFind = get_pathfind_from_arg(domain, args.heur_type, args.pathfind)[0]
-        assert isinstance(pathfind, PathFindHeur), f"Current implementation only uses {PathFindHeur}"
-        pathfind.set_heur_fn(heur_fn)
+        pathfind = get_pathfind_from_arg(domain, args.heur_type, args.pathfind)[0]
+        if isinstance(pathfind, PathFindHasHeur):
+            assert heur_fn is not None
+            pathfind.set_heur_fn(heur_fn)
+        if isinstance(pathfind, PathFindHasPolicy):
+            assert policy_fn is not None
+            pathfind.set_policy_fn(policy_fn, args.policy_samp)
 
         # do pathfinding
         start_time = time.time()

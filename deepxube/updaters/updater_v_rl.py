@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, GoalSampleableFromState, State, Goal
 from deepxube.base.heuristic import HeurNNetParV, HeurFnV
-from deepxube.base.pathfinding import PathFindVHeur, Node, InstanceV
+from deepxube.base.pathfinding import PathFindNodeHasHeur, Node, InstanceNode
 from deepxube.base.updater import UpdateHER, UpdateHeurV, UpdateHeurRL, UpArgs, UpHeurArgs, D
 from deepxube.updaters.utils.replay_buffer_utils import ReplayBufferV
 from deepxube.utils import misc_utils
@@ -15,7 +15,7 @@ from deepxube.utils.timing_utils import Times
 import time
 
 
-def _pathfind_v_step(pathfind: PathFindVHeur) -> List[Node]:
+def _pathfind_v_step(pathfind: PathFindNodeHasHeur) -> List[Node]:
     # take a step
     nodes_popped: List[Node] = pathfind.step()
     assert len(nodes_popped) == len(pathfind.instances), f"Values were {len(nodes_popped)} and {len(pathfind.instances)}"
@@ -38,7 +38,7 @@ def _get_nodes_popped_data(nodes_popped: List[Node], times: Times) -> Tuple[List
     return states, goals, is_solved_l
 
 
-class UpdateHeurVRL(UpdateHeurV[D, PathFindVHeur], UpdateHeurRL[D, PathFindVHeur, InstanceV, HeurNNetParV, HeurFnV], ABC):
+class UpdateHeurVRL(UpdateHeurV[D, PathFindNodeHasHeur], UpdateHeurRL[D, PathFindNodeHasHeur, InstanceNode, HeurNNetParV, HeurFnV], ABC):
     def __init__(self, domain: D, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs, up_heur_args: UpHeurArgs):
         super().__init__(domain, pathfind_name, pathfind_kwargs, up_args)
         self.up_heur_args: UpHeurArgs = up_heur_args
@@ -47,7 +47,7 @@ class UpdateHeurVRL(UpdateHeurV[D, PathFindVHeur], UpdateHeurRL[D, PathFindVHeur
     def get_up_args_repr(self) -> str:
         return f"{super().get_up_args_repr()}\n{self.up_heur_args.__repr__()}"
 
-    def _step(self, pathfind: PathFindVHeur, times: Times) -> None:
+    def _step(self, pathfind: PathFindNodeHasHeur, times: Times) -> None:
         _pathfind_v_step(pathfind)
 
     def _value_iteration_target(self, goals: List[Goal], is_solved_l: List[bool], tcs_l: List[List[float]], states_exp: List[List[State]],
@@ -105,7 +105,7 @@ class UpdateHeurVRL(UpdateHeurV[D, PathFindVHeur], UpdateHeurRL[D, PathFindVHeur
 
 
 class UpdateHeurVRLKeepGoal(UpdateHeurVRL[Domain]):
-    def _step_sync_main(self, pathfind: PathFindVHeur, times: Times) -> List[NDArray]:
+    def _step_sync_main(self, pathfind: PathFindNodeHasHeur, times: Times) -> List[NDArray]:
         # take a step
         nodes_popped: List[Node] = _pathfind_v_step(pathfind)
 
@@ -120,7 +120,7 @@ class UpdateHeurVRLKeepGoal(UpdateHeurVRL[Domain]):
 
         return self._inputs_ctgs_to_np(states, goals, ctgs_backup, times)
 
-    def _get_instance_data_norb(self, instances: List[InstanceV], times: Times) -> List[NDArray]:
+    def _get_instance_data_norb(self, instances: List[InstanceNode], times: Times) -> List[NDArray]:
         # get popped node data
         nodes_popped: List[Node] = []
         for instance in instances:
@@ -153,7 +153,7 @@ class UpdateHeurVRLKeepGoal(UpdateHeurVRL[Domain]):
 
         return self._inputs_ctgs_to_np(states, goals, ctgs_backup, times)
 
-    def _get_instance_data_rb(self, instances: List[InstanceV], times: Times) -> List[NDArray]:
+    def _get_instance_data_rb(self, instances: List[InstanceNode], times: Times) -> List[NDArray]:
         # get popped node data
         nodes_popped: List[Node] = []
         for instance in instances:
@@ -169,8 +169,8 @@ class UpdateHeurVRLKeepGoal(UpdateHeurVRL[Domain]):
         return self._inputs_ctgs_to_np(states, goals, ctgs_backup, times)
 
 
-class UpdateHeurVRLHER(UpdateHeurVRL[GoalSampleableFromState], UpdateHER[PathFindVHeur, InstanceV]):
-    def _get_instance_data_rb(self, instances: List[InstanceV], times: Times) -> List[NDArray]:
+class UpdateHeurVRLHER(UpdateHeurVRL[GoalSampleableFromState], UpdateHER[PathFindNodeHasHeur, InstanceNode]):
+    def _get_instance_data_rb(self, instances: List[InstanceNode], times: Times) -> List[NDArray]:
         # get goals according to HER
         instances, goals_inst_her = self._get_her_goals(instances, times)
 

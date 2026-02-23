@@ -7,7 +7,7 @@ from deepxube._solve import parse_solve
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, StateGoalVizable, StringToAct, State, Action, Goal
 from deepxube.base.heuristic import HeurNNet, HeurNNetPar
-from deepxube.base.pathfinding import PathFind, PathFindHeur
+from deepxube.base.pathfinding import PathFind, PathFindHasHeur
 from deepxube.factories.domain_factory import domain_factory
 from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys, get_nnet_input_t
 from deepxube.factories.heuristic_factory import heuristic_factory
@@ -107,7 +107,7 @@ def pathfinding_info(args: argparse.Namespace) -> None:
         print(textwrap.indent(f"Mixins: {mixin_str}", '\t'))
 
         print(textwrap.indent(f"Domain type expected: {pathfind_t.domain_type()}", '\t'))
-        if issubclass(pathfind_t, PathFindHeur):
+        if issubclass(pathfind_t, PathFindHasHeur):
             print(textwrap.indent(f"Heuristic type expected: {pathfind_t.heur_fn_type()}", '\t'))
 
         parser: Optional[Parser] = pathfinding_factory.get_parser(name)

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 from deepxube.base.domain import State, Goal
 from deepxube.base.heuristic import HeurNNet, HeurNNetPar, HeurFn
-from deepxube.base.pathfinding import PathFind, Instance, PathFindHeur
+from deepxube.base.pathfinding import PathFind, Instance, PathFindHasHeur
 from deepxube.pathfinding.utils.performance import PathFindPerf
 from deepxube.base.updater import UpdateHeur
 from deepxube.training.train_utils import TrainArgs
@@ -40,7 +40,7 @@ class TestArgs:
 def get_pathfind_w_instances(heur_nnet_par: HeurNNetPar, heur_type: str, updater: UpdateHeur, train_heur: TrainHeur, test_args: TestArgs,
                              pathfind_arg: str) -> PathFind:
     pathfind: PathFind = get_pathfind_from_arg(updater.domain, heur_type, pathfind_arg)[0]
-    assert isinstance(pathfind, PathFindHeur)
+    assert isinstance(pathfind, PathFindHasHeur)
 
     heur_fn: HeurFn = heur_nnet_par.get_nnet_fn(train_heur.nnet, test_args.test_nnet_batch_size, train_heur.device, None)
     pathfind.set_heur_fn(heur_fn)

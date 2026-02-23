@@ -2,7 +2,7 @@ from abc import ABC
 from typing import List, Tuple, Dict, Optional, Any, TypeVar, Type
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, ActsEnum, State, Goal
-from deepxube.base.pathfinding import InstanceV, Node, PathFindVHeur, PathFindVExpandEnum
+from deepxube.base.pathfinding import InstanceNode, Node, PathFindNodeHasHeur, PathFindNodeActsEnum
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 import numpy as np
 from heapq import heappush, heappop, heapify
@@ -15,7 +15,7 @@ import time
 OpenSetElem = Tuple[float, int, Node]
 
 
-class InstanceBWAS(InstanceV):
+class InstanceBWAS(InstanceNode):
     def __init__(self, root_node: Node, batch_size: int, weight: float, eps: float, inst_info: Any):
         super().__init__(root_node, inst_info)
         self.open_set: List[OpenSetElem] = []
@@ -81,7 +81,7 @@ class InstanceBWAS(InstanceV):
 D = TypeVar('D', bound=Domain)
 
 
-class BWASActsAny(PathFindVHeur[D, InstanceBWAS], ABC):
+class BWASActsAny(PathFindNodeHasHeur[D, InstanceBWAS], ABC):
     def __init__(self, domain: D, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0):
         super().__init__(domain)
         self.batch_size_default: int = batch_size
@@ -90,7 +90,7 @@ class BWASActsAny(PathFindVHeur[D, InstanceBWAS], ABC):
 
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_heur: bool = True,
                        batch_size: Optional[int] = None, weight: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceBWAS]:
-        nodes_root: List[Node] = self._create_root_nodes(states, goals, compute_root_heur=compute_root_heur)
+        nodes_root: List[Node] = self._create_root_nodes_heur(states, goals, compute_root_heur=compute_root_heur)
         batch_size_inst: int = batch_size if batch_size is not None else self.batch_size_default
         weight_inst: float = weight if weight is not None else self.weight_default
         eps_inst: float = eps if eps is not None else self.eps_default
@@ -178,7 +178,7 @@ class BWASActsAny(PathFindVHeur[D, InstanceBWAS], ABC):
 
 
 @pathfinding_factory.register_class("bwas")
-class BWAS(BWASActsAny[ActsEnum], PathFindVExpandEnum[InstanceBWAS]):
+class BWAS(BWASActsAny[ActsEnum], PathFindNodeActsEnum[ActsEnum, InstanceBWAS]):
     @staticmethod
     def domain_type() -> Type[ActsEnum]:
         return ActsEnum

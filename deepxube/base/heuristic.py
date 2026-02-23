@@ -4,7 +4,7 @@ from typing import List, Any, TypeVar, Generic, cast, Tuple, Optional, Type, Pro
 import numpy as np
 from numpy.typing import NDArray
 
-from deepxube.base.domain import State, Goal, Action
+from deepxube.base.domain import Domain, State, Goal, Action
 from deepxube.base.nnet_input import NNetInput
 from deepxube.nnet.nnet_utils import NNetParInfo, nnet_batched, NNetPar, get_nnet_par_out
 from deepxube.utils import misc_utils
@@ -30,6 +30,8 @@ class DeepXubeNNet(nn.Module, Generic[In], ABC):
     def forward(self, inputs: List[Tensor]) -> List[Tensor]:
         pass
 
+
+# Heuristic functions
 
 class HeurNNet(DeepXubeNNet[In]):
     def __init__(self, nnet_input: In, out_dim: int, q_fix: bool, **kwargs: Any):
@@ -232,3 +234,14 @@ class HeurNNetParQIn(HeurNNetParQ, ABC):
         q_vals_flat: List[float] = q_vals_np.astype(np.float64).tolist()
         q_vals_l: List[List[float]] = misc_utils.unflatten(q_vals_flat, split_idxs)
         return q_vals_l
+
+
+# Policy function
+
+@runtime_checkable
+class PolicyFn(Protocol):
+    def __call__(self, domain: Domain, states: List[State], goals: List[Goal], num_samp: int) -> Tuple[List[List[Action]], List[List[float]]]:
+        """ Map states and goals to sampled actions along with their probability densities
+
+        """
+        ...

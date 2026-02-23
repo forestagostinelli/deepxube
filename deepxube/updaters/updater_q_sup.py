@@ -3,7 +3,7 @@ from typing import List
 from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, State, Action, Goal
-from deepxube.base.pathfinding import EdgeQ, InstanceQ
+from deepxube.base.pathfinding import EdgeQ, InstanceEdge
 from deepxube.base.updater import UpdateHeurQ, UpdateHeurSup
 from deepxube.utils.timing_utils import Times
 from deepxube.base.heuristic import HeurNNetParQ, HeurFnQ
@@ -12,12 +12,12 @@ from deepxube.pathfinding.supervised_q import PathFindQSup
 import numpy as np
 
 
-class UpdateHeurQSup(UpdateHeurQ[Domain, PathFindQSup], UpdateHeurSup[Domain, PathFindQSup, InstanceQ, HeurNNetParQ, HeurFnQ]):
+class UpdateHeurQSup(UpdateHeurQ[Domain, PathFindQSup], UpdateHeurSup[Domain, PathFindQSup, InstanceEdge, HeurNNetParQ, HeurFnQ]):
     def _step(self, pathfind: PathFindQSup, times: Times) -> None:
         edges_popped: List[EdgeQ] = pathfind.step()
         assert len(edges_popped) == len(pathfind.instances), f"Values were {len(edges_popped)} and {len(pathfind.instances)}"
 
-    def _get_instance_data_norb(self, instances: List[InstanceQ], times: Times) -> List[NDArray]:
+    def _get_instance_data_norb(self, instances: List[InstanceEdge], times: Times) -> List[NDArray]:
         edges_popped: List[EdgeQ] = []
         for instance in instances:
             edges_popped.extend(instance.edges_popped)

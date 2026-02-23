@@ -13,7 +13,7 @@ from numpy.typing import NDArray
 from deepxube.nnet.nnet_utils import NNetParInfo, NNetCallable, NNetPar, get_nnet_par_infos, start_nnet_fn_runners, stop_nnet_runners
 from deepxube.base.domain import Domain, State, Action, Goal, GoalSampleableFromState
 from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ, HeurFn, HeurFnV, HeurFnQ
-from deepxube.base.pathfinding import PathFind, PathFindHeur, PathFindSup, Instance, InstanceV, InstanceQ, get_path, Node
+from deepxube.base.pathfinding import PathFind, PathFindHasHeur, PathFindSup, Instance, InstanceNode, InstanceEdge, get_path, Node
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.pathfinding.utils.performance import PathFindPerf, print_pathfindperf
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd, get_nowait_noerr
@@ -501,7 +501,6 @@ class UpdateHER(Update[GoalSampleableFromState, P, Inst], ABC):
         return instances_goalkeep + instances_relabel, goals_goalkeep + goals_relabel
 
 
-
 HNet = TypeVar('HNet', bound=HeurNNetPar)
 H = TypeVar('H', bound=HeurFn)
 
@@ -537,7 +536,7 @@ class UpdateHeur(UpdateHasHeur[D, P, Inst, HNet, H]):
         pass
 
 
-class UpdateHeurV(UpdateHeur[D, P, InstanceV, HeurNNetParV, HeurFnV], ABC):
+class UpdateHeurV(UpdateHeur[D, P, InstanceNode, HeurNNetParV, HeurFnV], ABC):
     def get_heur_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.domain.sample_start_goal_pairs([0])
         inputs_nnet: List[NDArray[Any]] = self.get_heur_nnet_par().to_np(states, goals)
@@ -550,7 +549,7 @@ class UpdateHeurV(UpdateHeur[D, P, InstanceV, HeurNNetParV, HeurFnV], ABC):
         return shapes_dtypes
 
 
-class UpdateHeurQ(UpdateHeur[D, P, InstanceQ, HeurNNetParQ, HeurFnQ], ABC):
+class UpdateHeurQ(UpdateHeur[D, P, InstanceEdge, HeurNNetParQ, HeurFnQ], ABC):
     def get_heur_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.domain.sample_start_goal_pairs([0])
         actions: List[Action] = self.domain.sample_state_action(states)
@@ -564,7 +563,7 @@ class UpdateHeurQ(UpdateHeur[D, P, InstanceQ, HeurNNetParQ, HeurFnQ], ABC):
         return shapes_dtypes
 
 
-PH = TypeVar('PH', bound=PathFindHeur)
+PH = TypeVar('PH', bound=PathFindHasHeur)
 
 
 class UpdateHeurRL(UpdateHeur[D, PH, Inst, HNet, H], ABC):

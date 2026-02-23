@@ -2,7 +2,7 @@ from typing import Tuple, Optional, List, Dict, Any, Type
 
 from deepxube.base.domain import Domain
 from deepxube.base.heuristic import HeurNNetPar
-from deepxube.base.pathfinding import PathFind, PathFindHeur, PathFindVHeur, PathFindQHeur
+from deepxube.base.pathfinding import PathFind, PathFindHasHeur, PathFindNodeHasHeur, PathFindEdgeHasHeur
 
 from deepxube.factories.domain_factory import domain_factory
 from deepxube.factories.heuristic_factory import heuristic_factory, build_heur_nnet_par
@@ -46,10 +46,11 @@ def get_pathfind_from_arg(domain: Domain, heur_type: str, pathfind: str) -> Tupl
 
     # check heur type
     pathfind_t: Type[PathFind] = pathfinding_factory.get_type(pathfind_name)
-    if issubclass(pathfind_t, PathFindHeur):
-        if issubclass(pathfind_t, PathFindVHeur):
+    if issubclass(pathfind_t, PathFindHasHeur):
+        assert heur_type is not None, "Should specify heuristic type"
+        if issubclass(pathfind_t, PathFindNodeHasHeur):
             assert heur_type.upper() == "V", f"must use a V heur_type for pathfinding algorithm {pathfind_name, pathfind_t}"
-        elif issubclass(pathfind_t, PathFindQHeur):
+        elif issubclass(pathfind_t, PathFindEdgeHasHeur):
             assert heur_type.upper() in {"QFIX", "QIN"}, f"must use a QFix or QIn heur_types for pathfinding algorithm {pathfind_name, pathfind_t}"
         else:
             raise ValueError(f"Unknown subclass of PathFindHeur {pathfind_t}")

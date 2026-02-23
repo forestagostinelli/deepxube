@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, GoalSampleableFromState, Action, State, Goal
 from deepxube.base.heuristic import HeurNNetParQ, HeurFnQ
-from deepxube.base.pathfinding import PathFindQHeur, EdgeQ, InstanceQ, Node
+from deepxube.base.pathfinding import PathFindEdgeHasHeur, EdgeQ, InstanceEdge, Node
 from deepxube.base.updater import UpdateHER, UpdateHeurQ, UpdateHeurRL, D, UpArgs, UpHeurArgs
 from deepxube.updaters.utils.replay_buffer_utils import ReplayBufferQ
 from deepxube.utils.timing_utils import Times
@@ -14,7 +14,7 @@ from deepxube.utils.timing_utils import Times
 import time
 
 
-def _pathfind_q_step(pathfind: PathFindQHeur) -> List[EdgeQ]:
+def _pathfind_q_step(pathfind: PathFindEdgeHasHeur) -> List[EdgeQ]:
     edges_popped: List[EdgeQ] = pathfind.step()
     assert len(edges_popped) == len(pathfind.instances), f"Values were {len(edges_popped)} and {len(pathfind.instances)}"
 
@@ -44,7 +44,7 @@ def _get_edge_popped_data(edges_popped: List[EdgeQ],
     return states, goals, is_solved_l, actions, tcs, states_next
 
 
-class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur, InstanceQ, HeurNNetParQ, HeurFnQ], ABC):
+class UpdateHeurQRL(UpdateHeurQ[D, PathFindEdgeHasHeur], UpdateHeurRL[D, PathFindEdgeHasHeur, InstanceEdge, HeurNNetParQ, HeurFnQ], ABC):
     def __init__(self, domain: D, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs, up_heur_args: UpHeurArgs):
         super().__init__(domain, pathfind_name, pathfind_kwargs, up_args)
         self.up_heur_args: UpHeurArgs = up_heur_args
@@ -53,7 +53,7 @@ class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur
     def get_up_args_repr(self) -> str:
         return f"{super().get_up_args_repr()}\n{self.up_heur_args.__repr__()}"
 
-    def _step(self, pathfind: PathFindQHeur, times: Times) -> None:
+    def _step(self, pathfind: PathFindEdgeHasHeur, times: Times) -> None:
         _pathfind_q_step(pathfind)
 
     def _get_qvals_targ(self, states: List[State], goals: List[Goal]) -> List[List[float]]:
@@ -105,7 +105,7 @@ class UpdateHeurQRL(UpdateHeurQ[D, PathFindQHeur], UpdateHeurRL[D, PathFindQHeur
 
 
 class UpdateHeurQRLKeepGoal(UpdateHeurQRL[Domain]):
-    def _step_sync_main(self, pathfind: PathFindQHeur, times: Times) -> List[NDArray]:
+    def _step_sync_main(self, pathfind: PathFindEdgeHasHeur, times: Times) -> List[NDArray]:
         # take a step
         edges_popped: List[EdgeQ] = _pathfind_q_step(pathfind)
 
@@ -120,7 +120,7 @@ class UpdateHeurQRLKeepGoal(UpdateHeurQRL[Domain]):
 
         return self._inputs_ctgs_to_np(states, goals, actions, ctgs_backup, times)
 
-    def _get_instance_data_norb(self, instances: List[InstanceQ], times: Times) -> List[NDArray]:
+    def _get_instance_data_norb(self, instances: List[InstanceEdge], times: Times) -> List[NDArray]:
         # get popped edge data
         edges_popped: List[EdgeQ] = []
         for instance in instances:
@@ -158,7 +158,7 @@ class UpdateHeurQRLKeepGoal(UpdateHeurQRL[Domain]):
         # to_np
         return self._inputs_ctgs_to_np(states, goals, actions, ctgs_backup, times)
 
-    def _get_instance_data_rb(self, instances: List[InstanceQ], times: Times) -> List[NDArray]:
+    def _get_instance_data_rb(self, instances: List[InstanceEdge], times: Times) -> List[NDArray]:
         # get popped edge data
         edges_popped: List[EdgeQ] = []
         for instance in instances:
@@ -174,8 +174,8 @@ class UpdateHeurQRLKeepGoal(UpdateHeurQRL[Domain]):
         return self._inputs_ctgs_to_np(states, goals, actions, ctgs_backup, times)
 
 
-class UpdateHeurQRLHER(UpdateHeurQRL[GoalSampleableFromState], UpdateHER[PathFindQHeur, InstanceQ]):
-    def _get_instance_data_rb(self, instances: List[InstanceQ], times: Times) -> List[NDArray]:
+class UpdateHeurQRLHER(UpdateHeurQRL[GoalSampleableFromState], UpdateHER[PathFindEdgeHasHeur, InstanceEdge]):
+    def _get_instance_data_rb(self, instances: List[InstanceEdge], times: Times) -> List[NDArray]:
         # get goals according to HER
         instances, goals_inst_her = self._get_her_goals(instances, times)
 
