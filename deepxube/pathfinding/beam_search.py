@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Any, Type, Optional, TypeVar, Generic, Tuple, Dict
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, ActsEnum, State, Action, Goal
-from deepxube.base.pathfinding import (Instance, InstanceNode, InstanceEdge, Node, EdgeQ, PathFind, PathFindEdge, PathFindNode, PathFindEdgeActsPolicy,
+from deepxube.base.pathfinding import (Instance, InstanceNode, InstanceEdge, Node, EdgeQ, PathFind, PathFindEdgeActsPolicy,
                                        PathFindNodeActsPolicy, PathFindNodeHasHeur, PathFindEdgeHasHeur, PathFindNodeActsEnum, PathFindEdgeActsEnum)
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.utils import misc_utils
@@ -176,29 +176,8 @@ class InstanceNodeBeam(InstanceNode, InstanceBeam):
     pass
 
 
-class BeamSearchEdge(BeamSearch[D, InstanceEdgeBeam, EdgeQ], PathFindEdge[D, InstanceEdgeBeam], ABC):
-    def _get_next_nodes(self, instances: List[InstanceEdgeBeam], edges_l: List[List[EdgeQ]]) -> Tuple[List[List[Node]], List[EdgeQ]]:
-        edges_flat: List[EdgeQ] = misc_utils.flatten(edges_l)[0]
-        return self.get_next_nodes(instances, edges_l), edges_flat
-
-
-class BeamSearchNode(BeamSearch[D, InstanceNodeBeam, Node], PathFindNode[D, InstanceNodeBeam], ABC):
-    def _get_next_nodes(self, instances: List[InstanceNodeBeam], edges_l: List[List[EdgeQ]]) -> Tuple[List[List[Node]], List[Node]]:
-        start_time = time.time()
-        edges_flat, split_idxs = misc_utils.flatten(edges_l)
-        nodes_flat: List[Node] = [edge.node for edge in edges_flat]
-        actions_flat: List[Action] = [edge.action for edge in edges_flat]
-
-        nodes_next_flat: List[Node] = [node.edge_dict[action][1] for node, action in zip(nodes_flat, actions_flat)]
-        nodes_next: List[List[Node]] = misc_utils.unflatten(nodes_next_flat, split_idxs)
-
-        self.times.record_time("node_edge_next", time.time() - start_time)
-
-        return nodes_next, nodes_flat
-
-
 @pathfinding_factory.register_class("beam_p")
-class BeamSearchPolicy(BeamSearchEdge[Domain], PathFindEdgeActsPolicy[Domain, InstanceEdgeBeam]):
+class BeamSearchPolicy(BeamSearch[Domain, InstanceEdgeBeam, EdgeQ], PathFindEdgeActsPolicy[Domain, InstanceEdgeBeam]):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -233,8 +212,12 @@ class BeamSearchPolicy(BeamSearchEdge[Domain], PathFindEdgeActsPolicy[Domain, In
 
         return edges_by_inst, logits_by_inst
 
+    def _get_next_nodes(self, instances: List[InstanceEdgeBeam], edges_l: List[List[EdgeQ]]) -> Tuple[List[List[Node]], List[EdgeQ]]:
+        edges_flat: List[EdgeQ] = misc_utils.flatten(edges_l)[0]
+        return self.get_next_nodes(instances, edges_l), edges_flat
 
-class BeamSearchHeurNode(BeamSearchNode[D], PathFindNodeHasHeur[D, InstanceNodeBeam], ABC):
+
+class BeamSearchHeurNode(BeamSearch[D, InstanceNodeBeam, Node], PathFindNodeHasHeur[D, InstanceNodeBeam], ABC):
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_heur: bool = True,
                        beam_size: Optional[int] = None, temp: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceNodeBeam]:
         nodes_root: List[Node] = self._create_root_nodes_heur(states, goals, compute_root_heur)
@@ -242,11 +225,11 @@ class BeamSearchHeurNode(BeamSearchNode[D], PathFindNodeHasHeur[D, InstanceNodeB
 
     def _get_edges_and_logits(self, instances: List[InstanceNodeBeam], nodes_by_inst: List[List[Node]]) -> Tuple[List[List[EdgeQ]], List[List[float]]]:
         # expand
-        self._expand_nodes(instances, nodes_by_inst)
+        nodes_next_l: List[List[Node]] = self._expand_nodes(instances, nodes_by_inst)
 
         # get child heuristic values
-        nodes_flat: List[Node] = misc_utils.flatten(nodes_by_inst)[0]
-        self._set_node_heurs(nodes_flat)
+        nodes_next_flat: List[Node] = misc_utils.flatten(nodes_next_l)[0]
+        self._set_node_heurs(nodes_next_flat)
 
         # get edges and logits
         start_time = time.time()
@@ -257,9 +240,16 @@ class BeamSearchHeurNode(BeamSearchNode[D], PathFindNodeHasHeur[D, InstanceNodeB
             edges: List[EdgeQ] = []
             logits: List[float] = []
             for node in nodes:
-                for action, (t_cost, child) in node.edge_dict.items():
+                for action, _ in node.edge_dict.items():
                     edges.append(EdgeQ(node, action, 0.0))
-                    logits.append(-(t_cost + child.heuristic))
+
+                assert node.is_solved is not None
+                if node.is_solved:
+                    for _ in node.edge_dict.items():
+                        logits.append(0.0)
+                else:
+                    for action, (t_cost, child) in node.edge_dict.items():
+                        logits.append(-(t_cost + child.heuristic))
 
             edges_by_inst.append(edges)
             logits_by_inst.append(logits)
@@ -267,8 +257,21 @@ class BeamSearchHeurNode(BeamSearchNode[D], PathFindNodeHasHeur[D, InstanceNodeB
 
         return edges_by_inst, logits_by_inst
 
+    def _get_next_nodes(self, instances: List[InstanceNodeBeam], edges_l: List[List[EdgeQ]]) -> Tuple[List[List[Node]], List[Node]]:
+        start_time = time.time()
+        edges_flat, split_idxs = misc_utils.flatten(edges_l)
+        nodes_flat: List[Node] = [edge.node for edge in edges_flat]
+        actions_flat: List[Action] = [edge.action for edge in edges_flat]
 
-class BeamSearchHeurEdge(BeamSearchEdge[D], PathFindEdgeHasHeur[D, InstanceEdgeBeam], ABC):
+        nodes_next_flat: List[Node] = [node.edge_dict[action][1] for node, action in zip(nodes_flat, actions_flat)]
+        nodes_next: List[List[Node]] = misc_utils.unflatten(nodes_next_flat, split_idxs)
+
+        self.times.record_time("node_edge_next", time.time() - start_time)
+
+        return nodes_next, nodes_flat
+
+
+class BeamSearchHeurEdge(BeamSearch[D, InstanceEdgeBeam, EdgeQ], PathFindEdgeHasHeur[D, InstanceEdgeBeam], ABC):
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_heur: bool = True,
                        beam_size: Optional[int] = None, temp: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceEdgeBeam]:
         nodes_root: List[Node] = self._create_root_nodes_heur(states, goals, compute_root_heur)
@@ -277,7 +280,8 @@ class BeamSearchHeurEdge(BeamSearchEdge[D], PathFindEdgeHasHeur[D, InstanceEdgeB
     def _get_edges_and_logits(self, instances: List[InstanceEdgeBeam], nodes_by_inst: List[List[Node]]) -> Tuple[List[List[EdgeQ]], List[List[float]]]:
         # get qvalues
         nodes_qvalues_none: List[Node] = [x for x in misc_utils.flatten(nodes_by_inst)[0] if x.q_values is None]
-        self._set_node_heurs(nodes_qvalues_none)
+        if len(nodes_qvalues_none) > 0:
+            self._set_node_heurs(nodes_qvalues_none)
 
         # get edges
         start_time = time.time()
@@ -298,6 +302,15 @@ class BeamSearchHeurEdge(BeamSearchEdge[D], PathFindEdgeHasHeur[D, InstanceEdgeB
         self.times.record_time("edges_logits", time.time() - start_time)
 
         return edges_by_inst, logits_by_inst
+
+    def _get_next_nodes(self, instances: List[InstanceEdgeBeam], edges_l: List[List[EdgeQ]]) -> Tuple[List[List[Node]], List[EdgeQ]]:
+        nodes_next_l: List[List[Node]] = self.get_next_nodes(instances, edges_l)
+        nodes_next_flat: List[Node] = misc_utils.flatten(nodes_next_l)[0]
+        self._set_node_heurs(nodes_next_flat)
+
+        edges_flat: List[EdgeQ] = misc_utils.flatten(edges_l)[0]
+
+        return nodes_next_l, edges_flat
 
 
 @pathfinding_factory.register_class("beam_v")
