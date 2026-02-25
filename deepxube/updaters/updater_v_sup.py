@@ -21,7 +21,7 @@ class UpdateHeurVSup(UpdateHeurV[Domain, PathFindVSup], UpdateHeurSup[Domain, Pa
     def _get_instance_data_norb(self, instances: List[InstanceNode], times: Times) -> List[NDArray]:
         nodes_popped: List[Node] = []
         for instance in instances:
-            nodes_popped.extend(instance.nodes_popped)
+            nodes_popped.extend(instance.sch_over_popped)
 
         inputs_ctgs: List[NDArray] = self._get_inputs_ctgs(nodes_popped)
         return inputs_ctgs

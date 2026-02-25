@@ -7,6 +7,21 @@ import time
 
 
 class InstanceSupV(InstanceNode):
+    def filter_expanded_nodes(self, nodes: List[Node]) -> List[Node]:
+        raise NotImplementedError
+
+    def frontier_size(self) -> int:
+        raise NotImplementedError
+
+    def pop_nodes(self) -> List[Node]:
+        raise NotImplementedError
+
+    def record_goal(self, nodes: List[Node]) -> None:
+        raise NotImplementedError
+
+    def push_nodes(self, nodes: List[Node], costs: List[float]) -> None:
+        raise NotImplementedError
+
     def __init__(self, root_node: Node, path_cost_sup: float, inst_info: Any):
         super().__init__(root_node, inst_info)
         self.path_cost_sup: float = path_cost_sup
@@ -18,7 +33,7 @@ class InstanceSupV(InstanceNode):
 D = TypeVar('D', bound=Domain)
 
 
-class PathFindVSup(PathFindNode[D, InstanceSupV], PathFindSup[D, InstanceSupV], ABC):
+class PathFindVSup(PathFindNode[D, InstanceSupV], PathFindSup[D, InstanceSupV, Node], ABC):
     def step(self, verbose: bool = False) -> List[Node]:
         nodes: List[Node] = []
         for instance in self.instances:
@@ -26,7 +41,7 @@ class PathFindVSup(PathFindNode[D, InstanceSupV], PathFindSup[D, InstanceSupV], 
             node_root.heuristic = instance.path_cost_sup
             node_root.backup_val = instance.path_cost_sup
             nodes.append(node_root)
-            instance.nodes_popped.append(node_root)
+            instance.sch_over_popped.append(node_root)
             instance.itr += 1
         start_time = time.time()
         self.set_is_solved(nodes)
@@ -40,8 +55,14 @@ class PathFindVSup(PathFindNode[D, InstanceSupV], PathFindSup[D, InstanceSupV], 
     def _get_heur_vals(self, states: List[State], goals: List[Goal]) -> List[float]:
         raise NotImplementedError
 
+    def _eval_nodes(self, instances: List[InstanceSupV], nodes_by_inst: List[List[Node]]) -> None:
+        raise NotImplementedError
+
+    def _compute_costs(self, instances: List[InstanceSupV], nodes_by_inst: List[List[Node]]) -> List[List[float]]:
+        raise NotImplementedError
+
     def _make_instances(self, states_start: List[State], goals: List[Goal], path_costs: List[float], inst_infos: Optional[List[Any]]) -> List[InstanceSupV]:
-        nodes_root: List[Node] = self._create_root_nodes(states_start, goals, compute_root_heur=False)
+        nodes_root: List[Node] = self._create_root_nodes(states_start, goals)
 
         start_time = time.time()
         if inst_infos is None:

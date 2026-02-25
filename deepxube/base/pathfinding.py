@@ -125,13 +125,29 @@ class EdgeQ:
         self.q_val: float = q_val
 
 
-class Instance(ABC):
+SchOver = TypeVar('SchOver')
+
+
+class Instance(ABC, Generic[SchOver]):
     def __init__(self, root_node: Node, inst_info: Any):
         self.root_node: Node = root_node
         self.itr: int = 0  # updater with every pathfinding iteration
         self.num_nodes_generated: int = 0
         self.inst_info: Any = inst_info
         self.goal_node: Optional[Node] = None
+        self.sch_over_popped: List[SchOver] = []
+
+    @abstractmethod
+    def frontier_size(self) -> int:
+        pass
+
+    @abstractmethod
+    def pop_nodes(self) -> List[Node]:
+        pass
+
+    @abstractmethod
+    def record_goal(self, nodes: List[Node]) -> None:
+        pass
 
     def has_soln(self) -> bool:
         if self.goal_node is None:
@@ -154,10 +170,9 @@ class Instance(ABC):
 I = TypeVar('I', bound=Instance)
 D = TypeVar('D', bound=Domain)
 
-
 # pathfinding
 
-class PathFind(Generic[D, I], ABC):
+class PathFind(Generic[D, I, SchOver], ABC):
     @staticmethod
     @abstractmethod
     def domain_type() -> Type[D]:
@@ -186,7 +201,7 @@ class PathFind(Generic[D, I], ABC):
         self.instances.extend(instances)
 
     @abstractmethod
-    def step(self, verbose: bool = False) -> Any:
+    def step(self, verbose: bool = False) -> List[SchOver]:
         pass
 
     def remove_finished_instances(self, itr_max: int) -> List[I]:
@@ -218,6 +233,7 @@ class PathFind(Generic[D, I], ABC):
         return instances_remove
 
     def set_is_solved(self, nodes: List[Node]) -> None:
+        start_time = time.time()
         states: List[State] = []
         goals: List[Goal] = []
         for node in nodes:
@@ -228,13 +244,42 @@ class PathFind(Generic[D, I], ABC):
         for node, is_solved in zip(nodes, is_solved_l, strict=True):
             node.is_solved = is_solved
 
+        self.times.record_time("is_solved", time.time() - start_time)
+
+    def _create_root_nodes(self, states: List[State], goals: List[Goal]) -> List[Node]:
+        start_time = time.time()
+
+        root_nodes: List[Node] = []
+        for state, goal in zip(states, goals, strict=True):
+            root_node: Node = Node(state, goal, 0.0, 0.0, None, None, None, None, None)
+            root_nodes.append(root_node)
+
+        self.times.record_time("root", time.time() - start_time)
+
+        return root_nodes
+
+    def _verbose(self, instances: List[I], nodes_by_inst: List[List[Node]]) -> None:
+        nodes_flat: List[Node] = misc_utils.flatten(nodes_by_inst)[0]
+        if len(nodes_flat) > 0:
+            heuristics: List[float] = [node.heuristic for node in nodes_flat]
+            path_costs: List[float] = [node.path_cost for node in nodes_flat]
+            frontier_sizes: List[int] = [instance.frontier_size() for instance in instances]
+            per_has_soln: float = 100.0 * float(np.mean([inst.has_soln() for inst in instances]))
+            per_finished: float = 100.0 * float(np.mean([inst.finished() for inst in instances]))
+
+            print(f"Itr: {self.itr}, Heur(PathCost)(Min/Max): "
+                  f"{float(np.min(heuristics)):.2E}({float(path_costs[np.argmin(heuristics)]):.2E})/"
+                  f"{float(np.max(heuristics)):.2E}({float(path_costs[np.argmax(heuristics)]):.2E}),"
+                  f" Frontier sizes(Min/Max): {min(frontier_sizes)}/{max(frontier_sizes)}, %has_soln: {per_has_soln}, %finished: {per_finished}")
+        print(f"Times - {self.times.get_time_str()}\n")
+
 
 # pathfinding with functions
 
 H = TypeVar('H', bound=HeurFn)
 
 
-class PathFindHasHeur(PathFind[D, I], Generic[D, I, H], ABC):
+class PathFindHasHeur(PathFind[D, I, SchOver], Generic[D, I, SchOver, H], ABC):
     @staticmethod
     @abstractmethod
     def heur_fn_type() -> Type[H]:
@@ -267,7 +312,7 @@ class PathFindHasHeur(PathFind[D, I], Generic[D, I, H], ABC):
         return root_nodes
 
 
-class PathFindHasPolicy(PathFind[D, I], ABC):
+class PathFindHasPolicy(PathFind[D, I, SchOver], ABC):
     def __init__(self, domain: D):
         super().__init__(domain)
         self.policy_fn: Optional[PolicyFn] = None
@@ -281,18 +326,6 @@ class PathFindHasPolicy(PathFind[D, I], ABC):
         assert self.policy_fn is not None
         assert self.num_acts_samp is not None
         return self.policy_fn(self.domain, states, goals, self.num_acts_samp)
-
-    def _create_root_nodes_policy(self, states: List[State], goals: List[Goal]) -> List[Node]:
-        start_time = time.time()
-
-        root_nodes: List[Node] = []
-        for state, goal in zip(states, goals, strict=True):
-            root_node: Node = Node(state, goal, 0.0, 0.0, None, None, None, None, None)
-            root_nodes.append(root_node)
-
-        self.times.record_time("root", time.time() - start_time)
-
-        return root_nodes
 
     def _set_node_act_probs(self, nodes: List[Node]) -> None:
         start_time = time.time()
@@ -311,34 +344,97 @@ class PathFindHasPolicy(PathFind[D, I], ABC):
 
 # pathfinding on nodes or edges of graph
 
-class InstanceNode(Instance, ABC):
-    def __init__(self, root_node: Node, inst_info: Any):
-        super().__init__(root_node, inst_info)
-        self.nodes_popped: List[Node] = []
+class InstanceNode(Instance[Node], ABC):
+    @abstractmethod
+    def filter_expanded_nodes(self, nodes: List[Node]) -> List[Node]:
+        pass
+
+    @abstractmethod
+    def push_nodes(self, nodes: List[Node], costs: List[float]) -> None:
+        pass
 
 
 INode = TypeVar('INode', bound=InstanceNode)
 
 
-class InstanceEdge(Instance, ABC):
-    def __init__(self, root_node: Node, inst_info: Any):
-        super().__init__(root_node, inst_info)
-        self.edges_popped: List[EdgeQ] = []
+class InstanceEdge(Instance[EdgeQ], ABC):
+    @abstractmethod
+    def filter_popped_nodes(self, nodes: List[Node]) -> List[Node]:
+        pass
+
+    @abstractmethod
+    def push_edges(self, edges: List[EdgeQ], costs: List[float]) -> List[EdgeQ]:
+        pass
+
+    @abstractmethod
+    def set_next_nodes(self, nodes_next: List[Node]) -> None:
+        pass
 
 
 IEdge = TypeVar('IEdge', bound=InstanceEdge)
 
 
-class PathFindNode(PathFind[D, INode]):
-    @abstractmethod
+class PathFindNode(PathFind[D, INode, Node]):
     def step(self, verbose: bool = False) -> List[Node]:
-        pass
+        instances: List[INode] = [instance for instance in self.instances if not instance.finished()]
+        if len(instances) == 0:
+            self.itr += 1  # TODO make more elegant
+            return []
+
+        # pop from open
+        start_time = time.time()
+        nodes_popped_by_inst: List[List[Node]] = [instance.pop_nodes() for instance in instances]
+        nodes_popped_flat: List[Node] = misc_utils.flatten(nodes_popped_by_inst)[0]
+        self.times.record_time("pop", time.time() - start_time)
+
+        # is solved
+        start_time = time.time()
+        self.set_is_solved(nodes_popped_flat)
+        self.times.record_time("is_solved", time.time() - start_time)
+
+        # record goal
+        start_time = time.time()
+        for instance, nodes in zip(instances, nodes_popped_by_inst, strict=True):
+            instance.record_goal(nodes)
+        self.times.record_time("goal", time.time() - start_time)
+
+        # expand
+        nodes_exp_by_inst: List[List[Node]] = self._expand(instances, nodes_popped_by_inst)
+
+        # eval nodes
+        self._eval_nodes(instances, nodes_exp_by_inst)
+
+        # filter expanded nodes
+        start_time = time.time()
+        for inst_idx, instance in enumerate(instances):
+            nodes_exp_by_inst[inst_idx] = instance.filter_expanded_nodes(nodes_exp_by_inst[inst_idx])
+        self.times.record_time("filt", time.time() - start_time)
+
+        # get costs
+        costs_by_inst: List[List[float]] = self._compute_costs(instances, nodes_exp_by_inst)
+
+        # push
+        start_time = time.time()
+        for instance, nodes_exp, costs in zip(instances, nodes_exp_by_inst, costs_by_inst, strict=True):
+            instance.push_nodes(nodes_exp, costs)
+        self.times.record_time("push", time.time() - start_time)
+
+        # update iterations
+        self.itr += 1
+        for instance in instances:
+            instance.itr += 1
+
+        # verbose
+        if verbose:
+            self._verbose(instances, nodes_popped_by_inst)
+
+        return nodes_popped_flat
 
     @abstractmethod
     def expand_states(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
         pass
 
-    def _expand_nodes(self, instances: List[INode], nodes_by_inst: List[List[Node]]) -> List[List[Node]]:
+    def _expand(self, instances: List[INode], nodes_by_inst: List[List[Node]]) -> List[List[Node]]:
         start_time = time.time()
         # flatten (for speed)
         nodes: List[Node]
@@ -377,7 +473,7 @@ class PathFindNode(PathFind[D, INode]):
                 node.add_edge(action, t_cost, node_c)
                 nodes_c_i.append(node_c)
             nodes_c.extend(nodes_c_i)
-        self.times.record_time("make_nodes", time.time() - start_time)
+        self.times.record_time("nodes", time.time() - start_time)
 
         # get child nodes by instance
         start_time = time.time()
@@ -388,18 +484,86 @@ class PathFindNode(PathFind[D, INode]):
             nodes_c_by_inst.append(misc_utils.flatten(nodes_c_by_inst_state_i)[0])
 
         for instance, nodes_by_inst_i, nodes_c_by_inst_i in zip(instances, nodes_by_inst, nodes_c_by_inst, strict=True):
-            instance.nodes_popped.extend(nodes_by_inst_i)
+            instance.sch_over_popped.extend(nodes_by_inst_i)
             instance.num_nodes_generated += len(nodes_c_by_inst_i)
 
         self.times.record_time("up_inst", time.time() - start_time)
 
         return nodes_c_by_inst
 
-
-class PathFindEdge(PathFind[D, IEdge]):
     @abstractmethod
-    def step(self, verbose: bool = False) -> List[EdgeQ]:
+    def _eval_nodes(self, instances: List[INode], nodes_by_inst: List[List[Node]]) -> None:
         pass
+
+    @abstractmethod
+    def _compute_costs(self, instances: List[INode], nodes_by_inst: List[List[Node]]) -> List[List[float]]:
+        pass
+
+
+class PathFindEdge(PathFind[D, IEdge, EdgeQ]):
+    def step(self, verbose: bool = False) -> List[EdgeQ]:
+        instances: List[IEdge] = [instance for instance in self.instances if not instance.finished()]
+        if len(instances) == 0:
+            self.itr += 1  # TODO make more elegant
+            return []
+
+        # pop from open
+        start_time = time.time()
+        nodes_popped_by_inst: List[List[Node]] = [instance.pop_nodes() for instance in instances]
+        nodes_popped_flat: List[Node] = misc_utils.flatten(nodes_popped_by_inst)[0]
+        self.times.record_time("pop", time.time() - start_time)
+
+        # is solved
+        start_time = time.time()
+        self.set_is_solved(nodes_popped_flat)
+        self.times.record_time("is_solved", time.time() - start_time)
+
+        # record goal
+        start_time = time.time()
+        for instance, nodes in zip(instances, nodes_popped_by_inst, strict=True):
+            instance.record_goal(nodes)
+        self.times.record_time("goal", time.time() - start_time)
+
+        # filter popped nodes
+        start_time = time.time()
+        for inst_idx, instance in enumerate(instances):
+            nodes_popped_by_inst[inst_idx] = instance.filter_popped_nodes(nodes_popped_by_inst[inst_idx])
+        self.times.record_time("filt", time.time() - start_time)
+
+        # expand
+        edges_exp_by_inst: List[List[EdgeQ]] = self._get_edges(nodes_popped_by_inst)
+
+        # get costs
+        costs_by_inst: List[List[float]] = self._compute_costs(instances, edges_exp_by_inst)
+
+        # push
+        start_time = time.time()
+        edges_next_by_inst: List[List[EdgeQ]] = []
+        for instance, edges_exp, costs in zip(instances, edges_exp_by_inst, costs_by_inst, strict=True):
+            edges_next_by_inst.append(instance.push_edges(edges_exp, costs))
+        self.times.record_time("push", time.time() - start_time)
+
+        # get next nodes
+        nodes_next_by_inst: List[List[Node]] = self.get_next_nodes(instances, edges_next_by_inst)
+
+        # eval nodes
+        self._eval_nodes(instances, nodes_next_by_inst)
+
+        start_time = time.time()
+        for instance, nodes_next in zip(instances, nodes_next_by_inst):
+            instance.set_next_nodes(nodes_next)
+        self.times.record_time("set_next", time.time() - start_time)
+
+        # update iterations
+        self.itr += 1
+        for instance in instances:
+            instance.itr += 1
+
+        # verbose
+        if verbose:
+            self._verbose(instances, nodes_popped_by_inst)
+
+        return misc_utils.flatten(edges_next_by_inst)[0]
 
     @abstractmethod
     def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
@@ -427,25 +591,58 @@ class PathFindEdge(PathFind[D, IEdge]):
         start_time = time.time()
         nodes_next: List[Node] = []
         for idx in range(len(edges)):
-            node_next: Node = Node(states_next[idx], goals[idx], path_costs_next[idx], 0.0, None, None, actions[idx], tcs[idx], nodes[idx])
-
-            nodes[idx].add_edge(actions[idx], tcs[idx], node_next)
+            edge_dict_val: Optional[Tuple[float, Node]] = nodes[idx].edge_dict.get(actions[idx])
+            node_next: Node
+            if edge_dict_val is not None:
+                node_next = edge_dict_val[1]
+            else:
+                node_next = Node(states_next[idx], goals[idx], path_costs_next[idx], 0.0, None, None, actions[idx], tcs[idx], nodes[idx])
+                nodes[idx].add_edge(actions[idx], tcs[idx], node_next)
             nodes_next.append(node_next)
-        self.times.record_time("make_nodes", time.time() - start_time)
+        self.times.record_time("nodes", time.time() - start_time)
 
-        # updater instances
+        # update instances
         start_time = time.time()
         nodes_next_by_inst: List[List[Node]] = misc_utils.unflatten(nodes_next, split_idxs)
         for instance, edges_by_inst_i, nodes_next_by_inst_i in zip(instances, edges_by_inst, nodes_next_by_inst, strict=True):
-            instance.edges_popped.extend(edges_by_inst_i)
+            instance.sch_over_popped.extend(edges_by_inst_i)
             instance.num_nodes_generated += len(nodes_next_by_inst_i)
         self.times.record_time("up_inst", time.time() - start_time)
 
         return nodes_next_by_inst
 
+    def _get_edges(self, nodes_by_inst: List[List[Node]]) -> List[List[EdgeQ]]:
+        # make edges
+        start_time = time.time()
+        edges_by_inst: List[List[EdgeQ]] = []
+
+        for nodes in nodes_by_inst:
+            edges: List[EdgeQ] = []
+            for node in nodes:
+                action_vals: Optional[Tuple[List[Action], List[float]]] = None
+                if node.q_values is not None:
+                    action_vals = node.q_values
+                elif node.act_probs is not None:
+                    action_vals = node.act_probs
+
+                assert action_vals is not None
+                for action, act_val in zip(action_vals[0], action_vals[1], strict=True):
+                    edges.append(EdgeQ(node, action, act_val))
+            edges_by_inst.append(edges)
+        self.times.record_time("edges", time.time() - start_time)
+
+        return edges_by_inst
+
+    @abstractmethod
+    def _compute_costs(self, instances: List[IEdge], edges_by_inst: List[List[EdgeQ]]) -> List[List[float]]:
+        pass
+
+    @abstractmethod
+    def _eval_nodes(self, instances: List[IEdge], nodes_by_inst: List[List[Node]]) -> None:
+        pass
+
 
 # pathfinding with enumerable action space
-
 
 DActsEnum = TypeVar('DActsEnum', bound=ActsEnum)
 
@@ -462,20 +659,18 @@ class PathFindEdgeActsEnum(PathFindEdge[DActsEnum, IEdge], ABC):
 
 # pathfinding with heuristic function
 
-class PathFindNodeHasHeur(PathFindNode[D, INode], PathFindHasHeur[D, INode, HeurFnV], ABC):
+class PathFindNodeHasHeur(PathFindNode[D, INode], PathFindHasHeur[D, INode, Node, HeurFnV], ABC):
     @staticmethod
     def heur_fn_type() -> Type[HeurFnV]:
         return HeurFnV
-
-    def _get_heur_vals(self, states: List[State], goals: List[Goal]) -> List[float]:
-        assert self.heur_fn is not None
-        return self.heur_fn(states, goals)
 
     def _set_node_heurs(self, nodes: List[Node]) -> None:
         start_time = time.time()
         states: List[State] = [node.state for node in nodes]
         goals: List[Goal] = [node.goal for node in nodes]
-        heuristics: List[float] = self._get_heur_vals(states, goals)
+
+        assert self.heur_fn is not None
+        heuristics: List[float] = self.heur_fn(states, goals)
 
         assert len(heuristics) == len(states) == len(goals), \
             f"{len(heuristics)}, {len(states)}, {len(goals)}"
@@ -483,25 +678,28 @@ class PathFindNodeHasHeur(PathFindNode[D, INode], PathFindHasHeur[D, INode, Heur
         for node, heuristic in zip(nodes, heuristics, strict=True):
             node.heuristic = heuristic
 
-        self.times.record_time("heur_fn", time.time() - start_time)
+        self.times.record_time("heur", time.time() - start_time)
+
+    def _eval_nodes(self, instances: List[INode], nodes_by_inst: List[List[Node]]) -> None:
+        self._set_node_heurs(misc_utils.flatten(nodes_by_inst)[0])
 
 
-class PathFindEdgeHasHeur(PathFindEdge[D, IEdge], PathFindHasHeur[D, IEdge, HeurFnQ], ABC):
+class PathFindEdgeHasHeur(PathFindEdge[D, IEdge], PathFindHasHeur[D, IEdge, EdgeQ, HeurFnQ], ABC):
     @staticmethod
     def heur_fn_type() -> Type[HeurFnQ]:
         return HeurFnQ
-
-    def _get_acts_qvals(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[Action]], List[List[float]],]:
-        actions_l: List[List[Action]] = self.get_state_actions(states, goals)
-        assert self.heur_fn is not None
-        qvals_l: List[List[float]] = self.heur_fn(states, goals, actions_l)
-        return actions_l, qvals_l
 
     def _set_node_heurs(self, nodes: List[Node]) -> None:
         start_time = time.time()
         states: List[State] = [node.state for node in nodes]
         goals: List[Goal] = [node.goal for node in nodes]
-        actions_l, qvals_l = self._get_acts_qvals(states, goals)
+        actions_l: List[List[Action]] = self.get_state_actions(states, goals)
+
+        self.times.record_time("actions", time.time() - start_time)
+
+        start_time = time.time()
+        assert self.heur_fn is not None
+        qvals_l: List[List[float]] = self.heur_fn(states, goals, actions_l)
         heuristics: List[float] = [min(x) for x in qvals_l]
 
         assert len(heuristics) == len(actions_l) == len(qvals_l) == len(states) == len(goals), \
@@ -511,12 +709,12 @@ class PathFindEdgeHasHeur(PathFindEdge[D, IEdge], PathFindHasHeur[D, IEdge, Heur
             node.heuristic = heuristic
             node.q_values = (actions, qvals)
 
-        self.times.record_time("heur_fn", time.time() - start_time)
+        self.times.record_time("heur", time.time() - start_time)
 
 
 # pathfinding with policy
 
-class PathFindNodeActsPolicy(PathFindNode[D, INode], PathFindHasPolicy[D, INode], ABC):
+class PathFindNodeActsPolicy(PathFindNode[D, INode], PathFindHasPolicy[D, INode, Node], ABC):
     def expand_states(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
         actions_l: List[List[Action]] = self._get_action_probs(states, goals)[0]
 
@@ -539,14 +737,14 @@ class PathFindNodeActsPolicy(PathFindNode[D, INode], PathFindHasPolicy[D, INode]
         return states_exp, actions_l, tcs_l
 
 
-class PathFindEdgeActsPolicy(PathFindEdge[D, IEdge], PathFindHasPolicy[D, IEdge], ABC):
+class PathFindEdgeActsPolicy(PathFindEdge[D, IEdge], PathFindHasPolicy[D, IEdge, EdgeQ], ABC):
     def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
         return self._get_action_probs(states, goals)[0]
 
 
 # pathfinding supervised (for training)
 
-class PathFindSup(PathFind[D, I]):
+class PathFindSup(PathFind[D, I, SchOver]):
     """ Use the path cost of a random walk as the learning target.
     See Chervov, Alexander, et al. "A Machine Learning Approach That Beats Large Rubik's Cubes." NeurIPS(2025).
 

@@ -20,7 +20,7 @@ class UpdateHeurQSup(UpdateHeurQ[Domain, PathFindQSup], UpdateHeurSup[Domain, Pa
     def _get_instance_data_norb(self, instances: List[InstanceEdge], times: Times) -> List[NDArray]:
         edges_popped: List[EdgeQ] = []
         for instance in instances:
-            edges_popped.extend(instance.edges_popped)
+            edges_popped.extend(instance.sch_over_popped)
 
         inputs_ctgs: List[NDArray] = self._get_inputs_ctgs(edges_popped)
         return inputs_ctgs

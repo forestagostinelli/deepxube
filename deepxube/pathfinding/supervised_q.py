@@ -8,6 +8,24 @@ import time
 
 
 class InstanceSupQ(InstanceEdge):
+    def filter_popped_nodes(self, nodes: List[Node]) -> List[Node]:
+        raise NotImplementedError
+
+    def push_edges(self, edges: List[EdgeQ], costs: List[float]) -> List[EdgeQ]:
+        raise NotImplementedError
+
+    def set_next_nodes(self, nodes_next: List[Node]) -> None:
+        raise NotImplementedError
+
+    def frontier_size(self) -> int:
+        raise NotImplementedError
+
+    def pop_nodes(self) -> List[Node]:
+        raise NotImplementedError
+
+    def record_goal(self, nodes: List[Node]) -> None:
+        raise NotImplementedError
+
     def __init__(self, root_node: Node, action: Action, path_cost_sup: float, inst_info: Any):
         super().__init__(root_node, inst_info)
         self.action: Action = action
@@ -20,7 +38,7 @@ class InstanceSupQ(InstanceEdge):
 D = TypeVar('D', bound=Domain)
 
 
-class PathFindQSup(PathFindEdge[D, InstanceSupQ], PathFindSup[D, InstanceSupQ], ABC):
+class PathFindQSup(PathFindEdge[D, InstanceSupQ], PathFindSup[D, InstanceSupQ, EdgeQ], ABC):
     def step(self, verbose: bool = False) -> List[EdgeQ]:
         edges: List[EdgeQ] = []
         for instance in self.instances:
@@ -29,7 +47,7 @@ class PathFindQSup(PathFindEdge[D, InstanceSupQ], PathFindSup[D, InstanceSupQ], 
             edges.append(edge)
             node_root.backup_val = instance.path_cost_sup
             instance.itr += 1
-            instance.edges_popped.append(edge)
+            instance.sch_over_popped.append(edge)
         start_time = time.time()
         self.set_is_solved([edge.node for edge in edges])
         self.times.record_time("is_solved", time.time() - start_time)
@@ -42,15 +60,16 @@ class PathFindQSup(PathFindEdge[D, InstanceSupQ], PathFindSup[D, InstanceSupQ], 
     def _get_heur_vals(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[List[float]]:
         raise NotImplementedError
 
+    def _compute_costs(self, instances: List[InstanceSupQ], edges_by_inst: List[List[EdgeQ]]) -> List[List[float]]:
+        raise NotImplementedError
+
+    def _eval_nodes(self, instances: List[InstanceSupQ], nodes_by_inst: List[List[Node]]) -> None:
+        pass
+
     def _make_instances(self, states_start: List[State], goals: List[Goal], acts_init: List[Action], path_costs: List[float],
                         inst_infos: Optional[List[Any]]) -> List[InstanceSupQ]:
         # make root nodes
-        start_time = time.time()
-        nodes_root: List[Node] = []
-        for state_start, goal in zip(states_start, goals, strict=True):
-            node_root: Node = Node(state_start, goal, 0.0, 0.0, None, None, None, None, None)
-            nodes_root.append(node_root)
-        self.times.record_time("root", time.time() - start_time)
+        nodes_root: List[Node] = self._create_root_nodes(states_start, goals)
 
         # make instances
         start_time = time.time()

@@ -124,7 +124,7 @@ class UpdateHeurVRLKeepGoal(UpdateHeurVRL[Domain]):
         # get popped node data
         nodes_popped: List[Node] = []
         for instance in instances:
-            nodes_popped.extend(instance.nodes_popped)
+            nodes_popped.extend(instance.sch_over_popped)
 
         # get backup
         start_time = time.time()
@@ -157,7 +157,7 @@ class UpdateHeurVRLKeepGoal(UpdateHeurVRL[Domain]):
         # get popped node data
         nodes_popped: List[Node] = []
         for instance in instances:
-            nodes_popped.extend(instance.nodes_popped)
+            nodes_popped.extend(instance.sch_over_popped)
         states_popped, goals_popped, is_solved_l = _get_nodes_popped_data(nodes_popped, times)
 
         # add to replay buffer
@@ -179,7 +179,7 @@ class UpdateHeurVRLHER(UpdateHeurVRL[GoalSampleableFromState], UpdateHER[PathFin
         states_her: List[State] = []
         goals_her: List[Goal] = []
         for instance, goal_her in zip(instances, goals_inst_her, strict=True):
-            states_inst: List[State] = [node.state for node in instance.nodes_popped]
+            states_inst: List[State] = [node.state for node in instance.sch_over_popped]
             states_her.extend(states_inst)
             goals_her.extend([goal_her] * len(states_inst))
 

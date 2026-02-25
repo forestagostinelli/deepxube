@@ -106,7 +106,7 @@ def get_policy_fn(domain: Domain, domain_name: str, policy_nnet_str: Optional[st
                 actions_samp: List[List[Action]] = []
                 probs_l: List[List[float]] = []
                 for _ in states:
-                    actions_samp_i: List[Action] = list(set(actions_samp_flat[:num_samp_in]))  # make unique
+                    actions_samp_i: List[Action] = actions_samp_flat[:num_samp_in]
                     actions_samp.append(actions_samp_i)
                     probs_l.append([1.0/len(actions_samp_i)] * len(actions_samp_i))
                     actions_samp_flat = actions_samp_flat[num_samp_in:]
