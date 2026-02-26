@@ -12,7 +12,7 @@ from numpy.typing import NDArray
 
 from deepxube.nnet.nnet_utils import NNetParInfo, NNetCallable, NNetPar, get_nnet_par_infos, start_nnet_fn_runners, stop_nnet_runners
 from deepxube.base.domain import Domain, State, Action, Goal, GoalSampleableFromState
-from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ, HeurFn, HeurFnV, HeurFnQ
+from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ, HeurFn, HeurFnV, HeurFnQ, PolicyNNetPar, PolicyFn
 from deepxube.base.pathfinding import PathFind, PathFindHasHeur, PathFindSup, Instance, InstanceNode, InstanceEdge, get_path, Node
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.pathfinding.utils.performance import PathFindPerf, print_pathfindperf
@@ -530,10 +530,70 @@ class UpdateHasHeur(Update[D, P, Inst], Generic[D, P, Inst, HNet, H], ABC):
         return cast(H, self.nnet_fn_dict[self.heur_name()])
 
 
+class UpdateHasPolicy(Update[D, P, Inst], ABC):
+    @staticmethod
+    def policy_name() -> str:
+        return 'policy'
+
+    def set_policy_nnet(self, policy_nnet: PolicyNNetPar) -> None:
+        self.add_nnet_par(self.policy_name(), policy_nnet)
+
+    def set_policy_file(self, policy_file: str) -> None:
+        self.set_nnet_file(self.policy_name(), policy_file)
+
+    def get_policy_nnet_par(self) -> PolicyNNetPar:
+        return cast(PolicyNNetPar, self.nnet_par_dict[self.policy_name()])
+
+    def get_policy_fn(self) -> PolicyFn:
+        if not self.up_args.sync_main:
+            return self._get_policy_fn_from_dict()
+        else:
+            raise NotImplementedError("sync_main not yet implemented for policy_fn")
+
+    def _get_policy_fn_from_dict(self) -> PolicyFn:
+        return cast(PolicyFn, self.nnet_fn_dict[self.policy_name()])
+
+
+PS = TypeVar('PS', bound=PathFindSup)
+
+
+class UpdateSup(Update[D, PS, Inst], ABC):
+    def _step(self, pathfind: PS, times: Times) -> None:
+        pathfind.step()
+
+    def _set_pathfind_nnet_fns(self, pathfind: PS) -> None:
+        pass
+
+    def _make_instances(self, pathfind: PS, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[Inst]:
+        return pathfind.make_instances_rw(steps_gen, inst_infos)
+
+    def _step_sync_main(self, pathfind: PS, times: Times) -> List[NDArray]:
+        raise NotImplementedError("No sync_main option for supervised update")
+
+    def _get_instance_data_rb(self, instances: List[Inst], times: Times) -> List[NDArray]:
+        raise NotImplementedError("No replay buffer used with supervised update")
+
+    def _init_replay_buffer(self, max_size: int) -> None:
+        pass
+
+
 class UpdateHeur(UpdateHasHeur[D, P, Inst, HNet, H]):
     @abstractmethod
     def get_heur_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         pass
+
+
+class UpdatePolicy(UpdateHasPolicy[D, P, Inst], ABC):
+    def get_policy_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
+        states, goals = self.domain.sample_start_goal_pairs([0])
+        actions: List[Action] = self.domain.sample_state_action(states)
+        inputs_nnet: List[NDArray[Any]] = self.get_policy_nnet_par().to_np_train(states, goals, actions)
+
+        shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = []
+        for inputs_nnet_i in inputs_nnet:
+            shapes_dtypes.append((inputs_nnet_i[0].shape, inputs_nnet_i.dtype))
+
+        return shapes_dtypes
 
 
 class UpdateHeurV(UpdateHeur[D, P, InstanceNode, HeurNNetParV, HeurFnV], ABC):
@@ -567,9 +627,6 @@ PH = TypeVar('PH', bound=PathFindHasHeur)
 
 
 class UpdateHeurRL(UpdateHeur[D, PH, Inst, HNet, H], ABC):
-    def __init__(self, domain: D, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs):
-        super().__init__(domain, pathfind_name, pathfind_kwargs, up_args)
-
     def _get_targ_heur_fn(self) -> H:
         return self._get_heur_fn_from_dict()
 
@@ -583,23 +640,3 @@ class UpdateHeurRL(UpdateHeur[D, PH, Inst, HNet, H], ABC):
         times.add_times(times_states, ["get_states"])
 
         return pathfind.make_instances(states_gen, goals_gen, inst_infos=inst_infos, compute_root_heur=False)
-
-
-PS = TypeVar('PS', bound=PathFindSup)
-
-
-class UpdateHeurSup(UpdateHeur[D, PS, Inst, HNet, H], ABC):
-    def _set_pathfind_nnet_fns(self, pathfind: PathFindSup) -> None:
-        pass
-
-    def _make_instances(self, pathfind: PathFindSup, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[Inst]:
-        return pathfind.make_instances_rw(steps_gen, inst_infos)
-
-    def _step_sync_main(self, pathfind: PathFindSup, times: Times) -> List[NDArray]:
-        raise NotImplementedError("No sync_main option for supervised update")
-
-    def _get_instance_data_rb(self, instances: List[Inst], times: Times) -> List[NDArray]:
-        raise NotImplementedError("No replay buffer used with supervised update")
-
-    def _init_replay_buffer(self, max_size: int) -> None:
-        pass
