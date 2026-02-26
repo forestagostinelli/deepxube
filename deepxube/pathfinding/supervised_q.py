@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import List, Any, Optional, Type, TypeVar
+from typing import List, Any, Optional, Type, TypeVar, Tuple
 from deepxube.base.domain import Domain, State, Goal, StartGoalWalkable, GoalStartRevWalkableActsRev, Action
 from deepxube.base.pathfinding import InstanceEdge, Node, EdgeQ, PathFindEdge, PathFindSup
 from deepxube.factories.pathfinding_factory import pathfinding_factory
@@ -11,16 +11,10 @@ class InstanceSupQ(InstanceEdge):
     def filter_popped_nodes(self, nodes: List[Node]) -> List[Node]:
         raise NotImplementedError
 
-    def push_edges(self, edges: List[EdgeQ], costs: List[float]) -> List[EdgeQ]:
-        raise NotImplementedError
-
-    def set_next_nodes(self, nodes_next: List[Node]) -> None:
+    def push_pop_edges(self, edges: List[EdgeQ], costs: List[float]) -> List[EdgeQ]:
         raise NotImplementedError
 
     def frontier_size(self) -> int:
-        raise NotImplementedError
-
-    def pop_nodes(self) -> List[Node]:
         raise NotImplementedError
 
     def record_goal(self, nodes: List[Node]) -> None:
@@ -38,8 +32,8 @@ class InstanceSupQ(InstanceEdge):
 D = TypeVar('D', bound=Domain)
 
 
-class PathFindQSup(PathFindEdge[D, InstanceSupQ], PathFindSup[D, InstanceSupQ, EdgeQ], ABC):
-    def step(self, verbose: bool = False) -> List[EdgeQ]:
+class PathFindQSup(PathFindEdge[D, InstanceSupQ], PathFindSup[D, InstanceSupQ], ABC):
+    def step(self, verbose: bool = False) -> Tuple[List[Node], List[EdgeQ]]:
         edges: List[EdgeQ] = []
         for instance in self.instances:
             node_root: Node = instance.root_node
@@ -47,12 +41,12 @@ class PathFindQSup(PathFindEdge[D, InstanceSupQ], PathFindSup[D, InstanceSupQ, E
             edges.append(edge)
             node_root.backup_val = instance.path_cost_sup
             instance.itr += 1
-            instance.sch_over_popped.append(edge)
+            instance.add_edges_popped([edge])
         start_time = time.time()
         self.set_is_solved([edge.node for edge in edges])
         self.times.record_time("is_solved", time.time() - start_time)
 
-        return edges
+        return [], edges
 
     def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
         raise NotImplementedError

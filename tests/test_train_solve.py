@@ -20,23 +20,23 @@ import os
 
 pathfind_v_l: List[str] = ["bwas", "greedy_v"]
 cases = (
-    [pytest.param(a, b, c, d, e, f, g, 85.0, id="bwas") for a, b, c, d, e, f, g in
-     product(["bwas"], ["bwas"], ["V"], [True, False], [False], [1, -1], [True, False])]
+    [pytest.param(a, b, c, d, e, f, g, 85.0, id="graph_v") for a, b, c, d, e, f, g in
+     product(["graph_v"], ["graph_v"], ["V"], [True, False], [False], [1, -1], [True, False])]
 
-    + [pytest.param(a, b, c, d, e, f, g, 85.0, id="greedy_v") for a, b, c, d, e, f, g in
-       product(["greedy_v"], ["greedy_v"], ["V"], [True, False], [True, False], [1], [True, False])]
+    + [pytest.param(a, b, c, d, e, f, g, 85.0, id="beam_v") for a, b, c, d, e, f, g in
+       product(["beam_v.1T"], ["beam_v"], ["V"], [True, False], [True, False], [1], [True, False])]
 
     + [pytest.param(a, b, c, d, e, f, g, 85.0, id="sup_v_rw") for a, b, c, d, e, f, g in
-       product(["sup_v_rw"], ["bwas"], ["V"], [False], [False], [1], [False])]
+       product(["sup_v_rw"], ["graph_v"], ["V"], [False], [False], [1], [False])]
 
-    + [pytest.param(a, b, c, d, e, f, g, 80.0, id="bwqs") for a, b, c, d, e, f, g in
-       product(["bwqs"], ["bwqs"], ["QFix", "QIn"], [True, False], [False], [1, -1], [True, False])]
+    + [pytest.param(a, b, c, d, e, f, g, 80.0, id="graph_q") for a, b, c, d, e, f, g in
+       product(["graph_q"], ["graph_q"], ["QFix", "QIn"], [True, False], [False], [1, -1], [True, False])]
 
-    + [pytest.param(a, b, c, d, e, f, g, 80.0, id="greedy_q") for a, b, c, d, e, f, g in
-       product(["greedy_q"], ["greedy_q"], ["QFix", "QIn"], [True, False], [True, False], [1], [True, False])]
+    + [pytest.param(a, b, c, d, e, f, g, 80.0, id="beam_q") for a, b, c, d, e, f, g in
+       product(["beam_q.1T"], ["beam_q"], ["QFix", "QIn"], [True, False], [True, False], [1], [True, False])]
 
     + [pytest.param(a, b, c, d, e, f, g, 80.0, id="sup_q_rw") for a, b, c, d, e, f, g in
-       product(["sup_q_rw"], ["bwqs"], ["QFix", "QIn"], [False], [False], [1], [False])]
+       product(["sup_q_rw"], ["graph_q"], ["QFix", "QIn"], [False], [False], [1], [False])]
 )
 
 

@@ -14,13 +14,13 @@ import numpy as np
 
 class UpdateHeurQSup(UpdateHeurQ[Domain, PathFindQSup], UpdateHeurSup[Domain, PathFindQSup, InstanceEdge, HeurNNetParQ, HeurFnQ]):
     def _step(self, pathfind: PathFindQSup, times: Times) -> None:
-        edges_popped: List[EdgeQ] = pathfind.step()
+        edges_popped: List[EdgeQ] = pathfind.step()[1]
         assert len(edges_popped) == len(pathfind.instances), f"Values were {len(edges_popped)} and {len(pathfind.instances)}"
 
     def _get_instance_data_norb(self, instances: List[InstanceEdge], times: Times) -> List[NDArray]:
         edges_popped: List[EdgeQ] = []
         for instance in instances:
-            edges_popped.extend(instance.sch_over_popped)
+            edges_popped.extend(instance.get_edges_popped())
 
         inputs_ctgs: List[NDArray] = self._get_inputs_ctgs(edges_popped)
         return inputs_ctgs

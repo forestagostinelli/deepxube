@@ -15,7 +15,7 @@ import time
 
 
 def _pathfind_q_step(pathfind: PathFindEdgeHasHeur) -> List[EdgeQ]:
-    edges_popped: List[EdgeQ] = pathfind.step()
+    edges_popped: List[EdgeQ] = pathfind.step()[1]
     assert len(edges_popped) == len(pathfind.instances), f"Values were {len(edges_popped)} and {len(pathfind.instances)}"
 
     return edges_popped
@@ -124,7 +124,7 @@ class UpdateHeurQRLKeepGoal(UpdateHeurQRL[Domain]):
         # get popped edge data
         edges_popped: List[EdgeQ] = []
         for instance in instances:
-            edges_popped.extend(instance.sch_over_popped)
+            edges_popped.extend(instance.get_edges_popped())
 
         # backup
         start_time = time.time()
@@ -162,7 +162,7 @@ class UpdateHeurQRLKeepGoal(UpdateHeurQRL[Domain]):
         # get popped edge data
         edges_popped: List[EdgeQ] = []
         for instance in instances:
-            edges_popped.extend(instance.sch_over_popped)
+            edges_popped.extend(instance.get_edges_popped())
         states_p, goals_p, is_solved_l_p, actions_p, tcs_p, states_next_p = _get_edge_popped_data(edges_popped, times)
 
         # add to replay buffer
@@ -187,13 +187,13 @@ class UpdateHeurQRLHER(UpdateHeurQRL[GoalSampleableFromState], UpdateHER[PathFin
         tcs_her: List[float] = []
         states_next_her: List[State] = []
         for instance, goal_her in zip(instances, goals_inst_her, strict=True):
-            nodes: List[Node] = [edge.node for edge in instance.sch_over_popped]
+            nodes: List[Node] = [edge.node for edge in instance.get_edges_popped()]
             states_inst: List[State] = [node.state for node in nodes]
             states_her.extend(states_inst)
             goals_her.extend([goal_her] * len(states_inst))
-            actions_her.extend([edge.action for edge in instance.sch_over_popped])
+            actions_her.extend([edge.action for edge in instance.get_edges_popped()])
 
-            for edge, node in zip(instance.sch_over_popped, nodes, strict=True):
+            for edge, node in zip(instance.get_edges_popped(), nodes, strict=True):
                 tc, node_next = node.edge_dict[edge.action]
                 tcs_her.append(tc)
                 states_next_her.append(node_next.state)

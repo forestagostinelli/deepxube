@@ -15,13 +15,13 @@ import numpy as np
 
 class UpdateHeurVSup(UpdateHeurV[Domain, PathFindVSup], UpdateHeurSup[Domain, PathFindVSup, InstanceNode, HeurNNetParV, HeurFnV]):
     def _step(self, pathfind: PathFindVSup, times: Times) -> None:
-        nodes_popped: List[Node] = pathfind.step()
+        nodes_popped: List[Node] = pathfind.step()[0]
         assert len(nodes_popped) == len(pathfind.instances), f"Values were {len(nodes_popped)} and {len(pathfind.instances)}"
 
     def _get_instance_data_norb(self, instances: List[InstanceNode], times: Times) -> List[NDArray]:
         nodes_popped: List[Node] = []
         for instance in instances:
-            nodes_popped.extend(instance.sch_over_popped)
+            nodes_popped.extend(instance.get_nodes_popped())
 
         inputs_ctgs: List[NDArray] = self._get_inputs_ctgs(nodes_popped)
         return inputs_ctgs
@@ -29,6 +29,7 @@ class UpdateHeurVSup(UpdateHeurV[Domain, PathFindVSup], UpdateHeurSup[Domain, Pa
     def _get_inputs_ctgs(self, nodes_popped: List[Node]) -> List[NDArray]:
         states: List[State] = [node.state for node in nodes_popped]
         goals: List[Goal] = [node.goal for node in nodes_popped]
+
         ctgs_backup: List[float] = [node.heuristic for node in nodes_popped]
         inputs_np: List[NDArray] = self.get_heur_nnet_par().to_np(states, goals)
         return inputs_np + [np.array(ctgs_backup)]

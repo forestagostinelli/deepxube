@@ -1,7 +1,7 @@
 from abc import ABC
 from typing import List, Any, Optional, Type, TypeVar, Tuple
 from deepxube.base.domain import Domain, State, Goal, StartGoalWalkable, GoalStartRevWalkableActsRev, Action
-from deepxube.base.pathfinding import InstanceNode, Node, PathFindNode, PathFindSup
+from deepxube.base.pathfinding import InstanceNode, Node, EdgeQ, PathFindNode, PathFindSup
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 import time
 
@@ -13,13 +13,10 @@ class InstanceSupV(InstanceNode):
     def frontier_size(self) -> int:
         raise NotImplementedError
 
-    def pop_nodes(self) -> List[Node]:
-        raise NotImplementedError
-
     def record_goal(self, nodes: List[Node]) -> None:
         raise NotImplementedError
 
-    def push_nodes(self, nodes: List[Node], costs: List[float]) -> None:
+    def push_pop_nodes(self, nodes: List[Node], costs: List[float]) -> List[Node]:
         raise NotImplementedError
 
     def __init__(self, root_node: Node, path_cost_sup: float, inst_info: Any):
@@ -33,21 +30,21 @@ class InstanceSupV(InstanceNode):
 D = TypeVar('D', bound=Domain)
 
 
-class PathFindVSup(PathFindNode[D, InstanceSupV], PathFindSup[D, InstanceSupV, Node], ABC):
-    def step(self, verbose: bool = False) -> List[Node]:
+class PathFindVSup(PathFindNode[D, InstanceSupV], PathFindSup[D, InstanceSupV], ABC):
+    def step(self, verbose: bool = False) -> Tuple[List[Node], List[EdgeQ]]:
         nodes: List[Node] = []
         for instance in self.instances:
             node_root: Node = instance.root_node
             node_root.heuristic = instance.path_cost_sup
             node_root.backup_val = instance.path_cost_sup
             nodes.append(node_root)
-            instance.sch_over_popped.append(node_root)
+            instance.add_nodes_popped([node_root])
             instance.itr += 1
         start_time = time.time()
         self.set_is_solved(nodes)
         self.times.record_time("is_solved", time.time() - start_time)
 
-        return nodes
+        return nodes, []
 
     def expand_states(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
         raise NotImplementedError
