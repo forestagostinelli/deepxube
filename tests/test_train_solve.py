@@ -9,8 +9,8 @@ from deepxube.pathfinding.utils.performance import is_valid_soln, PathFindPerf
 from deepxube.base.pathfinding import PathFind, PathFindHasHeur
 from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_pathfind_name_kwargs, get_pathfind_from_arg
 from deepxube.base.updater import UpArgs, UpdateHeur, UpHeurArgs
-from deepxube.training.train_utils import TrainArgs
-from deepxube.training.train_heur import train
+from deepxube.base.trainer import TrainArgs
+from deepxube.trainers.utils.train_heur_loop import train
 from deepxube.nnet import nnet_utils
 from itertools import product
 import shutil
@@ -18,7 +18,6 @@ from torch import nn
 import os
 
 
-pathfind_v_l: List[str] = ["bwas", "greedy_v"]
 cases = (
     [pytest.param(a, b, c, d, e, f, g, 85.0, id="graph_v") for a, b, c, d, e, f, g in
      product(["graph_v"], ["graph_v"], ["V"], [True, False], [False], [1, -1], [True, False])]

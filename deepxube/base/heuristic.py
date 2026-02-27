@@ -238,7 +238,7 @@ class HeurNNetParQIn(HeurNNetParQ, ABC):
 # Policy
 
 
-class PolicyNNetModule(DeepXubeNNet[In], ABC):
+class PolicyNNet(DeepXubeNNet[In], ABC):
     def __init__(self, nnet_input: In, latent_shape: Tuple[int, ...], **kwargs: Any):
         super().__init__(nnet_input)
         self.norm_dist = torch.distributions.Normal(0, 1)
@@ -351,7 +351,7 @@ class PolicyNNetPar(NNetPar[PolicyFn]):
         return policy_fn
 
     @abstractmethod
-    def get_nnet(self) -> PolicyNNetModule:
+    def get_nnet(self) -> PolicyNNet:
         pass
 
     @abstractmethod

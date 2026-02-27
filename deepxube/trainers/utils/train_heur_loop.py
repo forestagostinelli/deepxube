@@ -6,11 +6,11 @@ from deepxube.base.heuristic import HeurNNet, HeurNNetPar, HeurFn
 from deepxube.base.pathfinding import PathFind, Instance, PathFindHasHeur
 from deepxube.pathfinding.utils.performance import PathFindPerf
 from deepxube.base.updater import UpdateHeur
-from deepxube.training.train_utils import TrainArgs
+from deepxube.base.trainer import TrainArgs
 from deepxube.utils.command_line_utils import get_pathfind_from_arg
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
-from deepxube.training.trainers import TrainHeur
+from deepxube.trainers.train_heur import TrainHeur
 
 import torch
 from torch.utils.tensorboard import SummaryWriter

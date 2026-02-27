@@ -13,7 +13,7 @@ from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys, ge
 from deepxube.factories.heuristic_factory import heuristic_factory
 from deepxube.factories.pathfinding_factory import pathfinding_factory, get_domain_compat_pathfind_names
 from deepxube.pathfinding.utils.performance import PathFindPerf
-from deepxube.training.trainers import Status
+from deepxube.base.trainer import Status
 from deepxube.tests.time_tests import time_test
 from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg
 

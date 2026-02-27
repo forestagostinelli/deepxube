@@ -3,11 +3,10 @@ from typing import Dict, Any, Type
 from deepxube.base.domain import Domain, GoalSampleableFromState, ActsEnum
 from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ
 from deepxube.base.pathfinding import PathFind, PathFindHasHeur, PathFindSup
-from deepxube.base.updater import UpdateHeur, UpdateHeurRL, UpdateHeurSup, UpArgs, UpHeurArgs
+from deepxube.base.updater import UpdateHeur, UpdateHeurRL, UpArgs, UpHeurArgs
 from deepxube.updaters.updater_v_rl import UpdateHeurVRLKeepGoal, UpdateHeurVRLHER
 from deepxube.updaters.updater_q_rl import UpdateHeurQRLKeepGoal, UpdateHeurQRLHER
-from deepxube.updaters.updater_v_sup import UpdateHeurVSup
-from deepxube.updaters.updater_q_sup import UpdateHeurQSup
+from deepxube.updaters.updater_sup import UpdateHeurVSup, UpdateHeurQSup
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 
 
@@ -37,13 +36,11 @@ def get_updater(domain: Domain, heur_nnet_par: HeurNNetPar, pathfind_name: str, 
         return updater_rl
     elif issubclass(pathfind_t, PathFindSup):
         assert her is False, "No hindsight experience replay (HER) for supervised learning"
-        updater_sup: UpdateHeurSup
         if isinstance(heur_nnet_par, HeurNNetParV):
-            updater_sup = UpdateHeurVSup(domain, pathfind_name, pathfind_kwargs, up_args)
+            return UpdateHeurVSup(domain, pathfind_name, pathfind_kwargs, up_args)
         elif isinstance(heur_nnet_par, HeurNNetParQ):
-            updater_sup = UpdateHeurQSup(domain, pathfind_name, pathfind_kwargs, up_args)
+            return UpdateHeurQSup(domain, pathfind_name, pathfind_kwargs, up_args)
         else:
             raise ValueError(f"No update implementation for {heur_nnet_par}")
-        return updater_sup
     else:
         raise ValueError(f"Unknown update method for {pathfind_t}")

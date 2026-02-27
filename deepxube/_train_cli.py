@@ -7,8 +7,8 @@ from deepxube.factories.updater_factory import get_updater
 from deepxube.base.domain import State, Goal
 from deepxube.base.heuristic import HeurNNetPar
 from deepxube.base.updater import UpArgs, UpdateHeur, UpHeurArgs
-from deepxube.training.train_utils import TrainArgs
-from deepxube.training.train_heur import train, TestArgs
+from deepxube.base.trainer import TrainArgs
+from deepxube.trainers.utils.train_heur_loop import train, TestArgs
 from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_pathfind_name_kwargs, get_pathfind_from_arg
 
 import pickle
