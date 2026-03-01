@@ -27,3 +27,5 @@ valid.pkl
 *__pycache__*
 *figures.pptx
 notes.txt
+.pixi/*
+!.pixi/config.toml

@@ -5,20 +5,112 @@ on: [push, pull_request]
 jobs:
   test:
     strategy:
+      fail-fast: false
       matrix:
-        python: ['3.10', '3.11', '3.12']
-        platform: [ubuntu-latest, macos-latest]
+        platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.python }}
-      uses: actions/setup-python@v3
-      with:
-        python-version: ${{ matrix.python }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install tox tox-gh-actions
-    - name: Test with tox
-      run: tox
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Free Disk Space
+        if: matrix.platform == 'ubuntu-latest'
+        uses: endersonmenezes/free-disk-space@main
+        with:
+          # Use rmz for 3x faster deletion
+          rm_cmd: rmz
+          remove_android: true
+          remove_dotnet: true
+          remove_haskell: true
+          remove_swap: true
+          remove_tool_cache: false
+      - name: Calculate Optimal Concurrency
+        id: concurrency
+        shell: bash
+        run: |
+          # Detect CPU cores based on platform
+          if [[ "$RUNNER_OS" == "Linux" ]] || [[ "$RUNNER_OS" == "macOS" ]]; then
+            CPU_CORES=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo "2")
+          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+            CPU_CORES=${NUMBER_OF_PROCESSORS:-2}
+          else
+            CPU_CORES=2
+          fi
+
+          echo "Detected CPU cores: $CPU_CORES"
+
+          # Calculate optimal concurrency
+          # Solves: 2x CPU cores (CPU-intensive, benefits from hyperthreading)
+          CONCURRENT_SOLVES=$((CPU_CORES * 2))
+          # Cap at reasonable maximum
+          if [ $CONCURRENT_SOLVES -gt 16 ]; then
+            CONCURRENT_SOLVES=16
+          fi
+
+          # Downloads: Higher for I/O-bound operations
+          # GitHub runners have excellent network, so use 10-15x CPU cores
+          CONCURRENT_DOWNLOADS=$((CPU_CORES * 12))
+          # Cap at reasonable maximum to avoid overwhelming the network
+          if [ $CONCURRENT_DOWNLOADS -gt 100 ]; then
+            CONCURRENT_DOWNLOADS=100
+          fi
+
+          echo "Optimal concurrent-solves: $CONCURRENT_SOLVES"
+          echo "Optimal concurrent-downloads: $CONCURRENT_DOWNLOADS"
+
+          echo "solves=$CONCURRENT_SOLVES" >> $GITHUB_OUTPUT
+          echo "downloads=$CONCURRENT_DOWNLOADS" >> $GITHUB_OUTPUT
+      - name: Setup Pixi
+        uses: prefix-dev/setup-pixi@v0.9.2
+        with:
+          pixi-version: latest
+          cache: false
+          run-install: false
+      - name: Install Pixi Environments
+        shell: bash
+        run: |
+          pixi install --locked \
+            --concurrent-downloads ${{ steps.concurrency.outputs.downloads }} \
+            --concurrent-solves ${{ steps.concurrency.outputs.solves }} \
+            -e test -e py310 -e py311 -e py312 -e py313 -e py314
+      - name: Run tests with tox
+        run: pixi run -e test run-tox
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Calculate Optimal Concurrency
+        id: concurrency
+        shell: bash
+        run: |
+          # Detect CPU cores
+          CPU_CORES=$(nproc 2>/dev/null || echo "2")
+          echo "Detected CPU cores: $CPU_CORES"
+
+          # Calculate optimal concurrency
+          CONCURRENT_SOLVES=$((CPU_CORES * 2))
+          [ $CONCURRENT_SOLVES -gt 16 ] && CONCURRENT_SOLVES=16
+
+          CONCURRENT_DOWNLOADS=$((CPU_CORES * 12))
+          [ $CONCURRENT_DOWNLOADS -gt 100 ] && CONCURRENT_DOWNLOADS=100
+
+          echo "Optimal concurrent-solves: $CONCURRENT_SOLVES"
+          echo "Optimal concurrent-downloads: $CONCURRENT_DOWNLOADS"
+
+          echo "solves=$CONCURRENT_SOLVES" >> $GITHUB_OUTPUT
+          echo "downloads=$CONCURRENT_DOWNLOADS" >> $GITHUB_OUTPUT
+      - name: Setup Pixi
+        uses: prefix-dev/setup-pixi@v0.9.2
+        with:
+          pixi-version: latest
+          cache: false
+          run-install: false
+      - name: Install Pixi Environments
+        shell: bash
+        run: |
+          pixi install --locked -e test \
+            --concurrent-downloads ${{ steps.concurrency.outputs.downloads }} \
+            --concurrent-solves ${{ steps.concurrency.outputs.solves }}
+      - name: Run lint checks
+        run: pixi run -e test check

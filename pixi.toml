@@ -1,0 +1,131 @@
+[workspace]
+authors = ["Forest Agostinelli <foresta@cse.sc.edu>"]
+channels = ["conda-forge"]
+name = "DeepXube"
+platforms = ["osx-arm64", "osx-64", "linux-64", "win-64", "linux-aarch64"]
+version = "0.2.0"
+
+[environments]
+default = { solve-group = "default" }
+test = { features = ["test"], solve-group = "default" }
+py310 = { features = ["test", "py310"], solve-group = "py310" }
+py311 = { features = ["test", "py311"], solve-group = "py311" }
+py312 = { features = ["test", "py312"], solve-group = "py312" }
+py313 = { features = ["test", "py313"], solve-group = "py313" }
+py314 = { features = ["test", "py314"], solve-group = "py314" }
+cuda = { features = ["cuda"], solve-group = "default" }
+
+[dependencies]
+python = ">=3.10"
+# These packages from conda-forge will be installed first
+# (these will be prioraritzed over the packages in `[pypi-dependencies]`)
+numpy = ">=2.0, <3"
+matplotlib = ">=3.10.8, <4"
+clingo = ">=5.8.0, <6"
+filelock = ">=3.20.3, <4"
+pillow = ">=12.1.0, <13"
+
+[feature.py310.dependencies]
+python = "~=3.10.0"
+
+[feature.py311.dependencies]
+python = "~=3.11.0"
+
+[feature.py312.dependencies]
+python = "~=3.12.0"
+
+[feature.py313.dependencies]
+python = "~=3.13.0"
+
+[feature.py314.target.osx-arm64.dependencies]
+python = "~=3.14.0"
+
+[feature.py314.target.linux-64.dependencies]
+python = "~=3.14.0"
+
+[feature.py314.target.linux-aarch64.dependencies]
+python = "~=3.14.0"
+
+[feature.py314.target.win-64.dependencies]
+python = "~=3.14.0"
+
+[pypi-dependencies]
+deepxube = { path = ".", editable = true }
+numpy = ">=2.0, <3"
+matplotlib = ">=3.10.8, <4"
+clingo = ">=5.8.0, <6"
+wget = ">=3.2, <4"
+filelock = ">=3.20.3, <4"
+pillow = ">=12.1.0, <13"
+types-pillow = ">=10.2.0.20240822, <11"
+imageio = ">=2.37.2, <3"
+
+# Conda PyTorch for osx-64 (PyPI wheel missing)
+[target.osx-64.dependencies]
+pytorch = ">=2.0, <2.9"
+
+[target.osx-64.pypi-dependencies]
+torch = ">=2.0, <2.9"
+
+# PyPI Torch for others
+[target.osx-arm64.pypi-dependencies]
+torch = ">=2.0, <3"
+
+[target.linux-64.pypi-dependencies]
+torch = ">=2.0, <3"
+
+[target.linux-aarch64.pypi-dependencies]
+torch = ">=2.0, <3"
+
+[target.win-64.pypi-dependencies]
+torch = ">=2.0, <3"
+
+[feature.test.dependencies]
+# These packages from conda-forge will be installed first
+# (these will be prioraritzed over the packages in `[feature.test.pypi-dependencies]`)
+pytest = ">=9.0.2, <10"
+pytest-cov = ">=7.0.0, <8"
+# mypy = ">=1.19.1, <2"
+flake8 = ">=7.3.0, <8"
+tox = ">=4.34.1, <5"
+tox-uv = ">=1.29.0, <2"
+orjson = ">=3.11.4, <4" # Used by mypy's 'faster-cache' extra
+
+[feature.test.pypi-dependencies]
+deepxube = { path = ".", editable = true, extras = ["test"] }
+pytest = ">=9.0.2, <10"
+pytest-cov = ">=7.0.0, <8"
+flake8 = ">=7.3.0, <8"
+tox = ">=4.34.1, <5"
+tox-uv = ">=1.29.0, <2"
+mypy = { version = ">=1.19.1, <2", extras = ["faster-cache"] }
+
+[feature.test.tasks]
+check = "flake8 --append-config tox.ini --append-config setup.cfg deepxube tests; mypy deepxube tests --config-file=mypy.ini"
+
+[feature.test.tasks.run-tox]
+cmd = "tox --conf={{ config }}"
+args = [{ arg = "config", default = "tox.ini" }]
+env = { PATH = "$PIXI_PROJECT_ROOT/.pixi/envs/py310/bin:$PIXI_PROJECT_ROOT/.pixi/envs/py311/bin:$PIXI_PROJECT_ROOT/.pixi/envs/py312/bin:$PIXI_PROJECT_ROOT/.pixi/envs/py313/bin:$PIXI_PROJECT_ROOT/.pixi/envs/py314/bin:$PATH" }
+
+[feature.cuda.system-requirements]
+cuda = "13"
+
+
+[feature.cuda.target.linux-64.dependencies]
+cuda = ">=13.1.0,<14"
+cuda-version = ">=13.1,<14"
+cudnn = ">=9.17.1.4,<10"
+cuda-toolkit = ">=13.1.0,<14"
+
+[feature.cuda.target.linux-aarch64.dependencies]
+cuda = ">=13.1.0,<14"
+cuda-version = ">=13.1,<14"
+cudnn = ">=9.17.1.4,<10"
+cuda-toolkit = ">=13.1.0,<14"
+
+[feature.cuda.target.win-64.dependencies]
+cuda = ">=13.1.0,<14"
+cuda-version = ">=13.1,<14"
+cudnn = ">=9.17.1.4,<10"
+cuda-toolkit = ">=13.1.0,<14"

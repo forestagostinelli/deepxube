@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Optional, Set, TypeVar, Generic, Dict, Any
+from typing import List, Tuple, Optional, Set, TypeVar, Generic, Dict, Any, Callable
 import numpy as np
 from clingo.solving import Model as ModelCl
 
@@ -264,6 +264,30 @@ class ActsEnum(Domain[S, A, G]):
             actions_lt[idxs] = num_actions_taken[idxs] < num_actions_tot[idxs]
 
         return states_exp_l, actions_exp_l, tcs_l
+
+
+class ActsOptim(Domain[S, A, G], ABC):
+    """Actions are obtained by optimizing h(s, g, a) over the action space.
+
+    Domains with continuous or very large action spaces can implement this mixin to
+    provide a small, high-quality set of actions for each state/goal pair by
+    approximately minimizing a provided heuristic ``h``.
+    """
+
+    @abstractmethod
+    def get_state_actions_opt(self, states: List[S], goals: List[G], heur_fn: Callable[[List[S], List[G], List[List[A]]], List[List[float]]],
+                              num_actions: Optional[int] = None) -> List[List[A]]:
+        """Return a set of promising actions for each ``(state, goal)`` pair.
+
+        :param states: Current states
+        :param goals: Corresponding goals
+        :param heur_fn: Callable ``h(s, g, a)`` returning cost-to-go estimates for
+                        a provided list of actions. Domains may query this during
+                        action selection.
+        :param num_actions: Optional limit on how many actions to return per state.
+        :return: List of action lists, one per state
+        """
+        pass
 
 
 class ActsEnumFixed(ActsEnum[S, A, G], ActsFixed[S, A, G]):
