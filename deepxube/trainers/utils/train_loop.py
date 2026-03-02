@@ -98,7 +98,7 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
         print("Update Heur:")
         print(heur_nnet)
         print(update_heur.get_pathfind())
-        print(f"{update_heur.get_up_args_repr()}")
+        print(f"{update_heur}")
         to_main_q, from_main_qs = update_heur.start_procs(train_args.rb * train_args.batch_size * update_heur.up_args.up_itrs)
         train_heur = TrainHeur(heur_nnet, update_heur, to_main_q, from_main_qs, heur_file, heur_targ_file, heur_status_file, device, on_gpu, writer, train_args)
     if policy_nnet_par is not None:
@@ -113,7 +113,7 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
         print("Update Policy:")
         print(policy_nnet)
         print(update_policy.get_pathfind())
-        print(f"{update_policy.get_up_args_repr()}")
+        print(f"{update_policy}")
         to_main_q, from_main_qs = update_policy.start_procs(train_args.rb * train_args.batch_size * update_policy.up_args.up_itrs)
         train_policy = TrainPolicy(policy_nnet, update_policy, to_main_q, from_main_qs, policy_file, policy_targ_file, policy_status_file, device, on_gpu,
                                    writer, train_args)

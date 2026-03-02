@@ -6,7 +6,7 @@ from deepxube._train_cli import parser_train
 from deepxube._solve import parse_solve
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, StateGoalVizable, StringToAct, State, Action, Goal
-from deepxube.base.heuristic import HeurNNet, HeurNNetPar
+from deepxube.base.heuristic import HeurNNet, HeurNNetPar, PolicyNNetPar
 from deepxube.base.pathfinding import PathFind, PathFindHasHeur
 from deepxube.factories.domain_factory import domain_factory
 from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys, get_nnet_input_t
@@ -15,7 +15,7 @@ from deepxube.factories.pathfinding_factory import pathfinding_factory, get_doma
 from deepxube.pathfinding.utils.performance import PathFindPerf
 from deepxube.base.trainer import Status
 from deepxube.tests.time_tests import time_test
-from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg
+from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_policy_nnet_par_from_arg
 
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
@@ -210,9 +210,12 @@ def _viz_state_goal_update(domain: StateGoalVizable, state: State, goal: Goal, f
 def time_test_args(args: argparse.Namespace) -> None:
     domain, domain_name = get_domain_from_arg(args.domain)
     heur_nnet_par: Optional[HeurNNetPar] = None
+    policy_nnet_par: Optional[PolicyNNetPar] = None
     if args.heur is not None:
         heur_nnet_par = get_heur_nnet_par_from_arg(domain, domain_name, args.heur, args.heur_type)[0]
-    time_test(domain, heur_nnet_par, args.num_insts, args.step_max)
+    if args.policy is not None:
+        policy_nnet_par = get_policy_nnet_par_from_arg(domain, domain_name, args.policy)[0]
+    time_test(domain, heur_nnet_par, policy_nnet_par, args.num_insts, args.num_samp, args.num_rand, args.step_max)
 
 
 def plot_itr_data(axs: List[Axes], step_slider: Slider, itr: int, itr_to_in_out: Dict[int, Tuple[NDArray, NDArray]],
@@ -378,6 +381,9 @@ def _parse_time(parser: ArgumentParser) -> None:
     parser.add_argument('--domain', type=str, required=True, help="Domain name and arguments.")
     parser.add_argument('--heur', type=str, default=None, help="Heuristic name and arguments.")
     parser.add_argument('--heur_type', type=str, default="V", help="V, QFix, QIn.")
+    parser.add_argument('--policy', type=str, default=None, help="Policy name and arguments.")
+    parser.add_argument('--num_samp', type=int, default=10, help="")
+    parser.add_argument('--num_rand', type=int, default=5, help="")
     parser.add_argument('--num_insts', type=int, default=10, help="Number of problem instances to generate.")
     parser.add_argument('--step_max', type=int, default=10, help="Randomly generates problem instances with between 0 and step_max steps.")
     parser.set_defaults(func=time_test_args)

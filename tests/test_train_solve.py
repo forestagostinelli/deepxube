@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, cast
 import pytest  # type: ignore
 
 from deepxube.factories.updater_factory import get_updater
@@ -8,7 +8,7 @@ from deepxube.base.pathfinding import Node, Instance, get_path
 from deepxube.pathfinding.utils.performance import is_valid_soln, PathFindPerf
 from deepxube.base.pathfinding import PathFind, PathFindHasHeur
 from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_pathfind_name_kwargs, get_pathfind_from_arg
-from deepxube.base.updater import UpArgs, UpdateHeur, UpHeurArgs
+from deepxube.base.updater import UpArgs, Update, UpdateHeur
 from deepxube.base.trainer import TrainArgs
 from deepxube.trainers.utils.train_loop import train
 from deepxube.nnet import nnet_utils
@@ -50,11 +50,12 @@ def test_train_solve_heur(pathfind_tr_str: str, pathfind_solve_str: str, heur_ty
     pathfind_name, pathfind_kwargs = get_pathfind_name_kwargs(pathfind_tr_str)
 
     # update args
-    up_args: UpArgs = UpArgs(1, 100, 100, search_itrs, sync_main=sync_main)
-    up_heur_args: UpHeurArgs = UpHeurArgs(ub_heur_solns, backup)
+    up_args: UpArgs = UpArgs(1, 100, 100, search_itrs, ub_heur_solns=ub_heur_solns, backup=backup, sync_main=sync_main)
 
     # updater
-    updater: UpdateHeur = get_updater(domain, heur_nnet_par, pathfind_name, pathfind_kwargs, up_args, up_heur_args, False)
+    updater_ret: Update = get_updater(domain, pathfind_name, pathfind_kwargs, up_args, False, "heur")
+    assert isinstance(updater_ret, UpdateHeur)
+    updater: UpdateHeur = updater_ret
 
     # train args
     train_args: TrainArgs = TrainArgs(50, 0.001, 0.9999993, 2000, bal, display=0)

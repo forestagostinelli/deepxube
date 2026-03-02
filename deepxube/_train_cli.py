@@ -6,10 +6,12 @@ from deepxube.factories.updater_factory import get_updater
 
 from deepxube.base.domain import State, Goal
 from deepxube.base.heuristic import HeurNNetPar, PolicyNNetPar
-from deepxube.base.updater import UpArgs, UpdateHeur, UpdatePolicy, UpHeurArgs
+from deepxube.base.pathfinding import PathFind
+from deepxube.base.updater import UpArgs, Update, UpdateHeur, UpdatePolicy
 from deepxube.base.trainer import TrainArgs
 from deepxube.trainers.utils.train_loop import TestArgs, train
-from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_policy_nnet_par_from_arg, get_pathfind_name_kwargs
+from deepxube.utils.command_line_utils import (get_domain_from_arg, get_heur_nnet_par_from_arg, get_policy_nnet_par_from_arg, get_pathfind_name_kwargs,
+                                               get_pathfind_from_arg)
 import pickle
 
 
@@ -80,9 +82,11 @@ def train_cli(args: argparse.Namespace) -> None:
 
     # pathfinding
     pathfind_name, pathfind_kwargs = get_pathfind_name_kwargs(args.pathfind)
+    pathfind: PathFind = get_pathfind_from_arg(domain, args.pathfind)[0]
+    assert isinstance(domain, pathfind.domain_type())
 
     # update args
-    up_args: UpArgs = UpArgs(args.procs, args.up_itrs, args.step_max, args.search_itrs,
+    up_args: UpArgs = UpArgs(args.procs, args.up_itrs, args.step_max, args.search_itrs, ub_heur_solns=False, backup=args.backup,
                              up_batch_size=args.up_batch_size, nnet_batch_size=args.up_nnet_batch_size,
                              sync_main=args.sync_main, v=args.up_v)
 
@@ -93,11 +97,14 @@ def train_cli(args: argparse.Namespace) -> None:
     update_policy: Optional[UpdatePolicy] = None
     if args.heur is not None:
         heur_nnet_par = get_heur_nnet_par_from_arg(domain, domain_name, args.heur, args.heur_type)[0]
-        up_heur_args: UpHeurArgs = UpHeurArgs(False, args.backup)
-        update_heur = get_updater(domain, heur_nnet_par, pathfind_name, pathfind_kwargs, up_args, up_heur_args, args.her)
+        update_ret: Update = get_updater(domain, pathfind_name, pathfind_kwargs, up_args, args.her, "heur")
+        assert isinstance(update_ret, UpdateHeur)
+        update_heur = update_ret
     if args.policy is not None:
         policy_nnet_par = get_policy_nnet_par_from_arg(domain, domain_name, args.policy)[0]
-        update_policy = get_updater(domain, policy_nnet_par, pathfind_name, pathfind_kwargs, up_args, up_heur_args, args.her)
+        update_ret = get_updater(domain, pathfind_name, pathfind_kwargs, up_args, args.her, "policy")
+        assert isinstance(update_ret, UpdatePolicy)
+        update_policy = update_ret
 
     # train args
     train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.bal, rb=args.rb, display=args.display)

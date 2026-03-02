@@ -354,6 +354,7 @@ class PathFindHasPolicy(PathFind[D, I], ABC):
             f"{len(actions_l)}, {len(probs_l)}, {len(states)}, {len(goals)}"
 
         for node, actions, probs in zip(nodes, actions_l, probs_l, strict=True):
+            assert len(actions) == len(probs), f"{len(actions)}, {len(probs)}"
             node.act_probs = (actions, probs)
 
         self.times.record_time("policy_fn", time.time() - start_time)

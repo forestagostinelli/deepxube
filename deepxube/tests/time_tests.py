@@ -5,7 +5,8 @@ import torch.nn as nn
 from torch.multiprocessing import Queue, get_context
 
 from deepxube.base.domain import Domain, ActsEnum, StartGoalWalkable, State, Goal, Action
-from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ
+from deepxube.nnet.nnet_utils import NNetPar
+from deepxube.base.heuristic import HeurNNetPar, PolicyNNetPar, PolicyFn, HeurNNetParV, HeurNNetParQ
 from deepxube.nnet.nnet_utils import NNetCallable
 from deepxube.nnet import nnet_utils
 from deepxube.utils.misc_utils import flatten
@@ -120,13 +121,13 @@ def test_envenumerableacts(env: ActsEnum, states: List[State]) -> None:
           f"in %s seconds (%.2f/second)" % (len(states), elapsed_time, states_per_sec))
 
 
-def init_nnet(heur_nnet: HeurNNetPar) -> Tuple[nn.Module, torch.device]:
+def init_nnet(nnet_par: NNetPar) -> Tuple[nn.Module, torch.device]:
     on_gpu: bool
     device: torch.device
     device, devices, on_gpu = nnet_utils.get_device()
     print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
 
-    nnet: nn.Module = heur_nnet.get_nnet()
+    nnet: nn.Module = nnet_par.get_nnet()
     nnet.to(device)
     if on_gpu:
         nnet = nn.DataParallel(nnet)
@@ -173,7 +174,41 @@ def test_heur_nnet_par(heur_nnet_par: HeurNNetPar, states: List[State], goals: L
     print("Computed heuristic for %i states in %s seconds (%.2f/second)" % (len(states), nnet_time, states_per_sec))
 
 
-def time_test(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], num_states: int, step_max: int) -> None:
+def test_policy_nnet_par(domain: Domain, policy_nnet_par: PolicyNNetPar, states: List[State], goals: List[Goal], actions: List[Action], num_samp: int,
+                         num_rand: int) -> None:
+    # nnet format
+    start_time = time.time()
+    policy_nnet_par.to_np_train(states, goals, actions)
+    elapsed_time = time.time() - start_time
+    states_per_sec = len(states) / elapsed_time
+    print("Converted %i states, goals, actions for training to nnet format in "
+          "%s seconds (%.2f/second)" % (len(states), elapsed_time, states_per_sec))
+
+    start_time = time.time()
+    policy_nnet_par.to_np_fn(states, goals)
+    elapsed_time = time.time() - start_time
+    states_per_sec = len(states) / elapsed_time
+    print("Converted %i states, goals for sampling to nnet format in "
+          "%s seconds (%.2f/second)" % (len(states), elapsed_time, states_per_sec))
+
+    # initialize nnet
+    nnet, device = init_nnet(policy_nnet_par)
+    print("")
+    policy_fn: PolicyFn = policy_nnet_par.get_nnet_fn(nnet, None, device, None)
+
+    policy_fn(domain, states, goals, num_samp, num_rand)
+
+    # nnet heuristic
+    start_time = time.time()
+    policy_fn(domain, states, goals, num_samp, num_rand)
+
+    nnet_time = time.time() - start_time
+    states_per_sec = len(states) / nnet_time
+    print("Computed policy for %i states in %s seconds (%.2f/second)" % (len(states), nnet_time, states_per_sec))
+
+
+def time_test(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], policy_nnet_par: Optional[PolicyNNetPar], num_samp: int, num_rand: int, num_states: int,
+              step_max: int) -> None:
     states, goals, actions = test_env(domain, num_states, step_max)
     if isinstance(domain, StartGoalWalkable):
         test_envstartgoalrw(domain, num_states)
@@ -182,3 +217,6 @@ def time_test(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], num_states: 
 
     if heur_nnet_par is not None:
         test_heur_nnet_par(heur_nnet_par, states, goals, actions)
+
+    if policy_nnet_par is not None:
+        test_policy_nnet_par(domain, policy_nnet_par, states, goals, actions, num_samp, num_rand)

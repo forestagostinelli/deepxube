@@ -141,9 +141,14 @@ Up = TypeVar('Up', bound=Update)
 
 
 class Train(Generic[NNet, Up], ABC):
-    def __init__(self, nnet: NNet, updater: Up, to_main_q: Queue, from_main_qs: List[Queue], nnet_file: str,
-                 nnet_targ_file: str, status_file: str, device: torch.device, on_gpu: bool, writer: SummaryWriter,
-                 train_args: TrainArgs) -> None:
+    @staticmethod
+    @abstractmethod
+    def data_parallel() -> bool:
+        pass
+
+
+    def __init__(self, nnet: NNet, updater: Up, to_main_q: Queue, from_main_qs: List[Queue], nnet_file: str, nnet_targ_file: str, status_file: str,
+                 device: torch.device, on_gpu: bool, writer: SummaryWriter, train_args: TrainArgs) -> None:
         self.updater: Up = updater
         self.to_main_q: Queue = to_main_q
         self.from_main_qs: List[Queue] = from_main_qs
@@ -176,7 +181,8 @@ class Train(Generic[NNet, Up], ABC):
             torch.save(self.nnet.state_dict(), self.nnet_targ_file)
 
         self.nnet.to(self.device)
-        self.nnet = cast(NNet, nn.DataParallel(self.nnet))
+        if self.data_parallel():
+            self.nnet = cast(NNet, nn.DataParallel(self.nnet))
 
         # init data buffer
         shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = self._get_shapes_dtypes()

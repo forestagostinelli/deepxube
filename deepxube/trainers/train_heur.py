@@ -14,6 +14,10 @@ import time
 
 
 class TrainHeur(Train[HeurNNet, UpdateHeur]):
+    @staticmethod
+    def data_parallel() -> bool:
+        return True
+
     def _train_itr(self, batch: List[NDArray], first_itr_in_update: bool, times: Times) -> float:
         start_time = time.time()
         inputs_batch_np: List[NDArray] = batch[:-1]

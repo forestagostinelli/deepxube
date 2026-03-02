@@ -3,9 +3,9 @@ import argparse
 from argparse import ArgumentParser
 
 from deepxube.base.domain import Domain, State, Action, Goal
-from deepxube.base.heuristic import HeurNNetPar, HeurFn, HeurFnV, HeurFnQ, PolicyFn, policy_fn_rand
+from deepxube.base.heuristic import HeurNNetPar, PolicyNNetPar, HeurFn, HeurFnV, HeurFnQ, PolicyFn, policy_fn_rand
 from deepxube.base.pathfinding import Node, Instance, PathFind, PathFindHasHeur, PathFindHasPolicy, get_path
-from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_pathfind_from_arg
+from deepxube.utils.command_line_utils import get_domain_from_arg, get_pathfind_from_arg, get_heur_nnet_par_from_arg, get_policy_nnet_par_from_arg
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
 from deepxube.pathfinding.utils.performance import is_valid_soln
@@ -92,7 +92,14 @@ def get_policy_fn(domain: Domain, domain_name: str, policy_nnet_str: Optional[st
     policy_fn: Optional[PolicyFn] = None
     if policy_nnet_str is not None:
         assert policy_file is not None
-        raise NotImplementedError
+        policy_nnet_par: PolicyNNetPar = get_policy_nnet_par_from_arg(domain, domain_name, policy_nnet_str)[0]
+        device, devices, on_gpu = nnet_utils.get_device()
+        print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
+        nnet: nn.Module = nnet_utils.load_nnet(policy_file, policy_nnet_par.get_nnet())
+        nnet.eval()
+        nnet.to(device)
+        nnet = nn.DataParallel(nnet)
+        policy_fn = policy_nnet_par.get_nnet_fn(nnet, nnet_batch_size, device, None)
     elif use_policy:
         class PolicyFnRand(PolicyFn):
             def __call__(self, domain_in: Domain, states: List[State], goals: List[Goal], num_samp_in: int,

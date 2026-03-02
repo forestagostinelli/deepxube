@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple, Any, Generic, TypeVar, Optional, cast
+from typing import List, Dict, Tuple, Any, Generic, TypeVar, Optional, cast, Type
 from abc import ABC, abstractmethod
 import time
 from dataclasses import dataclass
@@ -36,6 +36,8 @@ class UpArgs:
     :param step_max: Maximum number of steps to take when generating problem instances.
     :param search_itrs: Maximum number of pathfinding iterationos to take for each generated problem instances
     States and corresponding goals seen during search will be added to training instances.
+    :param ub_heur_solns: if True, the target cost-to-go will be min(backup, path_cost_from_state)
+    :param backup: 1 is Bellman and -1 is tree backup (i.e. Limited Horizon Bellman-based Learning)
     :param up_gen_itrs: How many iterations worth of data to generate per udpate. If None, set to up_itrs
     :param up_batch_size: Maximum number of searches to do at a time. Helps manage memory.
     Decrease if memory is running out during updater. None if as large as possible
@@ -48,6 +50,8 @@ class UpArgs:
     up_itrs: int
     step_max: int
     search_itrs: int
+    ub_heur_solns: bool = False
+    backup: int = 1
     up_gen_itrs: Optional[int] = None
     up_batch_size: Optional[int] = None
     nnet_batch_size: Optional[int] = None
@@ -56,16 +60,6 @@ class UpArgs:
 
     def get_up_gen_itrs(self) -> int:
         return self.up_itrs if (self.up_gen_itrs is None) else self.up_gen_itrs
-
-
-@dataclass
-class UpHeurArgs:
-    """ Arguments when updating heuristic
-    :param ub_heur_solns: if True, the target cost-to-go will be min(backup, path_cost_from_state)
-    :param backup: 1 is Bellman and -1 is tree backup (i.e. Limited Horizon Bellman-based Learning)
-    """
-    ub_heur_solns: bool
-    backup: int
 
 
 def _put_from_q(data_l: List[List[NDArray]], from_q: Queue, times: Times) -> None:
@@ -90,6 +84,16 @@ P = TypeVar('P', bound=PathFind)
 
 
 class Update(Generic[D, P, Inst], ABC):
+    @staticmethod
+    @abstractmethod
+    def domain_type() -> Type[D]:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def pathfind_type() -> Type[P]:
+        pass
+
     @staticmethod
     def _update_perf(insts: List[Inst], step_to_pathperf: Dict[int, PathFindPerf]) -> None:
         for inst in insts:
@@ -302,9 +306,6 @@ class Update(Generic[D, P, Inst], ABC):
             self.nnet_fn_dict[nnet_name] = nnet.get_nnet_par_fn(nnet_par_info, targ_update_num)
         self.domain.set_nnet_fns(self.nnet_fn_dict)
 
-    def get_up_args_repr(self) -> str:
-        return self.up_args.__repr__()
-
     def get_pathfind(self) -> P:
         pathfind_kwargs: Dict[str, Any] = self.pathfind_kwargs.copy()
         pathfind_kwargs["domain"] = self.domain
@@ -440,6 +441,9 @@ class Update(Generic[D, P, Inst], ABC):
     def _init_replay_buffer(self, max_size: int) -> None:
         pass
 
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.up_args.__repr__()})"
+
 
 class UpdateHER(Update[GoalSampleableFromState, P, Inst], ABC):
     def _step_sync_main(self, pathfind: P, times: Times) -> List[NDArray]:
@@ -520,11 +524,7 @@ class UpdateHasHeur(Update[D, P, Inst], Generic[D, P, Inst, HNet, H], ABC):
         return cast(HNet, self.nnet_par_dict[self.heur_name()])
 
     def get_heur_fn(self) -> H:
-        if not self.up_args.sync_main:
-            return self._get_heur_fn_from_dict()
-        else:
-            assert self.nnet_par_info_main is not None
-            return cast(H, self.get_heur_nnet_par().get_nnet_par_fn(self.nnet_par_info_main, None))
+        return self._get_heur_fn_from_dict()
 
     def _get_heur_fn_from_dict(self) -> H:
         return cast(H, self.nnet_fn_dict[self.heur_name()])
@@ -545,10 +545,7 @@ class UpdateHasPolicy(Update[D, P, Inst], ABC):
         return cast(PolicyNNetPar, self.nnet_par_dict[self.policy_name()])
 
     def get_policy_fn(self) -> PolicyFn:
-        if not self.up_args.sync_main:
-            return self._get_policy_fn_from_dict()
-        else:
-            raise NotImplementedError("sync_main not yet implemented for policy_fn")
+        return self._get_policy_fn_from_dict()
 
     def _get_policy_fn_from_dict(self) -> PolicyFn:
         return cast(PolicyFn, self.nnet_fn_dict[self.policy_name()])
@@ -582,6 +579,13 @@ class UpdateHeur(UpdateHasHeur[D, P, Inst, HNet, H]):
     def get_heur_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         pass
 
+    def get_heur_fn(self) -> H:
+        if not self.up_args.sync_main:
+            return super().get_heur_fn()
+        else:
+            assert self.nnet_par_info_main is not None
+            return cast(H, self.get_heur_nnet_par().get_nnet_par_fn(self.nnet_par_info_main, None))
+
 
 class UpdatePolicy(UpdateHasPolicy[D, P, Inst], ABC):
     def get_policy_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
@@ -594,6 +598,12 @@ class UpdatePolicy(UpdateHasPolicy[D, P, Inst], ABC):
             shapes_dtypes.append((inputs_nnet_i[0].shape, inputs_nnet_i.dtype))
 
         return shapes_dtypes
+
+    def get_policy_fn(self) -> PolicyFn:
+        if not self.up_args.sync_main:
+            return super().get_policy_fn()
+        else:
+            raise NotImplementedError("sync_main not yet implemented for policy_fn")
 
 
 class UpdateHeurV(UpdateHeur[D, P, InstanceNode, HeurNNetParV, HeurFnV], ABC):

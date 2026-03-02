@@ -1,15 +1,46 @@
-from typing import Dict, Any, Type
+from typing import Dict, Any, Type, List
 
-from deepxube.base.domain import Domain, GoalSampleableFromState, ActsEnum
-from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ
-from deepxube.base.pathfinding import PathFind, PathFindHasHeur, PathFindSup
-from deepxube.base.updater import UpdateHeur, UpdateHeurRL, UpArgs, UpHeurArgs
-from deepxube.updaters.updater_v_rl import UpdateHeurVRLKeepGoal, UpdateHeurVRLHER
-from deepxube.updaters.updater_q_rl import UpdateHeurQRLKeepGoal, UpdateHeurQRLHER
-from deepxube.updaters.updater_sup import UpdateHeurVSup, UpdateHeurQSup
+from deepxube.base.domain import Domain
+from deepxube.base.pathfinding import PathFind, PathFindHasHeur, PathFindHasPolicy
+from deepxube.base.updater import Update, UpdateHER, UpdateHasHeur, UpdateHasPolicy, UpdateHeur, UpdatePolicy, UpArgs
+from deepxube.base.factory import Factory
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 
 
+updater_factory: Factory[Update] = Factory[Update]("Update")
+
+
+def get_updater(domain: Domain, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs, her: bool, func_update: str) -> Update:
+    up_cls_names: List[str] = updater_factory.get_all_class_names()
+    pathfind_t: Type[PathFind] = pathfinding_factory.get_type(pathfind_name)
+
+    up_cls_names = [up_cls_name for up_cls_name in up_cls_names if isinstance(domain, updater_factory.get_type(up_cls_name).domain_type())]
+    up_cls_names = [up_cls_name for up_cls_name in up_cls_names if issubclass(pathfind_t, updater_factory.get_type(up_cls_name).pathfind_type())]
+    up_cls_names = [up_cls_name for up_cls_name in up_cls_names if issubclass(updater_factory.get_type(up_cls_name), UpdateHER) == her]
+
+    if issubclass(pathfind_t, PathFindHasHeur):
+        up_cls_names = [up_cls_name for up_cls_name in up_cls_names if issubclass(updater_factory.get_type(up_cls_name), UpdateHasHeur)]
+
+    if issubclass(pathfind_t, PathFindHasPolicy):
+        up_cls_names = [up_cls_name for up_cls_name in up_cls_names if issubclass(updater_factory.get_type(up_cls_name), UpdateHasPolicy)]
+
+    if func_update.upper() == "HEUR":
+        up_cls_names = [up_cls_name for up_cls_name in up_cls_names if issubclass(updater_factory.get_type(up_cls_name), UpdateHeur)]
+    elif func_update.upper() == "POLICY":
+        up_cls_names = [up_cls_name for up_cls_name in up_cls_names if issubclass(updater_factory.get_type(up_cls_name), UpdatePolicy)]
+    else:
+        raise ValueError(f"Unknown func to update {func_update}")
+
+    if len(up_cls_names) == 0:
+        raise ValueError(f"No updaters for Domain: {domain}, PathFind: {pathfind_t}, HER: {her}, Update func: {func_update}")
+    if len(up_cls_names) > 1:
+        raise ValueError(f"More than one updater option: {up_cls_names} for Domain: {domain}, PathFind: {pathfind_t}, HER: {her}, Update func: {func_update}")
+
+    up_cls: Type[Update] = updater_factory.get_type(up_cls_names[0])
+    return up_cls(domain, pathfind_name, pathfind_kwargs, up_args)
+
+
+"""
 def get_updater(domain: Domain, heur_nnet_par: HeurNNetPar, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs,
                 up_heur_args: UpHeurArgs, her: bool) -> UpdateHeur:
     # TODO how to handle backup and ub_parent_path for HER?
@@ -44,3 +75,4 @@ def get_updater(domain: Domain, heur_nnet_par: HeurNNetPar, pathfind_name: str, 
             raise ValueError(f"No update implementation for {heur_nnet_par}")
     else:
         raise ValueError(f"Unknown update method for {pathfind_t}")
+"""

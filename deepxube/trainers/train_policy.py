@@ -12,6 +12,10 @@ import time
 
 
 class TrainPolicy(Train[PolicyNNet, UpdatePolicy]):
+    @staticmethod
+    def data_parallel() -> bool:
+        return False
+
     def _train_itr(self, batch: List[NDArray], first_itr_in_update: bool, times: Times) -> float:
         start_time = time.time()
         states_goals_np: List[NDArray] = batch[:-1]

@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Dict, Any, List, Tuple, cast
+from typing import Dict, Any, List, Tuple, cast, Type
 
 import numpy as np
 from numpy.typing import NDArray
@@ -7,7 +7,8 @@ from numpy.typing import NDArray
 from deepxube.base.domain import Domain, GoalSampleableFromState, Action, State, Goal
 from deepxube.base.heuristic import HeurNNetParQ, HeurFnQ
 from deepxube.base.pathfinding import PathFindEdgeHasHeur, EdgeQ, InstanceEdge, Node
-from deepxube.base.updater import UpdateHER, UpdateHeurQ, UpdateHeurRL, D, UpArgs, UpHeurArgs
+from deepxube.base.updater import UpdateHER, UpdateHeurQ, UpdateHeurRL, D, UpArgs
+from deepxube.factories.updater_factory import updater_factory
 from deepxube.updaters.utils.replay_buffer_utils import ReplayBufferQ
 from deepxube.utils.timing_utils import Times
 
@@ -45,13 +46,9 @@ def _get_edge_popped_data(edges_popped: List[EdgeQ],
 
 
 class UpdateHeurQRL(UpdateHeurQ[D, PathFindEdgeHasHeur], UpdateHeurRL[D, PathFindEdgeHasHeur, InstanceEdge, HeurNNetParQ, HeurFnQ], ABC):
-    def __init__(self, domain: D, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs, up_heur_args: UpHeurArgs):
+    def __init__(self, domain: D, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs):
         super().__init__(domain, pathfind_name, pathfind_kwargs, up_args)
-        self.up_heur_args: UpHeurArgs = up_heur_args
         self.rb: ReplayBufferQ = ReplayBufferQ(0)
-
-    def get_up_args_repr(self) -> str:
-        return f"{super().get_up_args_repr()}\n{self.up_heur_args.__repr__()}"
 
     def _step(self, pathfind: PathFindEdgeHasHeur, times: Times) -> None:
         _pathfind_q_step(pathfind)
@@ -104,7 +101,16 @@ class UpdateHeurQRL(UpdateHeurQ[D, PathFindEdgeHasHeur], UpdateHeurRL[D, PathFin
         return states, goals, actions, ctgs_backup
 
 
+@updater_factory.register_class("update_heurq_rl")
 class UpdateHeurQRLKeepGoal(UpdateHeurQRL[Domain]):
+    @staticmethod
+    def domain_type() -> Type[Domain]:
+        return Domain
+
+    @staticmethod
+    def pathfind_type() -> Type[PathFindEdgeHasHeur]:
+        return PathFindEdgeHasHeur
+
     def _step_sync_main(self, pathfind: PathFindEdgeHasHeur, times: Times) -> List[NDArray]:
         # take a step
         edges_popped: List[EdgeQ] = _pathfind_q_step(pathfind)
@@ -128,17 +134,17 @@ class UpdateHeurQRLKeepGoal(UpdateHeurQRL[Domain]):
 
         # backup
         start_time = time.time()
-        if self.up_heur_args.backup == 1:
-            if self.up_heur_args.ub_heur_solns:
+        if self.up_args.backup == 1:
+            if self.up_args.ub_heur_solns:
                 for edge in edges_popped:
                     assert edge.node.is_solved is not None
                     if edge.node.is_solved:
                         edge.node.upper_bound_parent_path(0.0)
-        elif self.up_heur_args.backup == -1:
+        elif self.up_args.backup == -1:
             for instance in instances:
                 instance.root_node.tree_backup()
         else:
-            raise ValueError(f"Unknown backup {self.up_heur_args.backup}")
+            raise ValueError(f"Unknown backup {self.up_args.backup}")
         times.record_time("backup", time.time() - start_time)
 
         start_time = time.time()
@@ -174,7 +180,16 @@ class UpdateHeurQRLKeepGoal(UpdateHeurQRL[Domain]):
         return self._inputs_ctgs_to_np(states, goals, actions, ctgs_backup, times)
 
 
+@updater_factory.register_class("update_heurq_rl_her")
 class UpdateHeurQRLHER(UpdateHeurQRL[GoalSampleableFromState], UpdateHER[PathFindEdgeHasHeur, InstanceEdge]):
+    @staticmethod
+    def domain_type() -> Type[GoalSampleableFromState]:
+        return GoalSampleableFromState
+
+    @staticmethod
+    def pathfind_type() -> Type[PathFindEdgeHasHeur]:
+        return PathFindEdgeHasHeur
+
     def _get_instance_data_rb(self, instances: List[InstanceEdge], times: Times) -> List[NDArray]:
         # get goals according to HER
         instances, goals_inst_her = self._get_her_goals(instances, times)

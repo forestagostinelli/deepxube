@@ -1,10 +1,11 @@
-from typing import List
+from typing import List, Type
 
 from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, State, Action, Goal
 from deepxube.base.pathfinding import Node, EdgeQ, InstanceEdge, InstanceNode
 from deepxube.base.updater import UpdatePolicy, UpdateHeurV, UpdateHeurQ, UpdateSup
+from deepxube.factories.updater_factory import updater_factory
 from deepxube.utils.timing_utils import Times
 from deepxube.pathfinding.supervised_v import PathFindVSup
 from deepxube.pathfinding.supervised_q import PathFindQSup
@@ -12,7 +13,16 @@ from deepxube.pathfinding.supervised_q import PathFindQSup
 import numpy as np
 
 
+@updater_factory.register_class("update_policy_sup")
 class UpdatePolicySup(UpdatePolicy[Domain, PathFindQSup, InstanceEdge], UpdateSup[Domain, PathFindQSup, InstanceEdge]):
+    @staticmethod
+    def domain_type() -> Type[Domain]:
+        return Domain
+
+    @staticmethod
+    def pathfind_type() -> Type[PathFindQSup]:
+        return PathFindQSup
+
     def _get_instance_data_norb(self, instances: List[InstanceEdge], times: Times) -> List[NDArray]:
         edges_popped: List[EdgeQ] = []
         for instance in instances:
@@ -26,7 +36,16 @@ class UpdatePolicySup(UpdatePolicy[Domain, PathFindQSup, InstanceEdge], UpdateSu
         return inputs_np
 
 
+@updater_factory.register_class("update_heurv_sup")
 class UpdateHeurVSup(UpdateHeurV[Domain, PathFindVSup], UpdateSup[Domain, PathFindVSup, InstanceNode]):
+    @staticmethod
+    def domain_type() -> Type[Domain]:
+        return Domain
+
+    @staticmethod
+    def pathfind_type() -> Type[PathFindVSup]:
+        return PathFindVSup
+
     def _get_instance_data_norb(self, instances: List[InstanceNode], times: Times) -> List[NDArray]:
         nodes_popped: List[Node] = []
         for instance in instances:
@@ -40,7 +59,16 @@ class UpdateHeurVSup(UpdateHeurV[Domain, PathFindVSup], UpdateSup[Domain, PathFi
         return inputs_np + [np.array(ctgs_backup)]
 
 
+@updater_factory.register_class("update_heurq_sup")
 class UpdateHeurQSup(UpdateHeurQ[Domain, PathFindQSup], UpdateSup[Domain, PathFindQSup, InstanceEdge]):
+    @staticmethod
+    def domain_type() -> Type[Domain]:
+        return Domain
+
+    @staticmethod
+    def pathfind_type() -> Type[PathFindQSup]:
+        return PathFindQSup
+
     def _get_instance_data_norb(self, instances: List[InstanceEdge], times: Times) -> List[NDArray]:
         edges_popped: List[EdgeQ] = []
         for instance in instances:
