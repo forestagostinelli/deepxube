@@ -4,6 +4,7 @@ from typing import List, Tuple
 import numpy as np
 from numpy.typing import NDArray
 
+from deepxube.base.heuristic import PolicyNNet
 from deepxube.base.trainer import TrainArgs
 from deepxube.nnet import nnet_utils
 
@@ -63,3 +64,36 @@ def train_heur_nnet_step(nnet: nn.Module, inputs_np: List[NDArray], ctgs_np: NDA
               f"nnet_ctg: %.2f, time: {time.time() - start_time:.2f}" % (train_itr, lr_itr, loss.item(), ctgs_batch.mean().item(), ctgs_nnet.mean().item()))
 
     return ctgs_nnet.cpu().data.numpy(), float(loss.item())
+
+
+def train_policy_nnet_step(policy: PolicyNNet, states_goals_np: List[NDArray], actions_np: NDArray, optimizer: Optimizer, device: torch.device,
+                           train_itr: int, train_args: TrainArgs, kl_w: float, start_time: float) -> float:
+    # train network
+    policy.train()
+
+    # zero the parameter gradients
+    optimizer.zero_grad()
+    lr_itr: float = train_args.lr * (train_args.lr_d ** train_itr)
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr_itr
+
+    # send data to device
+    states_goals: List[Tensor] = nnet_utils.to_pytorch_input(states_goals_np, device)
+    actions: Tensor = torch.tensor(actions_np, device=device)
+
+    # forward
+    loss_recon, loss_kl = policy.autoencode(states_goals, actions)
+    loss = loss_recon + (kl_w * loss_kl)
+
+    # backwards
+    loss.backward()
+
+    # step
+    optimizer.step()
+
+    # display progress
+    if (train_args.display > 0) and (train_itr % train_args.display == 0):
+        print(f"Itr: %i, lr: %.2E, loss: %.2E, loss_recon: {loss_recon.item():.2E}, loss_kl: {loss_kl.item():.2E},"
+              f"Time: {time.time() - start_time:.2f}" % (train_itr, lr_itr, loss.item()))
+
+    return float(loss.item())

@@ -10,7 +10,7 @@ from deepxube.base.pathfinding import PathFind, PathFindHasHeur
 from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_pathfind_name_kwargs, get_pathfind_from_arg
 from deepxube.base.updater import UpArgs, UpdateHeur, UpHeurArgs
 from deepxube.base.trainer import TrainArgs
-from deepxube.trainers.utils.train_heur_loop import train
+from deepxube.trainers.utils.train_loop import train
 from deepxube.nnet import nnet_utils
 from itertools import product
 import shutil
@@ -64,11 +64,11 @@ def test_train_solve_heur(pathfind_tr_str: str, pathfind_solve_str: str, heur_ty
     if os.path.exists(save_dir):
         shutil.rmtree(save_dir)
 
-    train(heur_nnet_par, heur_type, updater, save_dir, train_args)
+    train(domain, heur_nnet_par, updater, None, None, save_dir, train_args)
 
     # solve
     heur_file: str = f"{save_dir}/heur.pt"
-    pathfind: PathFind = get_pathfind_from_arg(domain, heur_type, pathfind_solve_str)[0]
+    pathfind: PathFind = get_pathfind_from_arg(domain, pathfind_solve_str)[0]
     assert isinstance(pathfind, PathFindHasHeur), f"Current implementation only uses {PathFindHasHeur}"
     device, devices, on_gpu = nnet_utils.get_device()
 

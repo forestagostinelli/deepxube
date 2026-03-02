@@ -1,11 +1,11 @@
-from typing import Tuple, Optional, List, Dict, Any, Type
+from typing import Tuple, Optional, List, Dict, Any
 
 from deepxube.base.domain import Domain
-from deepxube.base.heuristic import HeurNNetPar
-from deepxube.base.pathfinding import PathFind, PathFindHasHeur, PathFindNodeHasHeur, PathFindEdgeHasHeur
+from deepxube.base.heuristic import HeurNNetPar, PolicyNNetPar
+from deepxube.base.pathfinding import PathFind
 
 from deepxube.factories.domain_factory import domain_factory
-from deepxube.factories.heuristic_factory import heuristic_factory, build_heur_nnet_par
+from deepxube.factories.heuristic_factory import heuristic_factory, policy_factory, build_heur_nnet_par, build_policy_nnet_par
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 
 
@@ -28,11 +28,19 @@ def get_domain_from_arg(domain: str) -> Tuple[Domain, str]:
 
 
 def get_heur_nnet_par_from_arg(domain: Domain, domain_name: str, heur: str, heur_type: str) -> Tuple[HeurNNetPar, str]:
-    heur_module_name, heur_module_args = get_name_args(heur)
-    heuristic_factory.get_type(heur_module_name)  # to ensure existence
-    heur_module_kwargs: Dict[str, Any] = heuristic_factory.get_kwargs(heur_module_name, heur_module_args)
-    heur_nnet_par: HeurNNetPar = build_heur_nnet_par(domain, domain_name, heur_module_name, heur_module_kwargs, heur_type)
-    return heur_nnet_par, heur_module_name
+    nnet_name, nnet_args = get_name_args(heur)
+    heuristic_factory.get_type(nnet_name)  # to ensure existence
+    nnet_kwargs: Dict[str, Any] = heuristic_factory.get_kwargs(nnet_name, nnet_args)
+    nnet_par: HeurNNetPar = build_heur_nnet_par(domain, domain_name, nnet_name, nnet_kwargs, heur_type)
+    return nnet_par, nnet_name
+
+
+def get_policy_nnet_par_from_arg(domain: Domain, domain_name: str, policy: str) -> Tuple[PolicyNNetPar, str]:
+    nnet_name, nnet_args = get_name_args(policy)
+    policy_factory.get_type(nnet_name)  # to ensure existence
+    nnet_kwargs: Dict[str, Any] = policy_factory.get_kwargs(nnet_name, nnet_args)
+    nnet_par: PolicyNNetPar = build_policy_nnet_par(domain, domain_name, nnet_name, nnet_kwargs)
+    return nnet_par, nnet_name
 
 
 def get_pathfind_name_kwargs(pathfind: str) -> Tuple[str, Dict[str, Any]]:
@@ -41,20 +49,8 @@ def get_pathfind_name_kwargs(pathfind: str) -> Tuple[str, Dict[str, Any]]:
     return name, pathfind_kwargs
 
 
-def get_pathfind_from_arg(domain: Domain, heur_type: str, pathfind: str) -> Tuple[PathFind, str]:
+def get_pathfind_from_arg(domain: Domain, pathfind: str) -> Tuple[PathFind, str]:
     pathfind_name, args_str = get_name_args(pathfind)
-
-    # check heur type
-    pathfind_t: Type[PathFind] = pathfinding_factory.get_type(pathfind_name)
-    if issubclass(pathfind_t, PathFindHasHeur):
-        assert heur_type is not None, "Should specify heuristic type"
-        if issubclass(pathfind_t, PathFindNodeHasHeur):
-            assert heur_type.upper() == "V", f"must use a V heur_type for pathfinding algorithm {pathfind_name, pathfind_t}"
-        elif issubclass(pathfind_t, PathFindEdgeHasHeur):
-            assert heur_type.upper() in {"QFIX", "QIN"}, f"must use a QFix or QIn heur_types for pathfinding algorithm {pathfind_name, pathfind_t}"
-        else:
-            raise ValueError(f"Unknown subclass of PathFindHeur {pathfind_t}")
-
     pathfind_kwargs: Dict[str, Any] = pathfinding_factory.get_kwargs(pathfind_name, args_str)
     pathfind_kwargs["domain"] = domain
     return pathfinding_factory.build_class(pathfind_name, pathfind_kwargs), pathfind_name

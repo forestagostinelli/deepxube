@@ -3,7 +3,7 @@ import argparse
 from argparse import ArgumentParser
 
 from deepxube.base.domain import Domain, State, Action, Goal
-from deepxube.base.heuristic import HeurNNetPar, HeurFn, HeurFnV, HeurFnQ, PolicyFn
+from deepxube.base.heuristic import HeurNNetPar, HeurFn, HeurFnV, HeurFnQ, PolicyFn, policy_fn_rand
 from deepxube.base.pathfinding import Node, Instance, PathFind, PathFindHasHeur, PathFindHasPolicy, get_path
 from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_pathfind_from_arg
 from deepxube.utils import data_utils
@@ -31,7 +31,8 @@ def parse_solve(parser: ArgumentParser) -> None:
     parser.add_argument('--policy', type=str, default=None, help="Policy neural network and arguments. If None then a policy that randomly samples actions "
                                                                  "with equal probability is used.")
     parser.add_argument('--policy_file', type=str, default=None, help="File that has policy nnet. Can be None if using random policy.")
-    parser.add_argument('--policy_samp', type=int, default=None, help="Number of actions to sample.")
+    parser.add_argument('--policy_samp', type=int, default=10, help="Number of actions to sample.")
+    parser.add_argument('--policy_rand', type=int, default=0, help="Number of random actions to sample.")
 
     parser.add_argument('--pathfind', type=str, required=True, help="Pathfinding algorithm and arguments.")
     parser.add_argument('--file', type=str, required=True, help="File containing problem instances to solve")
@@ -94,24 +95,9 @@ def get_policy_fn(domain: Domain, domain_name: str, policy_nnet_str: Optional[st
         raise NotImplementedError
     elif use_policy:
         class PolicyFnRand(PolicyFn):
-            def __call__(self, domain_in: Domain, states: List[State], goals: List[Goal], num_samp_in: int) -> Tuple[List[List[Action]], List[List[float]]]:
-                # sample actions
-                states_rep_flat: List[State] = []
-                for state in states:
-                    states_rep_flat.extend([state] * num_samp_in)
-
-                actions_samp_flat: List[Action] = domain_in.sample_state_action(states_rep_flat)
-
-                # unflatten
-                actions_samp: List[List[Action]] = []
-                probs_l: List[List[float]] = []
-                for _ in states:
-                    actions_samp_i: List[Action] = actions_samp_flat[:num_samp_in]
-                    actions_samp.append(actions_samp_i)
-                    probs_l.append([1.0/len(actions_samp_i)] * len(actions_samp_i))
-                    actions_samp_flat = actions_samp_flat[num_samp_in:]
-
-                return actions_samp, probs_l
+            def __call__(self, domain_in: Domain, states: List[State], goals: List[Goal], num_samp_in: int,
+                         num_rand_in: int) -> Tuple[List[List[Action]], List[List[float]]]:
+                return policy_fn_rand(domain, states, num_samp_in + num_rand_in)
 
         policy_fn = PolicyFnRand()
 
@@ -126,7 +112,7 @@ def solve_cli(args: argparse.Namespace) -> None:
     domain, domain_name = get_domain_from_arg(args.domain)
 
     # heur and policy fn
-    pathfind: PathFind = get_pathfind_from_arg(domain, args.heur_type, args.pathfind)[0]
+    pathfind: PathFind = get_pathfind_from_arg(domain, args.pathfind)[0]
     heur_fn: Optional[HeurFn] = get_heur_fn(domain, domain_name, args.heur, args.heur_file, args.heur_type, args.nnet_batch_size)
     policy_fn: Optional[PolicyFn] = get_policy_fn(domain, domain_name, args.policy, args.policy_file, isinstance(pathfind, PathFindHasPolicy),
                                                   args.nnet_batch_size)
@@ -163,13 +149,13 @@ def solve_cli(args: argparse.Namespace) -> None:
         goal: Goal = goals[state_idx]
 
         # get pathfinding alg
-        pathfind = get_pathfind_from_arg(domain, args.heur_type, args.pathfind)[0]
+        pathfind = get_pathfind_from_arg(domain, args.pathfind)[0]
         if isinstance(pathfind, PathFindHasHeur):
             assert heur_fn is not None
             pathfind.set_heur_fn(heur_fn)
         if isinstance(pathfind, PathFindHasPolicy):
             assert policy_fn is not None
-            pathfind.set_policy_fn(policy_fn, args.policy_samp)
+            pathfind.set_policy_fn(policy_fn, args.policy_samp, args.policy_rand)
 
         # do pathfinding
         start_time = time.time()

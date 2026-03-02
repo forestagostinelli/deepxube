@@ -331,15 +331,18 @@ class PathFindHasPolicy(PathFind[D, I], ABC):
         super().__init__(domain)
         self.policy_fn: Optional[PolicyFn] = None
         self.num_acts_samp: Optional[int] = None
+        self.num_rand_samp: Optional[int] = None
 
-    def set_policy_fn(self, policy_fn: PolicyFn, num_acts_samp: int) -> None:
+    def set_policy_fn(self, policy_fn: PolicyFn, num_acts_samp: int, num_rand_samp: int) -> None:
         self.policy_fn = policy_fn
         self.num_acts_samp = num_acts_samp
+        self.num_rand_samp = num_rand_samp
 
     def _get_action_probs(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[Action]], List[List[float]]]:
         assert self.policy_fn is not None
         assert self.num_acts_samp is not None
-        return self.policy_fn(self.domain, states, goals, self.num_acts_samp)
+        assert self.num_rand_samp is not None
+        return self.policy_fn(self.domain, states, goals, self.num_acts_samp, self.num_rand_samp)
 
     def _set_node_act_probs(self, nodes: List[Node]) -> None:
         start_time = time.time()
