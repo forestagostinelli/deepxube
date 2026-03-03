@@ -26,7 +26,6 @@ class TrainPolicy(Train[PolicyNNet, UpdatePolicy]):
                                       self.train_start_time)
         self.writer.add_scalar("train/loss", loss, self.status.itr)
 
-        self.status.itr += 1
         times.record_time("train", time.time() - start_time)
         return loss
 
