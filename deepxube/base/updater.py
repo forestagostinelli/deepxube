@@ -16,6 +16,7 @@ from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ, Heu
 from deepxube.base.pathfinding import FNs, FNsP, FNsHV, FNsHQ, FNsHeur, PathFind, PathFindSup, Instance, InstanceNode, InstanceEdge, get_path, Node
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.pathfinding.utils.performance import PathFindPerf, print_pathfindperf
+from deepxube.utils.command_line_utils import get_pathfind_name_kwargs
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd, get_nowait_noerr
 from deepxube.utils.misc_utils import split_evenly, split_evenly_w_max
 from deepxube.utils.timing_utils import Times
@@ -110,8 +111,10 @@ class Update(Generic[D, FNs, P, Inst], ABC):
                 step_to_pathperf[step_num_inst] = PathFindPerf()
             step_to_pathperf[step_num_inst].update_perf(inst)
 
-    def __init__(self, domain: D, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs):
+    def __init__(self, domain: D, pathfind_arg: str, up_args: UpArgs):
         self.domain: D = domain
+        self.pathfind_arg: str = pathfind_arg
+        pathfind_name, pathfind_kwargs = get_pathfind_name_kwargs(pathfind_arg)
         self.pathfind_name: str = pathfind_name
         self.pathfind_kwargs: Dict[str, Any] = pathfind_kwargs
         self.up_args: UpArgs = up_args

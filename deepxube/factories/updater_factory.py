@@ -1,17 +1,19 @@
-from typing import Dict, Any, Type, List
+from typing import Type, List
 
 from deepxube.base.domain import Domain
 from deepxube.base.pathfinding import PathFind
 from deepxube.base.updater import Update, UpdateHER, UpdateHeur, UpdatePolicy, UpArgs
 from deepxube.base.factory import Factory
+from deepxube.utils.command_line_utils import get_pathfind_name_kwargs
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 
 
 updater_factory: Factory[Update] = Factory[Update]("Update")
 
 
-def get_updater(domain: Domain, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs, her: bool, func_update: str) -> Update:
+def get_updater(domain: Domain, pathfind_arg: str, up_args: UpArgs, her: bool, func_update: str) -> Update:
     up_cls_names: List[str] = updater_factory.get_all_class_names()
+    pathfind_name: str = get_pathfind_name_kwargs(pathfind_arg)[0]
     pathfind_t: Type[PathFind] = pathfinding_factory.get_type(pathfind_name)
 
     up_cls_names = [up_cls_name for up_cls_name in up_cls_names if isinstance(domain, updater_factory.get_type(up_cls_name).domain_type())]
@@ -32,7 +34,7 @@ def get_updater(domain: Domain, pathfind_name: str, pathfind_kwargs: Dict[str, A
         raise ValueError(f"More than one updater option: {up_cls_names} for Domain: {domain}, PathFind: {pathfind_t}, HER: {her}, Update func: {func_update}")
 
     up_cls: Type[Update] = updater_factory.get_type(up_cls_names[0])
-    return up_cls(domain, pathfind_name, pathfind_kwargs, up_args)
+    return up_cls(domain, pathfind_arg, up_args)
 
 
 """

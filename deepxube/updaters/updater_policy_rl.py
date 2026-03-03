@@ -1,12 +1,12 @@
 from abc import ABC
-from typing import Dict, Any, List, Tuple, Type
+from typing import List, Tuple, Type
 
 from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, GoalSampleableFromState, Action, State, Goal
 from deepxube.base.heuristic import HeurNNetParV, HeurNNetParQ, HeurFnV, HeurFnQ
 from deepxube.base.pathfinding import FNsP, FNsPolicy, FNsHeurVPolicy, FNsHeurQPolicy, PathFind, PathFindActsPolicy, EdgeQ, Node, Instance
-from deepxube.base.updater import UpdateHER, UpdatePolicy, UpdateHasHeur, UpdateRL, D, UpArgs, P
+from deepxube.base.updater import UpdateHER, UpdatePolicy, UpdateHasHeur, UpdateRL, D, UpArgs
 from deepxube.factories.updater_factory import updater_factory
 from deepxube.updaters.utils.replay_buffer_utils import ReplayBufferP
 from deepxube.utils.timing_utils import Times
@@ -38,8 +38,8 @@ class UpdatePolicyRL(UpdatePolicy[D, FNsP, PathFindActsPolicy, Instance], Update
     def pathfind_type() -> Type[PathFindActsPolicy]:
         return PathFindActsPolicy
 
-    def __init__(self, domain: D, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs):
-        super().__init__(domain, pathfind_name, pathfind_kwargs, up_args)
+    def __init__(self, domain: D, pathfind_arg: str, up_args: UpArgs):
+        super().__init__(domain, pathfind_arg, up_args)
         self.rb: ReplayBufferP = ReplayBufferP(0)
 
     def _step(self, pathfind: PathFindActsPolicy, times: Times) -> None:

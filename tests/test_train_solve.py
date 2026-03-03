@@ -7,7 +7,7 @@ from deepxube.base.heuristic import HeurNNetPar
 from deepxube.base.pathfinding import Node, Instance, get_path
 from deepxube.pathfinding.utils.performance import is_valid_soln, PathFindPerf
 from deepxube.base.pathfinding import PathFind, FNsHeurV, FNsHeurQ
-from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_pathfind_name_kwargs, get_pathfind_from_arg
+from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_pathfind_from_arg
 from deepxube.base.updater import UpArgs, Update, UpdateHeur
 from deepxube.base.trainer import TrainArgs
 from deepxube.trainers.utils.train_loop import train
@@ -47,13 +47,12 @@ def test_train_solve_heur(pathfind_tr_str: str, pathfind_solve_str: str, heur_ty
     search_itrs: int = 20
     domain, domain_name = get_domain_from_arg(domain_str)
     heur_nnet_par: HeurNNetPar = get_heur_nnet_par_from_arg(domain, domain_name, heur_str, heur_type)[0]
-    pathfind_name, pathfind_kwargs = get_pathfind_name_kwargs(pathfind_tr_str)
 
     # update args
     up_args: UpArgs = UpArgs(1, 100, 100, search_itrs, ub_heur_solns=ub_heur_solns, backup=backup, sync_main=sync_main)
 
     # updater
-    updater_ret: Update = get_updater(domain, pathfind_name, pathfind_kwargs, up_args, False, "heur")
+    updater_ret: Update = get_updater(domain, pathfind_tr_str, up_args, False, "heur")
     assert isinstance(updater_ret, UpdateHeur)
     updater: UpdateHeur = updater_ret
 

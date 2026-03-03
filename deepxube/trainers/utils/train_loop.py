@@ -55,6 +55,23 @@ def get_curr_update_num(train_heur: Optional[TrainHeur], train_policy: Optional[
         return train_heur.status.update_num
 
 
+def get_pathfind(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], train_heur: Optional[TrainHeur], policy_nnet_par: Optional[PolicyNNetPar],
+                 train_policy: Optional[TrainPolicy], test_nnet_batch_size: int, pathfind_arg: str) -> PathFind:
+    heur_fn: Optional[HeurFn] = None
+    policy_fn: Optional[PolicyFn] = None
+    if heur_nnet_par is not None:
+        assert train_heur is not None
+        heur_fn = heur_nnet_par.get_nnet_fn(train_heur.nnet, test_nnet_batch_size, train_heur.device, None)
+    if policy_nnet_par is not None:
+        assert train_policy is not None
+        policy_fn = policy_nnet_par.get_nnet_fn(train_policy.nnet, test_nnet_batch_size, train_policy.device, None)
+
+    pathfind_functions: Any = get_pathfind_functions(get_pathfind_name_kwargs(pathfind_arg)[0], heur_fn, policy_fn)
+    pathfind: PathFind = get_pathfind_from_arg(domain, pathfind_functions, pathfind_arg)[0]
+
+    return pathfind
+
+
 def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Optional[UpdateHeur], policy_nnet_par: Optional[PolicyNNetPar],
           update_policy: Optional[UpdatePolicy], nnet_dir: str, train_args: TrainArgs, test_args: Optional[TestArgs] = None,
           debug: bool = False) -> None:
@@ -96,9 +113,7 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
                 updater.set_heur_file(heur_targ_file)
 
         heur_nnet: HeurNNet = heur_nnet_par.get_nnet()
-        print("Update Heur:")
-        print(heur_nnet)
-        print(f"{update_heur}")
+        print(heur_nnet_par)
         to_main_q, from_main_qs = update_heur.start_procs(train_args.rb * train_args.batch_size * update_heur.up_args.up_itrs)
         train_heur = TrainHeur(heur_nnet, update_heur, to_main_q, from_main_qs, heur_file, heur_targ_file, heur_status_file, device, on_gpu, writer, train_args)
     if policy_nnet_par is not None:
@@ -110,12 +125,15 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
                 updater.set_policy_file(policy_targ_file)
 
         policy_nnet: PolicyNNet = policy_nnet_par.get_nnet()
-        print("Update Policy:")
-        print(policy_nnet)
-        print(f"{update_policy}")
+        print(policy_nnet_par)
         to_main_q, from_main_qs = update_policy.start_procs(train_args.rb * train_args.batch_size * update_policy.up_args.up_itrs)
         train_policy = TrainPolicy(policy_nnet, update_policy, to_main_q, from_main_qs, policy_file, policy_targ_file, policy_status_file, device, on_gpu,
                                    writer, train_args)
+
+    for updater in [update_heur, update_policy]:
+        if updater is not None:
+            print(f"{updater}")
+            print(get_pathfind(domain, heur_nnet_par, train_heur, policy_nnet_par, train_policy, 100, updater.pathfind_arg))
 
     print(f"{train_args}")
     print(domain)
@@ -163,17 +181,7 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
 
 def get_pathfind_w_instances(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], train_heur: Optional[TrainHeur], policy_nnet_par: Optional[PolicyNNetPar],
                              train_policy: Optional[TrainPolicy], test_args: TestArgs, pathfind_arg: str) -> PathFind:
-    heur_fn: Optional[HeurFn] = None
-    policy_fn: Optional[PolicyFn] = None
-    if heur_nnet_par is not None:
-        assert train_heur is not None
-        heur_fn = heur_nnet_par.get_nnet_fn(train_heur.nnet, test_args.test_nnet_batch_size, train_heur.device, None)
-    if policy_nnet_par is not None:
-        assert train_policy is not None
-        policy_fn = policy_nnet_par.get_nnet_fn(train_policy.nnet, test_args.test_nnet_batch_size, train_policy.device, None)
-
-    pathfind_functions: Any = get_pathfind_functions(get_pathfind_name_kwargs(pathfind_arg)[0], heur_fn, policy_fn)
-    pathfind: PathFind = get_pathfind_from_arg(domain, pathfind_functions, pathfind_arg)[0]
+    pathfind: PathFind = get_pathfind(domain, heur_nnet_par, train_heur, policy_nnet_par, train_policy, test_args.test_nnet_batch_size, pathfind_arg)
 
     instances: List[Instance] = pathfind.make_instances(test_args.test_states, test_args.test_goals, None, True)
     pathfind.add_instances(instances)

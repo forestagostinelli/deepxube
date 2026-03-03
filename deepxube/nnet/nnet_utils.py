@@ -227,6 +227,9 @@ class NNetPar(ABC, Generic[NNetFn]):
     def get_nnet(self) -> nn.Module:
         pass
 
+    def __repr__(self) -> str:
+        return f"{self.get_nnet()}"
+
 
 def get_nnet_par_out(inputs_nnet: List[NDArray], nnet_par_info: NNetParInfo) -> List[NDArray]:
     inputs_nnet_shm: List[SharedNDArray] = [np_to_shnd(inputs_nnet_i)

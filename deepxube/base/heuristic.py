@@ -419,3 +419,6 @@ class PolicyNNetPar(NNetPar[PolicyFn]):
             pdfs_l.append(pdfs_state)
 
         return actions_l, pdfs_l
+
+    def __repr__(self) -> str:
+        return f"{self.get_nnet()}\n#Samp: {self.num_samp}, #Rand Samp: {self.num_rand}"

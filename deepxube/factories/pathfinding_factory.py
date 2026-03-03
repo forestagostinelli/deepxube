@@ -2,7 +2,7 @@ from typing import List, Type, Optional, Any
 from deepxube.base.factory import Factory
 from deepxube.base.domain import Domain
 from deepxube.base.heuristic import HeurFn, HeurFnV, HeurFnQ, PolicyFn
-from deepxube.base.pathfinding import PathFind, FNsHeurV, FNsHeurQ, FNsHeurVPolicy, FNsHeurQPolicy
+from deepxube.base.pathfinding import PathFind, FNsHeurV, FNsHeurQ, FNsPolicy, FNsHeurVPolicy, FNsHeurQPolicy
 
 
 pathfinding_factory: Factory[PathFind] = Factory[PathFind]("PathFind")
@@ -17,6 +17,9 @@ def get_pathfind_functions(pathfind_name: str, heur_fn: Optional[HeurFn], policy
     elif functions_type is FNsHeurQ:
         assert (heur_fn is not None) and isinstance(heur_fn, HeurFnQ)
         return FNsHeurQ(heur_fn)
+    elif functions_type is FNsPolicy:
+        assert policy_fn is not None
+        return FNsPolicy(policy_fn)
     elif functions_type is FNsHeurVPolicy:
         assert (heur_fn is not None) and isinstance(heur_fn, HeurFnV)
         assert policy_fn is not None

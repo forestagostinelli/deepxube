@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Dict, Any, List, cast, Tuple, Type
+from typing import List, cast, Tuple, Type
 
 import numpy as np
 from numpy.typing import NDArray
@@ -43,8 +43,8 @@ class UpdateHeurVRL(UpdateHeurV[D, FNsHV, PathFindSetHeurV], UpdateRL[D, FNsHV, 
     def pathfind_type() -> Type[PathFindSetHeurV]:
         return PathFindSetHeurV
 
-    def __init__(self, domain: D, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs):
-        super().__init__(domain, pathfind_name, pathfind_kwargs, up_args)
+    def __init__(self, domain: D, pathfind_arg: str, up_args: UpArgs):
+        super().__init__(domain, pathfind_arg, up_args)
         self.rb: ReplayBufferV = ReplayBufferV(0)
 
     def _step(self, pathfind: PathFindSetHeurV, times: Times) -> None:
