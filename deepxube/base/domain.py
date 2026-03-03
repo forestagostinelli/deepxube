@@ -479,12 +479,8 @@ class NextStateNP(Domain[S, A, G]):
         pass
 
     @abstractmethod
-    def _get_state_np_actions(self, states_np_l: List[NDArray]) -> List[List[A]]:
-        pass
-
     def _sample_state_np_action(self, states_np: List[NDArray]) -> List[A]:
-        state_actions_l: List[List[A]] = self._get_state_np_actions(states_np)
-        return [random.choice(state_actions) for state_actions in state_actions_l]
+        pass
 
     @abstractmethod
     def _next_state_np(self, states_np: List[NDArray], actions: List[A]) -> Tuple[List[NDArray], List[float]]:
@@ -536,10 +532,19 @@ class NextStateNPActsEnum(NextStateNP[S, A, G], ActsEnum[S, A, G], ABC):
         return states_exp_l, actions_exp_l, tcs_l
 
 
+class NextStateNPActsFixed(NextStateNP[S, A, G], ActsFixed[S, A, G], ABC):
+    def _sample_state_np_action(self, states_np: List[NDArray]) -> List[A]:
+        return self.sample_action(states_np[0].shape[0])
+
+
 class NextStateNPActsEnumFixed(NextStateNPActsEnum[S, A, G], ActsEnumFixed[S, A, G], ABC):
     def _get_state_np_actions(self, states_np: List[NDArray]) -> List[List[A]]:
         state_actions: List[A] = self.get_actions_fixed()
         return [state_actions.copy() for _ in range(states_np[0].shape[0])]
+
+    def _sample_state_np_action(self, states_np: List[NDArray]) -> List[A]:
+        state_actions_l: List[List[A]] = self._get_state_np_actions(states_np)
+        return [random.choice(state_actions) for state_actions in state_actions_l]
 
 
 # PDDL Mixins
