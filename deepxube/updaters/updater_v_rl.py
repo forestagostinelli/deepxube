@@ -104,7 +104,7 @@ class UpdateHeurVRL(UpdateHeurV[D, FNsHV, PathFindSetHeurV], UpdateRL[D, FNsHV, 
         return states, goals, ctgs_backup
 
 
-class UpdateHeurVRLKeepGoal(UpdateHeurVRL[Domain, FNsHV], ABC):
+class UpdateHeurVRLKeepGoalABC(UpdateHeurVRL[Domain, FNsHV], ABC):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -173,7 +173,7 @@ class UpdateHeurVRLKeepGoal(UpdateHeurVRL[Domain, FNsHV], ABC):
         return self._inputs_ctgs_to_np(states, goals, ctgs_backup, times)
 
 
-class UpdateHeurVRLHER(UpdateHeurVRL[GoalSampleableFromState, FNsHV], UpdateHER[FNsHV, PathFindSetHeurV, InstanceNode], ABC):
+class UpdateHeurVRLHERABC(UpdateHeurVRL[GoalSampleableFromState, FNsHV], UpdateHER[FNsHV, PathFindSetHeurV, InstanceNode], ABC):
     @staticmethod
     def domain_type() -> Type[GoalSampleableFromState]:
         return GoalSampleableFromState
@@ -208,7 +208,7 @@ class UpdateHeurVRLHER(UpdateHeurVRL[GoalSampleableFromState, FNsHV], UpdateHER[
 
 
 @updater_factory.register_class("update_v_rl")
-class UpdateHeurVRLKeepGoalFNsHeur(UpdateHeurVRLKeepGoal[FNsHeurV]):
+class UpdateHeurVRLKeepGoal(UpdateHeurVRLKeepGoalABC[FNsHeurV]):
     @staticmethod
     def functions_type() -> Type[FNsHeurV]:
         return FNsHeurV
@@ -218,7 +218,7 @@ class UpdateHeurVRLKeepGoalFNsHeur(UpdateHeurVRLKeepGoal[FNsHeurV]):
 
 
 @updater_factory.register_class("update_v_rl_her")
-class UpdateHeurVRLHERFNsHeur(UpdateHeurVRLHER[FNsHeurV]):
+class UpdateHeurVRLHER(UpdateHeurVRLHERABC[FNsHeurV]):
     @staticmethod
     def functions_type() -> Type[FNsHeurV]:
         return FNsHeurV
@@ -228,7 +228,7 @@ class UpdateHeurVRLHERFNsHeur(UpdateHeurVRLHER[FNsHeurV]):
 
 
 @updater_factory.register_class("update_v_p_rl")
-class UpdateHeurVRLKeepGoalFNsHeurPolicy(UpdateHeurVRLKeepGoal[FNsHeurVPolicy], UpdateHasPolicy[Domain, FNsHeurVPolicy, PathFindSetHeurV, InstanceNode]):
+class UpdateHeurVRLKeepGoalPolicy(UpdateHeurVRLKeepGoalABC[FNsHeurVPolicy], UpdateHasPolicy[Domain, FNsHeurVPolicy, PathFindSetHeurV, InstanceNode]):
     @staticmethod
     def functions_type() -> Type[FNsHeurVPolicy]:
         return FNsHeurVPolicy
@@ -238,7 +238,7 @@ class UpdateHeurVRLKeepGoalFNsHeurPolicy(UpdateHeurVRLKeepGoal[FNsHeurVPolicy], 
 
 
 @updater_factory.register_class("update_v_p_rl_her")
-class UpdateHeurVRLHERFNsHeurPolicy(UpdateHeurVRLHER[FNsHeurVPolicy], UpdateHasPolicy[Domain, FNsHeurVPolicy, PathFindSetHeurV, InstanceNode]):
+class UpdateHeurVRLHERPolicy(UpdateHeurVRLHERABC[FNsHeurVPolicy], UpdateHasPolicy[Domain, FNsHeurVPolicy, PathFindSetHeurV, InstanceNode]):
     @staticmethod
     def functions_type() -> Type[FNsHeurVPolicy]:
         return FNsHeurVPolicy

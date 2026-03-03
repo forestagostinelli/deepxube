@@ -1,21 +1,20 @@
 from abc import ABC
-from typing import Dict, Any, List, Tuple, cast, Type, TypeVar
+from typing import Dict, Any, List, Tuple, Type
 
-import numpy as np
 from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, GoalSampleableFromState, Action, State, Goal
-from deepxube.base.heuristic import HeurNNetParQ, HeurFnQ
-from deepxube.base.pathfinding import PathFind, PathFindSetPolicy, EdgeQ, InstanceEdge, Node
-from deepxube.base.updater import UpdateHER, UpdateHeurQ, UpdateRL, D, P, UpArgs
+from deepxube.base.heuristic import HeurNNetParV, HeurNNetParQ, HeurFnV, HeurFnQ
+from deepxube.base.pathfinding import FNsP, FNsPolicy, FNsHeurVPolicy, FNsHeurQPolicy, PathFind, PathFindActsPolicy, EdgeQ, Node, Instance
+from deepxube.base.updater import UpdateHER, UpdatePolicy, UpdateHasHeur, UpdateRL, D, UpArgs, P
 from deepxube.factories.updater_factory import updater_factory
-from deepxube.updaters.utils.replay_buffer_utils import ReplayBufferQ
+from deepxube.updaters.utils.replay_buffer_utils import ReplayBufferP
 from deepxube.utils.timing_utils import Times
 
 import time
 
-"""
-def _pathfind_q_step(pathfind: PathFind) -> List[EdgeQ]:
+
+def _pathfind_step(pathfind: PathFind) -> List[EdgeQ]:
     edges_popped: List[EdgeQ] = pathfind.step()[1]
     assert len(edges_popped) == len(pathfind.instances), f"Values were {len(edges_popped)} and {len(pathfind.instances)}"
 
@@ -34,105 +33,67 @@ def _get_edge_popped_data(edges_popped: List[EdgeQ], times: Times) -> Tuple[List
     return states, goals, actions
 
 
-PHasPol = TypeVar('PHasPol', bound=PathFindSetPolicy)
+class UpdatePolicyRL(UpdatePolicy[D, FNsP, PathFindActsPolicy, Instance], UpdateRL[D, FNsP, PathFindActsPolicy, Instance], ABC):
+    @staticmethod
+    def pathfind_type() -> Type[PathFindActsPolicy]:
+        return PathFindActsPolicy
 
-
-class UpdatePolicyRL(UpdateHeurQ[D, PHasPol], UpdateRL[D, PHasPol, InstanceEdge, HeurNNetParQ, HeurFnQ], ABC):
     def __init__(self, domain: D, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs):
         super().__init__(domain, pathfind_name, pathfind_kwargs, up_args)
-        self.rb: ReplayBufferQ = ReplayBufferQ(0)
+        self.rb: ReplayBufferP = ReplayBufferP(0)
 
-    def _step(self, pathfind: PathFindEdgeHasHeur, times: Times) -> None:
-        _pathfind_q_step(pathfind)
+    def _step(self, pathfind: PathFindActsPolicy, times: Times) -> None:
+        _pathfind_step(pathfind)
 
-    def _q_learning_target(self, goals: List[Goal], is_solved_l: List[bool], tcs: List[float], states_next: List[State], times: Times) -> List[float]:
+    def _inputs_ctgs_to_np(self, states: List[State], goals: List[Goal], actions: List[Action], times: Times) -> List[NDArray]:
         start_time = time.time()
-        # min cost-to-go for next state
-        actions_next: List[List[Action]] = self.get_pathfind().get_state_actions(states_next, goals)
-        qvals_next_l: List[List[float]] = self._get_targ_heur_fn()(states_next, goals, actions_next)
-        qvals_next_min: List[float] = [min(qvals_next) for qvals_next in qvals_next_l]
-
-        # backup cost-to-go
-        ctg_backups: NDArray = np.array(tcs) + np.array(qvals_next_min)
-        ctg_backups = ctg_backups * np.logical_not(np.array(is_solved_l))
-
-        times.record_time("qlearn_targ", time.time() - start_time)
-
-        return cast(List[float], ctg_backups.tolist())
-
-    def _inputs_ctgs_to_np(self, states: List[State], goals: List[Goal], actions: List[Action], ctgs_backup: List[float], times: Times) -> List[NDArray]:
-        start_time = time.time()
-        inputs_np: List[NDArray] = self.get_heur_nnet_par().to_np(states, goals, [[action] for action in actions])
+        inputs_np: List[NDArray] = self.get_policy_nnet_par().to_np_train(states, goals, actions)
         times.record_time("to_np", time.time() - start_time)
 
-        return inputs_np + [np.array(ctgs_backup)]
+        return inputs_np
 
     def _init_replay_buffer(self, max_size: int) -> None:
-        self.rb = ReplayBufferQ(max_size)
+        self.rb = ReplayBufferP(max_size)
 
-    def _rb_add(self, states: List[State], goals: List[Goal], is_solved_l: List[bool], actions: List[Action], tcs: List[float], states_next: List[State],
-                times: Times) -> None:
+    def _rb_add(self, states: List[State], goals: List[Goal], actions: List[Action], times: Times) -> None:
         start_time = time.time()
-        self.rb.add(list(zip(states, goals, is_solved_l, actions, tcs, states_next, strict=True)))
+        self.rb.add(list(zip(states, goals, actions, strict=True)))
         times.record_time("rb_add", time.time() - start_time)
 
-    def _sample_rb_qlearn_target(self, num: int, times: Times) -> Tuple[List[State], List[Goal], List[Action], List[float]]:
+    def _sample_rb(self, num: int, times: Times) -> Tuple[List[State], List[Goal], List[Action]]:
         # sample from replay buffer
         start_time = time.time()
-        states, goals, is_solved_l, actions, tcs, states_next = self.rb.sample(num)
+        states, goals, actions = self.rb.sample(num)
         times.record_time("rb_samp", time.time() - start_time)
 
-        # value iteration update
-        ctgs_backup: List[float] = self._q_learning_target(goals, is_solved_l, tcs, states_next, times)
-
-        return states, goals, actions, ctgs_backup
+        return states, goals, actions
 
 
-@updater_factory.register_class("update_heurq_rl")
-class UpdateHeurQRLKeepGoal(UpdateHeurQRL[Domain]):
+class UpdatePolicyRLKeepGoalABC(UpdatePolicyRL[Domain, FNsP], ABC):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
 
-    @staticmethod
-    def pathfind_type() -> Type[PathFindEdgeHasHeur]:
-        return PathFindEdgeHasHeur
-
-    def _step_sync_main(self, pathfind: PathFindEdgeHasHeur, times: Times) -> List[NDArray]:
+    def _step_sync_main(self, pathfind: PathFindActsPolicy, times: Times) -> List[NDArray]:
         # take a step
-        edges_popped: List[EdgeQ] = _pathfind_q_step(pathfind)
+        edges_popped: List[EdgeQ] = _pathfind_step(pathfind)
 
         # get sync states/goals/is_solved
-        states_sync, goals_sync, is_solved_l_sync, actions_sync, tcs_sync, states_next_sync = _get_edge_popped_data(edges_popped, times)
+        states_sync, goals_sync, actions_sync = _get_edge_popped_data(edges_popped, times)
 
         # add to replay buffer
-        self._rb_add(states_sync, goals_sync, is_solved_l_sync, actions_sync, tcs_sync, states_next_sync, times)
+        self._rb_add(states_sync, goals_sync, actions_sync, times)
 
         # rb q-learning update
-        states, goals, actions, ctgs_backup = self._sample_rb_qlearn_target(len(edges_popped), times)
+        states, goals, actions = self._sample_rb(len(edges_popped), times)
 
-        return self._inputs_ctgs_to_np(states, goals, actions, ctgs_backup, times)
+        return self._inputs_ctgs_to_np(states, goals, actions, times)
 
-    def _get_instance_data_norb(self, instances: List[InstanceEdge], times: Times) -> List[NDArray]:
+    def _get_instance_data_norb(self, instances: List[Instance], times: Times) -> List[NDArray]:
         # get popped edge data
         edges_popped: List[EdgeQ] = []
         for instance in instances:
             edges_popped.extend(instance.get_edges_popped())
-
-        # backup
-        start_time = time.time()
-        if self.up_args.backup == 1:
-            if self.up_args.ub_heur_solns:
-                for edge in edges_popped:
-                    assert edge.node.is_solved is not None
-                    if edge.node.is_solved:
-                        edge.node.upper_bound_parent_path(0.0)
-        elif self.up_args.backup == -1:
-            for instance in instances:
-                instance.root_node.tree_backup()
-        else:
-            raise ValueError(f"Unknown backup {self.up_args.backup}")
-        times.record_time("backup", time.time() - start_time)
 
         start_time = time.time()
         nodes: List[Node] = [edge.node for edge in edges_popped]
@@ -140,44 +101,33 @@ class UpdateHeurQRLKeepGoal(UpdateHeurQRL[Domain]):
         goals: List[Goal] = [node.goal for node in nodes]
         actions: List[Action] = [edge.action for edge in edges_popped]
 
-        ctgs_backup: List[float] = []
-        for edge, node in zip(edges_popped, nodes):
-            ctg_backup = node.backup_act(edge.action)
-            node.backup_val = ctg_backup
-            ctgs_backup.append(ctg_backup)
-
         times.record_time("get_tr_data", time.time() - start_time)
 
         # to_np
-        return self._inputs_ctgs_to_np(states, goals, actions, ctgs_backup, times)
+        return self._inputs_ctgs_to_np(states, goals, actions, times)
 
-    def _get_instance_data_rb(self, instances: List[InstanceEdge], times: Times) -> List[NDArray]:
+    def _get_instance_data_rb(self, instances: List[Instance], times: Times) -> List[NDArray]:
         # get popped edge data
         edges_popped: List[EdgeQ] = []
         for instance in instances:
             edges_popped.extend(instance.get_edges_popped())
-        states_p, goals_p, is_solved_l_p, actions_p, tcs_p, states_next_p = _get_edge_popped_data(edges_popped, times)
+        states_p, goals_p, actions_p = _get_edge_popped_data(edges_popped, times)
 
         # add to replay buffer
-        self._rb_add(states_p, goals_p, is_solved_l_p, actions_p, tcs_p, states_next_p, times)
+        self._rb_add(states_p, goals_p, actions_p, times)
 
         # rb q-learning update
-        states, goals, actions, ctgs_backup = self._sample_rb_qlearn_target(len(edges_popped), times)
+        states, goals, actions = self._sample_rb(len(edges_popped), times)
 
-        return self._inputs_ctgs_to_np(states, goals, actions, ctgs_backup, times)
+        return self._inputs_ctgs_to_np(states, goals, actions, times)
 
 
-@updater_factory.register_class("update_heurq_rl_her")
-class UpdateHeurQRLHER(UpdateHeurQRL[GoalSampleableFromState], UpdateHER[PathFindEdgeHasHeur, InstanceEdge]):
+class UpdatePolicyRLHERABC(UpdatePolicyRL[GoalSampleableFromState, FNsP], UpdateHER[FNsP, PathFindActsPolicy, Instance], ABC):
     @staticmethod
     def domain_type() -> Type[GoalSampleableFromState]:
         return GoalSampleableFromState
 
-    @staticmethod
-    def pathfind_type() -> Type[PathFindEdgeHasHeur]:
-        return PathFindEdgeHasHeur
-
-    def _get_instance_data_rb(self, instances: List[InstanceEdge], times: Times) -> List[NDArray]:
+    def _get_instance_data_rb(self, instances: List[Instance], times: Times) -> List[NDArray]:
         # get goals according to HER
         instances, goals_inst_her = self._get_her_goals(instances, times)
 
@@ -186,8 +136,6 @@ class UpdateHeurQRLHER(UpdateHeurQRL[GoalSampleableFromState], UpdateHER[PathFin
         states_her: List[State] = []
         goals_her: List[Goal] = []
         actions_her: List[Action] = []
-        tcs_her: List[float] = []
-        states_next_her: List[State] = []
         for instance, goal_her in zip(instances, goals_inst_her, strict=True):
             nodes: List[Node] = [edge.node for edge in instance.get_edges_popped()]
             states_inst: List[State] = [node.state for node in nodes]
@@ -195,24 +143,55 @@ class UpdateHeurQRLHER(UpdateHeurQRL[GoalSampleableFromState], UpdateHER[PathFin
             goals_her.extend([goal_her] * len(states_inst))
             actions_her.extend([edge.action for edge in instance.get_edges_popped()])
 
-            for edge, node in zip(instance.get_edges_popped(), nodes, strict=True):
-                tc, node_next = node.edge_dict[edge.action]
-                tcs_her.append(tc)
-                states_next_her.append(node_next.state)
-
         times.record_time("data_her", time.time() - start_time)
 
-        # is solved
-        start_time = time.time()
-        is_solved_l_her: List[bool] = self.domain.is_solved(states_her, goals_her)
-        times.record_time("is_solved_her", time.time() - start_time)
-
         # add to replay buffer
-        self._rb_add(states_her, goals_her, is_solved_l_her, actions_her, tcs_her, states_next_her, times)
+        self._rb_add(states_her, goals_her, actions_her, times)
 
         # rb q-learning update
-        states, goals, actions, ctgs_backup = self._sample_rb_qlearn_target(len(states_her), times)
+        states, goals, actions = self._sample_rb(len(states_her), times)
 
         # to_np
-        return self._inputs_ctgs_to_np(states, goals, actions, ctgs_backup, times)
-"""
+        return self._inputs_ctgs_to_np(states, goals, actions, times)
+
+
+@updater_factory.register_class("update_p_rl")
+class UpdatePolicyRLKeepGoal(UpdatePolicyRLKeepGoalABC[FNsPolicy]):
+    @staticmethod
+    def functions_type() -> Type[FNsPolicy]:
+        return FNsPolicy
+
+    def _get_pathfind_functions(self) -> FNsPolicy:
+        return FNsPolicy(self.get_policy_fn())
+
+
+@updater_factory.register_class("update_p_rl_her")
+class UpdatePolicyRLHER(UpdatePolicyRLHERABC[FNsPolicy]):
+    @staticmethod
+    def functions_type() -> Type[FNsPolicy]:
+        return FNsPolicy
+
+    def _get_pathfind_functions(self) -> FNsPolicy:
+        return FNsPolicy(self.get_policy_fn())
+
+
+@updater_factory.register_class("update_p_v_rl")
+class UpdatePolicyRLKeepGoalHeurV(UpdatePolicyRLKeepGoalABC[FNsHeurVPolicy],
+                                  UpdateHasHeur[Domain, FNsHeurVPolicy, PathFindActsPolicy, Instance, HeurNNetParV, HeurFnV]):
+    @staticmethod
+    def functions_type() -> Type[FNsHeurVPolicy]:
+        return FNsHeurVPolicy
+
+    def _get_pathfind_functions(self) -> FNsHeurVPolicy:
+        return FNsHeurVPolicy(self.get_heur_fn(), self.get_policy_fn())
+
+
+@updater_factory.register_class("update_p_q_rl")
+class UpdatePolicyRLKeepGoalHeurQ(UpdatePolicyRLKeepGoalABC[FNsHeurQPolicy],
+                                  UpdateHasHeur[Domain, FNsHeurQPolicy, PathFindActsPolicy, Instance, HeurNNetParQ, HeurFnQ]):
+    @staticmethod
+    def functions_type() -> Type[FNsHeurQPolicy]:
+        return FNsHeurQPolicy
+
+    def _get_pathfind_functions(self) -> FNsHeurQPolicy:
+        return FNsHeurQPolicy(self.get_heur_fn(), self.get_policy_fn())

@@ -24,6 +24,7 @@ def parser_train(parser: ArgumentParser) -> None:
     parser.add_argument('--policy', type=str, default=None, help="Policy neural network and arguments.")
     parser.add_argument('--policy_samp', type=int, default=10, help="")
     parser.add_argument('--policy_rand', type=int, default=5, help="")
+    parser.add_argument('--policy_kl', type=float, default=0.1, help="")
 
     parser.add_argument('--pathfind', type=str, required=True, help="Pathfinding algorithm and arguments. Batch size of any pathfinding algorithm should be 1 "
                                                                     "since updater assumes 1 instance is generated per iteration.")
@@ -105,7 +106,7 @@ def train_cli(args: argparse.Namespace) -> None:
         update_policy = update_ret
 
     # train args
-    train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.bal, rb=args.rb, display=args.display)
+    train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.bal, rb=args.rb, policy_kl=args.policy_kl, display=args.display)
 
     # test args
     test_args: Optional[TestArgs] = None

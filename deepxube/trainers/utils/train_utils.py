@@ -67,7 +67,7 @@ def train_heur_nnet_step(nnet: nn.Module, inputs_np: List[NDArray], ctgs_np: NDA
 
 
 def train_policy_nnet_step(policy: PolicyNNet, states_goals_np: List[NDArray], actions_np: NDArray, optimizer: Optimizer, device: torch.device,
-                           train_itr: int, train_args: TrainArgs, kl_w: float, start_time: float) -> float:
+                           train_itr: int, train_args: TrainArgs, start_time: float) -> float:
     # train network
     policy.train()
 
@@ -83,7 +83,7 @@ def train_policy_nnet_step(policy: PolicyNNet, states_goals_np: List[NDArray], a
 
     # forward
     loss_recon, loss_kl = policy.autoencode(states_goals, actions)
-    loss = loss_recon + (kl_w * loss_kl)
+    loss = loss_recon + (train_args.policy_kl * loss_kl)
 
     # backwards
     loss.backward()

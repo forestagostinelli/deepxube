@@ -137,7 +137,7 @@ class BeamSearchPolicy(BeamSearch[Domain, FNsPolicy, InstanceEdgeBeam], PathFind
 
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True,
                        beam_size: Optional[int] = None, temp: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceEdgeBeam]:
-        nodes_root: List[Node] = self._create_root_nodes(states, goals, compute_root_vals)
+        nodes_root: List[Node] = self._create_root_nodes(states, goals, True)
         return self._construct_instances(InstanceEdgeBeam, nodes_root, inst_infos, beam_size, temp, eps)
 
     def _compute_costs(self, instances: List[InstanceEdgeBeam], edges_by_inst: List[List[EdgeQ]]) -> List[List[float]]:

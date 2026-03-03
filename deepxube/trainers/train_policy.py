@@ -22,8 +22,7 @@ class TrainPolicy(Train[PolicyNNet, UpdatePolicy]):
         actions_np: NDArray = batch[-1]
 
         self.nnet.train()
-        # TODO make KL argument
-        loss = train_policy_nnet_step(self.nnet, states_goals_np, actions_np, self.optimizer, self.device, self.status.itr, self.train_args, 0.1,
+        loss = train_policy_nnet_step(self.nnet, states_goals_np, actions_np, self.optimizer, self.device, self.status.itr, self.train_args,
                                       self.train_start_time)
         self.writer.add_scalar("train/loss", loss, self.status.itr)
 

@@ -7,9 +7,11 @@ import numpy as np
 
 ReplayVElem = Tuple[State, Goal, bool]
 ReplayQElem = Tuple[State, Goal, bool, Action, float, State]
+ReplayPElem = Tuple[State, Goal, Action]
 
 ReplayVRet = Tuple[List[State], List[Goal], List[bool]]
 ReplayQRet = Tuple[List[State], List[Goal], List[bool], List[Action], List[float], List[State]]
+ReplayPRet = Tuple[List[State], List[Goal], List[Action]]
 
 Elem = TypeVar('Elem')
 SampRet = TypeVar('SampRet')
@@ -61,3 +63,12 @@ class ReplayBufferQ(ReplayBuffer[ReplayQElem, ReplayQRet]):
         states_next: List[State] = [replay_q_elem[5] for replay_q_elem in elems]
 
         return states, goals, is_solved_l, actions, tcs, states_next
+
+
+class ReplayBufferP(ReplayBuffer[ReplayPElem, ReplayPRet]):
+    def _elems_to_ret(self, elems: List[ReplayPElem]) -> ReplayPRet:
+        states: List[State] = [replay_q_elem[0] for replay_q_elem in elems]
+        goals: List[Goal] = [replay_q_elem[1] for replay_q_elem in elems]
+        actions: List[Action] = [replay_q_elem[2] for replay_q_elem in elems]
+
+        return states, goals, actions
