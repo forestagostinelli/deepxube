@@ -32,7 +32,7 @@ class InstanceSupQ(InstanceEdge):
 D = TypeVar('D', bound=Domain)
 
 
-class PathFindQSup(PathFindEdge[D, InstanceSupQ], PathFindSup[D, InstanceSupQ], ABC):
+class PathFindQSup(PathFindEdge[D, Any, InstanceSupQ], PathFindSup[D, InstanceSupQ], ABC):
     def step(self, verbose: bool = False) -> Tuple[List[Node], List[EdgeQ]]:
         edges: List[EdgeQ] = []
         for instance in self.instances:
@@ -48,22 +48,13 @@ class PathFindQSup(PathFindEdge[D, InstanceSupQ], PathFindSup[D, InstanceSupQ], 
 
         return [], edges
 
-    def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
-        raise NotImplementedError
-
-    def _get_heur_vals(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[List[float]]:
-        raise NotImplementedError
-
     def _compute_costs(self, instances: List[InstanceSupQ], edges_by_inst: List[List[EdgeQ]]) -> List[List[float]]:
         raise NotImplementedError
-
-    def _eval_nodes(self, instances: List[InstanceSupQ], nodes_by_inst: List[List[Node]]) -> None:
-        pass
 
     def _make_instances(self, states_start: List[State], goals: List[Goal], acts_init: List[Action], path_costs: List[float],
                         inst_infos: Optional[List[Any]]) -> List[InstanceSupQ]:
         # make root nodes
-        nodes_root: List[Node] = self._create_root_nodes(states_start, goals)
+        nodes_root: List[Node] = self._create_root_nodes(states_start, goals, False)
 
         # make instances
         start_time = time.time()

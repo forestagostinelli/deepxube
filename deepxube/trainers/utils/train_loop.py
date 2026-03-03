@@ -1,15 +1,16 @@
-from typing import Optional, List
+from typing import Optional, List, Any
 from dataclasses import dataclass
 
 from deepxube.base.domain import Domain, State, Goal
 from deepxube.base.heuristic import HeurNNet, PolicyNNet, HeurNNetPar, PolicyNNetPar, HeurFn, PolicyFn
-from deepxube.base.pathfinding import PathFind, Instance, PathFindHasHeur, PathFindHasPolicy
+from deepxube.base.pathfinding import PathFind, Instance
 from deepxube.base.updater import UpdateHasHeur, UpdateHasPolicy, UpdateHeur, UpdatePolicy
 from deepxube.base.trainer import TrainArgs
+from deepxube.factories.pathfinding_factory import get_pathfind_functions
 from deepxube.pathfinding.utils.performance import PathFindPerf
 from deepxube.trainers.train_heur import TrainHeur
 from deepxube.trainers.train_policy import TrainPolicy
-from deepxube.utils.command_line_utils import get_pathfind_from_arg
+from deepxube.utils.command_line_utils import get_pathfind_from_arg, get_pathfind_name_kwargs
 from deepxube.nnet import nnet_utils
 from deepxube.utils import data_utils
 
@@ -97,7 +98,6 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
         heur_nnet: HeurNNet = heur_nnet_par.get_nnet()
         print("Update Heur:")
         print(heur_nnet)
-        print(update_heur.get_pathfind())
         print(f"{update_heur}")
         to_main_q, from_main_qs = update_heur.start_procs(train_args.rb * train_args.batch_size * update_heur.up_args.up_itrs)
         train_heur = TrainHeur(heur_nnet, update_heur, to_main_q, from_main_qs, heur_file, heur_targ_file, heur_status_file, device, on_gpu, writer, train_args)
@@ -112,7 +112,6 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
         policy_nnet: PolicyNNet = policy_nnet_par.get_nnet()
         print("Update Policy:")
         print(policy_nnet)
-        print(update_policy.get_pathfind())
         print(f"{update_policy}")
         to_main_q, from_main_qs = update_policy.start_procs(train_args.rb * train_args.batch_size * update_policy.up_args.up_itrs)
         train_policy = TrainPolicy(policy_nnet, update_policy, to_main_q, from_main_qs, policy_file, policy_targ_file, policy_status_file, device, on_gpu,
@@ -164,17 +163,17 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
 
 def get_pathfind_w_instances(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], train_heur: Optional[TrainHeur], policy_nnet_par: Optional[PolicyNNetPar],
                              train_policy: Optional[TrainPolicy], test_args: TestArgs, pathfind_arg: str) -> PathFind:
-    pathfind: PathFind = get_pathfind_from_arg(domain, pathfind_arg)[0]
+    heur_fn: Optional[HeurFn] = None
+    policy_fn: Optional[PolicyFn] = None
     if heur_nnet_par is not None:
-        assert isinstance(pathfind, PathFindHasHeur)
         assert train_heur is not None
-        heur_fn: HeurFn = heur_nnet_par.get_nnet_fn(train_heur.nnet, test_args.test_nnet_batch_size, train_heur.device, None)
-        pathfind.set_heur_fn(heur_fn)
+        heur_fn = heur_nnet_par.get_nnet_fn(train_heur.nnet, test_args.test_nnet_batch_size, train_heur.device, None)
     if policy_nnet_par is not None:
-        assert isinstance(pathfind, PathFindHasPolicy)
         assert train_policy is not None
-        policy_fn: PolicyFn = policy_nnet_par.get_nnet_fn(train_policy.nnet, test_args.test_nnet_batch_size, train_policy.device, None)
-        pathfind.set_policy_fn(policy_fn)
+        policy_fn = policy_nnet_par.get_nnet_fn(train_policy.nnet, test_args.test_nnet_batch_size, train_policy.device, None)
+
+    pathfind_functions: Any = get_pathfind_functions(get_pathfind_name_kwargs(pathfind_arg)[0], heur_fn, policy_fn)
+    pathfind: PathFind = get_pathfind_from_arg(domain, pathfind_functions, pathfind_arg)[0]
 
     instances: List[Instance] = pathfind.make_instances(test_args.test_states, test_args.test_goals, None, True)
     pathfind.add_instances(instances)

@@ -2,8 +2,9 @@ from abc import ABC, abstractmethod
 from typing import List, Any, Type, Optional, TypeVar, Generic, Tuple, Dict
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, ActsEnum, State, Goal
-from deepxube.base.pathfinding import (Instance, InstanceNode, InstanceEdge, Node, EdgeQ, PathFind, PathFindEdgeActsPolicy,
-                                       PathFindNodeActsPolicy, PathFindNodeHasHeur, PathFindEdgeHasHeur, PathFindNodeActsEnum, PathFindEdgeActsEnum)
+from deepxube.base.pathfinding import (Instance, InstanceNode, InstanceEdge, Node, EdgeQ, FNs, FNsHV, FNsHQ, FNsHeurQ, FNsHeurV, FNsHeurQPolicy,
+                                       FNsHeurVPolicy, PathFind, PathFindNode, PathFindEdge, PathFindActsPolicy, PathFindSetHeurV, PathFindSetHeurQ,
+                                       PathFindActsEnum)
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.utils import misc_utils
 from heapq import heappush, heappop, heapify
@@ -95,9 +96,9 @@ D = TypeVar('D', bound=Domain)
 IGraph = TypeVar('IGraph', bound=InstanceGraph)
 
 
-class GraphSearch(PathFind[D, IGraph], ABC):
-    def __init__(self, domain: D, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0):
-        super().__init__(domain)
+class GraphSearch(PathFind[D, FNs, IGraph], ABC):
+    def __init__(self, domain: D, functions: FNs, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0):
+        super().__init__(domain, functions)
         self.batch_size_default: int = batch_size
         self.weight_default: float = weight
         self.eps_default: float = eps
@@ -145,10 +146,11 @@ class InstanceEdgeGraph(InstanceEdge, InstanceGraph[EdgeQ]):
         return self._pop_from_open()
 
 
-class GraphSearchHeurNode(GraphSearch[D, InstanceNodeGraph], PathFindNodeHasHeur[D, InstanceNodeGraph], ABC):
-    def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_heur: bool = True,
+class GraphSearchHeurNode(GraphSearch[D, FNsHV, InstanceNodeGraph], PathFindNode[D, FNsHV, InstanceNodeGraph],
+                          PathFindSetHeurV[D, FNsHV, InstanceNodeGraph], ABC):
+    def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True,
                        beam_size: Optional[int] = None, weight: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceNodeGraph]:
-        nodes_root: List[Node] = self._create_root_nodes_heur(states, goals, compute_root_heur)
+        nodes_root: List[Node] = self._create_root_nodes(states, goals, compute_root_vals)
         return self._construct_instances(InstanceNodeGraph, nodes_root, inst_infos, beam_size, weight, eps)
 
     def _compute_costs(self, instances: List[InstanceNodeGraph], nodes_by_inst: List[List[Node]]) -> List[List[float]]:
@@ -165,10 +167,11 @@ class GraphSearchHeurNode(GraphSearch[D, InstanceNodeGraph], PathFindNodeHasHeur
         return costs_by_inst
 
 
-class GraphSearchHeurEdge(GraphSearch[D, InstanceEdgeGraph], PathFindEdgeHasHeur[D, InstanceEdgeGraph], ABC):
-    def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_heur: bool = True,
+class GraphSearchHeurEdge(GraphSearch[D, FNsHQ, InstanceEdgeGraph], PathFindEdge[D, FNsHQ, InstanceEdgeGraph],
+                          PathFindSetHeurQ[D, FNsHQ, InstanceEdgeGraph], ABC):
+    def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True,
                        batch_size: Optional[int] = None, weight: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceEdgeGraph]:
-        nodes_root: List[Node] = self._create_root_nodes_heur(states, goals, True)
+        nodes_root: List[Node] = self._create_root_nodes(states, goals, True)
         return self._construct_instances(InstanceEdgeGraph, nodes_root, inst_infos, batch_size, weight, eps)
 
     def _compute_costs(self, instances: List[InstanceEdgeGraph], edges_by_inst: List[List[EdgeQ]]) -> List[List[float]]:
@@ -184,36 +187,49 @@ class GraphSearchHeurEdge(GraphSearch[D, InstanceEdgeGraph], PathFindEdgeHasHeur
 
         return costs_by_inst
 
-    def _eval_nodes(self, instances: List[InstanceEdgeGraph], nodes_by_inst: List[List[Node]]) -> None:
-        self._set_node_heurs(misc_utils.flatten(nodes_by_inst)[0])
-
 
 @pathfinding_factory.register_class("graph_v")
-class GraphSearchHeurNodeActsEnum(GraphSearchHeurNode[ActsEnum], PathFindNodeActsEnum[ActsEnum, InstanceNodeGraph]):
+class GraphSearchHeurNodeActsEnum(GraphSearchHeurNode[ActsEnum, FNsHeurV], PathFindActsEnum[ActsEnum, FNsHeurV, InstanceNodeGraph]):
     @staticmethod
     def domain_type() -> Type[ActsEnum]:
         return ActsEnum
+
+    @staticmethod
+    def functions_type() -> Type[FNsHeurV]:
+        return FNsHeurV
 
 
 @pathfinding_factory.register_class("graph_q")
-class GraphSearchHeurEdgeActsEnum(GraphSearchHeurEdge[ActsEnum], PathFindEdgeActsEnum[ActsEnum, InstanceEdgeGraph]):
+class GraphSearchHeurEdgeActsEnum(GraphSearchHeurEdge[ActsEnum, FNsHeurQ], PathFindActsEnum[ActsEnum, FNsHeurQ, InstanceEdgeGraph]):
     @staticmethod
     def domain_type() -> Type[ActsEnum]:
         return ActsEnum
 
+    @staticmethod
+    def functions_type() -> Type[FNsHeurQ]:
+        return FNsHeurQ
+
 
 @pathfinding_factory.register_class("graph_v_p")
-class GraphSearchHeurNodeActsPolicy(GraphSearchHeurNode[Domain], PathFindNodeActsPolicy[Domain, InstanceNodeGraph]):
+class GraphSearchHeurNodeActsPolicy(GraphSearchHeurNode[Domain, FNsHeurVPolicy], PathFindActsPolicy[Domain, FNsHeurVPolicy, InstanceNodeGraph]):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
+
+    @staticmethod
+    def functions_type() -> Type[FNsHeurVPolicy]:
+        return FNsHeurVPolicy
 
 
 @pathfinding_factory.register_class("graph_q_p")
-class GraphSearchHeurEdgeActsPolicy(GraphSearchHeurEdge[Domain], PathFindEdgeActsPolicy[Domain, InstanceEdgeGraph]):
+class GraphSearchHeurEdgeActsPolicy(GraphSearchHeurEdge[Domain, FNsHeurQPolicy], PathFindActsPolicy[Domain, FNsHeurQPolicy, InstanceEdgeGraph]):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
+
+    @staticmethod
+    def functions_type() -> Type[FNsHeurQPolicy]:
+        return FNsHeurQPolicy
 
 
 class GraphSearchParser(Parser, ABC):

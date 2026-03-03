@@ -5,9 +5,8 @@ import numpy as np
 from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, GoalSampleableFromState, State, Goal
-from deepxube.base.heuristic import HeurNNetParV, HeurFnV
-from deepxube.base.pathfinding import PathFindNodeHasHeur, Node, InstanceNode
-from deepxube.base.updater import UpdateHER, UpdateHeurV, UpdateHeurRL, UpArgs, D
+from deepxube.base.pathfinding import FNsHV, FNsHeurV, FNsHeurVPolicy, PathFindSetHeurV, Node, InstanceNode
+from deepxube.base.updater import UpdateHER, UpdateHasPolicy, UpdateHeurV, UpdateRL, UpArgs, D
 from deepxube.factories.updater_factory import updater_factory
 from deepxube.updaters.utils.replay_buffer_utils import ReplayBufferV
 from deepxube.utils import misc_utils
@@ -16,7 +15,7 @@ from deepxube.utils.timing_utils import Times
 import time
 
 
-def _pathfind_v_step(pathfind: PathFindNodeHasHeur) -> List[Node]:
+def _pathfind_v_step(pathfind: PathFindSetHeurV) -> List[Node]:
     # take a step
     nodes_popped: List[Node] = pathfind.step()[0]
     assert len(nodes_popped) == len(pathfind.instances), f"Values were {len(nodes_popped)} and {len(pathfind.instances)}"
@@ -39,12 +38,16 @@ def _get_nodes_popped_data(nodes_popped: List[Node], times: Times) -> Tuple[List
     return states, goals, is_solved_l
 
 
-class UpdateHeurVRL(UpdateHeurV[D, PathFindNodeHasHeur], UpdateHeurRL[D, PathFindNodeHasHeur, InstanceNode, HeurNNetParV, HeurFnV], ABC):
+class UpdateHeurVRL(UpdateHeurV[D, FNsHV, PathFindSetHeurV], UpdateRL[D, FNsHV, PathFindSetHeurV, InstanceNode], ABC):
+    @staticmethod
+    def pathfind_type() -> Type[PathFindSetHeurV]:
+        return PathFindSetHeurV
+
     def __init__(self, domain: D, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs):
         super().__init__(domain, pathfind_name, pathfind_kwargs, up_args)
         self.rb: ReplayBufferV = ReplayBufferV(0)
 
-    def _step(self, pathfind: PathFindNodeHasHeur, times: Times) -> None:
+    def _step(self, pathfind: PathFindSetHeurV, times: Times) -> None:
         _pathfind_v_step(pathfind)
 
     def _value_iteration_target(self, goals: List[Goal], is_solved_l: List[bool], tcs_l: List[List[float]], states_exp: List[List[State]],
@@ -101,17 +104,12 @@ class UpdateHeurVRL(UpdateHeurV[D, PathFindNodeHasHeur], UpdateHeurRL[D, PathFin
         return states, goals, ctgs_backup
 
 
-@updater_factory.register_class("update_heurv_rl")
-class UpdateHeurVRLKeepGoal(UpdateHeurVRL[Domain]):
+class UpdateHeurVRLKeepGoal(UpdateHeurVRL[Domain, FNsHV], ABC):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
 
-    @staticmethod
-    def pathfind_type() -> Type[PathFindNodeHasHeur]:
-        return PathFindNodeHasHeur
-
-    def _step_sync_main(self, pathfind: PathFindNodeHasHeur, times: Times) -> List[NDArray]:
+    def _step_sync_main(self, pathfind: PathFindSetHeurV, times: Times) -> List[NDArray]:
         # take a step
         nodes_popped: List[Node] = _pathfind_v_step(pathfind)
 
@@ -175,15 +173,10 @@ class UpdateHeurVRLKeepGoal(UpdateHeurVRL[Domain]):
         return self._inputs_ctgs_to_np(states, goals, ctgs_backup, times)
 
 
-@updater_factory.register_class("update_heurv_rl_her")
-class UpdateHeurVRLHER(UpdateHeurVRL[GoalSampleableFromState], UpdateHER[PathFindNodeHasHeur, InstanceNode]):
+class UpdateHeurVRLHER(UpdateHeurVRL[GoalSampleableFromState, FNsHV], UpdateHER[FNsHV, PathFindSetHeurV, InstanceNode], ABC):
     @staticmethod
     def domain_type() -> Type[GoalSampleableFromState]:
         return GoalSampleableFromState
-
-    @staticmethod
-    def pathfind_type() -> Type[PathFindNodeHasHeur]:
-        return PathFindNodeHasHeur
 
     def _get_instance_data_rb(self, instances: List[InstanceNode], times: Times) -> List[NDArray]:
         # get goals according to HER
@@ -212,3 +205,43 @@ class UpdateHeurVRLHER(UpdateHeurVRL[GoalSampleableFromState], UpdateHER[PathFin
         states, goals, ctgs_backup = self._sample_rb_vi_target(len(states_her), times)
 
         return self._inputs_ctgs_to_np(states, goals, ctgs_backup, times)
+
+
+@updater_factory.register_class("update_v_rl")
+class UpdateHeurVRLKeepGoalFNsHeur(UpdateHeurVRLKeepGoal[FNsHeurV]):
+    @staticmethod
+    def functions_type() -> Type[FNsHeurV]:
+        return FNsHeurV
+
+    def _get_pathfind_functions(self) -> FNsHeurV:
+        return FNsHeurV(self.get_heur_fn())
+
+
+@updater_factory.register_class("update_v_rl_her")
+class UpdateHeurVRLHERFNsHeur(UpdateHeurVRLHER[FNsHeurV]):
+    @staticmethod
+    def functions_type() -> Type[FNsHeurV]:
+        return FNsHeurV
+
+    def _get_pathfind_functions(self) -> FNsHeurV:
+        return FNsHeurV(self.get_heur_fn())
+
+
+@updater_factory.register_class("update_v_p_rl")
+class UpdateHeurVRLKeepGoalFNsHeurPolicy(UpdateHeurVRLKeepGoal[FNsHeurVPolicy], UpdateHasPolicy[Domain, FNsHeurVPolicy, PathFindSetHeurV, InstanceNode]):
+    @staticmethod
+    def functions_type() -> Type[FNsHeurVPolicy]:
+        return FNsHeurVPolicy
+
+    def _get_pathfind_functions(self) -> FNsHeurVPolicy:
+        return FNsHeurVPolicy(self.get_heur_fn(), self.get_policy_fn())
+
+
+@updater_factory.register_class("update_v_p_rl_her")
+class UpdateHeurVRLHERFNsHeurPolicy(UpdateHeurVRLHER[FNsHeurVPolicy], UpdateHasPolicy[Domain, FNsHeurVPolicy, PathFindSetHeurV, InstanceNode]):
+    @staticmethod
+    def functions_type() -> Type[FNsHeurVPolicy]:
+        return FNsHeurVPolicy
+
+    def _get_pathfind_functions(self) -> FNsHeurVPolicy:
+        return FNsHeurVPolicy(self.get_heur_fn(), self.get_policy_fn())

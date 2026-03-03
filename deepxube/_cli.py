@@ -7,7 +7,7 @@ from deepxube._solve import parse_solve
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, StateGoalVizable, StringToAct, State, Action, Goal
 from deepxube.base.heuristic import HeurNNet, HeurNNetPar, PolicyNNetPar
-from deepxube.base.pathfinding import PathFind, PathFindHasHeur
+from deepxube.base.pathfinding import PathFind
 from deepxube.factories.domain_factory import domain_factory
 from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys, get_nnet_input_t
 from deepxube.factories.heuristic_factory import heuristic_factory
@@ -107,8 +107,7 @@ def pathfinding_info(args: argparse.Namespace) -> None:
         print(textwrap.indent(f"Mixins: {mixin_str}", '\t'))
 
         print(textwrap.indent(f"Domain type expected: {pathfind_t.domain_type()}", '\t'))
-        if issubclass(pathfind_t, PathFindHasHeur):
-            print(textwrap.indent(f"Heuristic type expected: {pathfind_t.heur_fn_type()}", '\t'))
+        print(textwrap.indent(f"Functions type expected: {pathfind_t.functions_type()}", '\t'))
 
         parser: Optional[Parser] = pathfinding_factory.get_parser(name)
         if parser is not None:
@@ -214,8 +213,8 @@ def time_test_args(args: argparse.Namespace) -> None:
     if args.heur is not None:
         heur_nnet_par = get_heur_nnet_par_from_arg(domain, domain_name, args.heur, args.heur_type)[0]
     if args.policy is not None:
-        policy_nnet_par = get_policy_nnet_par_from_arg(domain, domain_name, args.policy)[0]
-    time_test(domain, heur_nnet_par, policy_nnet_par, args.num_insts, args.num_samp, args.num_rand, args.step_max)
+        policy_nnet_par = get_policy_nnet_par_from_arg(domain, domain_name, args.policy, args.policy_samp, args.policy_rand)[0]
+    time_test(domain, heur_nnet_par, policy_nnet_par, args.num_insts, args.step_max)
 
 
 def plot_itr_data(axs: List[Axes], step_slider: Slider, itr: int, itr_to_in_out: Dict[int, Tuple[NDArray, NDArray]],
@@ -382,8 +381,8 @@ def _parse_time(parser: ArgumentParser) -> None:
     parser.add_argument('--heur', type=str, default=None, help="Heuristic name and arguments.")
     parser.add_argument('--heur_type', type=str, default="V", help="V, QFix, QIn.")
     parser.add_argument('--policy', type=str, default=None, help="Policy name and arguments.")
-    parser.add_argument('--num_samp', type=int, default=10, help="")
-    parser.add_argument('--num_rand', type=int, default=5, help="")
+    parser.add_argument('--policy_samp', type=int, default=10, help="")
+    parser.add_argument('--policy_rand', type=int, default=5, help="")
     parser.add_argument('--num_insts', type=int, default=10, help="Number of problem instances to generate.")
     parser.add_argument('--step_max', type=int, default=10, help="Randomly generates problem instances with between 0 and step_max steps.")
     parser.set_defaults(func=time_test_args)

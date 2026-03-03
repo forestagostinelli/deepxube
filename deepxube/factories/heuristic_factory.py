@@ -39,13 +39,13 @@ def build_heur_nnet_par(domain: Domain, domain_name: str, nnet_name: str, nnet_k
                      f"nnet_input type {nnet_input_t}.\nNNet inputs checked: {nnet_input_domain_keys}")
 
 
-def build_policy_nnet_par(domain: Domain, domain_name: str, nnet_name: str, nnet_kwargs: Dict[str, Any]) -> PolicyNNetPar:
+def build_policy_nnet_par(domain: Domain, domain_name: str, nnet_name: str, nnet_kwargs: Dict[str, Any], num_samp: int, num_rand: int) -> PolicyNNetPar:
     nnet_input_t: Type[NNetInput] = policy_factory.get_type(nnet_name).nnet_input_type()
     nnet_input_domain_keys: List[Tuple[str, str]] = get_domain_nnet_input_keys(domain_name)
     for nnet_input_domain_key in nnet_input_domain_keys:
         nnet_input_cls: Type[NNetInput] = get_nnet_input_t(nnet_input_domain_key)
         if issubclass(nnet_input_cls, PolicyNNetIn) and issubclass(nnet_input_cls, nnet_input_t):
-            return PolicyNNetParConcrete(domain, nnet_input_domain_key, nnet_name, nnet_kwargs)
+            return PolicyNNetParConcrete(domain, nnet_input_domain_key, nnet_name, nnet_kwargs, num_samp, num_rand)
 
     raise ValueError(f"Cannot build policy nnet for domain: {domain_name}, and "
                      f"nnet_input type {nnet_input_t}.\nNNet inputs checked: {nnet_input_domain_keys}")
@@ -79,7 +79,8 @@ class HeurNNetParFacClass(HeurNNetPar, ABC):
 
 
 class PolicyNNetParFacClass(PolicyNNetPar, ABC):
-    def __init__(self, domain: Domain, nnet_input_name: Tuple[str, str], nnet_name: str, nnet_kwargs: Dict[str, Any]):
+    def __init__(self, domain: Domain, nnet_input_name: Tuple[str, str], nnet_name: str, nnet_kwargs: Dict[str, Any], num_samp: int, num_rand: int):
+        super().__init__(num_samp, num_rand)
         self.domain: Domain = domain
         self.nnet_input_name: Tuple[str, str] = nnet_input_name
         self.nnet_input: Optional[PolicyNNetIn] = None

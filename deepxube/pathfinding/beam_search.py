@@ -2,10 +2,10 @@ from abc import ABC, abstractmethod
 from typing import List, Any, Type, Optional, TypeVar, Dict
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, ActsEnum, State, Goal
-from deepxube.base.pathfinding import (Instance, InstanceNode, InstanceEdge, Node, EdgeQ, PathFind, PathFindEdgeActsPolicy,
-                                       PathFindNodeActsPolicy, PathFindNodeHasHeur, PathFindEdgeHasHeur, PathFindNodeActsEnum, PathFindEdgeActsEnum)
+from deepxube.base.pathfinding import (Instance, InstanceNode, InstanceEdge, Node, EdgeQ, FNs, FNsHV, FNsHQ, FNsPolicy, FNsHeurQ, FNsHeurV, FNsHeurQPolicy,
+                                       FNsHeurVPolicy, PathFind, PathFindNode, PathFindEdge, PathFindActsPolicy, PathFindSetPolicy, PathFindSetHeurV,
+                                       PathFindSetHeurQ, PathFindActsEnum)
 from deepxube.factories.pathfinding_factory import pathfinding_factory
-from deepxube.utils import misc_utils
 from deepxube.utils.misc_utils import boltzmann
 import numpy as np
 import time
@@ -74,9 +74,9 @@ D = TypeVar('D', bound=Domain)
 IBeam = TypeVar('IBeam', bound=InstanceBeam)
 
 
-class BeamSearch(PathFind[D, IBeam], ABC):
-    def __init__(self, domain: D, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0):
-        super().__init__(domain)
+class BeamSearch(PathFind[D, FNs, IBeam], ABC):
+    def __init__(self, domain: D, functions: FNs, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0):
+        super().__init__(domain, functions)
         self.beam_size_default: int = beam_size
         self.temp_default: float = temp
         self.eps_default: float = eps
@@ -125,15 +125,19 @@ class InstanceEdgeBeam(InstanceEdge, InstanceBeam):
 
 
 @pathfinding_factory.register_class("beam_p")
-class BeamSearchPolicy(BeamSearch[Domain, InstanceEdgeBeam], PathFindEdgeActsPolicy[Domain, InstanceEdgeBeam]):
+class BeamSearchPolicy(BeamSearch[Domain, FNsPolicy, InstanceEdgeBeam], PathFindEdge[Domain, FNsPolicy, InstanceEdgeBeam],
+                       PathFindActsPolicy[Domain, FNsPolicy, InstanceEdgeBeam], PathFindSetPolicy[Domain, FNsPolicy, InstanceEdgeBeam]):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
 
-    def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_heur: bool = True,
+    @staticmethod
+    def functions_type() -> Type[FNsPolicy]:
+        return FNsPolicy
+
+    def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True,
                        beam_size: Optional[int] = None, temp: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceEdgeBeam]:
-        nodes_root: List[Node] = self._create_root_nodes(states, goals)
-        self._set_node_act_probs(nodes_root)
+        nodes_root: List[Node] = self._create_root_nodes(states, goals, compute_root_vals)
         return self._construct_instances(InstanceEdgeBeam, nodes_root, inst_infos, beam_size, temp, eps)
 
     def _compute_costs(self, instances: List[InstanceEdgeBeam], edges_by_inst: List[List[EdgeQ]]) -> List[List[float]]:
@@ -147,14 +151,12 @@ class BeamSearchPolicy(BeamSearch[Domain, InstanceEdgeBeam], PathFindEdgeActsPol
 
         return logits_by_inst
 
-    def _eval_nodes(self, instances: List[InstanceEdgeBeam], nodes_by_inst: List[List[Node]]) -> None:
-        self._set_node_act_probs(misc_utils.flatten(nodes_by_inst)[0])
 
-
-class BeamSearchHeurNode(BeamSearch[D, InstanceNodeBeam], PathFindNodeHasHeur[D, InstanceNodeBeam], ABC):
-    def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_heur: bool = True,
+class BeamSearchHeurNode(BeamSearch[D, FNsHV, InstanceNodeBeam], PathFindNode[D, FNsHV, InstanceNodeBeam],
+                         PathFindSetHeurV[D, FNsHV, InstanceNodeBeam], ABC):
+    def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True,
                        beam_size: Optional[int] = None, temp: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceNodeBeam]:
-        nodes_root: List[Node] = self._create_root_nodes_heur(states, goals, compute_root_heur)
+        nodes_root: List[Node] = self._create_root_nodes(states, goals, compute_root_vals)
         return self._construct_instances(InstanceNodeBeam, nodes_root, inst_infos, beam_size, temp, eps)
 
     def _compute_costs(self, instances: List[InstanceNodeBeam], nodes_by_inst: List[List[Node]]) -> List[List[float]]:
@@ -173,10 +175,11 @@ class BeamSearchHeurNode(BeamSearch[D, InstanceNodeBeam], PathFindNodeHasHeur[D,
         return logits_by_inst
 
 
-class BeamSearchHeurEdge(BeamSearch[D, InstanceEdgeBeam], PathFindEdgeHasHeur[D, InstanceEdgeBeam], ABC):
-    def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_heur: bool = True,
+class BeamSearchHeurEdge(BeamSearch[D, FNsHQ, InstanceEdgeBeam], PathFindEdge[D, FNsHQ, InstanceEdgeBeam],
+                         PathFindSetHeurQ[D, FNsHQ, InstanceEdgeBeam], ABC):
+    def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True,
                        beam_size: Optional[int] = None, temp: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceEdgeBeam]:
-        nodes_root: List[Node] = self._create_root_nodes_heur(states, goals, True)
+        nodes_root: List[Node] = self._create_root_nodes(states, goals, True)
         return self._construct_instances(InstanceEdgeBeam, nodes_root, inst_infos, beam_size, temp, eps)
 
     def _compute_costs(self, instances: List[InstanceEdgeBeam], edges_by_inst: List[List[EdgeQ]]) -> List[List[float]]:
@@ -190,36 +193,49 @@ class BeamSearchHeurEdge(BeamSearch[D, InstanceEdgeBeam], PathFindEdgeHasHeur[D,
 
         return logits_by_inst
 
-    def _eval_nodes(self, instances: List[InstanceEdgeBeam], nodes_by_inst: List[List[Node]]) -> None:
-        self._set_node_heurs(misc_utils.flatten(nodes_by_inst)[0])
-
 
 @pathfinding_factory.register_class("beam_v")
-class BeamSearchHeurNodeActsEnum(BeamSearchHeurNode[ActsEnum], PathFindNodeActsEnum[ActsEnum, InstanceNodeBeam]):
+class BeamSearchHeurNodeActsEnum(BeamSearchHeurNode[ActsEnum, FNsHeurV], PathFindActsEnum[ActsEnum, FNsHeurV, InstanceNodeBeam]):
     @staticmethod
     def domain_type() -> Type[ActsEnum]:
         return ActsEnum
+
+    @staticmethod
+    def functions_type() -> Type[FNsHeurV]:
+        return FNsHeurV
 
 
 @pathfinding_factory.register_class("beam_q")
-class BeamSearchHeurEdgeActsEnum(BeamSearchHeurEdge[ActsEnum], PathFindEdgeActsEnum[ActsEnum, InstanceEdgeBeam]):
+class BeamSearchHeurEdgeActsEnum(BeamSearchHeurEdge[ActsEnum, FNsHeurQ], PathFindActsEnum[ActsEnum, FNsHeurQ, InstanceEdgeBeam]):
     @staticmethod
     def domain_type() -> Type[ActsEnum]:
         return ActsEnum
 
+    @staticmethod
+    def functions_type() -> Type[FNsHeurQ]:
+        return FNsHeurQ
+
 
 @pathfinding_factory.register_class("beam_v_p")
-class BeamSearchHeurNodeActsPolicy(BeamSearchHeurNode[Domain], PathFindNodeActsPolicy[Domain, InstanceNodeBeam]):
+class BeamSearchHeurNodeActsPolicy(BeamSearchHeurNode[Domain, FNsHeurVPolicy], PathFindActsPolicy[Domain, FNsHeurVPolicy, InstanceNodeBeam]):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
+
+    @staticmethod
+    def functions_type() -> Type[FNsHeurVPolicy]:
+        return FNsHeurVPolicy
 
 
 @pathfinding_factory.register_class("beam_q_p")
-class BeamSearchHeurEdgeActsPolicy(BeamSearchHeurEdge[Domain], PathFindEdgeActsPolicy[Domain, InstanceEdgeBeam]):
+class BeamSearchHeurEdgeActsPolicy(BeamSearchHeurEdge[Domain, FNsHeurQPolicy], PathFindActsPolicy[Domain, FNsHeurQPolicy, InstanceEdgeBeam]):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
+
+    @staticmethod
+    def functions_type() -> Type[FNsHeurQPolicy]:
+        return FNsHeurQPolicy
 
 
 class BeamSearchParser(Parser, ABC):

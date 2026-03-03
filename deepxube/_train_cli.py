@@ -6,12 +6,10 @@ from deepxube.factories.updater_factory import get_updater
 
 from deepxube.base.domain import State, Goal
 from deepxube.base.heuristic import HeurNNetPar, PolicyNNetPar
-from deepxube.base.pathfinding import PathFind
 from deepxube.base.updater import UpArgs, Update, UpdateHeur, UpdatePolicy
 from deepxube.base.trainer import TrainArgs
 from deepxube.trainers.utils.train_loop import TestArgs, train
-from deepxube.utils.command_line_utils import (get_domain_from_arg, get_heur_nnet_par_from_arg, get_policy_nnet_par_from_arg, get_pathfind_name_kwargs,
-                                               get_pathfind_from_arg)
+from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_policy_nnet_par_from_arg, get_pathfind_name_kwargs
 import pickle
 
 
@@ -24,6 +22,8 @@ def parser_train(parser: ArgumentParser) -> None:
                                                                     "QIn maps state/goal/action tuples to q_value (can be used in arbitrary action spaces).")
 
     parser.add_argument('--policy', type=str, default=None, help="Policy neural network and arguments.")
+    parser.add_argument('--policy_samp', type=int, default=10, help="")
+    parser.add_argument('--policy_rand', type=int, default=5, help="")
 
     parser.add_argument('--pathfind', type=str, required=True, help="Pathfinding algorithm and arguments. Batch size of any pathfinding algorithm should be 1 "
                                                                     "since updater assumes 1 instance is generated per iteration.")
@@ -82,8 +82,6 @@ def train_cli(args: argparse.Namespace) -> None:
 
     # pathfinding
     pathfind_name, pathfind_kwargs = get_pathfind_name_kwargs(args.pathfind)
-    pathfind: PathFind = get_pathfind_from_arg(domain, args.pathfind)[0]
-    assert isinstance(domain, pathfind.domain_type())
 
     # update args
     up_args: UpArgs = UpArgs(args.procs, args.up_itrs, args.step_max, args.search_itrs, ub_heur_solns=False, backup=args.backup,
@@ -101,7 +99,7 @@ def train_cli(args: argparse.Namespace) -> None:
         assert isinstance(update_ret, UpdateHeur)
         update_heur = update_ret
     if args.policy is not None:
-        policy_nnet_par = get_policy_nnet_par_from_arg(domain, domain_name, args.policy)[0]
+        policy_nnet_par = get_policy_nnet_par_from_arg(domain, domain_name, args.policy, args.policy_samp, args.policy_rand)[0]
         update_ret = get_updater(domain, pathfind_name, pathfind_kwargs, up_args, args.her, "policy")
         assert isinstance(update_ret, UpdatePolicy)
         update_policy = update_ret

@@ -174,8 +174,7 @@ def test_heur_nnet_par(heur_nnet_par: HeurNNetPar, states: List[State], goals: L
     print("Computed heuristic for %i states in %s seconds (%.2f/second)" % (len(states), nnet_time, states_per_sec))
 
 
-def test_policy_nnet_par(domain: Domain, policy_nnet_par: PolicyNNetPar, states: List[State], goals: List[Goal], actions: List[Action], num_samp: int,
-                         num_rand: int) -> None:
+def test_policy_nnet_par(domain: Domain, policy_nnet_par: PolicyNNetPar, states: List[State], goals: List[Goal], actions: List[Action]) -> None:
     # nnet format
     start_time = time.time()
     policy_nnet_par.to_np_train(states, goals, actions)
@@ -196,19 +195,18 @@ def test_policy_nnet_par(domain: Domain, policy_nnet_par: PolicyNNetPar, states:
     print("")
     policy_fn: PolicyFn = policy_nnet_par.get_nnet_fn(nnet, None, device, None)
 
-    policy_fn(domain, states, goals, num_samp, num_rand)
+    policy_fn(domain, states, goals)
 
     # nnet heuristic
     start_time = time.time()
-    policy_fn(domain, states, goals, num_samp, num_rand)
+    policy_fn(domain, states, goals)
 
     nnet_time = time.time() - start_time
     states_per_sec = len(states) / nnet_time
     print("Computed policy for %i states in %s seconds (%.2f/second)" % (len(states), nnet_time, states_per_sec))
 
 
-def time_test(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], policy_nnet_par: Optional[PolicyNNetPar], num_samp: int, num_rand: int, num_states: int,
-              step_max: int) -> None:
+def time_test(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], policy_nnet_par: Optional[PolicyNNetPar], num_states: int, step_max: int) -> None:
     states, goals, actions = test_env(domain, num_states, step_max)
     if isinstance(domain, StartGoalWalkable):
         test_envstartgoalrw(domain, num_states)
@@ -219,4 +217,4 @@ def time_test(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], policy_nnet_
         test_heur_nnet_par(heur_nnet_par, states, goals, actions)
 
     if policy_nnet_par is not None:
-        test_policy_nnet_par(domain, policy_nnet_par, states, goals, actions, num_samp, num_rand)
+        test_policy_nnet_par(domain, policy_nnet_par, states, goals, actions)

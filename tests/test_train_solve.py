@@ -1,4 +1,4 @@
-from typing import List, Optional, cast
+from typing import List, Optional, Any
 import pytest  # type: ignore
 
 from deepxube.factories.updater_factory import get_updater
@@ -6,7 +6,7 @@ from deepxube.factories.updater_factory import get_updater
 from deepxube.base.heuristic import HeurNNetPar
 from deepxube.base.pathfinding import Node, Instance, get_path
 from deepxube.pathfinding.utils.performance import is_valid_soln, PathFindPerf
-from deepxube.base.pathfinding import PathFind, PathFindHasHeur
+from deepxube.base.pathfinding import PathFind, FNsHeurV, FNsHeurQ
 from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_pathfind_name_kwargs, get_pathfind_from_arg
 from deepxube.base.updater import UpArgs, Update, UpdateHeur
 from deepxube.base.trainer import TrainArgs
@@ -69,8 +69,6 @@ def test_train_solve_heur(pathfind_tr_str: str, pathfind_solve_str: str, heur_ty
 
     # solve
     heur_file: str = f"{save_dir}/heur.pt"
-    pathfind: PathFind = get_pathfind_from_arg(domain, pathfind_solve_str)[0]
-    assert isinstance(pathfind, PathFindHasHeur), f"Current implementation only uses {PathFindHasHeur}"
     device, devices, on_gpu = nnet_utils.get_device()
 
     nnet: nn.Module = nnet_utils.load_nnet(heur_file, heur_nnet_par.get_nnet())
@@ -79,9 +77,14 @@ def test_train_solve_heur(pathfind_tr_str: str, pathfind_solve_str: str, heur_ty
     nnet = nn.DataParallel(nnet)
     heur_fn = heur_nnet_par.get_nnet_fn(nnet, None, device, None)
 
-    pathfind.set_heur_fn(heur_fn)
-
     # do pathfinding
+    functions: Any
+    if heur_type == "V":
+        functions = FNsHeurV(heur_fn)
+    else:
+        functions = FNsHeurQ(heur_fn)
+
+    pathfind: PathFind = get_pathfind_from_arg(domain, functions, pathfind_solve_str)[0]
     states, goals = domain.sample_start_goal_pairs(list(range(0, 100)))
     instances: List[Instance] = pathfind.make_instances(states, goals, None, True)
     pathfind.add_instances(instances)

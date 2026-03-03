@@ -130,7 +130,7 @@ HeurFn = Union[HeurFnV, HeurFnQ]
 
 @runtime_checkable
 class PolicyFn(Protocol):
-    def __call__(self, domain: Domain, states: List[State], goals: List[Goal], num_samp: int, num_rand: int) -> Tuple[List[List[Action]], List[List[float]]]:
+    def __call__(self, domain: Domain, states: List[State], goals: List[Goal]) -> Tuple[List[List[Action]], List[List[float]]]:
         """ Map states and goals to sampled actions along with their probability (or log probability) densities
 
         """
@@ -344,34 +344,38 @@ def _combine_nnet_with_rand(domain: Domain, actions_l: List[List[Action]], pdfs_
 
 
 class PolicyNNetPar(NNetPar[PolicyFn]):
+    def __init__(self, num_samp: int, num_rand: int):
+        self.num_samp: int = num_samp
+        self.num_rand: int = num_rand
+
     def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device, update_num: Optional[int]) -> PolicyFn:
         nnet.eval()
         if (update_num is not None) and (update_num == 0):
-            def policy_fn(domain: Domain, states: List[State], goals: List[Goal], num_samp: int, num_rand: int) -> Tuple[List[List[Action]], List[List[float]]]:
+            def policy_fn(domain: Domain, states: List[State], goals: List[Goal]) -> Tuple[List[List[Action]], List[List[float]]]:
                 assert len(states) == len(goals)  # to stop PyCharm from complaining
-                return policy_fn_rand(domain, states, num_samp + num_rand)
+                return policy_fn_rand(domain, states, self.num_samp + self.num_rand)
         else:
-            def policy_fn(domain: Domain, states: List[State], goals: List[Goal], num_samp: int, num_rand: int) -> Tuple[List[List[Action]], List[List[float]]]:
-                inputs_nnet_rep: List[NDArray] = self._get_nnet_inputs_rep(states, goals, num_samp)
+            def policy_fn(domain: Domain, states: List[State], goals: List[Goal]) -> Tuple[List[List[Action]], List[List[float]]]:
+                inputs_nnet_rep: List[NDArray] = self._get_nnet_inputs_rep(states, goals, self.num_samp)
                 nnet_out_np: List[NDArray[np.float64]] = nnet_batched(nnet, inputs_nnet_rep, batch_size, device)
 
-                actions_l, pdfs_l = self._np_to_acts_and_pdfs(nnet_out_np[0], nnet_out_np[1], len(states), num_samp)
-                return _combine_nnet_with_rand(domain, actions_l, pdfs_l, states, num_rand)
+                actions_l, pdfs_l = self._np_to_acts_and_pdfs(nnet_out_np[0], nnet_out_np[1], len(states), self.num_samp)
+                return _combine_nnet_with_rand(domain, actions_l, pdfs_l, states, self.num_rand)
 
         return policy_fn
 
     def get_nnet_par_fn(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> PolicyFn:
         if (update_num is not None) and (update_num == 0):
-            def policy_fn(domain: Domain, states: List[State], goals: List[Goal], num_samp: int, num_rand: int) -> Tuple[List[List[Action]], List[List[float]]]:
+            def policy_fn(domain: Domain, states: List[State], goals: List[Goal]) -> Tuple[List[List[Action]], List[List[float]]]:
                 assert len(states) == len(goals)  # to stop PyCharm from complaining
-                return policy_fn_rand(domain, states, num_samp + num_rand)
+                return policy_fn_rand(domain, states, self.num_samp + self.num_rand)
         else:
-            def policy_fn(domain: Domain, states: List[State], goals: List[Goal], num_samp: int, num_rand: int) -> Tuple[List[List[Action]], List[List[float]]]:
-                inputs_nnet_rep: List[NDArray] = self._get_nnet_inputs_rep(states, goals, num_samp)
+            def policy_fn(domain: Domain, states: List[State], goals: List[Goal]) -> Tuple[List[List[Action]], List[List[float]]]:
+                inputs_nnet_rep: List[NDArray] = self._get_nnet_inputs_rep(states, goals, self.num_samp)
                 nnet_out_np: List[NDArray[np.float64]] = get_nnet_par_out(inputs_nnet_rep, nnet_par_info)
 
-                actions_l, pdfs_l = self._np_to_acts_and_pdfs(nnet_out_np[0], nnet_out_np[1], len(states), num_samp)
-                return _combine_nnet_with_rand(domain, actions_l, pdfs_l, states, num_rand)
+                actions_l, pdfs_l = self._np_to_acts_and_pdfs(nnet_out_np[0], nnet_out_np[1], len(states), self.num_samp)
+                return _combine_nnet_with_rand(domain, actions_l, pdfs_l, states, self.num_rand)
 
         return policy_fn
 

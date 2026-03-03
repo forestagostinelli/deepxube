@@ -1,8 +1,8 @@
 from typing import Dict, Any, Type, List
 
 from deepxube.base.domain import Domain
-from deepxube.base.pathfinding import PathFind, PathFindHasHeur, PathFindHasPolicy
-from deepxube.base.updater import Update, UpdateHER, UpdateHasHeur, UpdateHasPolicy, UpdateHeur, UpdatePolicy, UpArgs
+from deepxube.base.pathfinding import PathFind
+from deepxube.base.updater import Update, UpdateHER, UpdateHeur, UpdatePolicy, UpArgs
 from deepxube.base.factory import Factory
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 
@@ -17,12 +17,7 @@ def get_updater(domain: Domain, pathfind_name: str, pathfind_kwargs: Dict[str, A
     up_cls_names = [up_cls_name for up_cls_name in up_cls_names if isinstance(domain, updater_factory.get_type(up_cls_name).domain_type())]
     up_cls_names = [up_cls_name for up_cls_name in up_cls_names if issubclass(pathfind_t, updater_factory.get_type(up_cls_name).pathfind_type())]
     up_cls_names = [up_cls_name for up_cls_name in up_cls_names if issubclass(updater_factory.get_type(up_cls_name), UpdateHER) == her]
-
-    if issubclass(pathfind_t, PathFindHasHeur):
-        up_cls_names = [up_cls_name for up_cls_name in up_cls_names if issubclass(updater_factory.get_type(up_cls_name), UpdateHasHeur)]
-
-    if issubclass(pathfind_t, PathFindHasPolicy):
-        up_cls_names = [up_cls_name for up_cls_name in up_cls_names if issubclass(updater_factory.get_type(up_cls_name), UpdateHasPolicy)]
+    up_cls_names = [up_cls_name for up_cls_name in up_cls_names if updater_factory.get_type(up_cls_name).functions_type() is pathfind_t.functions_type()]
 
     if func_update.upper() == "HEUR":
         up_cls_names = [up_cls_name for up_cls_name in up_cls_names if issubclass(updater_factory.get_type(up_cls_name), UpdateHeur)]

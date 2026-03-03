@@ -11,8 +11,6 @@ from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel, OneHo
 from deepxube.factories.heuristic_factory import heuristic_factory
 from deepxube.factories.heuristic_factory import policy_factory
 
-import math
-
 
 @heuristic_factory.register_class("resnet_fc")
 class ResnetFCHeur(HeurNNet[FlatIn]):
@@ -58,8 +56,8 @@ class ResnetFCPolicy(PolicyNNet[FlatInPolicy]):
     def nnet_input_type() -> Type[FlatInPolicy]:
         return FlatInPolicy
 
-    def __init__(self, nnet_input: FlatInPolicy, enc_dim: int = 10, res_dim: int = 1000, num_blocks: int = 4, batch_norm: bool = False, weight_norm: bool = False,
-                 group_norm: int = -1, act_fn: str = "RELU"):
+    def __init__(self, nnet_input: FlatInPolicy, enc_dim: int = 10, res_dim: int = 1000, num_blocks: int = 4, batch_norm: bool = False,
+                 weight_norm: bool = False, group_norm: int = -1, act_fn: str = "RELU"):
         super().__init__(nnet_input)
         # one hots
         state_goal_dim_tot: int = 0

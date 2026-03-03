@@ -35,11 +35,11 @@ def get_heur_nnet_par_from_arg(domain: Domain, domain_name: str, heur: str, heur
     return nnet_par, nnet_name
 
 
-def get_policy_nnet_par_from_arg(domain: Domain, domain_name: str, policy: str) -> Tuple[PolicyNNetPar, str]:
+def get_policy_nnet_par_from_arg(domain: Domain, domain_name: str, policy: str, num_samp: int, num_int: int) -> Tuple[PolicyNNetPar, str]:
     nnet_name, nnet_args = get_name_args(policy)
     policy_factory.get_type(nnet_name)  # to ensure existence
     nnet_kwargs: Dict[str, Any] = policy_factory.get_kwargs(nnet_name, nnet_args)
-    nnet_par: PolicyNNetPar = build_policy_nnet_par(domain, domain_name, nnet_name, nnet_kwargs)
+    nnet_par: PolicyNNetPar = build_policy_nnet_par(domain, domain_name, nnet_name, nnet_kwargs, num_samp, num_int)
     return nnet_par, nnet_name
 
 
@@ -49,8 +49,9 @@ def get_pathfind_name_kwargs(pathfind: str) -> Tuple[str, Dict[str, Any]]:
     return name, pathfind_kwargs
 
 
-def get_pathfind_from_arg(domain: Domain, pathfind: str) -> Tuple[PathFind, str]:
+def get_pathfind_from_arg(domain: Domain, functions: Any, pathfind: str) -> Tuple[PathFind, str]:
     pathfind_name, args_str = get_name_args(pathfind)
     pathfind_kwargs: Dict[str, Any] = pathfinding_factory.get_kwargs(pathfind_name, args_str)
     pathfind_kwargs["domain"] = domain
+    pathfind_kwargs["functions"] = functions
     return pathfinding_factory.build_class(pathfind_name, pathfind_kwargs), pathfind_name

@@ -1,6 +1,6 @@
 from abc import ABC
 from typing import List, Any, Optional, Type, TypeVar, Tuple
-from deepxube.base.domain import Domain, State, Goal, StartGoalWalkable, GoalStartRevWalkableActsRev, Action
+from deepxube.base.domain import Domain, State, Goal, StartGoalWalkable, GoalStartRevWalkableActsRev
 from deepxube.base.pathfinding import InstanceNode, Node, EdgeQ, PathFindNode, PathFindSup
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 import time
@@ -30,7 +30,7 @@ class InstanceSupV(InstanceNode):
 D = TypeVar('D', bound=Domain)
 
 
-class PathFindVSup(PathFindNode[D, InstanceSupV], PathFindSup[D, InstanceSupV], ABC):
+class PathFindVSup(PathFindNode[D, Any, InstanceSupV], PathFindSup[D, InstanceSupV], ABC):
     def step(self, verbose: bool = False) -> Tuple[List[Node], List[EdgeQ]]:
         nodes: List[Node] = []
         for instance in self.instances:
@@ -46,20 +46,11 @@ class PathFindVSup(PathFindNode[D, InstanceSupV], PathFindSup[D, InstanceSupV], 
 
         return nodes, []
 
-    def expand_states(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
-        raise NotImplementedError
-
-    def _get_heur_vals(self, states: List[State], goals: List[Goal]) -> List[float]:
-        raise NotImplementedError
-
-    def _eval_nodes(self, instances: List[InstanceSupV], nodes_by_inst: List[List[Node]]) -> None:
-        raise NotImplementedError
-
     def _compute_costs(self, instances: List[InstanceSupV], nodes_by_inst: List[List[Node]]) -> List[List[float]]:
         raise NotImplementedError
 
     def _make_instances(self, states_start: List[State], goals: List[Goal], path_costs: List[float], inst_infos: Optional[List[Any]]) -> List[InstanceSupV]:
-        nodes_root: List[Node] = self._create_root_nodes(states_start, goals)
+        nodes_root: List[Node] = self._create_root_nodes(states_start, goals, False)
 
         start_time = time.time()
         if inst_infos is None:

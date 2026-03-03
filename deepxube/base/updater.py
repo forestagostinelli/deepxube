@@ -13,7 +13,7 @@ from numpy.typing import NDArray
 from deepxube.nnet.nnet_utils import NNetParInfo, NNetCallable, NNetPar, get_nnet_par_infos, start_nnet_fn_runners, stop_nnet_runners
 from deepxube.base.domain import Domain, State, Action, Goal, GoalSampleableFromState
 from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ, HeurFn, HeurFnV, HeurFnQ, PolicyNNetPar, PolicyFn
-from deepxube.base.pathfinding import PathFind, PathFindHasHeur, PathFindSup, Instance, InstanceNode, InstanceEdge, get_path, Node
+from deepxube.base.pathfinding import FNs, FNsP, FNsHV, FNsHQ, FNsHeur, PathFind, PathFindSup, Instance, InstanceNode, InstanceEdge, get_path, Node
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.pathfinding.utils.performance import PathFindPerf, print_pathfindperf
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd, get_nowait_noerr
@@ -23,6 +23,9 @@ import gc
 
 import copy
 from torch.multiprocessing import get_context
+
+
+FNsH = TypeVar('FNsH', bound=FNsHeur)
 
 
 # TODO par nnets per GPU?
@@ -83,10 +86,15 @@ D = TypeVar('D', bound=Domain)
 P = TypeVar('P', bound=PathFind)
 
 
-class Update(Generic[D, P, Inst], ABC):
+class Update(Generic[D, FNs, P, Inst], ABC):
     @staticmethod
     @abstractmethod
     def domain_type() -> Type[D]:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def functions_type() -> Type[FNs]:
         pass
 
     @staticmethod
@@ -309,6 +317,7 @@ class Update(Generic[D, P, Inst], ABC):
     def get_pathfind(self) -> P:
         pathfind_kwargs: Dict[str, Any] = self.pathfind_kwargs.copy()
         pathfind_kwargs["domain"] = self.domain
+        pathfind_kwargs["functions"] = self._get_pathfind_functions()
         return cast(P, pathfinding_factory.build_class(self.pathfind_name, pathfind_kwargs))
 
     def set_targ_update_num(self, targ_update_num: Optional[int]) -> None:
@@ -337,7 +346,7 @@ class Update(Generic[D, P, Inst], ABC):
                     break
 
                 pathfind: P = self.get_pathfind()
-                self._set_pathfind_nnet_fns(pathfind)
+                # self._set_pathfind_nnet_fns(pathfind)
 
                 insts_rem_last_itr: List[Inst] = []
                 put_from_q: List[List[NDArray]] = []
@@ -408,15 +417,15 @@ class Update(Generic[D, P, Inst], ABC):
             times.record_time("inst_add", time.time() - start_time)
 
     @abstractmethod
-    def _set_pathfind_nnet_fns(self, pathfind: P) -> None:
-        pass
-
-    @abstractmethod
     def _step(self, pathfind: P, times: Times) -> None:
         pass
 
     @abstractmethod
     def _step_sync_main(self, pathfind: P, times: Times) -> List[NDArray]:
+        pass
+
+    @abstractmethod
+    def _get_pathfind_functions(self) -> FNs:
         pass
 
     def _get_instance_data(self, instances: List[Inst], rb_size: int, times: Times) -> List[NDArray]:
@@ -445,7 +454,7 @@ class Update(Generic[D, P, Inst], ABC):
         return f"{type(self).__name__}({self.up_args.__repr__()})"
 
 
-class UpdateHER(Update[GoalSampleableFromState, P, Inst], ABC):
+class UpdateHER(Update[GoalSampleableFromState, FNs, P, Inst], ABC):
     def _step_sync_main(self, pathfind: P, times: Times) -> List[NDArray]:
         raise NotImplementedError("Cannot train with sync_main if also doing hindsight experience replay (HER) since goal relabeling is done after search is "
                                   "complete.")
@@ -509,7 +518,7 @@ HNet = TypeVar('HNet', bound=HeurNNetPar)
 H = TypeVar('H', bound=HeurFn)
 
 
-class UpdateHasHeur(Update[D, P, Inst], Generic[D, P, Inst, HNet, H], ABC):
+class UpdateHasHeur(Update[D, FNsH, P, Inst], Generic[D, FNsH, P, Inst, HNet, H], ABC):
     @staticmethod
     def heur_name() -> str:
         return 'heur'
@@ -530,7 +539,7 @@ class UpdateHasHeur(Update[D, P, Inst], Generic[D, P, Inst, HNet, H], ABC):
         return cast(H, self.nnet_fn_dict[self.heur_name()])
 
 
-class UpdateHasPolicy(Update[D, P, Inst], ABC):
+class UpdateHasPolicy(Update[D, FNsP, P, Inst], ABC):
     @staticmethod
     def policy_name() -> str:
         return 'policy'
@@ -554,12 +563,16 @@ class UpdateHasPolicy(Update[D, P, Inst], ABC):
 PS = TypeVar('PS', bound=PathFindSup)
 
 
-class UpdateSup(Update[D, PS, Inst], ABC):
+class UpdateSup(Update[D, Any, PS, Inst], ABC):
+    @staticmethod
+    def functions_type() -> Type[Any]:
+        return Any
+
     def _step(self, pathfind: PS, times: Times) -> None:
         pathfind.step()
 
-    def _set_pathfind_nnet_fns(self, pathfind: PS) -> None:
-        pass
+    def _get_pathfind_functions(self) -> Any:
+        return None
 
     def _make_instances(self, pathfind: PS, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[Inst]:
         return pathfind.make_instances_rw(steps_gen, inst_infos)
@@ -574,7 +587,17 @@ class UpdateSup(Update[D, PS, Inst], ABC):
         pass
 
 
-class UpdateHeur(UpdateHasHeur[D, P, Inst, HNet, H]):
+class UpdateRL(Update[D, FNs, P, Inst], ABC):
+    def _make_instances(self, pathfind: P, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[Inst]:
+        # get states/goals
+        times_states: Times = Times()
+        states_gen, goals_gen = self.domain.sample_start_goal_pairs(steps_gen, times=times_states)
+        times.add_times(times_states, ["get_states"])
+
+        return pathfind.make_instances(states_gen, goals_gen, inst_infos=inst_infos, compute_root_vals=False)
+
+
+class UpdateHeur(UpdateHasHeur[D, FNsH, P, Inst, HNet, H]):
     @abstractmethod
     def get_heur_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         pass
@@ -586,8 +609,11 @@ class UpdateHeur(UpdateHasHeur[D, P, Inst, HNet, H]):
             assert self.nnet_par_info_main is not None
             return cast(H, self.get_heur_nnet_par().get_nnet_par_fn(self.nnet_par_info_main, None))
 
+    def _get_targ_heur_fn(self) -> H:
+        return self._get_heur_fn_from_dict()
 
-class UpdatePolicy(UpdateHasPolicy[D, P, Inst], ABC):
+
+class UpdatePolicy(UpdateHasPolicy[D, FNsP, P, Inst], ABC):
     def get_policy_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.domain.sample_start_goal_pairs([0])
         actions: List[Action] = self.domain.sample_state_action(states)
@@ -606,7 +632,7 @@ class UpdatePolicy(UpdateHasPolicy[D, P, Inst], ABC):
             raise NotImplementedError("sync_main not yet implemented for policy_fn")
 
 
-class UpdateHeurV(UpdateHeur[D, P, InstanceNode, HeurNNetParV, HeurFnV], ABC):
+class UpdateHeurV(UpdateHeur[D, FNsHV, P, InstanceNode, HeurNNetParV, HeurFnV], ABC):
     def get_heur_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.domain.sample_start_goal_pairs([0])
         inputs_nnet: List[NDArray[Any]] = self.get_heur_nnet_par().to_np(states, goals)
@@ -619,7 +645,7 @@ class UpdateHeurV(UpdateHeur[D, P, InstanceNode, HeurNNetParV, HeurFnV], ABC):
         return shapes_dtypes
 
 
-class UpdateHeurQ(UpdateHeur[D, P, InstanceEdge, HeurNNetParQ, HeurFnQ], ABC):
+class UpdateHeurQ(UpdateHeur[D, FNsHQ, P, InstanceEdge, HeurNNetParQ, HeurFnQ], ABC):
     def get_heur_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.domain.sample_start_goal_pairs([0])
         actions: List[Action] = self.domain.sample_state_action(states)
@@ -631,22 +657,3 @@ class UpdateHeurQ(UpdateHeur[D, P, InstanceEdge, HeurNNetParQ, HeurFnQ], ABC):
         shapes_dtypes.append((tuple(), np.dtype(np.float64)))
 
         return shapes_dtypes
-
-
-PH = TypeVar('PH', bound=PathFindHasHeur)
-
-
-class UpdateHeurRL(UpdateHeur[D, PH, Inst, HNet, H], ABC):
-    def _get_targ_heur_fn(self) -> H:
-        return self._get_heur_fn_from_dict()
-
-    def _set_pathfind_nnet_fns(self, pathfind: PH) -> None:
-        pathfind.set_heur_fn(self.get_heur_fn())
-
-    def _make_instances(self, pathfind: PH, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[Inst]:
-        # get states/goals
-        times_states: Times = Times()
-        states_gen, goals_gen = self.domain.sample_start_goal_pairs(steps_gen, times=times_states)
-        times.add_times(times_states, ["get_states"])
-
-        return pathfind.make_instances(states_gen, goals_gen, inst_infos=inst_infos, compute_root_heur=False)

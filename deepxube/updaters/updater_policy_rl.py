@@ -1,59 +1,48 @@
 from abc import ABC
-from typing import Dict, Any, List, Tuple, cast, Type
+from typing import Dict, Any, List, Tuple, cast, Type, TypeVar
 
 import numpy as np
 from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, GoalSampleableFromState, Action, State, Goal
-from deepxube.base.pathfinding import FNsHQ, FNsHeurQ, FNsHeurQPolicy, PathFindSetHeurQ, EdgeQ, InstanceEdge, Node
-from deepxube.base.updater import UpdateHER, UpdateHasPolicy, UpdateHeurQ, UpdateRL, D, UpArgs
+from deepxube.base.heuristic import HeurNNetParQ, HeurFnQ
+from deepxube.base.pathfinding import PathFind, PathFindSetPolicy, EdgeQ, InstanceEdge, Node
+from deepxube.base.updater import UpdateHER, UpdateHeurQ, UpdateRL, D, P, UpArgs
 from deepxube.factories.updater_factory import updater_factory
 from deepxube.updaters.utils.replay_buffer_utils import ReplayBufferQ
 from deepxube.utils.timing_utils import Times
 
 import time
 
-
-def _pathfind_q_step(pathfind: PathFindSetHeurQ) -> List[EdgeQ]:
+"""
+def _pathfind_q_step(pathfind: PathFind) -> List[EdgeQ]:
     edges_popped: List[EdgeQ] = pathfind.step()[1]
     assert len(edges_popped) == len(pathfind.instances), f"Values were {len(edges_popped)} and {len(pathfind.instances)}"
 
     return edges_popped
 
 
-def _get_edge_popped_data(edges_popped: List[EdgeQ],
-                          times: Times) -> Tuple[List[State], List[Goal], List[bool], List[Action], List[float], List[State]]:
-
+def _get_edge_popped_data(edges_popped: List[EdgeQ], times: Times) -> Tuple[List[State], List[Goal], List[Action]]:
     start_time = time.time()
     nodes: List[Node] = [edge.node for edge in edges_popped]
     states: List[State] = [node.state for node in nodes]
     goals: List[Goal] = [node.goal for node in nodes]
     actions: List[Action] = [edge.action for edge in edges_popped]
 
-    is_solved_l: List[bool] = []
-    tcs: List[float] = []
-    states_next: List[State] = []
-    for edge, node in zip(edges_popped, nodes, strict=True):
-        assert node.is_solved is not None
-        is_solved_l.append(node.is_solved)
-        tc, node_next = node.edge_dict[edge.action]
-        tcs.append(tc)
-        states_next.append(node_next.state)
     times.record_time("edge_data", time.time() - start_time)
 
-    return states, goals, is_solved_l, actions, tcs, states_next
+    return states, goals, actions
 
 
-class UpdateHeurQRL(UpdateHeurQ[D, FNsHQ, PathFindSetHeurQ], UpdateRL[D, FNsHQ, PathFindSetHeurQ, InstanceEdge], ABC):
-    @staticmethod
-    def pathfind_type() -> Type[PathFindSetHeurQ]:
-        return PathFindSetHeurQ
+PHasPol = TypeVar('PHasPol', bound=PathFindSetPolicy)
 
+
+class UpdatePolicyRL(UpdateHeurQ[D, PHasPol], UpdateRL[D, PHasPol, InstanceEdge, HeurNNetParQ, HeurFnQ], ABC):
     def __init__(self, domain: D, pathfind_name: str, pathfind_kwargs: Dict[str, Any], up_args: UpArgs):
         super().__init__(domain, pathfind_name, pathfind_kwargs, up_args)
         self.rb: ReplayBufferQ = ReplayBufferQ(0)
 
-    def _step(self, pathfind: PathFindSetHeurQ, times: Times) -> None:
+    def _step(self, pathfind: PathFindEdgeHasHeur, times: Times) -> None:
         _pathfind_q_step(pathfind)
 
     def _q_learning_target(self, goals: List[Goal], is_solved_l: List[bool], tcs: List[float], states_next: List[State], times: Times) -> List[float]:
@@ -99,12 +88,17 @@ class UpdateHeurQRL(UpdateHeurQ[D, FNsHQ, PathFindSetHeurQ], UpdateRL[D, FNsHQ, 
         return states, goals, actions, ctgs_backup
 
 
-class UpdateHeurQRLKeepGoal(UpdateHeurQRL[Domain, FNsHQ], ABC):
+@updater_factory.register_class("update_heurq_rl")
+class UpdateHeurQRLKeepGoal(UpdateHeurQRL[Domain]):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
 
-    def _step_sync_main(self, pathfind: PathFindSetHeurQ, times: Times) -> List[NDArray]:
+    @staticmethod
+    def pathfind_type() -> Type[PathFindEdgeHasHeur]:
+        return PathFindEdgeHasHeur
+
+    def _step_sync_main(self, pathfind: PathFindEdgeHasHeur, times: Times) -> List[NDArray]:
         # take a step
         edges_popped: List[EdgeQ] = _pathfind_q_step(pathfind)
 
@@ -173,10 +167,15 @@ class UpdateHeurQRLKeepGoal(UpdateHeurQRL[Domain, FNsHQ], ABC):
         return self._inputs_ctgs_to_np(states, goals, actions, ctgs_backup, times)
 
 
-class UpdateHeurQRLHER(UpdateHeurQRL[GoalSampleableFromState, FNsHQ], UpdateHER[FNsHQ, PathFindSetHeurQ, InstanceEdge], ABC):
+@updater_factory.register_class("update_heurq_rl_her")
+class UpdateHeurQRLHER(UpdateHeurQRL[GoalSampleableFromState], UpdateHER[PathFindEdgeHasHeur, InstanceEdge]):
     @staticmethod
     def domain_type() -> Type[GoalSampleableFromState]:
         return GoalSampleableFromState
+
+    @staticmethod
+    def pathfind_type() -> Type[PathFindEdgeHasHeur]:
+        return PathFindEdgeHasHeur
 
     def _get_instance_data_rb(self, instances: List[InstanceEdge], times: Times) -> List[NDArray]:
         # get goals according to HER
@@ -216,43 +215,4 @@ class UpdateHeurQRLHER(UpdateHeurQRL[GoalSampleableFromState, FNsHQ], UpdateHER[
 
         # to_np
         return self._inputs_ctgs_to_np(states, goals, actions, ctgs_backup, times)
-
-
-@updater_factory.register_class("update_q_rl")
-class UpdateHeurVRLKeepGoalFNsHeur(UpdateHeurQRLKeepGoal[FNsHeurQ]):
-    @staticmethod
-    def functions_type() -> Type[FNsHeurQ]:
-        return FNsHeurQ
-
-    def _get_pathfind_functions(self) -> FNsHeurQ:
-        return FNsHeurQ(self.get_heur_fn())
-
-
-@updater_factory.register_class("update_q_rl_her")
-class UpdateHeurVRLHERFNsHeur(UpdateHeurQRLHER[FNsHeurQ]):
-    @staticmethod
-    def functions_type() -> Type[FNsHeurQ]:
-        return FNsHeurQ
-
-    def _get_pathfind_functions(self) -> FNsHeurQ:
-        return FNsHeurQ(self.get_heur_fn())
-
-
-@updater_factory.register_class("update_q_p_rl")
-class UpdateHeurVRLKeepGoalFNsHeurPolicy(UpdateHeurQRLKeepGoal[FNsHeurQPolicy], UpdateHasPolicy[Domain, FNsHeurQPolicy, PathFindSetHeurQ, InstanceEdge]):
-    @staticmethod
-    def functions_type() -> Type[FNsHeurQPolicy]:
-        return FNsHeurQPolicy
-
-    def _get_pathfind_functions(self) -> FNsHeurQPolicy:
-        return FNsHeurQPolicy(self.get_heur_fn(), self.get_policy_fn())
-
-
-@updater_factory.register_class("update_q_p_rl_her")
-class UpdateHeurVRLHERFNsHeurPolicy(UpdateHeurQRLHER[FNsHeurQPolicy], UpdateHasPolicy[Domain, FNsHeurQPolicy, PathFindSetHeurQ, InstanceEdge]):
-    @staticmethod
-    def functions_type() -> Type[FNsHeurQPolicy]:
-        return FNsHeurQPolicy
-
-    def _get_pathfind_functions(self) -> FNsHeurQPolicy:
-        return FNsHeurQPolicy(self.get_heur_fn(), self.get_policy_fn())
+"""

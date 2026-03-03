@@ -4,8 +4,10 @@ from argparse import ArgumentParser
 
 from deepxube.base.domain import Domain, State, Action, Goal
 from deepxube.base.heuristic import HeurNNetPar, PolicyNNetPar, HeurFn, HeurFnV, HeurFnQ, PolicyFn, policy_fn_rand
-from deepxube.base.pathfinding import Node, Instance, PathFind, PathFindHasHeur, PathFindHasPolicy, get_path
-from deepxube.utils.command_line_utils import get_domain_from_arg, get_pathfind_from_arg, get_heur_nnet_par_from_arg, get_policy_nnet_par_from_arg
+from deepxube.base.pathfinding import Node, Instance, PathFind, get_path
+from deepxube.factories.pathfinding_factory import get_pathfind_functions
+from deepxube.utils.command_line_utils import (get_domain_from_arg, get_pathfind_name_kwargs, get_pathfind_from_arg, get_heur_nnet_par_from_arg,
+                                               get_policy_nnet_par_from_arg)
 from deepxube.utils import data_utils
 from deepxube.nnet import nnet_utils
 from deepxube.pathfinding.utils.performance import is_valid_soln
@@ -87,12 +89,12 @@ def get_heur_fn(domain: Domain, domain_name: str, heur_nnet_str: Optional[str], 
     return heur_fn
 
 
-def get_policy_fn(domain: Domain, domain_name: str, policy_nnet_str: Optional[str], policy_file: Optional[str], use_policy: bool,
+def get_policy_fn(domain: Domain, domain_name: str, policy_nnet_str: Optional[str], policy_file: Optional[str], policy_samp: int, policy_rand: int,
                   nnet_batch_size: Optional[int]) -> Optional[PolicyFn]:
-    policy_fn: Optional[PolicyFn] = None
+    policy_fn: Optional[PolicyFn]
     if policy_nnet_str is not None:
         assert policy_file is not None
-        policy_nnet_par: PolicyNNetPar = get_policy_nnet_par_from_arg(domain, domain_name, policy_nnet_str)[0]
+        policy_nnet_par: PolicyNNetPar = get_policy_nnet_par_from_arg(domain, domain_name, policy_nnet_str, policy_samp, policy_rand)[0]
         device, devices, on_gpu = nnet_utils.get_device()
         print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
         nnet: nn.Module = nnet_utils.load_nnet(policy_file, policy_nnet_par.get_nnet())
@@ -100,11 +102,10 @@ def get_policy_fn(domain: Domain, domain_name: str, policy_nnet_str: Optional[st
         nnet.to(device)
         nnet = nn.DataParallel(nnet)
         policy_fn = policy_nnet_par.get_nnet_fn(nnet, nnet_batch_size, device, None)
-    elif use_policy:
+    else:
         class PolicyFnRand(PolicyFn):
-            def __call__(self, domain_in: Domain, states: List[State], goals: List[Goal], num_samp_in: int,
-                         num_rand_in: int) -> Tuple[List[List[Action]], List[List[float]]]:
-                return policy_fn_rand(domain, states, num_samp_in + num_rand_in)
+            def __call__(self, domain_in: Domain, states: List[State], goals: List[Goal]) -> Tuple[List[List[Action]], List[List[float]]]:
+                return policy_fn_rand(domain, states, policy_samp + policy_rand)
 
         policy_fn = PolicyFnRand()
 
@@ -119,11 +120,11 @@ def solve_cli(args: argparse.Namespace) -> None:
     domain, domain_name = get_domain_from_arg(args.domain)
 
     # heur and policy fn
-    pathfind: PathFind = get_pathfind_from_arg(domain, args.pathfind)[0]
     heur_fn: Optional[HeurFn] = get_heur_fn(domain, domain_name, args.heur, args.heur_file, args.heur_type, args.nnet_batch_size)
-    policy_fn: Optional[PolicyFn] = get_policy_fn(domain, domain_name, args.policy, args.policy_file, isinstance(pathfind, PathFindHasPolicy),
-                                                  args.nnet_batch_size)
+    policy_fn: Optional[PolicyFn] = get_policy_fn(domain, domain_name, args.policy, args.policy_file, args.policy_samp, args.policy_rand, args.nnet_batch_size)
     print(domain)
+    pathfind_functions: Any = get_pathfind_functions(get_pathfind_name_kwargs(args.pathfind)[0], heur_fn, policy_fn)
+    pathfind: PathFind = get_pathfind_from_arg(domain, pathfind_functions, args.pathfind)[0]
     print(pathfind)
 
     # get data
@@ -156,13 +157,7 @@ def solve_cli(args: argparse.Namespace) -> None:
         goal: Goal = goals[state_idx]
 
         # get pathfinding alg
-        pathfind = get_pathfind_from_arg(domain, args.pathfind)[0]
-        if isinstance(pathfind, PathFindHasHeur):
-            assert heur_fn is not None
-            pathfind.set_heur_fn(heur_fn)
-        if isinstance(pathfind, PathFindHasPolicy):
-            assert policy_fn is not None
-            pathfind.set_policy_fn(policy_fn, args.policy_samp, args.policy_rand)
+        pathfind = get_pathfind_from_arg(domain, pathfind_functions, args.pathfind)[0]
 
         # do pathfinding
         start_time = time.time()
