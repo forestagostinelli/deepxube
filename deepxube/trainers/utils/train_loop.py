@@ -92,6 +92,7 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
     device, devices, on_gpu = nnet_utils.get_device()
     print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
 
+    # file info
     writer: SummaryWriter = SummaryWriter(nnet_dir)
 
     heur_file: str = f"{nnet_dir}/heur.pt"
@@ -102,15 +103,23 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
     policy_targ_file = f"{nnet_dir}/policy_targ.pt"
     policy_status_file: str = f"{nnet_dir}/policy_status.pkl"
 
+    # set updater heur info
     train_heur: Optional[TrainHeur] = None
     train_policy: Optional[TrainPolicy] = None
     if heur_nnet_par is not None:
-        assert update_heur is not None
-
         for updater in [update_heur, update_policy]:
             if (updater is not None) and isinstance(updater, UpdateHasHeur):
                 updater.set_heur_nnet(heur_nnet_par)
                 updater.set_heur_file(heur_targ_file)
+    if policy_nnet_par is not None:
+        for updater in [update_heur, update_policy]:
+            if (updater is not None) and isinstance(updater, UpdateHasPolicy):
+                updater.set_policy_nnet(policy_nnet_par)
+                updater.set_policy_file(policy_targ_file)
+
+    # start_procs and trainers
+    if heur_nnet_par is not None:
+        assert update_heur is not None
 
         heur_nnet: HeurNNet = heur_nnet_par.get_nnet()
         print(heur_nnet_par)
@@ -119,17 +128,13 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
     if policy_nnet_par is not None:
         assert update_policy is not None
 
-        for updater in [update_heur, update_policy]:
-            if (updater is not None) and isinstance(updater, UpdateHasPolicy):
-                updater.set_policy_nnet(policy_nnet_par)
-                updater.set_policy_file(policy_targ_file)
-
         policy_nnet: PolicyNNet = policy_nnet_par.get_nnet()
         print(policy_nnet_par)
         to_main_q, from_main_qs = update_policy.start_procs(train_args.rb * train_args.batch_size * update_policy.up_args.up_itrs)
         train_policy = TrainPolicy(policy_nnet, update_policy, to_main_q, from_main_qs, policy_file, policy_targ_file, policy_status_file, device, on_gpu,
                                    writer, train_args)
 
+    # print info
     for updater in [update_heur, update_policy]:
         if updater is not None:
             print(f"{updater}")
@@ -168,6 +173,7 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
         up_itr_performed = True
         curr_itr = get_curr_itr(train_heur, train_policy)
 
+    # test
     if (test_args is not None) and up_itr_performed:
         test(domain, heur_nnet_par, train_heur, policy_nnet_par, train_policy, test_args, writer, curr_itr)
 

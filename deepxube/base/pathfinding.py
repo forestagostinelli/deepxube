@@ -417,10 +417,13 @@ class PathFindNode(PathFind[D, FNs, INode]):
         # get next edges
         start_time = time.time()
         edges_next_flat: List[EdgeQ] = []
-        for nodes_next in nodes_next_by_inst:
+        for instance, nodes_next in zip(instances, nodes_next_by_inst):
+            edges_popped_inst: List[EdgeQ] = []
             for node in nodes_next:
                 assert (node.parent is not None) and (node.parent_action is not None) and (node.parent_t_cost is not None)
-                edges_next_flat.append(EdgeQ(node.parent, node.parent_action, node.parent_t_cost + node.heuristic))
+                edges_popped_inst.append(EdgeQ(node.parent, node.parent_action, node.parent_t_cost + node.heuristic))
+            instance.add_edges_popped(edges_popped_inst)
+            edges_next_flat.extend(edges_popped_inst)
         self.times.record_time("edges_next", time.time() - start_time)
 
         start_time = time.time()
@@ -471,11 +474,18 @@ class PathFindNode(PathFind[D, FNs, INode]):
             path_costs_c_i: NDArray = node.path_cost + np.array(tcs[node_idx])
             nodes_c_i: List[Node] = []
             for c_idx in range(len(states_c_l[node_idx])):
-                action: Action = actions[node_idx][c_idx]  # TODO check action is already in dict
-                t_cost: float = tcs[node_idx][c_idx]
-                node_c: Node = Node(states_c_l[node_idx][c_idx], goals_c[node_idx][c_idx], float(path_costs_c_i[c_idx]), 0.0, None,
-                                    None, action, t_cost, node)
-                node.add_edge(action, t_cost, node_c)
+                action: Action = actions[node_idx][c_idx]
+
+                edge_dict_val: Optional[Tuple[float, Node]] = node.edge_dict.get(action)
+                node_c: Node
+                if edge_dict_val is not None:
+                    node_c = edge_dict_val[1]
+                else:
+                    t_cost: float = tcs[node_idx][c_idx]
+                    node_c: Node = Node(states_c_l[node_idx][c_idx], goals_c[node_idx][c_idx], float(path_costs_c_i[c_idx]), 0.0, None,
+                                        None, action, t_cost, node)
+                    node.add_edge(action, t_cost, node_c)
+
                 nodes_c_i.append(node_c)
             nodes_c.extend(nodes_c_i)
         self.times.record_time("nodes", time.time() - start_time)
@@ -501,7 +511,7 @@ class PathFindNode(PathFind[D, FNs, INode]):
         pass
 
 
-class PathFindEdge(PathFind[D, FNs, IEdge]):
+class PathFindEdge(PathFind[D, FNs, IEdge]):  # TODO add nodes popped
     def step(self, verbose: bool = False) -> Tuple[List[Node], List[EdgeQ]]:
         instances: List[IEdge] = [instance for instance in self.instances if not instance.finished()]
         if len(instances) == 0:

@@ -186,9 +186,29 @@ class UpdatePolicyRLKeepGoalHeurV(UpdatePolicyRLKeepGoalABC[FNsHeurVPolicy],
         return FNsHeurVPolicy(self.get_heur_fn(), self.get_policy_fn())
 
 
+@updater_factory.register_class("update_p_v_rl_her")
+class UpdatePolicyRLHERHeurV(UpdatePolicyRLHERABC[FNsHeurVPolicy], UpdateHasHeur[Domain, FNsHeurVPolicy, PathFindActsPolicy, Instance, HeurNNetParV, HeurFnV]):
+    @staticmethod
+    def functions_type() -> Type[FNsHeurVPolicy]:
+        return FNsHeurVPolicy
+
+    def _get_pathfind_functions(self) -> FNsHeurVPolicy:
+        return FNsHeurVPolicy(self.get_heur_fn(), self.get_policy_fn())
+
+
 @updater_factory.register_class("update_p_q_rl")
 class UpdatePolicyRLKeepGoalHeurQ(UpdatePolicyRLKeepGoalABC[FNsHeurQPolicy],
                                   UpdateHasHeur[Domain, FNsHeurQPolicy, PathFindActsPolicy, Instance, HeurNNetParQ, HeurFnQ]):
+    @staticmethod
+    def functions_type() -> Type[FNsHeurQPolicy]:
+        return FNsHeurQPolicy
+
+    def _get_pathfind_functions(self) -> FNsHeurQPolicy:
+        return FNsHeurQPolicy(self.get_heur_fn(), self.get_policy_fn())
+
+
+@updater_factory.register_class("update_p_q_rl_her")
+class UpdatePolicyRLHERHeurQ(UpdatePolicyRLHERABC[FNsHeurQPolicy], UpdateHasHeur[Domain, FNsHeurQPolicy, PathFindActsPolicy, Instance, HeurNNetParQ, HeurFnQ]):
     @staticmethod
     def functions_type() -> Type[FNsHeurQPolicy]:
         return FNsHeurQPolicy
