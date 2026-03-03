@@ -482,8 +482,7 @@ class PathFindNode(PathFind[D, FNs, INode]):
                     node_c = edge_dict_val[1]
                 else:
                     t_cost: float = tcs[node_idx][c_idx]
-                    node_c: Node = Node(states_c_l[node_idx][c_idx], goals_c[node_idx][c_idx], float(path_costs_c_i[c_idx]), 0.0, None,
-                                        None, action, t_cost, node)
+                    node_c = Node(states_c_l[node_idx][c_idx], goals_c[node_idx][c_idx], float(path_costs_c_i[c_idx]), 0.0, None, None, action, t_cost, node)
                     node.add_edge(action, t_cost, node_c)
 
                 nodes_c_i.append(node_c)
