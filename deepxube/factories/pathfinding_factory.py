@@ -28,6 +28,8 @@ def get_pathfind_functions(pathfind_name: str, heur_fn: Optional[HeurFn], policy
         assert (heur_fn is not None) and isinstance(heur_fn, HeurFnQ)
         assert policy_fn is not None
         return FNsHeurQPolicy(heur_fn, policy_fn)
+    elif functions_type is Any:
+        return None
     else:
         raise ValueError(f"Unknown Function type {functions_type}")
 
