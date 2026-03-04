@@ -229,7 +229,8 @@ class PathFind(Generic[D, FNs, I], ABC):
 
     def __init__(self, domain: D, functions: FNs):
         assert isinstance(domain, self.domain_type()), f"Domain {domain} must be an instance of {self.domain_type()}."
-        assert isinstance(functions, self.functions_type()), f"Functions {functions} must be an instance of {self.functions_type()}."
+        if self.functions_type() is not Any:
+            assert isinstance(functions, self.functions_type()), f"Functions {functions} must be an instance of {self.functions_type()}."
         self.domain: D = domain
         self.functions: FNs = functions
         self.instances: List[I] = []
