@@ -95,7 +95,7 @@ class PathFindVSupRWRev(PathFindVSup[GoalStartRevWalkableActsRev]):
 
     def make_instances_rw(self, steps_gen: List[int], inst_infos: Optional[List[Any]]) -> List[InstanceSupV]:
         start_time = time.time()
-        states_goal, goals = self.domain.sample_goal_state_goal_pairs(len(steps_gen))
+        states_goal, goals = self.domain.sample_goalstate_goal_pairs(len(steps_gen))
         self.times.record_time("samp_goal_state_goal", time.time() - start_time)
 
         start_time = time.time()

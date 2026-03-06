@@ -345,13 +345,13 @@ class GoalFixed(GoalSampleable[S, A, G]):
 class GoalStateGoalPairSampleable(Domain[S, A, G]):
     """ Can sample pairs of states and corresponding goals of which the sampled state is a member """
     @abstractmethod
-    def sample_goal_state_goal_pairs(self, num: int) -> Tuple[List[S], List[G]]:
+    def sample_goalstate_goal_pairs(self, num: int) -> Tuple[List[S], List[G]]:
         pass
 
 
 class GoalStateSampGoalSamp(GoalStateGoalPairSampleable[S, A, G], GoalStateSampleable[S, A, G], GoalSampleableFromState[S, A, G], ABC):
     """ Sample goal state and then sample goals from goal states """
-    def sample_goal_state_goal_pairs(self, num: int) -> Tuple[List[S], List[G]]:
+    def sample_goalstate_goal_pairs(self, num: int) -> Tuple[List[S], List[G]]:
         states_goal: List[S] = self.sample_goal_states(num)
         goals: List[G] = self.sample_goal_from_state(None, states_goal)
         return states_goal, goals
@@ -359,7 +359,7 @@ class GoalStateSampGoalSamp(GoalStateGoalPairSampleable[S, A, G], GoalStateSampl
 
 class GoalSampGoalStateSamp(GoalStateGoalPairSampleable[S, A, G], GoalSampleable[S, A, G], StateSampleableFromGoal[S, A, G], ABC):
     """ Sample goals and then sample goal states from goals """
-    def sample_goal_state_goal_pairs(self, num: int) -> Tuple[List[S], List[G]]:
+    def sample_goalstate_goal_pairs(self, num: int) -> Tuple[List[S], List[G]]:
         goals: List[G] = self.sample_goals(num)
         states_goal: List[S] = self.sample_state_from_goal(goals)
         return states_goal, goals
@@ -409,8 +409,8 @@ class GoalStartRevWalkable(GoalStateGoalPairSampleable[S, A, G]):
 
         # goals
         start_time = time.time()
-        states_goal, goals = self.sample_goal_state_goal_pairs(len(num_steps_l))
-        times.record_time("sample_goal_state_goal_pairs", time.time() - start_time)
+        states_goal, goals = self.sample_goalstate_goal_pairs(len(num_steps_l))
+        times.record_time("sample_goalstate_goal_pairs", time.time() - start_time)
 
         # random walk to get start states
         start_time = time.time()

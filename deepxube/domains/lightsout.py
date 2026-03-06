@@ -75,7 +75,7 @@ class LightsOut(NextStateNPActsEnumFixed[LOState, LOAction, LOGoal], GoalStartRe
 
         return cast(List[bool], np.all(states_np == goals_np, axis=1).tolist())
 
-    def sample_goal_state_goal_pairs(self, num: int) -> Tuple[List[LOState], List[LOGoal]]:
+    def sample_goalstate_goal_pairs(self, num: int) -> Tuple[List[LOState], List[LOGoal]]:
         states_goal: List[LOState] = [LOState(self.goal_np.copy())] * num
         goals: List[LOGoal] = [LOGoal(self.goal_np.copy())] * num
 

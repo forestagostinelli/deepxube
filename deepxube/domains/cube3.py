@@ -519,7 +519,7 @@ class Cube3(NextStateNPActsEnumFixed[Cube3State, Cube3Action, Cube3Goal],
     def get_goal_states(self, num_states: int) -> List[Cube3State]:
         return [Cube3State(self.goal_colors.copy()) for _ in range(num_states)]
 
-    def sample_goal_state_goal_pairs(self, num: int) -> Tuple[List[Cube3State], List[Cube3Goal]]:
+    def sample_goalstate_goal_pairs(self, num: int) -> Tuple[List[Cube3State], List[Cube3Goal]]:
         states_goal: List[Cube3State] = [Cube3State(self.goal_colors.copy())] * num
         goals: List[Cube3Goal] = [Cube3Goal(self.goal_colors.copy())] * num
 
