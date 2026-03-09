@@ -594,7 +594,7 @@ class UpdateRL(Update[D, FNs, P, Inst], ABC):
     def _make_instances(self, pathfind: P, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[Inst]:
         # get states/goals
         times_states: Times = Times()
-        states_gen, goals_gen = self.domain.sample_start_goal_pairs(steps_gen, times=times_states)
+        states_gen, goals_gen = self.domain.sample_problem_instances(steps_gen, times=times_states)
         times.add_times(times_states, ["get_states"])
 
         return pathfind.make_instances(states_gen, goals_gen, inst_infos=inst_infos, compute_root_vals=False)
@@ -618,7 +618,7 @@ class UpdateHeur(UpdateHasHeur[D, FNsH, P, Inst, HNet, H]):
 
 class UpdatePolicy(UpdateHasPolicy[D, FNsP, P, Inst], ABC):
     def get_policy_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
-        states, goals = self.domain.sample_start_goal_pairs([0])
+        states, goals = self.domain.sample_problem_instances([0])
         actions: List[Action] = self.domain.sample_state_action(states)
         inputs_nnet: List[NDArray[Any]] = self.get_policy_nnet_par().to_np_train(states, goals, actions)
 
@@ -637,7 +637,7 @@ class UpdatePolicy(UpdateHasPolicy[D, FNsP, P, Inst], ABC):
 
 class UpdateHeurV(UpdateHeur[D, FNsHV, P, InstanceNode, HeurNNetParV, HeurFnV], ABC):
     def get_heur_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
-        states, goals = self.domain.sample_start_goal_pairs([0])
+        states, goals = self.domain.sample_problem_instances([0])
         inputs_nnet: List[NDArray[Any]] = self.get_heur_nnet_par().to_np(states, goals)
 
         shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = []
@@ -650,7 +650,7 @@ class UpdateHeurV(UpdateHeur[D, FNsHV, P, InstanceNode, HeurNNetParV, HeurFnV], 
 
 class UpdateHeurQ(UpdateHeur[D, FNsHQ, P, InstanceEdge, HeurNNetParQ, HeurFnQ], ABC):
     def get_heur_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
-        states, goals = self.domain.sample_start_goal_pairs([0])
+        states, goals = self.domain.sample_problem_instances([0])
         actions: List[Action] = self.domain.sample_state_action(states)
         inputs_nnet: List[NDArray[Any]] = self.get_heur_nnet_par().to_np(states, goals, [[action] for action in actions])
 

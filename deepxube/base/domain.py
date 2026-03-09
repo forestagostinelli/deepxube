@@ -74,10 +74,10 @@ class Domain(ABC, Generic[S, A, G]):
         self.nnet_pars: List[Tuple[str, str, NNetPar]] = []
 
     @abstractmethod
-    def sample_start_goal_pairs(self, num_steps_l: List[int], times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
+    def sample_problem_instances(self, num_steps_l: List[int], times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
         """ Return start goal pairs with num_steps_l between start and goal
 
-        :param num_steps_l: Number of steps to take between start and goal
+        :param num_steps_l: Number of steps to take between start and goal. Does not have to directly correspond to number of steps and can also be ignored.
         :param times: Times that can be used to profile code
         :return: List of start states and list of goals
         """
@@ -378,7 +378,7 @@ class StartGoalWalkable(GoalSampleableFromState[S, A, G]):
         """
         pass
 
-    def sample_start_goal_pairs(self, num_steps_l: List[int], times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
+    def sample_problem_instances(self, num_steps_l: List[int], times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
         # Initialize
         if times is None:
             times = Times()
@@ -402,7 +402,7 @@ class StartGoalWalkable(GoalSampleableFromState[S, A, G]):
 
 
 class GoalStartRevWalkable(GoalStateGoalPairSampleable[S, A, G]):
-    def sample_start_goal_pairs(self, num_steps_l: List[int], times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
+    def sample_problem_instances(self, num_steps_l: List[int], times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
         # Initialize
         if times is None:
             times = Times()

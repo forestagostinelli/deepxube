@@ -48,27 +48,27 @@ def domain_actsrev(request) -> Domain:  # type: ignore
 
 @pytest.mark.parametrize("num_states", [1, 5, 10])  # type: ignore
 def test_get_start_goal_pairs(domain: Domain, num_states: int) -> None:
-    states, goals = domain.sample_start_goal_pairs(list(range(0, num_states)))
+    states, goals = domain.sample_problem_instances(list(range(0, num_states)))
     assert len(states) == num_states
     assert len(goals) == num_states
 
 
 @pytest.mark.parametrize("num_states", [1, 5, 10])  # type: ignore
 def test_get_start_goal_pairs_0steps(domain: Domain, num_states: int) -> None:
-    states, goals = domain.sample_start_goal_pairs([0] * num_states)
+    states, goals = domain.sample_problem_instances([0] * num_states)
     assert all(domain.is_solved(states, goals))
 
 
 @pytest.mark.parametrize("num_states", [1, 5, 10])  # type: ignore
 def test_goalsamp(domain_goalsamp_fromstate: GoalSampleableFromState, num_states: int) -> None:
-    states, _ = domain_goalsamp_fromstate.sample_start_goal_pairs(list(range(0, num_states)))
+    states, _ = domain_goalsamp_fromstate.sample_problem_instances(list(range(0, num_states)))
     goals_samp: List[Goal] = domain_goalsamp_fromstate.sample_goal_from_state(None, states)
     assert all(domain_goalsamp_fromstate.is_solved(states, goals_samp))
 
 
 @pytest.mark.parametrize("num_states", [1, 5, 10])  # type: ignore
 def test_actsrev(domain_actsrev: ActsRev, num_states: int) -> None:
-    states, _ = domain_actsrev.sample_start_goal_pairs(list(range(0, num_states)))
+    states, _ = domain_actsrev.sample_problem_instances(list(range(0, num_states)))
     actions: List[Action] = domain_actsrev.sample_state_action(states)
     states_next: List[State] = domain_actsrev.next_state(states, actions)[0]
     actions_rev: List[Action] = domain_actsrev.rev_action(states_next, actions)

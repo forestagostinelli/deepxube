@@ -128,7 +128,7 @@ def viz(args: argparse.Namespace) -> None:
         state = data['states'][args.idx]
         goal = data['goals'][args.idx]
     else:
-        states, goals = domain.sample_start_goal_pairs([args.steps])
+        states, goals = domain.sample_problem_instances([args.steps])
         state = states[0]
         goal = goals[0]
 
@@ -278,7 +278,7 @@ def problem_inst_gen(args: argparse.Namespace) -> None:
     num_steps_l: List[int] = list(np.random.randint(args.step_max + 1, size=args.num))
     print(f"Generating {args.num} states")
     start_time = time.time()
-    states, goals = domain.sample_start_goal_pairs(num_steps_l)
+    states, goals = domain.sample_problem_instances(num_steps_l)
     print(f"Time: {time.time() - start_time}")
 
     print(f"Saving data to {args.file}")

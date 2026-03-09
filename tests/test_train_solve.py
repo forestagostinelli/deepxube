@@ -84,7 +84,7 @@ def test_train_solve_heur(pathfind_tr_str: str, pathfind_solve_str: str, heur_ty
         functions = FNsHeurQ(heur_fn)
 
     pathfind: PathFind = get_pathfind_from_arg(domain, functions, pathfind_solve_str)[0]
-    states, goals = domain.sample_start_goal_pairs(list(range(0, 100)))
+    states, goals = domain.sample_problem_instances(list(range(0, 100)))
     instances: List[Instance] = pathfind.make_instances(states, goals, None, True)
     pathfind.add_instances(instances)
     for _ in range(search_itrs):

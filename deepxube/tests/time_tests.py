@@ -28,7 +28,7 @@ def test_env(env: Domain, num_states: int, step_max: int) -> Tuple[List[State], 
     # get data
     start_time = time.time()
     sg_times: Times = Times()
-    states, goals = env.sample_start_goal_pairs(list(np.random.randint(step_max + 1, size=num_states)), times=sg_times)
+    states, goals = env.sample_problem_instances(list(np.random.randint(step_max + 1, size=num_states)), times=sg_times)
     assert len(states) == len(goals), f"state({len(states)}) and goal({len(goals)}) pairs not same length"
 
     elapsed_time = time.time() - start_time
