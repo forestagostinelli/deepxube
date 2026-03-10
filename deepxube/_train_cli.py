@@ -71,6 +71,7 @@ def parser_train(parser: ArgumentParser) -> None:
     test_group.add_argument('--t_search_itrs', type=int, default=100, help="Number of search iterations when testing.")
     test_group.add_argument('--t_up_freq', type=int, default=10, help="Test every t_up_freq updates.")
     test_group.add_argument('--t_pathfinds', type=str, default="bwas", help="Comma separated list of pathfinding algorithms to use when testing.")
+    test_group.add_argument('--t_init', action='store_true', default=False, help="Set for testing before training begins.")
 
     # other
     parser.add_argument('--debug', action='store_true', default=False, help="Set for debug mode.")
@@ -111,6 +112,6 @@ def train_cli(args: argparse.Namespace) -> None:
         data = pickle.load(open(args.t_file, "rb"))
         states: List[State] = data['states']
         goals: List[Goal] = data['goals']
-        test_args = TestArgs(states, goals, args.t_search_itrs, args.t_pathfinds.split(","), args.up_nnet_batch_size, args.t_up_freq, False)
+        test_args = TestArgs(states, goals, args.t_search_itrs, args.t_pathfinds.split(","), args.up_nnet_batch_size, args.t_up_freq, args.t_init)
 
     train(domain, heur_nnet_par, update_heur, policy_nnet_par, update_policy, args.dir, train_args, test_args=test_args, debug=args.debug)

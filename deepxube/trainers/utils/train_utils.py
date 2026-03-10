@@ -82,7 +82,7 @@ def train_policy_nnet_step(policy: PolicyNNet, states_goals_np: List[NDArray], a
     actions: Tensor = torch.tensor(actions_np, device=device)
 
     # forward
-    loss_recon, loss_kl = policy.autoencode(states_goals, actions)
+    loss_recon, loss_kl, _ = policy.autoencode(states_goals, actions)
     loss = loss_recon + (train_args.policy_kl * loss_kl)
 
     # backwards
@@ -93,7 +93,7 @@ def train_policy_nnet_step(policy: PolicyNNet, states_goals_np: List[NDArray], a
 
     # display progress
     if (train_args.display > 0) and (train_itr % train_args.display == 0):
-        print(f"Itr: %i, lr: %.2E, loss: %.2E, loss_recon: {loss_recon.item():.2E}, loss_kl: {loss_kl.item():.2E},"
+        print(f"Itr: %i, lr: %.2E, loss: %.2E, loss_recon: {loss_recon.item():.2E}, loss_kl: {loss_kl.item():.2E}, "
               f"Time: {time.time() - start_time:.2f}" % (train_itr, lr_itr, loss.item()))
 
     return float(loss.item())

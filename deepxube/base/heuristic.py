@@ -69,7 +69,7 @@ class PolicyNNet(DeepXubeNNet[In], ABC):
         recons: Tensor = self.decode(states_goals, z)
         return [recons, self.norm_dist.log_prob(z).sum(dim=1, keepdim=True)]
 
-    def autoencode(self, states_goals: List[Tensor], actions: Tensor) -> Tuple[Tensor, Tensor]:
+    def autoencode(self, states_goals: List[Tensor], actions: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
         """
 
         :param states_goals:
@@ -82,11 +82,11 @@ class PolicyNNet(DeepXubeNNet[In], ABC):
 
         sigma = torch.exp(logvar / 2.0)
         z = mu + sigma * self.norm_dist.sample(mu.shape).to(mu.device)
-        recons: Tensor = self.decode(states_goals, z)
+        actions_recon: Tensor = self.decode(states_goals, z)
 
-        loss_recon: Tensor = self.criterion_recon(recons, actions_proc)
+        loss_recon: Tensor = self.criterion_recon(actions_recon, actions_proc)
 
-        return loss_recon, loss_kl
+        return loss_recon, loss_kl, actions_recon
 
     @abstractmethod
     def latent_shape(self) -> Tuple[int, ...]:
