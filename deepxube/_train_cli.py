@@ -30,6 +30,8 @@ def parser_train(parser: ArgumentParser) -> None:
                                                                     "since updater assumes 1 instance is generated per iteration.")
 
     parser.add_argument('--dir', type=str, required=True, help="Directory to save neural networks.")
+    parser.add_argument('--skip_heur', action='store_true', default=False, help="Set to skip training of heuristic function.")
+    parser.add_argument('--skip_policy', action='store_true', default=False, help="Set to skip training of policy.")
 
     # train args
     train_group = parser.add_argument_group('train')
@@ -65,6 +67,10 @@ def parser_train(parser: ArgumentParser) -> None:
     # update heur args
     update_group.add_argument('--backup', type=int, default=1, help="1 for Bellman backup, -1 for limited horizon bellman lookahead (LHBL)")
 
+    # update policy args
+    update_group.add_argument('--policy_rand_p', type=float, default=0.0, help="Probability of sampling random actions for training policy "
+                                                                               "(to prevent mode collapse)")
+
     # test args
     test_group = parser.add_argument_group('test')
     test_group.add_argument('--t_file', type=str, default=None, help="File to use when testing.")
@@ -84,7 +90,7 @@ def train_cli(args: argparse.Namespace) -> None:
 
     # update args
     up_args: UpArgs = UpArgs(args.procs, args.up_itrs, args.step_max, args.search_itrs, ub_heur_solns=False, backup=args.backup,
-                             up_batch_size=args.up_batch_size, nnet_batch_size=args.up_nnet_batch_size,
+                             policy_rand_prob=args.policy_rand_p, up_batch_size=args.up_batch_size, nnet_batch_size=args.up_nnet_batch_size,
                              sync_main=args.sync_main, v=args.up_v)
 
     # parse nnets
@@ -104,7 +110,8 @@ def train_cli(args: argparse.Namespace) -> None:
         update_policy = update_ret
 
     # train args
-    train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.bal, rb=args.rb, policy_kl=args.policy_kl, display=args.display)
+    train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.bal, rb=args.rb, policy_kl=args.policy_kl,
+                                      skip_heur=args.skip_heur, skip_policy=args.skip_policy, display=args.display)
 
     # test args
     test_args: Optional[TestArgs] = None

@@ -42,6 +42,8 @@ class TrainArgs:
     if target network should be updated. Otherwise, it will be updated automatically.
     :param policy_kl: KL divergence when training policy.
     :param display: Number of iterations to display progress when training nnet. No display if 0.
+    :param skip_heur: Skip training of heuristic function
+    :param skip_policy: Skip training of policy
     """
     batch_size: int
     lr: float
@@ -52,6 +54,8 @@ class TrainArgs:
     loss_thresh: float = np.inf
     targ_up_searches: int = 0
     policy_kl: float = 0.1
+    skip_heur: bool = False
+    skip_policy: bool = False
     display: int = 100
 
 
@@ -212,8 +216,7 @@ class Train(Generic[NNet, Up], ABC):
 
         # start updater
         start_time = time.time()
-        self.updater.start_update(self.status.step_probs.tolist(), num_gen, self.status.targ_update_num,
-                                  self.train_args.batch_size, self.device, self.on_gpu)
+        self.updater.start_update(self.status.step_probs.tolist(), num_gen, self.train_args.batch_size, self.device, self.on_gpu)
         times.record_time("up_start", time.time() - start_time)
 
         # do training

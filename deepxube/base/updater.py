@@ -42,6 +42,7 @@ class UpArgs:
     States and corresponding goals seen during search will be added to training instances.
     :param ub_heur_solns: if True, the target cost-to-go will be min(backup, path_cost_from_state)
     :param backup: 1 is Bellman and -1 is tree backup (i.e. Limited Horizon Bellman-based Learning)
+    :param policy_rand_prob: Probability of sampling random actions for training policy (to prevent mode collapse)
     :param up_gen_itrs: How many iterations worth of data to generate per udpate. If None, set to up_itrs
     :param up_batch_size: Maximum number of searches to do at a time. Helps manage memory.
     Decrease if memory is running out during updater. None if as large as possible
@@ -56,6 +57,7 @@ class UpArgs:
     search_itrs: int
     ub_heur_solns: bool = False
     backup: int = 1
+    policy_rand_prob: float = 0.0
     up_gen_itrs: Optional[int] = None
     up_batch_size: Optional[int] = None
     nnet_batch_size: Optional[int] = None
@@ -118,7 +120,7 @@ class Update(Generic[D, FNs, P, Inst], ABC):
         self.pathfind_name: str = pathfind_name
         self.pathfind_kwargs: Dict[str, Any] = pathfind_kwargs
         self.up_args: UpArgs = up_args
-        self.targ_update_num: Optional[int] = None
+        self.targ_update_nums: Dict[str, int] = dict()
         self.nnet_par_dict: Dict[str, NNetPar] = dict()
         self.nnet_file_dict: Dict[str, str] = dict()
         for nnet_name, nnet_file, nnet_par in domain.get_nnet_pars():
@@ -210,15 +212,14 @@ class Update(Generic[D, FNs, P, Inst], ABC):
 
         return to_main_q, self.from_main_qs
 
-    def start_update(self, step_probs: List[int], num_gen: int, targ_update_num: Optional[int], train_batch_size: int,
+    def start_update(self, step_probs: List[int], num_gen: int, train_batch_size: int,
                      device: torch.device, on_gpu: bool) -> None:
         # start parallel nnet runners
-        self.set_targ_update_num(targ_update_num)
         self.start_nnet_runners(device, on_gpu)
 
         # put update data
         for proc_idx, from_main_q in enumerate(self.from_main_qs):
-            from_main_q.put((step_probs, targ_update_num))
+            from_main_q.put((step_probs, self.targ_update_nums.copy()))
 
         # put work information on to_q
         assert self.to_q is not None
@@ -310,10 +311,11 @@ class Update(Generic[D, FNs, P, Inst], ABC):
         self.to_q = None
         self.from_q = None
 
-    def initialize_fns(self, targ_update_num: Optional[int]) -> None:
+    def initialize_fns(self) -> None:
         for nnet_name in self.nnet_par_dict.keys():
             nnet: NNetPar = self.nnet_par_dict[nnet_name]
             nnet_par_info: NNetParInfo = self.nnet_par_info_dict[nnet_name]
+            targ_update_num: Optional[int] = self.targ_update_nums.get(nnet_name)
             self.nnet_fn_dict[nnet_name] = nnet.get_nnet_par_fn(nnet_par_info, targ_update_num)
         self.domain.set_nnet_fns(self.nnet_fn_dict)
 
@@ -323,8 +325,8 @@ class Update(Generic[D, FNs, P, Inst], ABC):
         pathfind_kwargs["functions"] = self._get_pathfind_functions()
         return cast(P, pathfinding_factory.build_class(self.pathfind_name, pathfind_kwargs))
 
-    def set_targ_update_num(self, targ_update_num: Optional[int]) -> None:
-        self.targ_update_num = targ_update_num
+    def set_targ_update_num(self, nnet_name: str, targ_update_num: int) -> None:
+        self.targ_update_nums[nnet_name] = targ_update_num
 
     def update_runner(self, to_q: Queue, from_q: Queue, rb_size: int) -> None:
         if self.up_args.sync_main:
@@ -333,14 +335,15 @@ class Update(Generic[D, FNs, P, Inst], ABC):
 
         while True:
             assert self.from_main_q is not None
-            data_q: Optional[Tuple[List[int], Optional[int]]] = self.from_main_q.get()
+            data_q: Optional[Tuple[List[int], Dict[str, int]]] = self.from_main_q.get()
             if data_q is None:
                 break
             times: Times = Times()
 
-            step_probs, targ_update_num = data_q
-            self.set_targ_update_num(targ_update_num)
-            self.initialize_fns(targ_update_num)
+            step_probs, targ_update_nums = data_q
+            for nnet_name, targ_update_num in targ_update_nums.items():
+                self.set_targ_update_num(nnet_name, targ_update_num)
+            self.initialize_fns()
 
             step_to_pathperf: Dict[int, PathFindPerf] = dict()
             while True:

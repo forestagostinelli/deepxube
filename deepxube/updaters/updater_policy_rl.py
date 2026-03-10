@@ -11,6 +11,7 @@ from deepxube.factories.updater_factory import updater_factory
 from deepxube.updaters.utils.replay_buffer_utils import ReplayBufferP
 from deepxube.utils.timing_utils import Times
 
+import numpy as np
 import time
 
 
@@ -46,6 +47,17 @@ class UpdatePolicyRL(UpdatePolicy[D, FNsP, PathFindActsPolicy, Instance], Update
         _pathfind_step(pathfind)
 
     def _inputs_ctgs_to_np(self, states: List[State], goals: List[Goal], actions: List[Action], times: Times) -> List[NDArray]:
+        # sample random actions
+        start_time = time.time()
+        rand_idxs: List[int] = np.flatnonzero(np.random.random(len(states)) < self.up_args.policy_rand_prob).tolist()
+        if len(rand_idxs) > 0:
+            states_rand_acts: List[State] = [states[rand_idx] for rand_idx in rand_idxs]
+            actions_rand: List[Action] = self.domain.sample_state_action(states_rand_acts)
+            for rand_idx, action_rand in zip(rand_idxs, actions_rand):
+                actions[rand_idx] = action_rand
+        times.record_time("rand_acts", time.time() - start_time)
+
+        # to_np
         start_time = time.time()
         inputs_np: List[NDArray] = self.get_policy_nnet_par().to_np_train(states, goals, actions)
         times.record_time("to_np", time.time() - start_time)

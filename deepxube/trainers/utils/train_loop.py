@@ -104,8 +104,6 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
     policy_status_file: str = f"{nnet_dir}/policy_status.pkl"
 
     # set updater heur info
-    train_heur: Optional[TrainHeur] = None
-    train_policy: Optional[TrainPolicy] = None
     if heur_nnet_par is not None:
         for updater in [update_heur, update_policy]:
             if (updater is not None) and isinstance(updater, UpdateHasHeur):
@@ -118,6 +116,8 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
                 updater.set_policy_file(policy_targ_file)
 
     # start_procs and trainers
+    train_heur: Optional[TrainHeur] = None
+    train_policy: Optional[TrainPolicy] = None
     if heur_nnet_par is not None:
         assert update_heur is not None
 
@@ -165,6 +165,21 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
 
         # train
         for train_obj in [train_heur, train_policy]:
+            if isinstance(train_obj, TrainHeur) and train_args.skip_heur:
+                continue
+            if isinstance(train_obj, TrainPolicy) and train_args.skip_policy:
+                continue
+
+            for updater in [update_heur, update_policy]:
+                if updater is None:
+                    continue
+                if train_heur is not None:
+                    assert isinstance(updater, UpdateHasHeur)
+                    updater.set_targ_update_num(updater.heur_name(), train_heur.status.targ_update_num)
+                if train_policy is not None:
+                    assert isinstance(updater, UpdateHasPolicy)
+                    updater.set_targ_update_num(updater.policy_name(), train_policy.status.targ_update_num)
+
             if (train_obj is None) or (train_obj.status.itr > curr_itr):
                 continue
             train_obj.update_step()
