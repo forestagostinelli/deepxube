@@ -212,7 +212,7 @@ def get_pathfind_w_instances(domain: Domain, heur_nnet_par: Optional[HeurNNetPar
 
 def test(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], train_heur: Optional[TrainHeur], policy_nnet_par: Optional[PolicyNNetPar],
          train_policy: Optional[TrainPolicy], test_args: TestArgs, writer: SummaryWriter, curr_itr: int) -> None:
-    print(f"Testing - itr: num_inst: {len(test_args.test_states)}, num_pathfinds: {len(test_args.pathfinds)}")
+    print(f"Testing - itr: {curr_itr}, num_inst: {len(test_args.test_states)}, num_pathfinds: {len(test_args.pathfinds)}")
     for pathfind_idx in range(len(test_args.pathfinds)):
         start_time = time.time()
         # get pathfinding alg with test instances
