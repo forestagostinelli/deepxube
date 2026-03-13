@@ -10,6 +10,7 @@ from deepxube.base.updater import UpArgs, Update, UpdateHeur, UpdatePolicy
 from deepxube.base.trainer import TrainArgs
 from deepxube.trainers.utils.train_loop import TestArgs, train
 from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_policy_nnet_par_from_arg
+import numpy as np
 import pickle
 
 
@@ -47,6 +48,7 @@ def parser_train(parser: ArgumentParser) -> None:
                                                                "No replay buffer results in faster updates due to not having to use a separate network to "
                                                                "compute the update, but is more susceptible to instability due to shifts in the distribution "
                                                                "of states seen during search.")
+    train_group.add_argument('--up_lt', type=float, default=np.inf, help="Loss must be below this threshold for update.")
 
     # updater args
     update_group = parser.add_argument_group('update')
@@ -111,8 +113,8 @@ def train_cli(args: argparse.Namespace) -> None:
         update_policy = update_ret
 
     # train args
-    train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.bal, rb=args.rb, policy_kl=args.policy_kl,
-                                      skip_heur=args.skip_heur, skip_policy=args.skip_policy, display=args.display)
+    train_args: TrainArgs = TrainArgs(args.batch_size, args.lr, args.lr_d, args.max_itrs, args.bal, rb=args.rb, loss_thresh=args.up_lt,
+                                      policy_kl=args.policy_kl, skip_heur=args.skip_heur, skip_policy=args.skip_policy, display=args.display)
 
     # test args
     test_args: Optional[TestArgs] = None
