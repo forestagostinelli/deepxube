@@ -275,7 +275,7 @@ def problem_inst_gen(args: argparse.Namespace) -> None:
         return
 
     domain, _ = get_domain_from_arg(args.domain)
-    num_steps_l: List[int] = list(np.random.randint(args.step_max + 1, size=args.num))
+    num_steps_l: List[int] = list(np.random.randint(args.step_min, args.step_max + 1, size=args.num))
     print(f"Generating {args.num} states")
     start_time = time.time()
     states, goals = domain.sample_problem_instances(num_steps_l)
@@ -390,7 +390,8 @@ def _parse_time(parser: ArgumentParser) -> None:
 
 def _parse_problem_instance(parser: ArgumentParser) -> None:
     parser.add_argument('--domain', type=str, required=True, help="Domain name and arguments.")
-    parser.add_argument('--step_max', type=int, required=True, help="Randomly generates problem instances with between 0 and step_max steps.")
+    parser.add_argument('--step_min', type=int, default=0, help="Minimum number of steps to take")
+    parser.add_argument('--step_max', type=int, required=True, help="Maximum number of steps to take (inclusive)")
     parser.add_argument('--num', type=int, required=True, help="Number of problem instances to generate.")
     parser.add_argument('--file', type=str, required=True, help="File to which problem instances are stored.")
     parser.add_argument('--redo', action='store_true', default=False, help="If true, generate problem instances even if file already exists.")

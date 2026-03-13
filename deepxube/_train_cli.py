@@ -53,6 +53,7 @@ def parser_train(parser: ArgumentParser) -> None:
     update_group.add_argument('--procs', type=int, default=1, help="Number of processes to generate update data.")
     update_group.add_argument('--step_max', type=int, required=True, help="Maximum number of steps to take when generating problem instnaces.")
     update_group.add_argument('--up_itrs', type=int, default=100, help="Number of iterations to check for update.")
+    update_group.add_argument('--up_gen_itrs', type=int, default=100, help="Number of iterations for which to generate training data per update check.")
     update_group.add_argument('--search_itrs', type=int, default=1000, help="Number of search iterations to take when generating data.")
     update_group.add_argument('--up_batch_size', type=int, default=100, help="Maximum number of problem instances to generate at a time. Lower if running out "
                                                                              "of memory.")
@@ -90,8 +91,8 @@ def train_cli(args: argparse.Namespace) -> None:
 
     # update args
     up_args: UpArgs = UpArgs(args.procs, args.up_itrs, args.step_max, args.search_itrs, ub_heur_solns=False, backup=args.backup,
-                             policy_rand_prob=args.policy_rand_p, up_batch_size=args.up_batch_size, nnet_batch_size=args.up_nnet_batch_size,
-                             sync_main=args.sync_main, v=args.up_v)
+                             policy_rand_prob=args.policy_rand_p, up_gen_itrs=args.up_gen_itrs, up_batch_size=args.up_batch_size,
+                             nnet_batch_size=args.up_nnet_batch_size, sync_main=args.sync_main, v=args.up_v)
 
     # parse nnets
     heur_nnet_par: Optional[HeurNNetPar] = None
