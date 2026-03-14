@@ -55,7 +55,14 @@ class Resnet2D(HeurNNet[TwoDIn]):
             )
 
     def _forward(self, inputs: List[Tensor]) -> Tensor:
-        inputs_oh: List[Tensor] = [one_hot(input_i).permute((0, 1, 4, 2, 3)).flatten(1, 2) for input_i, one_hot in zip(inputs, self.one_hots)]
+        inputs_oh: List[Tensor] = []
+        for input_i, one_hot in zip(inputs, self.one_hots):
+            input_i_oh: Tensor = one_hot(input_i)
+            if len(input_i_oh.shape) == 5:
+                input_i_oh = input_i_oh.permute((0, 1, 4, 2, 3)).flatten(1, 2)
+            inputs_oh.append(input_i_oh)
+
+        # inputs_oh: List[Tensor] = [one_hot(input_i).permute((0, 1, 4, 2, 3)).flatten(1, 2) for input_i, one_hot in zip(inputs, self.one_hots)]
         x: Tensor = self.heur(torch.cat(inputs_oh, dim=1))
         x = self.out(x)
         return x

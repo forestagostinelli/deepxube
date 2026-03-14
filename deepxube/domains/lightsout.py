@@ -2,7 +2,7 @@ from typing import List, Tuple, Dict, Optional, Any, cast
 import numpy as np
 
 from deepxube.base.factory import Parser
-from deepxube.base.nnet_input import HasFlatSGAIn, HasFlatSGActsEnumFixedIn
+from deepxube.base.nnet_input import HasFlatSGAIn, HasFlatSGActsEnumFixedIn, HasTwoDSGActsEnumFixedIn, S, G
 from deepxube.base.domain import State, Action, Goal, GoalStartRevWalkableActsRev, NextStateNPActsEnumFixed
 from deepxube.factories.domain_factory import domain_factory
 
@@ -48,7 +48,8 @@ class LOAction(Action):
 
 @domain_factory.register_class("lightsout")
 class LightsOut(NextStateNPActsEnumFixed[LOState, LOAction, LOGoal], GoalStartRevWalkableActsRev[LOState, LOAction, LOGoal],
-                HasFlatSGActsEnumFixedIn[LOState, LOAction, LOGoal], HasFlatSGAIn[LOState, LOAction, LOGoal]):
+                HasFlatSGActsEnumFixedIn[LOState, LOAction, LOGoal], HasFlatSGAIn[LOState, LOAction, LOGoal],
+                HasTwoDSGActsEnumFixedIn[LOState, LOAction, LOGoal]):
     def __init__(self, dim: int = 7):
         super().__init__()
         self.dim: int = dim
@@ -95,6 +96,13 @@ class LightsOut(NextStateNPActsEnumFixed[LOState, LOAction, LOGoal], GoalStartRe
 
     def to_np_flat_sga(self, states: List[LOState], goals: List[LOGoal], actions: List[LOAction]) -> List[NDArray]:
         return self.to_np_flat_sg(states, goals) + [np.expand_dims(np.array(self.actions_to_indices(actions)), 1)]
+
+    def get_input_info_2d_sg(self) -> Tuple[List[int], Tuple[int, int], List[int], Optional[int]]:
+        return [1], (self.dim, self.dim), [1], 1
+
+    def to_np_2d_sg(self, states: List[LOState], goals: List[LOGoal]) -> List[NDArray]:
+        tiles_flat: NDArray[np.uint8] = np.stack([x.tiles for x in states], axis=0).astype(np.uint8)
+        return [tiles_flat.reshape((-1, 1, self.dim, self.dim))]
 
     def actions_to_indices(self, actions: List[LOAction]) -> List[int]:
         return [action_lo.action for action_lo in actions]
