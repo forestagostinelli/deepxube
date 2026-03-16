@@ -207,7 +207,10 @@ class NPuzzle(ActsEnumFixed[NPState, NPAction, NPGoal], GoalStartRevWalkableActs
 
     def string_to_action(self, act_str: str) -> Optional[NPAction]:
         act_str_to_act: Dict[str, NPAction] = {"w": NPAction(0), "s": NPAction(1), "a": NPAction(2), "d": NPAction(3)}
-        return act_str_to_act[act_str.lower()]
+        if act_str in act_str_to_act.keys():
+            return act_str_to_act[act_str]
+        else:
+            return None
 
     def string_to_action_help(self) -> str:
         return "swap blank tile up/down/left/right: w,s,a,d"

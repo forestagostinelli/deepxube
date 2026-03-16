@@ -138,7 +138,7 @@ class ResnetModel(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         # resnet blocks
         module_list: nn.Module
-        for module_list, act_fn in zip(self.blocks, self.act_fns):
+        for module_list, act_fn in zip(self.blocks, self.act_fns, strict=True):
             assert isinstance(module_list, nn.ModuleList)
             res_inp = x
             for module in module_list:
@@ -220,7 +220,7 @@ class Conv2dModel(nn.Module):
         # layers
         for chan_out, kernel_size, padding, batch_norm, act, stride, weight_norm, dropout in \
                 zip(channel_sizes, kernel_sizes, paddings, batch_norms, layer_acts, strides, weight_norms,
-                    dropouts):
+                    dropouts, strict=True):
 
             module_list = nn.ModuleList()
 

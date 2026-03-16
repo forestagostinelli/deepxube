@@ -2,7 +2,7 @@ from typing import List, Tuple, Dict, Optional, Any, cast
 import numpy as np
 
 from deepxube.base.factory import Parser
-from deepxube.base.nnet_input import HasFlatSGAIn, HasFlatSGActsEnumFixedIn, HasTwoDSGActsEnumFixedIn, S, G
+from deepxube.base.nnet_input import HasFlatSGAIn, HasFlatSGActsEnumFixedIn, HasTwoDSGActsEnumFixedIn
 from deepxube.base.domain import State, Action, Goal, GoalStartRevWalkableActsRev, NextStateNPActsEnumFixed
 from deepxube.factories.domain_factory import domain_factory
 

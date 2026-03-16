@@ -54,7 +54,7 @@ class InstanceGraph(Instance, Generic[SchOver]):
 
     def finished(self) -> bool:
         case1: bool = (self.goal_node is not None) and (self.lb >= (self.weight * self.ub))
-        case2: bool = (self.itr > 0) and (len(self.open_set) == 0)
+        case2: bool = (self.itr > 0) and (len(self._nodes_curr) == 0)
         return case1 or case2
 
     def _push_to_open(self, sch_over_l: List[SchOver], costs: List[float]) -> None:

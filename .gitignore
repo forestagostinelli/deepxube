@@ -1,6 +1,7 @@
 .coverage*
 dist/
 future/
+deepxube/domains/data/
 todo.txt
 .tox/
 *.swp
