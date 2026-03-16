@@ -1,19 +1,15 @@
-from typing import Tuple, List, Optional, Dict, Type, cast
+from typing import Tuple, List, Optional, Dict, cast
 
 import numpy as np
 from numpy.typing import NDArray
-from deepxube.base.nnet_input import StateGoalIn
+from deepxube.base.nnet_input import FlatIn, StateGoalIn
 from deepxube.base.domain import State, Action, Goal, ActsEnumFixed, StartGoalWalkable, StateGoalVizable, StringToAct
 from deepxube.factories.domain_factory import domain_factory
 from deepxube.factories.nnet_input_factory import register_nnet_input
-from deepxube.base.heuristic import HeurNNet
-from deepxube.factories.heuristic_factory import heuristic_factory
-from deepxube.nnet.pytorch_models import Conv2dModel, FullyConnectedModel, ResnetModel
 
 from matplotlib.figure import Figure
 
 import pickle
-from torch import nn, Tensor
 
 import pathlib
 import tarfile
@@ -327,46 +323,18 @@ class Sokoban(ActsEnumFixed[SkState, SkAction, SkGoal], StartGoalWalkable[SkStat
 
 
 @register_nnet_input("sokoban", "sokoban_nnet_input")
-class SkNNetInput(StateGoalIn[Sokoban, SkState, SkGoal]):
-    def get_input_info(self) -> None:
-        return None
+class SkNNetInput(FlatIn[Sokoban], StateGoalIn[Sokoban, SkState, SkGoal]):
+    def get_input_info(self) -> Tuple[List[int], List[int]]:
+        return [400], [1]
 
     def to_np(self, states: List[SkState], goals: List[SkGoal]) -> List[NDArray]:
-        imgs_l: List[NDArray] = []
-        for state, goal in zip(states, goals):
-            imgs_l.append(self.domain.to_img(state, goal))
+        walls: NDArray = np.stack([state.walls for state in states], axis=0)
+        boxes: NDArray = np.stack([state.boxes for state in states], axis=0)
+        goals: NDArray = np.stack([goal.boxes for goal in goals], axis=0)
+        agent_locs: NDArray = np.stack([state.agent for state in states], axis=0)
+        agents: NDArray = np.zeros((len(states), self.domain.dim, self.domain.dim))
+        agents[np.arange(0, len(states)), agent_locs[:, 0], agent_locs[:, 1]] = 1
 
-        imgs = np.stack(imgs_l, axis=0).transpose((0, 3, 1, 2))
-
-        return [imgs]
-
-
-@heuristic_factory.register_class("sokobannet")
-class GridNet(HeurNNet[SkNNetInput]):
-    @staticmethod
-    def nnet_input_type() -> Type[SkNNetInput]:
-        return SkNNetInput
-
-    def __init__(self, nnet_input: SkNNetInput, out_dim: int, q_fix: bool):
-        super().__init__(nnet_input, out_dim, q_fix)
-        # one hots
-        self.one_hots: nn.ModuleList = nn.ModuleList()
-
-        def res_block_init_conv() -> nn.Module:
-            return Conv2dModel(8, [8] * 2, [3] * 2, [1] * 2, ["RELU", "LINEAR"], batch_norms=[True] * 2)
-
-        def res_block_init_fc() -> nn.Module:
-            return FullyConnectedModel(1000, [1000] * 2, ["RELU", "LINEAR"], batch_norms=[True] * 2)
-
-        self.heur: nn.Module = nn.Sequential(
-            Conv2dModel(3, [8, 8, 8], [3, 3, 3], [1, 1, 1], ["RELU", "RELU", "RELU"], strides=[2, 2, 2], batch_norms=[True, True, True]),
-            ResnetModel(res_block_init_conv, 2, "RELU"),
-            nn.Flatten(),
-            nn.Linear(3200, 1000),
-            ResnetModel(res_block_init_fc, 2, "RELU"),
-            nn.Linear(1000, self.out_dim)
-        )
-
-    def _forward(self, inputs: List[Tensor]) -> Tensor:
-        x: Tensor = self.heur(inputs[0])
-        return x
+        rep_np = np.stack([walls, boxes, agents, goals], axis=1)
+        rep_np = np.reshape(rep_np, (rep_np.shape[0], -1)).astype(np.uint8)
+        return [rep_np]
