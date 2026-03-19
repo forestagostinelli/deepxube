@@ -129,8 +129,6 @@ class Status:
         else:
             self.step_probs = np.ones(self.step_max + 1)/(self.step_max + 1)
         self.per_solved_best: float = 0.0
-        self.itr_to_in_out: Dict[int, Tuple[NDArray, NDArray]] = dict()
-        self.itr_to_steps_to_pathfindperf: Dict[int, Dict[int, PathFindPerf]] = dict()
 
     def update_step_probs(self, step_to_search_perf: Dict[int, PathFindPerf]) -> None:
         ave_solve: float = float(np.mean([step_to_search_perf[step].per_solved()
@@ -140,6 +138,22 @@ class Status:
 
         self.step_probs = np.zeros(self.step_max + 1)
         self.step_probs[np.arange(0, self.step_max_curr + 1)] = 1 / (self.step_max_curr + 1)
+
+
+class TrainSummary:
+    def __init__(self) -> None:
+        self.itr_to_in_out: Dict[int, Tuple[NDArray, NDArray]] = dict()
+        self.itr_to_steps_to_pathfindstats: Dict[int, Dict[int, Dict]] = dict()
+
+    def update_pathfindstats(self, step_to_pathfindperf: Dict[int, PathFindPerf], itr: int) -> None:
+        self.itr_to_steps_to_pathfindstats[itr] = dict()
+        for step, pathfindperf in step_to_pathfindperf.items():
+            self.itr_to_steps_to_pathfindstats[itr][step] = dict()
+            self.itr_to_steps_to_pathfindstats[itr][step]["per_solved"] = pathfindperf.per_solved()
+            self.itr_to_steps_to_pathfindstats[itr][step]["path_costs"] = pathfindperf.stats()[1]
+            self.itr_to_steps_to_pathfindstats[itr][step]["search_itrs"] = pathfindperf.stats()[2]
+            self.itr_to_steps_to_pathfindstats[itr][step]["ctgs_backup"] = float(np.mean(pathfindperf.ctgs_bkup))
+            self.itr_to_steps_to_pathfindstats[itr][step]["num_instances"] = len(pathfindperf.ctgs_bkup)
 
 
 NNet = TypeVar('NNet', bound=DeepXubeNNet)
@@ -153,7 +167,7 @@ class Train(Generic[NNet, Up], ABC):
         pass
 
     def __init__(self, nnet: NNet, updater: Up, to_main_q: Queue, from_main_qs: List[Queue], nnet_file: str, nnet_targ_file: str, status_file: str,
-                 device: torch.device, on_gpu: bool, writer: SummaryWriter, train_args: TrainArgs) -> None:
+                 train_summary_file: str, device: torch.device, on_gpu: bool, writer: SummaryWriter, train_args: TrainArgs) -> None:
         self.updater: Up = updater
         self.to_main_q: Queue = to_main_q
         self.from_main_qs: List[Queue] = from_main_qs
@@ -170,10 +184,18 @@ class Train(Generic[NNet, Up], ABC):
         self.status: Status
         if os.path.isfile(self.status_file):
             self.status = pickle.load(open(self.status_file, "rb"))
-            print(f"Loaded with itr: {self.status.itr}, update_num: {self.status.update_num}, "
-                  f"targ_update_num: {self.status.targ_update_num}")
+            print(f"Loaded with itr: {self.status.itr}, update_num: {self.status.update_num}, targ_update_num: {self.status.targ_update_num}")
         else:
             self.status = Status(self.updater.up_args.step_max, train_args.balance_steps)
+            # noinspection PyTypeChecker
+            pickle.dump(self.status, open(self.status_file, "wb"), protocol=-1)
+
+        self.train_summary_file: str = train_summary_file
+        self.train_summary: TrainSummary
+        if os.path.isfile(self.train_summary_file):
+            self.train_summary = pickle.load(open(self.train_summary_file, "rb"))
+        else:
+            self.train_summary = TrainSummary()
             # noinspection PyTypeChecker
             pickle.dump(self.status, open(self.status_file, "wb"), protocol=-1)
 
@@ -204,8 +226,7 @@ class Train(Generic[NNet, Up], ABC):
         itr_init: int = self.status.itr
 
         # print info
-        start_info_l: List[str] = [f"itr: {self.status.itr}", f"update_num: {self.status.update_num}",
-                                   f"targ_update: {self.status.targ_update_num}"]
+        start_info_l: List[str] = [f"itr: {self.status.itr}", f"update_num: {self.status.update_num}", f"targ_update: {self.status.targ_update_num}"]
 
         num_gen: int = self.train_args.batch_size * self.updater.up_args.get_up_gen_itrs()
         start_info_l.append(f"num_gen: {format(num_gen, ',')}")
@@ -233,7 +254,7 @@ class Train(Generic[NNet, Up], ABC):
         # save nnet
         start_time = time.time()
         torch.save(self.nnet.state_dict(), self.nnet_file)
-        times.record_time("save", time.time() - start_time)
+        times.record_time("save_net", time.time() - start_time)
 
         # update nnet
         update_targ: bool = False
@@ -245,8 +266,12 @@ class Train(Generic[NNet, Up], ABC):
             self.status.targ_update_num = self.status.targ_update_num + 1
         self.status.update_num += 1
 
+        start_time = time.time()
         # noinspection PyTypeChecker
         pickle.dump(self.status, open(self.status_file, "wb"), protocol=-1)
+        # noinspection PyTypeChecker
+        pickle.dump(self.train_summary, open(self.train_summary_file, "wb"), protocol=-1)
+        times.record_time("save_status", time.time() - start_time)
         print(f"Train - itrs: {self.updater.up_args.up_itrs}, loss: {loss:.2E}, targ_updated: {update_targ}")
         print(f"Times - {times.get_time_str()}")
 
@@ -319,7 +344,7 @@ class Train(Generic[NNet, Up], ABC):
     def _end_update(self, itr_init: int, times: Times) -> None:
         start_time = time.time()
         step_to_search_perf: Dict[int, PathFindPerf] = self.updater.end_update()
-        self.status.itr_to_steps_to_pathfindperf[itr_init] = step_to_search_perf
+        self.train_summary.update_pathfindstats(step_to_search_perf, itr_init)
         if self.train_args.balance_steps:
             self.status.update_step_probs(step_to_search_perf)
 

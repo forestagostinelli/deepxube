@@ -98,10 +98,12 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
     heur_file: str = f"{nnet_dir}/heur.pt"
     heur_targ_file: str = f"{nnet_dir}/heur_targ.pt"
     heur_status_file: str = f"{nnet_dir}/heur_status.pkl"
+    heur_train_summ_file: str = f"{nnet_dir}/heur_train_summary.pkl"
 
     policy_file = f"{nnet_dir}/policy.pt"
     policy_targ_file = f"{nnet_dir}/policy_targ.pt"
     policy_status_file: str = f"{nnet_dir}/policy_status.pkl"
+    policy_train_summ_file: str = f"{nnet_dir}/policy_train_summary.pkl"
 
     # set updater heur info
     if heur_nnet_par is not None:
@@ -124,15 +126,16 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
         heur_nnet: HeurNNet = heur_nnet_par.get_nnet()
         print(heur_nnet_par)
         to_main_q, from_main_qs = update_heur.start_procs(train_args.rb * train_args.batch_size * update_heur.up_args.up_itrs)
-        train_heur = TrainHeur(heur_nnet, update_heur, to_main_q, from_main_qs, heur_file, heur_targ_file, heur_status_file, device, on_gpu, writer, train_args)
+        train_heur = TrainHeur(heur_nnet, update_heur, to_main_q, from_main_qs, heur_file, heur_targ_file, heur_status_file, heur_train_summ_file, device,
+                               on_gpu, writer, train_args)
     if policy_nnet_par is not None:
         assert update_policy is not None
 
         policy_nnet: PolicyNNet = policy_nnet_par.get_nnet()
         print(policy_nnet_par)
         to_main_q, from_main_qs = update_policy.start_procs(train_args.rb * train_args.batch_size * update_policy.up_args.up_itrs)
-        train_policy = TrainPolicy(policy_nnet, update_policy, to_main_q, from_main_qs, policy_file, policy_targ_file, policy_status_file, device, on_gpu,
-                                   writer, train_args)
+        train_policy = TrainPolicy(policy_nnet, update_policy, to_main_q, from_main_qs, policy_file, policy_targ_file, policy_status_file,
+                                   policy_train_summ_file, device, on_gpu, writer, train_args)
 
     # print info
     for updater in [update_heur, update_policy]:

@@ -123,7 +123,7 @@ def get_data_dir() -> str:
 @domain_factory.register_class("sokoban")
 class Sokoban(ActsEnumFixed[SkState, SkAction, SkGoal], StartGoalWalkable[SkState, SkAction, SkGoal], StateGoalVizable[SkState, SkAction, SkGoal],
               StringToAct[SkState, SkAction, SkGoal]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self.dim: int = 10
@@ -330,11 +330,11 @@ class SkNNetInput(FlatIn[Sokoban], StateGoalIn[Sokoban, SkState, SkGoal]):
     def to_np(self, states: List[SkState], goals: List[SkGoal]) -> List[NDArray]:
         walls: NDArray = np.stack([state.walls for state in states], axis=0)
         boxes: NDArray = np.stack([state.boxes for state in states], axis=0)
-        goals: NDArray = np.stack([goal.boxes for goal in goals], axis=0)
+        targets: NDArray = np.stack([goal.boxes for goal in goals], axis=0)
         agent_locs: NDArray = np.stack([state.agent for state in states], axis=0)
         agents: NDArray = np.zeros((len(states), self.domain.dim, self.domain.dim))
         agents[np.arange(0, len(states)), agent_locs[:, 0], agent_locs[:, 1]] = 1
 
-        rep_np = np.stack([walls, boxes, agents, goals], axis=1)
+        rep_np: NDArray = np.stack([walls, boxes, agents, targets], axis=1)
         rep_np = np.reshape(rep_np, (rep_np.shape[0], -1)).astype(np.uint8)
         return [rep_np]

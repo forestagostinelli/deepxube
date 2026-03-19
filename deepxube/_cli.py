@@ -12,8 +12,7 @@ from deepxube.factories.domain_factory import domain_factory
 from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys, get_nnet_input_t
 from deepxube.factories.heuristic_factory import heuristic_factory
 from deepxube.factories.pathfinding_factory import pathfinding_factory, get_domain_compat_pathfind_names
-from deepxube.pathfinding.utils.performance import PathFindPerf
-from deepxube.base.trainer import Status
+from deepxube.base.trainer import TrainSummary
 from deepxube.tests.time_tests import time_test
 from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_policy_nnet_par_from_arg
 
@@ -218,14 +217,14 @@ def time_test_args(args: argparse.Namespace) -> None:
 
 
 def plot_itr_data(axs: List[Axes], step_slider: Slider, itr: int, itr_to_in_out: Dict[int, Tuple[NDArray, NDArray]],
-                  itr_to_steps_to_pathfindperf: Dict[int, Dict[int, PathFindPerf]]) -> None:
-    steps_to_pathfindperf: Dict[int, PathFindPerf] = itr_to_steps_to_pathfindperf[itr]
+                  itr_to_steps_to_pathfindstats: Dict[int, Dict[int, Dict]]) -> None:
+    steps_to_pathfindperf: Dict[int, Dict] = itr_to_steps_to_pathfindstats[itr]
     steps_at_itr: List[int] = sorted(steps_to_pathfindperf.keys())
-    per_solved: List[float] = [steps_to_pathfindperf[step].per_solved() for step in steps_at_itr]
-    path_costs: List[float] = [steps_to_pathfindperf[step].stats()[1] for step in steps_at_itr]
-    search_itrs: List[float] = [steps_to_pathfindperf[step].stats()[2] for step in steps_at_itr]
-    targets: List[float] = [float(np.mean(steps_to_pathfindperf[step].ctgs_bkup)) for step in steps_at_itr]
-    num_instances: List[int] = [len(steps_to_pathfindperf[step].ctgs_bkup) for step in steps_at_itr]
+    per_solved: List[float] = [steps_to_pathfindperf[step]["per_solved"] for step in steps_at_itr]
+    path_costs: List[float] = [steps_to_pathfindperf[step]["path_costs"] for step in steps_at_itr]
+    search_itrs: List[float] = [steps_to_pathfindperf[step]["search_itrs"] for step in steps_at_itr]
+    targets: List[float] = [np.mean(steps_to_pathfindperf[step]["ctgs_backup"]) for step in steps_at_itr]
+    num_instances: List[int] = [steps_to_pathfindperf[step]["num_instances"] for step in steps_at_itr]
     plot_scatter(axs[0], steps_at_itr, per_solved, "Step", "Percent Solved", False)
     plot_scatter(axs[1], steps_at_itr, path_costs, "Step", "Path Costs", False)
     plot_scatter(axs[2], steps_at_itr, search_itrs, "Step", "Search Iterations", False)
@@ -236,10 +235,10 @@ def plot_itr_data(axs: List[Axes], step_slider: Slider, itr: int, itr_to_in_out:
 
 
 def train_summary(args: argparse.Namespace) -> None:
-    status_file: str = f"{args.dir}/status.pkl"
-    status: Status = pickle.load(open(status_file, "rb"))
-    itr_to_in_out: Dict[int, Tuple[NDArray, NDArray]] = status.itr_to_in_out
-    itr_to_steps_to_pathfindperf: Dict[int, Dict[int, PathFindPerf]] = status.itr_to_steps_to_pathfindperf
+    status_file: str = f"{args.dir}/{args.type}_train_summary.pkl"
+    train_summ: TrainSummary = pickle.load(open(status_file, "rb"))
+    itr_to_in_out: Dict[int, Tuple[NDArray, NDArray]] = train_summ.itr_to_in_out
+    itr_to_steps_to_pathfindperf: Dict[int, Dict[int, Dict]] = train_summ.itr_to_steps_to_pathfindstats
     itrs: List[int] = sorted(itr_to_in_out.keys())
     fig, axs_np = plt.subplots(3, 2)
     axs: List[Axes] = axs_np.flatten().tolist()
@@ -400,4 +399,5 @@ def _parse_problem_instance(parser: ArgumentParser) -> None:
 
 def _parse_train_summary(parser: ArgumentParser) -> None:
     parser.add_argument('--dir', type=str, required=True, help="Training directory.")
+    parser.add_argument('--type', type=str, default="heur", help="heur or policy")
     parser.set_defaults(func=train_summary)

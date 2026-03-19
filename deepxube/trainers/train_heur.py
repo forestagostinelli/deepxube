@@ -30,7 +30,7 @@ class TrainHeur(Train[HeurNNet, UpdateHeur]):
         self.writer.add_scalar("train/loss", loss, self.status.itr)
 
         if first_itr_in_update:
-            self.status.itr_to_in_out[self.status.itr] = (ctgs_batch_np, ctgs_batch_nnet)
+            self.train_summary.itr_to_in_out[self.status.itr] = (ctgs_batch_np, ctgs_batch_nnet)
         times.record_time("train", time.time() - start_time)
         return loss
 

@@ -383,9 +383,7 @@ class PathFindNode(PathFind[D, FNs, INode]):
         self.times.record_time("pop", time.time() - start_time)
 
         # is solved
-        start_time = time.time()
         self.set_is_solved(nodes_popped_flat)
-        self.times.record_time("is_solved", time.time() - start_time)
 
         # record goal
         start_time = time.time()
@@ -525,9 +523,7 @@ class PathFindEdge(PathFind[D, FNs, IEdge]):  # TODO add nodes popped
         self.times.record_time("pop", time.time() - start_time)
 
         # is solved
-        start_time = time.time()
         self.set_is_solved(nodes_popped_flat)
-        self.times.record_time("is_solved", time.time() - start_time)
 
         # record goal
         start_time = time.time()

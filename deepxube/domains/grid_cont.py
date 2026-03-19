@@ -52,7 +52,7 @@ class GridAction(Action):
 @domain_factory.register_class("grid_cont")
 class Grid(StartGoalWalkable[GridState, GridAction, GridGoal], StateGoalVizable[GridState, GridAction, GridGoal], StringToAct[GridState, GridAction, GridGoal],
            HasFlatSGIn[GridState, GridAction, GridGoal]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.dim: int = 1
         self.max_step: float = 0.1
