@@ -554,7 +554,7 @@ class SupportsPDDL(Domain[S, A, G], ABC):
         pass
 
     @abstractmethod
-    def state_goal_to_pddl_inst(self, state: S, goal: G) -> List[str]:
+    def prob_inst_to_pddl_inst(self, state: S, goal: G) -> List[str]:
         pass
 
     @abstractmethod

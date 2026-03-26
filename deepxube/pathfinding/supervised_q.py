@@ -7,7 +7,7 @@ import numpy as np
 import time
 
 
-class InstanceSupQ(InstanceEdge):
+class InstanceEdgeSup(InstanceEdge):
     def filter_popped_nodes(self, nodes: List[Node]) -> List[Node]:
         raise NotImplementedError
 
@@ -32,7 +32,7 @@ class InstanceSupQ(InstanceEdge):
 D = TypeVar('D', bound=Domain)
 
 
-class PathFindQSup(PathFindEdge[D, Any, InstanceSupQ], PathFindSup[D, InstanceSupQ], ABC):
+class PathFindEdgeSup(PathFindEdge[D, Any, InstanceEdgeSup], PathFindSup[D, InstanceEdgeSup], ABC):
     def step(self, verbose: bool = False) -> Tuple[List[Node], List[EdgeQ]]:
         edges: List[EdgeQ] = []
         for instance in self.instances:
@@ -48,11 +48,11 @@ class PathFindQSup(PathFindEdge[D, Any, InstanceSupQ], PathFindSup[D, InstanceSu
 
         return [], edges
 
-    def _compute_costs(self, instances: List[InstanceSupQ], edges_by_inst: List[List[EdgeQ]]) -> List[List[float]]:
+    def _compute_costs(self, instances: List[InstanceEdgeSup], edges_by_inst: List[List[EdgeQ]]) -> List[List[float]]:
         raise NotImplementedError
 
     def _make_instances(self, states_start: List[State], goals: List[Goal], acts_init: List[Action], path_costs: List[float],
-                        inst_infos: Optional[List[Any]]) -> List[InstanceSupQ]:
+                        inst_infos: Optional[List[Any]]) -> List[InstanceEdgeSup]:
         # make root nodes
         nodes_root: List[Node] = self._create_root_nodes(states_start, goals, False)
 
@@ -61,21 +61,21 @@ class PathFindQSup(PathFindEdge[D, Any, InstanceSupQ], PathFindSup[D, InstanceSu
         if inst_infos is None:
             inst_infos = [None for _ in states_start]
 
-        instances: List[InstanceSupQ] = []
+        instances: List[InstanceEdgeSup] = []
         for node_root, act_init, path_cost, inst_info in zip(nodes_root, acts_init, path_costs, inst_infos):
-            instances.append(InstanceSupQ(node_root, act_init, path_cost, inst_info))
+            instances.append(InstanceEdgeSup(node_root, act_init, path_cost, inst_info))
         self.times.record_time("instances", time.time() - start_time)
 
         return instances
 
 
 @pathfinding_factory.register_class("sup_q_rw")
-class PathFindQSupRW(PathFindQSup[StartGoalWalkable]):
+class PathFindEdgeSupRW(PathFindEdgeSup[StartGoalWalkable]):
     @staticmethod
     def domain_type() -> Type[StartGoalWalkable]:
         return StartGoalWalkable
 
-    def make_instances_rw(self, steps_gen: List[int], inst_infos: Optional[List[Any]]) -> List[InstanceSupQ]:
+    def make_instances_rw(self, steps_gen: List[int], inst_infos: Optional[List[Any]]) -> List[InstanceEdgeSup]:
         # start states
         start_time = time.time()
         states_start: List[State] = self.domain.sample_start_states(len(steps_gen))
@@ -106,12 +106,12 @@ class PathFindQSupRW(PathFindQSup[StartGoalWalkable]):
 
 
 @pathfinding_factory.register_class("sup_q_rw_rev")
-class PathFindQSupRWRev(PathFindQSup[GoalStartRevWalkableActsRev]):
+class PathFindEdgeSupRWRev(PathFindEdgeSup[GoalStartRevWalkableActsRev]):
     @staticmethod
     def domain_type() -> Type[GoalStartRevWalkableActsRev]:
         return GoalStartRevWalkableActsRev
 
-    def make_instances_rw(self, steps_gen: List[int], inst_infos: Optional[List[Any]]) -> List[InstanceSupQ]:
+    def make_instances_rw(self, steps_gen: List[int], inst_infos: Optional[List[Any]]) -> List[InstanceEdgeSup]:
         start_time = time.time()
         states_goal, goals = self.domain.sample_goalstate_goal_pairs(len(steps_gen))
         self.times.record_time("samp_goal_state_goal", time.time() - start_time)

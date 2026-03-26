@@ -1,6 +1,7 @@
 # Changes
 
 ## 0.2.1
+* Consolidate search: Beam search -> special cases: greedy_policy, graph search -> special cases: batch weighted A* search, batch weighted Q* search 
 * Replay buffer added
 * HER added
 * add method to Updater to get state actions
