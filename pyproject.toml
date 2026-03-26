@@ -32,7 +32,7 @@ include = ["deepxube*"]  # alternatively: `exclude = ["additional*"]`
 namespaces = false
 
 [project.optional-dependencies]
-test = ['pytest', 'pytest-cov', 'mypy', 'flake8', 'tox']
+test = ['pytest', 'pytest-cov', 'mypy[faster-cache]', 'flake8', 'tox', 'tox-uv']
 
 [project.scripts]
 deepxube = "deepxube._cli:main"
