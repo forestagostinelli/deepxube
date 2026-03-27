@@ -142,11 +142,14 @@ class GridNNetInputPolicy(FlatInPolicy[Grid, GridState, GridGoal, GridAction]):
         act_y: NDArray = np.array([action.action[1] for action in actions])
         return self.domain.to_np_flat_sg(states, goals) + [np.column_stack((act_x, act_y))]
 
+    def states_goals_actions_split_idx(self) -> int:
+        return 1
+
     def to_np_fn(self, states: List[GridState], goals: List[GridGoal]) -> List[NDArray]:
         return self.domain.to_np_flat_sg(states, goals)
 
-    def nnet_out_to_actions(self, nnet_out: NDArray[np.float64]) -> List[GridAction]:
-        nnet_out_l: List[List[float]] = nnet_out.tolist()
+    def nnet_out_to_actions(self, nnet_out: List[NDArray[np.float64]]) -> List[GridAction]:
+        nnet_out_l: List[List[float]] = nnet_out[0].tolist()
         actions: List[GridAction] = []
         for nnet_out_i in nnet_out_l:
             actions.append(GridAction((nnet_out_i[0], nnet_out_i[1])))

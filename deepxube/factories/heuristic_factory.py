@@ -152,5 +152,5 @@ class PolicyNNetParConcrete(PolicyNNetParFacClass):
     def to_np_train(self, states: List[State], goals: List[Goal], actions: List[Action]) -> List[NDArray[Any]]:
         return self._get_nnet_input().to_np(states, goals, actions)
 
-    def _nnet_out_to_actions(self, nnet_out: NDArray[np.float64]) -> List[Action]:
+    def _nnet_out_to_actions(self, nnet_out: List[NDArray[np.float64]]) -> List[Action]:
         return self._get_nnet_input().nnet_out_to_actions(nnet_out)

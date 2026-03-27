@@ -5,7 +5,7 @@ import re
 
 from deepxube.base.factory import Parser
 from deepxube.base.nnet_input import FlatIn, FlatInPolicy
-from deepxube.base.heuristic import HeurNNet, PolicyNNet
+from deepxube.base.heuristic import HeurNNet, PolicyVAE
 from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel, OneHot
 
 from deepxube.factories.heuristic_factory import heuristic_factory
@@ -50,28 +50,36 @@ class ResnetFCHeur(HeurNNet[FlatIn]):
         return x
 
 
+def _make_onehots(input_dims: List[int], one_hot_depths: List[int]) -> Tuple[nn.ModuleList, int]:
+    one_hots: nn.ModuleList = nn.ModuleList()
+    input_dim_tot: int = 0
+    for input_dim, one_hot_depth in zip(input_dims, one_hot_depths, strict=True):
+        assert one_hot_depth >= 1
+        one_hots.append(OneHot(one_hot_depth, True))
+        input_dim_tot += input_dim * one_hot_depth
+
+    return one_hots, input_dim_tot
+
+
 @policy_factory.register_class("resnet_fc")
-class ResnetFCPolicy(PolicyNNet[FlatInPolicy]):
+class ResnetFCPolicy(PolicyVAE[FlatInPolicy]):
     @staticmethod
     def nnet_input_type() -> Type[FlatInPolicy]:
         return FlatInPolicy
 
-    def __init__(self, nnet_input: FlatInPolicy, enc_dim: int = 10, res_dim: int = 1000, num_blocks: int = 4, batch_norm: bool = False,
+    def __init__(self, nnet_input: FlatInPolicy, kl_weight: float, enc_dim: int = 10, res_dim: int = 1000, num_blocks: int = 4, batch_norm: bool = False,
                  weight_norm: bool = False, group_norm: int = -1, act_fn: str = "RELU"):
-        super().__init__(nnet_input)
+        super().__init__(nnet_input, kl_weight)
         # one hots
-        state_goal_dim_tot: int = 0
         input_dims, one_hot_depths = self.nnet_input.get_input_info()
-        input_dim_action: int = input_dims.pop(-1)
-        one_hot_depth_action: int = one_hot_depths.pop(-1)
-        self.one_hots: nn.ModuleList = nn.ModuleList()
-        for input_dim, one_hot_depth in zip(input_dims, one_hot_depths, strict=True):
-            assert one_hot_depth >= 1
-            self.one_hots.append(OneHot(one_hot_depth, True))
-            state_goal_dim_tot += input_dim * one_hot_depth
+        input_dims_sg: List[int] = input_dims[:self.nnet_input.states_goals_actions_split_idx()]
+        one_hot_depths_sg: List[int] = one_hot_depths[:self.nnet_input.states_goals_actions_split_idx()]
+        input_dims_acts: List[int] = input_dims[self.nnet_input.states_goals_actions_split_idx():]
+        one_hot_depths_acts: List[int] = one_hot_depths[self.nnet_input.states_goals_actions_split_idx():]
 
-        self.one_hot_action: OneHot = OneHot(one_hot_depth_action, True)
-        action_dim: int = input_dim_action * one_hot_depth_action
+        self.one_hots_sg, input_dim_sg = _make_onehots(input_dims_sg, one_hot_depths_sg)
+        self.one_hots_acts, input_dim_acts = _make_onehots(input_dims_acts, one_hot_depths_acts)
+        input_dim_tot: int = input_dim_sg + input_dim_acts
 
         self.enc_dim: int = enc_dim
 
@@ -84,31 +92,31 @@ class ResnetFCPolicy(PolicyNNet[FlatInPolicy]):
                                        group_norms=[group_norm] * 2)
 
         self.encoder = nn.Sequential(
-            nn.Linear(state_goal_dim_tot + action_dim, res_dim),
+            nn.Linear(input_dim_tot, res_dim),
             ResnetModel(res_block_init, num_blocks, act_fn),
             nn.Linear(res_dim, self.enc_dim * 2)
         )
 
         self.decoder = nn.Sequential(
-            nn.Linear(state_goal_dim_tot + self.enc_dim, res_dim),
+            nn.Linear(input_dim_sg + self.enc_dim, res_dim),
             ResnetModel(res_block_init, num_blocks, act_fn),
-            nn.Linear(res_dim, action_dim)
+            nn.Linear(res_dim, input_dim_acts)
         )
 
     def latent_shape(self) -> Tuple[int, ...]:
         return (self.enc_dim,)
 
-    def encode(self, states_goals: List[Tensor], actions: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
-        states_goals_oh: List[Tensor] = [one_hot(input_i) for input_i, one_hot in zip(states_goals, self.one_hots)]
-        actions_oh: Tensor = self.one_hot_action(actions)
-        mu_logvar = self.encoder(torch.cat(states_goals_oh + [actions_oh], dim=1))
+    def encode(self, states_goals: List[Tensor], actions: List[Tensor]) -> Tuple[List[Tensor], Tensor, Tensor]:
+        states_goals_oh: List[Tensor] = [one_hot(input_i) for input_i, one_hot in zip(states_goals, self.one_hots_sg)]
+        actions_oh: List[Tensor] = [one_hot(input_i) for input_i, one_hot in zip(actions, self.one_hots_acts)]
+        mu_logvar: Tensor = self.encoder(torch.cat(states_goals_oh + actions_oh, dim=1))
 
         return actions_oh, mu_logvar[:, :self.enc_dim], mu_logvar[:, self.enc_dim:]
 
-    def decode(self, states_goals: List[Tensor], z: Tensor) -> Tensor:
-        states_goals_oh: List[Tensor] = [one_hot(input_i) for input_i, one_hot in zip(states_goals, self.one_hots)]
+    def decode(self, states_goals: List[Tensor], z: Tensor) -> List[Tensor]:
+        states_goals_oh: List[Tensor] = [one_hot(input_i) for input_i, one_hot in zip(states_goals, self.one_hots_sg)]
         x: Tensor = self.decoder(torch.cat(states_goals_oh + [z], dim=1))
-        return x
+        return [x]
 
 
 @heuristic_factory.register_parser("resnet_fc")
@@ -144,10 +152,12 @@ class ResnetFCParserPolicy(ResnetFCParserHeur):
     def parse(self, args_str: str) -> Dict[str, Any]:
         args_str_l: List[str] = args_str.split("_")
         kwargs: Dict[str, Any] = dict()
+        kwargs["kl_weight"] = 1.0
         for args_str_i in args_str_l:
             hidden_re = re.search(r"^(\S+)H$", args_str_i)
             blocks_re = re.search(r"^(\S+)B$", args_str_i)
             enc_dim_re = re.search(r"^(\S+)E$", args_str_i)
+            kl_re = re.search(r"^(\S+)KL$", args_str_i)
             bn_re = re.search(r"^bn$", args_str_i)
             wn_re = re.search(r"^wn$", args_str_i)
             if hidden_re is not None:
@@ -160,6 +170,8 @@ class ResnetFCParserPolicy(ResnetFCParserHeur):
                 kwargs["weight_norm"] = True
             elif enc_dim_re is not None:
                 kwargs["enc_dim"] = int(enc_dim_re.group(1))
+            elif kl_re is not None:
+                kwargs["kl_weight"] = float(kl_re.group(1))
             else:
                 raise ValueError(f"Unexpected argument {args_str_i!r}")
         return kwargs

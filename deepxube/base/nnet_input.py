@@ -77,7 +77,11 @@ class PolicyNNetIn(NNetInput[D], Generic[D, S, G, A]):
         pass
 
     @abstractmethod
-    def nnet_out_to_actions(self, nnet_out: NDArray[np.float64]) -> List[A]:
+    def nnet_out_to_actions(self, nnet_out: List[NDArray[np.float64]]) -> List[A]:
+        pass
+
+    @abstractmethod
+    def states_goals_actions_split_idx(self) -> int:
         pass
 
 

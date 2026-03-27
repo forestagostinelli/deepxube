@@ -66,7 +66,7 @@ def train_heur_nnet_step(nnet: nn.Module, inputs_np: List[NDArray], ctgs_np: NDA
     return ctgs_nnet.cpu().data.numpy(), float(loss.item())
 
 
-def train_policy_nnet_step(policy: PolicyNNet, states_goals_np: List[NDArray], actions_np: NDArray, optimizer: Optimizer, device: torch.device,
+def train_policy_nnet_step(policy: PolicyNNet, states_goals_actions_np: List[NDArray], optimizer: Optimizer, device: torch.device,
                            train_itr: int, train_args: TrainArgs, start_time: float) -> float:
     # train network
     policy.train()
@@ -78,12 +78,10 @@ def train_policy_nnet_step(policy: PolicyNNet, states_goals_np: List[NDArray], a
         param_group['lr'] = lr_itr
 
     # send data to device
-    states_goals: List[Tensor] = nnet_utils.to_pytorch_input(states_goals_np, device)
-    actions: Tensor = torch.tensor(actions_np, device=device)
+    states_goals_actions: List[Tensor] = nnet_utils.to_pytorch_input(states_goals_actions_np, device)
 
     # forward
-    loss_recon, loss_kl, _ = policy.autoencode(states_goals, actions)
-    loss = loss_recon + (train_args.policy_kl * loss_kl)
+    loss, print_str = policy.train_fprop(states_goals_actions)
 
     # backwards
     loss.backward()
@@ -93,7 +91,7 @@ def train_policy_nnet_step(policy: PolicyNNet, states_goals_np: List[NDArray], a
 
     # display progress
     if (train_args.display > 0) and (train_itr % train_args.display == 0):
-        print(f"Itr: %i, lr: %.2E, loss: %.2E, loss_recon: {loss_recon.item():.2E}, loss_kl: {loss_kl.item():.2E}, "
+        print(f"Itr: %i, lr: %.2E, loss: %.2E, {print_str}, "
               f"Time: {time.time() - start_time:.2f}" % (train_itr, lr_itr, loss.item()))
 
     return float(loss.item())

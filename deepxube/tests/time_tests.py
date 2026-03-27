@@ -1,17 +1,19 @@
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, cast
 
 import torch
+from torch import Tensor
 import torch.nn as nn
 from torch.multiprocessing import Queue, get_context
 
 from deepxube.base.domain import Domain, ActsEnum, StartGoalWalkable, State, Goal, Action
 from deepxube.nnet.nnet_utils import NNetPar
-from deepxube.base.heuristic import HeurNNetPar, PolicyNNetPar, PolicyFn, HeurNNetParV, HeurNNetParQ
+from deepxube.base.heuristic import HeurNNetPar, PolicyNNet, PolicyNNetPar, PolicyFn, HeurNNetParV, HeurNNetParQ
 from deepxube.nnet.nnet_utils import NNetCallable
 from deepxube.nnet import nnet_utils
 from deepxube.utils.misc_utils import flatten
 from deepxube.utils.timing_utils import Times
 import numpy as np
+from numpy.typing import NDArray
 
 import time
 
@@ -177,22 +179,36 @@ def test_heur_nnet_par(heur_nnet_par: HeurNNetPar, states: List[State], goals: L
 def test_policy_nnet_par(domain: Domain, policy_nnet_par: PolicyNNetPar, states: List[State], goals: List[Goal], actions: List[Action]) -> None:
     # nnet format
     start_time = time.time()
-    policy_nnet_par.to_np_train(states, goals, actions)
+    train_data_np: List[NDArray] = policy_nnet_par.to_np_train(states, goals, actions)
     elapsed_time = time.time() - start_time
     states_per_sec = len(states) / elapsed_time
     print("Converted %i states, goals, actions for training to nnet format in "
           "%s seconds (%.2f/second)" % (len(states), elapsed_time, states_per_sec))
 
+    # initialize nnet
+    nnet_ret, device = init_nnet(policy_nnet_par)
+    nnet: PolicyNNet = cast(PolicyNNet, nnet_ret)
+    print("")
+
+    # train fprop
+    train_data: List[Tensor] = nnet_utils.to_pytorch_input(train_data_np, device)
+    nnet.train()
+    nnet.train_fprop(train_data)
+
     start_time = time.time()
+    nnet.train_fprop(train_data)
+    nnet_train_out_time = time.time() - start_time
+    states_per_sec = len(states) / nnet_train_out_time
+    print("Computed policy output for training for %i states in %s seconds (%.2f/second)" % (len(states), nnet_train_out_time, states_per_sec))
+
+    start_time = time.time()
+    nnet.eval()
     policy_nnet_par.to_np_fn(states, goals)
     elapsed_time = time.time() - start_time
     states_per_sec = len(states) / elapsed_time
     print("Converted %i states, goals for sampling to nnet format in "
           "%s seconds (%.2f/second)" % (len(states), elapsed_time, states_per_sec))
 
-    # initialize nnet
-    nnet, device = init_nnet(policy_nnet_par)
-    print("")
     policy_fn: PolicyFn = policy_nnet_par.get_nnet_fn(nnet, None, device, None)
 
     policy_fn(domain, states, goals)

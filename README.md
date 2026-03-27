@@ -2,7 +2,7 @@
 ![Tests](https://github.com/forestagostinelli/deepxube/actions/workflows/test.yml/badge.svg)
 
 --------------------------------------------------------------------------------
-[Writeup](https://arxiv.org/abs/2603.23873)
+[Writeup](https://arxiv.org/pdf/2603.23873)
 
 DeepXube (pronounced "Deep Cube") aims to solve pathfinding using a combination of deep reinforcement learning and heuristic search.
 
