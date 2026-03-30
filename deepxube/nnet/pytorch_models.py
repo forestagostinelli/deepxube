@@ -1,8 +1,8 @@
-from typing import List, Optional, Union, Callable
+from typing import List, Optional, Union, Callable, Tuple
 import torch
 import torch.nn as nn
 from torch.nn.parameter import Parameter
-from torch import Tensor
+from torch import Tensor, nn
 from torch.nn.utils import parametrizations
 import numpy as np
 
@@ -261,3 +261,14 @@ class Conv2dModel(nn.Module):
                 x = module(x)
 
         return x
+
+
+def make_onehots(input_dims: List[int], one_hot_depths: List[int]) -> Tuple[nn.ModuleList, int]:
+    one_hots: nn.ModuleList = nn.ModuleList()
+    input_dim_tot: int = 0
+    for input_dim, one_hot_depth in zip(input_dims, one_hot_depths, strict=True):
+        assert one_hot_depth >= 1
+        one_hots.append(OneHot(one_hot_depth, True))
+        input_dim_tot += input_dim * one_hot_depth
+
+    return one_hots, input_dim_tot

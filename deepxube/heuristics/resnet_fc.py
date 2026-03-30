@@ -6,7 +6,7 @@ import re
 from deepxube.base.factory import Parser
 from deepxube.base.nnet_input import FlatIn, FlatInPolicy
 from deepxube.base.heuristic import HeurNNet, PolicyVAE
-from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel, OneHot
+from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel, OneHot, make_onehots
 
 from deepxube.factories.heuristic_factory import heuristic_factory
 from deepxube.factories.heuristic_factory import policy_factory
@@ -50,17 +50,6 @@ class ResnetFCHeur(HeurNNet[FlatIn]):
         return x
 
 
-def _make_onehots(input_dims: List[int], one_hot_depths: List[int]) -> Tuple[nn.ModuleList, int]:
-    one_hots: nn.ModuleList = nn.ModuleList()
-    input_dim_tot: int = 0
-    for input_dim, one_hot_depth in zip(input_dims, one_hot_depths, strict=True):
-        assert one_hot_depth >= 1
-        one_hots.append(OneHot(one_hot_depth, True))
-        input_dim_tot += input_dim * one_hot_depth
-
-    return one_hots, input_dim_tot
-
-
 @policy_factory.register_class("resnet_fc")
 class ResnetFCPolicy(PolicyVAE[FlatInPolicy]):
     @staticmethod
@@ -77,8 +66,8 @@ class ResnetFCPolicy(PolicyVAE[FlatInPolicy]):
         input_dims_acts: List[int] = input_dims[self.nnet_input.states_goals_actions_split_idx():]
         one_hot_depths_acts: List[int] = one_hot_depths[self.nnet_input.states_goals_actions_split_idx():]
 
-        self.one_hots_sg, input_dim_sg = _make_onehots(input_dims_sg, one_hot_depths_sg)
-        self.one_hots_acts, input_dim_acts = _make_onehots(input_dims_acts, one_hot_depths_acts)
+        self.one_hots_sg, input_dim_sg = make_onehots(input_dims_sg, one_hot_depths_sg)
+        self.one_hots_acts, input_dim_acts = make_onehots(input_dims_acts, one_hot_depths_acts)
         input_dim_tot: int = input_dim_sg + input_dim_acts
 
         self.enc_dim: int = enc_dim

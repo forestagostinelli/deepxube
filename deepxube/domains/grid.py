@@ -1,16 +1,23 @@
-from typing import List, Tuple, Dict, Any, Optional
+from typing import List, Tuple, Dict, Any, Optional, Type
 import numpy as np
 from matplotlib.figure import Figure
+from torch import nn, Tensor
 
 from deepxube.base.factory import Parser
 from deepxube.base.domain import State, Action, Goal, ActsEnumFixed, StartGoalWalkable, StateGoalVizable, StringToAct
-from deepxube.base.nnet_input import StateGoalIn, HasFlatSGActsEnumFixedIn, HasFlatSGAIn, FlatInPolicy
+from deepxube.base.nnet_input import StateGoalIn, HasFlatSGActsEnumFixedIn, HasFlatSGAIn
+from deepxube.base.heuristic import HeurNNet
+from deepxube.nnet.pytorch_models import Conv2dModel, FullyConnectedModel
+from deepxube.factories.heuristic_factory import heuristic_factory
+
 from deepxube.factories.domain_factory import domain_factory
 from deepxube.factories.nnet_input_factory import register_nnet_input
-from matplotlib.colors import ListedColormap
 
+from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as plt
 from numpy.typing import NDArray
+
+import re
 
 
 # Define states, goals, and actions
@@ -145,20 +152,47 @@ class GridNNetInput(StateGoalIn[Grid, GridState, GridGoal]):
         return [np_rep]
 
 
-@register_nnet_input("grid", "grid_nnet_input_policy")
-class GridNNetInputPolicy(FlatInPolicy[Grid, GridState, GridGoal, GridAction]):
-    def get_input_info(self) -> Tuple[List[int], List[int]]:
-        return [4, 1], [self.domain.dim, 4]
+@heuristic_factory.register_class("gridnet")
+class GridNet(HeurNNet[GridNNetInput]):
+    @staticmethod
+    def nnet_input_type() -> Type[GridNNetInput]:
+        return GridNNetInput
 
-    def to_np(self, states: List[GridState], goals: List[GridGoal], actions: List[GridAction]) -> List[NDArray]:
-        return self.domain.to_np_flat_sg(states, goals) + [np.expand_dims(np.array(self.domain.actions_to_indices(actions)), 1)]
+    def __init__(self, nnet_input: GridNNetInput, out_dim: int, q_fix: bool, chan_size: int = 8, fc_size: int = 100):
+        super().__init__(nnet_input, out_dim, q_fix)
+        # one hots
+        self.one_hots: nn.ModuleList = nn.ModuleList()
+        grid_dim: int = self.nnet_input.get_input_info()
 
-    def states_goals_actions_split_idx(self) -> int:
-        return 1
+        self.heur: nn.Module = nn.Sequential(
+            Conv2dModel(2, [chan_size, chan_size], [3, 3], [1, 1], ["RELU", "RELU"], batch_norms=[True, True]),
+            nn.Flatten(),
+            FullyConnectedModel(grid_dim * grid_dim * chan_size, [fc_size], ["RELU"], batch_norms=[True]),
+            nn.Linear(fc_size, self.out_dim)
+        )
 
-    def to_np_fn(self, states: List[GridState], goals: List[GridGoal]) -> List[NDArray]:
-        return self.domain.to_np_flat_sg(states, goals)
+    def _forward(self, inputs: List[Tensor]) -> Tensor:
+        x: Tensor = self.heur(inputs[0])
+        return x
 
-    def nnet_out_to_actions(self, nnet_out: List[NDArray[np.float64]]) -> List[GridAction]:
-        actions_int: List[int] = np.argmax(nnet_out[0], axis=1).tolist()
-        return [GridAction(action) for action in actions_int]
+
+@heuristic_factory.register_parser("gridnet")
+class GridNetParser(Parser):
+    def parse(self, args_str: str) -> Dict[str, Any]:
+        args_str_l: List[str] = args_str.split("_")
+        kwargs: Dict[str, Any] = dict()
+        for args_str_i in args_str_l:
+            channel_re = re.search(r"^(\S+)CH$", args_str_i)
+            fc_re = re.search(r"^(\S+)FC$", args_str_i)
+            if channel_re is not None:
+                kwargs["chan_size"] = int(channel_re.group(1))
+            elif fc_re is not None:
+                kwargs["fc_size"] = int(fc_re.group(1))
+            else:
+                raise ValueError(f"Unexpected argument {args_str_i!r}")
+        return kwargs
+
+    def help(self) -> str:
+        return ("Arguments are delimited by '_' and can be in any order.\n<num>C (number of channels), "
+                "<num>FC (width of fully-connected layer), bn (batch_norm), wn (weight_norm).\n"
+                "E.g. gridnet.10CH_200FC")

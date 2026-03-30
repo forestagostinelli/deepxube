@@ -2,8 +2,11 @@
 ![Tests](https://github.com/forestagostinelli/deepxube/actions/workflows/test.yml/badge.svg)
 
 --------------------------------------------------------------------------------
-[Writeup](https://arxiv.org/pdf/2603.23873)
+## Write-Up
 
+[arXiv](https://arxiv.org/pdf/2603.23873)
+
+## Overview
 DeepXube (pronounced "Deep Cube") aims to solve pathfinding using a combination of deep reinforcement learning and heuristic search.
 
 1) Learn a heuristic function that maps states and goals to an estimate of the cost-to-go from the given state to the given goal.
@@ -45,8 +48,7 @@ Run `deepxube --help` for detailed information. `--help` can also be run on
 positional arguments (e.g. `deepxube train --help`).
 
 #### Quick run
-There is a simple example domain located in `deepxube/domains/grid.py` and example heuristic
-function located in `deepxube/heuristics/grid_heur.py`.
+There is a simple example domain and heuristic function located in `deepxube/domains/grid.py`.
 
 After installing deepxube run:
 
@@ -63,22 +65,22 @@ After installing deepxube run:
   - With deepxube residual neural network and deep Q-network: `deepxube time --domain grid.7 --heur resnet_fc.100H_2B_bn --heur_type QFix`
   - With custom neural network: `deepxube time --domain grid.7 --heur gridnet.8CH_200FC --heur_type V`
 - **Training**
-  - Train heuristic function: `deepxube train --domain grid.7 --heur resnet_fc.100H_2B_bn --heur_type V --pathfind bwas --step_max 100 --up_itrs 100 --search_itrs 20 --backup -1 --procs 1 --batch_size 50 --max_itrs 5000 --dir dummy/`
+  - Train heuristic function: `deepxube train --domain grid.7 --heur resnet_fc.100H_2B_bn --heur_type V --pathfind graph_v --step_max 100 --up_itrs 100 --search_itrs 20 --backup -1 --procs 1 --batch_size 50 --max_itrs 5000 --dir dummy/`
   - Use tensorboard to see training progress: `tensorboard --logdir=dummy/`
   - Plot more detailed training information with interactive slider for training iteration: `deepxube train_summary --dir dummy` 
 - **Solving**
-  - Solve problem instances with all-zero heuristic: `deepxube solve --domain grid.7 --heur_type V --pathfind bwas.1_1.0_0.0 --file valid.pkl --results results_zeros_ex/ --redo`
-  - Solve problem instances with trained heuristic: `deepxube solve --domain grid.7 --heur resnet_fc.100H_2B_bn --heur_file dummy/heur.pt --heur_type V --pathfind bwas.1_1.0_0.0 --file valid.pkl --results results_trained_ex/ --redo`
+  - Solve problem instances with all-zero heuristic: `deepxube solve --domain grid.7 --heur_type V --pathfind graph_v.1B_1.0W --file valid.pkl --results results_zeros_ex/ --redo`
+  - Solve problem instances with trained heuristic: `deepxube solve --domain grid.7 --heur resnet_fc.100H_2B_bn --heur_file dummy/heur.pt --heur_type V --pathfind graph_v.1B_1.0W --file valid.pkl --results results_trained_ex/ --redo`
   - Solving with the trained heuristic should have a significantly lower number of nodes generated and number of iterations.
   - You can get the actions taken for each instance with the "actions" key in the dictionary saved in the `results.pkl` file in the `--results` directory.
-  - Visualize solutions with `deepxube viz --domain grid.7 --file results_trained_ex/results.pkl --idx 3 --soln` (This is not yet pip installable). 
+  - Visualize solutions with `deepxube viz --domain grid.7 --file results_trained_ex/results.pkl --idx 3 --soln`. 
 This prints actions taken. You can implement `__repr__` for the action class to determine what gets printed for each action.
 
 ### Domains
 User-defined domains should go in the `./domains/` folder.
 deepxube will recursively search this directory and import all modules so that domains are registered. 
 
-`Grid` inherits from Mixin classes from `deepxube.base.domain`, which give it additional functionality (see the [domain documentation](https://forestagostinelli.github.io/deepxube/deepxube/base/domain.html)).
+`Grid` inherits from Mixin classes from `deepxube.base.domain`, which give it additional functionality (see the [write-up](#write-up) and [domain documentation](https://forestagostinelli.github.io/deepxube/deepxube/base/domain.html)).
 - `ActsEnumFixed`: `Grid` implements `get_actions_fixed` 
   - Methods obtained: `sample_action`, `get_state_actions`, `expand`, `get_num_acts`
 - `StartGoalWalkable`: `Grid` implements `sample_goal_from_state` and `sample_start_states`
@@ -120,20 +122,20 @@ Custom neural network input types can also be created and registered. Given a he
 matches its expected input. If multiple exist, it uses the first one it finds.
 
 ### Heuristics
-User-defined neural networks for heuristic functions should go in the `./heuristics/` folder. 
-deepxube will recursively search this directory and import all modules so that domains are registered. 
+User-defined neural networks for heuristic functions can go in the domain file, itself, or, if generlizable to multiple domains, should go in the go in the `./heuristics/` folder. 
+deepxube will recursively search this directory and import all modules so that heuristic functions are registered. 
 
 A heuristic function is constructed given a neural network input of a pre-determined type, the dimensionality of the output, and a boolean indicating whether 
 or not the neural network represents a deep Q-network with a fixed output size. The forward portion of the neural network expects a list of Tensors 
 (this corresponds to the list of numpy arrays from the `NNetInput`) and returns a Tensor representing heuristic values. If the output is a fixed set of actions,
 the heuristic neural network automatically obtains the corresponding indices from the output.
 
-An example of a custom neural network along with its parser is shown in `GridNet` and `GridNetParser` in `deepxube/heuristics/grid_heur.py`.
+An example of a custom neural network along with its parser is shown in `GridNet` and `GridNetParser` in `deepxube/domains/grid.py`.
 
 
 ### Pathfinding
-The current pathfinding algorithms implemented include the batched and weighted versions of A* and Q* search, a greedy policy with a standard 
-heuristic function (V) and a deep Q-network (Q). There are other pathfinding algorithms specifically used for training a heuristic function via 
+The current pathfinding algorithms implemented include graph search, which unifies batched and weighted versions of A* and Q* search, and beam search. 
+There are other pathfinding algorithms specifically used for training a heuristic function via 
 supervised learning that sets the target cost-to-go to be that of the path cost obtained from a random walk 
 (see [References](#references) for more information).
 
@@ -151,6 +153,8 @@ DeepCubeAI: Learning world models for training and search ([code](https://github
 DeepCubeAg: Specifying goals with answer set programming ([code](https://github.com/forestagostinelli/SpecGoal), [paper](https://ojs.aaai.org/index.php/ICAPS/article/view/31454/33614)).
 
 CDGR: Conflict-driven goal reaching ([code](https://github.com/forestagostinelli/SpecGoalNegationAsFailure), [paper](https://ojs.aaai.org/index.php/SOCS/article/view/35970/38125)).
+
+Learning policy functions to search in combinatorially large or continuous action spaces.
 
 ## References
 DeepCubeA (Learning heuristic functions with reinforcement learning):
