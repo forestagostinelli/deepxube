@@ -142,6 +142,7 @@ class PolicyVAE(PolicyNNet[PNNetIn]):
     def __repr__(self) -> str:
         return f"{super().__repr__()}\nKL Weight: {self.kl_weight}"
 
+
 # functions
 
 @runtime_checkable

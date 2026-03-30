@@ -1,6 +1,5 @@
 from typing import List, Optional, Union, Callable, Tuple
 import torch
-import torch.nn as nn
 from torch.nn.parameter import Parameter
 from torch import Tensor, nn
 from torch.nn.utils import parametrizations
