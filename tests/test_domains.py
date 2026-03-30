@@ -5,7 +5,7 @@ from deepxube.factories.domain_factory import domain_factory
 from deepxube.base.domain import Domain, State, Action, Goal, GoalSampleableFromState, GoalSampleable, ActsRev
 
 
-DOMAIN_NAMES: List[str] = domain_factory.get_all_class_names()
+DOMAIN_NAMES: List[str] = [cls_name for cls_name in domain_factory.get_all_class_names() if cls_name != "sokoban"]
 
 
 def build_domain_from_name(domain_id: str) -> Domain:
