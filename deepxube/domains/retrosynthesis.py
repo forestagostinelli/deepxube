@@ -1,19 +1,28 @@
 """Simplified Retrosynthesis domain for DeepXube.
 
-States represent molecules as linear carbon chains with functional groups
-and bond orders. Actions are chemical reactions that transform functional
-groups or change bond orders between adjacent carbons. The goal is to
-transform a source molecule into a target molecule through a sequence of
-valid reactions where every intermediate state is also a valid molecule.
+Molecules are linear carbon chains where each position carries a functional
+group. Most reactions are SITE-SELECTIVE: they act on the position with the
+highest reactivity among eligible groups, not a player-chosen position.
+This creates tight coupling between positions -- changing a group anywhere
+can redirect where the next reaction acts.
 
-The reaction graph is strongly connected: any molecule can be transformed
-into any other through some sequence of reactions. Multi-step dependencies
-(e.g. H->OH requires H->Cl->OH) create genuine search complexity that
-cannot be solved by greedy approaches.
+Global reagent incompatibilities (e.g. oxidation blocked by bromides present
+anywhere) and protecting group mechanics add further planning dependencies.
+The result is a genuinely non-decomposable puzzle where the optimal reaction
+sequence depends on the entire molecular state.
+
+Functional groups (8):
+  H(0), OH(1), C=O(2), NH2(3), COOH(4), Br(5), OPG(6), NPG(7)
+
+Reactions (12 site-selective + 3*N position-specific):
+  Site-selective reactions target the eligible position with the highest
+  reactivity score. Ties broken by lowest index. Each has a global
+  precondition (certain groups must be absent everywhere).
+
+  Position-specific: radical bromination, protect, deprotect.
 """
 
-from typing import List, Tuple, Optional, Dict, Any
-from abc import ABC
+from typing import List, Tuple, Optional, Dict, Any, FrozenSet
 import numpy as np
 from numpy.typing import NDArray
 import matplotlib.patches as patches
@@ -44,63 +53,73 @@ SANDSTORM = "#FFF2E3"
 
 H = 0
 OH = 1
-NH2 = 2
-COOH = 3
-KETONE = 4
-CL = 5
-CH3 = 6
-NO2 = 7
+KETONE = 2
+NH2 = 3
+COOH = 4
+BR = 5
+OPG = 6
+NPG = 7
 NUM_GROUPS = 8
+NUM_REAL_GROUPS = 6
 
-GROUP_LABELS = ["H", "OH", "NH₂", "COOH", "C=O", "Cl", "CH₃", "NO₂"]
-GROUP_ASCII = ["H", "OH", "NH2", "COOH", "C=O", "Cl", "CH3", "NO2"]
+GROUP_LABELS = ["H", "OH", "C=O", "NH₂", "COOH", "Br", "OPG", "NPG"]
+GROUP_ASCII = ["H", "OH", "C=O", "NH2", "COOH", "Br", "OPG", "NPG"]
 
-SINGLE = 0
-DOUBLE = 1
-NUM_BOND_TYPES = 2
+REACTIVITY = np.array([0, 3, 5, 4, 2, 6, 0, 0], dtype=np.int8)
 
-FG_REACTIONS: List[Tuple[str, int, int]] = [
-    ("halogenate", H, CL),
-    ("dehalogenate", CL, H),
-    ("hydroxylate", CL, OH),
-    ("chlorinate", OH, CL),
-    ("aminate", CL, NH2),
-    ("diazotize", NH2, CL),
-    ("oxidize", OH, KETONE),
-    ("reduce", KETONE, OH),
-    ("nitrate", H, NO2),
-    ("reduce_nitro", NO2, NH2),
-    ("methylate", H, CH3),
-    ("demethylate", CH3, H),
-    ("carboxylate", KETONE, COOH),
-    ("decarboxylate", COOH, KETONE),
+GROUP_COLORS = [
+    BLACK_30,    # H
+    ATLANTIC,    # OH
+    ROSE,        # C=O
+    CONGAREE,    # NH2
+    GARNET,      # COOH
+    HORSESHOE,   # Br
+    HONEYCOMB,   # OPG
+    HONEYCOMB,   # NPG
 ]
-NUM_FG_RXN = len(FG_REACTIONS)
-ELIMINATE_ID = NUM_FG_RXN
-HYDROGENATE_ID = NUM_FG_RXN + 1
 
-GROUP_COLORS = {
-    H: BLACK_50,
-    OH: ATLANTIC,
-    NH2: CONGAREE,
-    COOH: GARNET,
-    KETONE: ROSE,
-    CL: HORSESHOE,
-    CH3: HONEYCOMB,
-    NO2: "#5C5C5C",
-}
+_S = frozenset
+SELECTIVE_RXNS: List[Tuple[str, FrozenSet[int], Dict[int, int], FrozenSet[int]]] = [
+    ("mild_oxidation",      _S({OH}),           {OH: KETONE},               _S({BR})),
+    ("strong_oxidation",    _S({OH, KETONE}),   {OH: COOH, KETONE: COOH},   _S({NH2})),
+    ("mild_reduction",      _S({KETONE}),       {KETONE: OH},               _S({COOH})),
+    ("strong_reduction",    _S({KETONE, COOH}), {KETONE: OH, COOH: OH},     _S({BR})),
+    ("amination",           _S({BR}),           {BR: NH2},                  _S({KETONE})),
+    ("hydroxylation",       _S({BR}),           {BR: OH},                   _S()),
+    ("bromination",         _S({OH, NH2}),      {OH: BR, NH2: BR},          _S()),
+    ("reductive_amination", _S({KETONE}),       {KETONE: NH2},              _S({NH2})),
+    ("ketone_from_acid",    _S({COOH}),         {COOH: KETONE},             _S({OH, NH2})),
+    ("carboxylation",       _S({BR}),           {BR: COOH},                 _S({KETONE})),
+    ("hydrogenolysis",      _S({BR}),           {BR: H},                    _S({KETONE})),
+    ("defunctionalize",     _S({OH, NH2, COOH}), {OH: H, NH2: H, COOH: H}, _S()),
+]
+NUM_SELECTIVE = len(SELECTIVE_RXNS)
+RXN_RADICAL_BR = NUM_SELECTIVE
+RXN_PROTECT = NUM_SELECTIVE + 1
+RXN_DEPROTECT = NUM_SELECTIVE + 2
+RXN_NAMES = [r[0] for r in SELECTIVE_RXNS] + ["radical_br", "protect", "deprotect"]
 
 
-def _mol_to_string(mol: NDArray[np.int8], chain_len: int) -> str:
-    groups = mol[:chain_len]
-    bonds = mol[chain_len:]
-    parts: List[str] = []
-    for i in range(chain_len):
-        g = GROUP_ASCII[groups[i]]
-        parts.append(f"C({g})")
-        if i < len(bonds):
-            parts.append("=" if bonds[i] == DOUBLE else "-")
-    return "".join(parts)
+def _select_site(mol: NDArray[np.int8], eligible: FrozenSet[int], n: int) -> int:
+    best_idx = -1
+    best_react = -1
+    for i in range(n):
+        g = int(mol[i])
+        if g in eligible and REACTIVITY[g] > best_react:
+            best_react = REACTIVITY[g]
+            best_idx = i
+    return best_idx
+
+
+def _has_any(mol: NDArray[np.int8], groups: FrozenSet[int], n: int) -> bool:
+    for i in range(n):
+        if int(mol[i]) in groups:
+            return True
+    return False
+
+
+def _mol_to_string(mol: NDArray[np.int8]) -> str:
+    return "-".join(GROUP_ASCII[g] for g in mol)
 
 
 class RetroState(State):
@@ -121,7 +140,7 @@ class RetroState(State):
         return NotImplemented
 
     def __repr__(self) -> str:
-        return _mol_to_string(self.mol, (len(self.mol) + 1) // 2)
+        return _mol_to_string(self.mol)
 
 
 class RetroGoal(Goal):
@@ -130,31 +149,28 @@ class RetroGoal(Goal):
 
 
 class RetroAction(Action):
-    __slots__ = ["rxn_type", "position", "_hash"]
+    __slots__ = ["rxn_id", "position", "_hash"]
 
-    def __init__(self, rxn_type: int, position: int):
-        self.rxn_type: int = rxn_type
+    def __init__(self, rxn_id: int, position: int = -1):
+        self.rxn_id: int = rxn_id
         self.position: int = position
         self._hash: Optional[int] = None
 
     def __hash__(self) -> int:
         if self._hash is None:
-            self._hash = hash((self.rxn_type, self.position))
+            self._hash = hash((self.rxn_id, self.position))
         return self._hash
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, RetroAction):
-            return self.rxn_type == other.rxn_type and self.position == other.position
+            return self.rxn_id == other.rxn_id and self.position == other.position
         return NotImplemented
 
     def __repr__(self) -> str:
-        if self.rxn_type < NUM_FG_RXN:
-            name = FG_REACTIONS[self.rxn_type][0]
-        elif self.rxn_type == ELIMINATE_ID:
-            name = "eliminate"
-        else:
-            name = "hydrogenate"
-        return f"{name}@{self.position}"
+        name = RXN_NAMES[self.rxn_id]
+        if self.position >= 0:
+            return f"{name}@{self.position}"
+        return name
 
 
 @domain_factory.register_class("retro")
@@ -166,66 +182,88 @@ class Retrosynthesis(
     StringToAct[RetroState, RetroAction, RetroGoal],
 ):
 
-    def __init__(self, chain_len: int = 6):
+    def __init__(self, chain_len: int = 5):
         super().__init__()
         self.chain_len: int = chain_len
-        self.num_bonds: int = chain_len - 1
 
-    def get_state_actions(self, states: List[RetroState]) -> List[List[RetroAction]]:
+    def get_state_actions(
+        self, states: List[RetroState]
+    ) -> List[List[RetroAction]]:
+        n = self.chain_len
         result: List[List[RetroAction]] = []
         for state in states:
-            groups = state.mol[: self.chain_len]
-            bonds = state.mol[self.chain_len :]
+            mol = state.mol
             actions: List[RetroAction] = []
 
-            for rxn_id in range(NUM_FG_RXN):
-                req = FG_REACTIONS[rxn_id][1]
-                for pos in range(self.chain_len):
-                    if groups[pos] == req:
-                        actions.append(RetroAction(rxn_id, pos))
+            for rxn_id in range(NUM_SELECTIVE):
+                _, eligible, _, forbidden = SELECTIVE_RXNS[rxn_id]
+                if forbidden and _has_any(mol, forbidden, n):
+                    continue
+                if _select_site(mol, eligible, n) >= 0:
+                    actions.append(RetroAction(rxn_id))
 
-            for pos in range(self.num_bonds):
-                if groups[pos] == CL and bonds[pos] == SINGLE:
-                    actions.append(RetroAction(ELIMINATE_ID, pos))
+            d7_ok = not _has_any(mol, _S({OH, NH2}), n)
+            if d7_ok:
+                for pos in range(n):
+                    if mol[pos] == H:
+                        actions.append(RetroAction(RXN_RADICAL_BR, pos))
 
-            for pos in range(self.num_bonds):
-                if bonds[pos] == DOUBLE:
-                    actions.append(RetroAction(HYDROGENATE_ID, pos))
+            for pos in range(n):
+                if mol[pos] == OH or mol[pos] == NH2:
+                    actions.append(RetroAction(RXN_PROTECT, pos))
+
+            c2_ok = not _has_any(mol, _S({BR}), n)
+            if c2_ok:
+                for pos in range(n):
+                    if mol[pos] == OPG or mol[pos] == NPG:
+                        actions.append(RetroAction(RXN_DEPROTECT, pos))
 
             if not actions:
-                actions = [RetroAction(0, 0)]
+                actions = [RetroAction(5)]
             result.append(actions)
         return result
 
-    def sample_state_action(self, states: List[RetroState]) -> List[RetroAction]:
+    def sample_state_action(
+        self, states: List[RetroState]
+    ) -> List[RetroAction]:
         actions_l = self.get_state_actions(states)
         return [stdlib_random.choice(acts) for acts in actions_l]
 
     def next_state(
         self, states: List[RetroState], actions: List[RetroAction]
     ) -> Tuple[List[RetroState], List[float]]:
+        n = self.chain_len
         new_states: List[RetroState] = []
         tcs: List[float] = []
         for state, act in zip(states, actions):
-            new_mol = state.mol.copy()
-            if act.rxn_type < NUM_FG_RXN:
-                _, req, prod = FG_REACTIONS[act.rxn_type]
-                if new_mol[act.position] == req:
-                    new_mol[act.position] = prod
-            elif act.rxn_type == ELIMINATE_ID:
+            mol = state.mol.copy()
+
+            if act.rxn_id < NUM_SELECTIVE:
+                _, eligible, effects, forbidden = SELECTIVE_RXNS[act.rxn_id]
+                if not (forbidden and _has_any(mol, forbidden, n)):
+                    target = _select_site(mol, eligible, n)
+                    if target >= 0:
+                        mol[target] = effects[int(mol[target])]
+            elif act.rxn_id == RXN_RADICAL_BR:
                 p = act.position
-                if (
-                    p < self.num_bonds
-                    and new_mol[p] == CL
-                    and new_mol[self.chain_len + p] == SINGLE
-                ):
-                    new_mol[p] = H
-                    new_mol[self.chain_len + p] = DOUBLE
-            elif act.rxn_type == HYDROGENATE_ID:
+                if 0 <= p < n and mol[p] == H and not _has_any(mol, _S({OH, NH2}), n):
+                    mol[p] = BR
+            elif act.rxn_id == RXN_PROTECT:
                 p = act.position
-                if p < self.num_bonds and new_mol[self.chain_len + p] == DOUBLE:
-                    new_mol[self.chain_len + p] = SINGLE
-            new_states.append(RetroState(new_mol))
+                if 0 <= p < n:
+                    if mol[p] == OH:
+                        mol[p] = OPG
+                    elif mol[p] == NH2:
+                        mol[p] = NPG
+            elif act.rxn_id == RXN_DEPROTECT:
+                p = act.position
+                if 0 <= p < n and not _has_any(mol, _S({BR}), n):
+                    if mol[p] == OPG:
+                        mol[p] = OH
+                    elif mol[p] == NPG:
+                        mol[p] = NH2
+
+            new_states.append(RetroState(mol))
             tcs.append(1.0)
         return new_states, tcs
 
@@ -240,11 +278,7 @@ class Retrosynthesis(
         states: List[RetroState] = []
         goals: List[RetroGoal] = []
         for _ in range(num):
-            groups = np.random.randint(0, NUM_GROUPS, size=self.chain_len, dtype=np.int8)
-            bonds = np.random.randint(
-                0, NUM_BOND_TYPES, size=self.num_bonds, dtype=np.int8
-            )
-            mol = np.concatenate([groups, bonds])
+            mol = np.random.randint(0, NUM_REAL_GROUPS, size=self.chain_len, dtype=np.int8)
             states.append(RetroState(mol.copy()))
             goals.append(RetroGoal(mol.copy()))
         return states, goals
@@ -256,19 +290,16 @@ class Retrosynthesis(
 
     def get_input_info_flat_sg(self) -> Tuple[List[int], List[int]]:
         return (
-            [self.chain_len, self.num_bonds, self.chain_len, self.num_bonds],
-            [NUM_GROUPS, NUM_BOND_TYPES, NUM_GROUPS, NUM_BOND_TYPES],
+            [self.chain_len, self.chain_len],
+            [NUM_GROUPS, NUM_GROUPS],
         )
 
     def to_np_flat_sg(
         self, states: List[RetroState], goals: List[RetroGoal]
     ) -> List[NDArray]:
-        cl = self.chain_len
-        s_g = np.stack([s.mol[:cl] for s in states], axis=0).astype(np.int64)
-        s_b = np.stack([s.mol[cl:] for s in states], axis=0).astype(np.int64)
-        g_g = np.stack([g.mol[:cl] for g in goals], axis=0).astype(np.int64)
-        g_b = np.stack([g.mol[cl:] for g in goals], axis=0).astype(np.int64)
-        return [s_g, s_b, g_g, g_b]
+        s = np.stack([st.mol for st in states], axis=0).astype(np.int64)
+        g = np.stack([gl.mol for gl in goals], axis=0).astype(np.int64)
+        return [s, g]
 
     def visualize_state_goal(
         self, state: RetroState, goal: RetroGoal, fig: Figure
@@ -279,19 +310,16 @@ class Retrosynthesis(
         ax.axis("off")
         ax.set_facecolor(SANDSTORM)
 
-        g_mol = goal.mol
-        self._draw_molecule(ax, state.mol, g_mol, y_center=0.72, label="Current Molecule")
-        self._draw_molecule(ax, g_mol, g_mol, y_center=0.28, label="Target Molecule")
+        self._draw_molecule(ax, state.mol, goal.mol, y_center=0.72, label="Current Molecule")
+        self._draw_molecule(ax, goal.mol, goal.mol, y_center=0.28, label="Target Molecule")
 
-        solved = np.array_equal(state.mol, g_mol)
-        cl = self.chain_len
-        diff_g = int(np.sum(state.mol[:cl] != g_mol[:cl]))
-        diff_b = int(np.sum(state.mol[cl:] != g_mol[cl:]))
+        solved = np.array_equal(state.mol, goal.mol)
+        diff = int(np.sum(state.mol != goal.mol))
         if solved:
             status = "SOLVED"
             color = GRASS
         else:
-            status = f"UNSOLVED ({diff_g} groups, {diff_b} bonds differ)"
+            status = f"UNSOLVED ({diff} position{'s' if diff != 1 else ''} differ)"
             color = GARNET
         ax.text(
             0.5, 0.03, status,
@@ -303,51 +331,40 @@ class Retrosynthesis(
         self, ax, mol: NDArray[np.int8], goal_mol: NDArray[np.int8],
         y_center: float, label: str,
     ) -> None:
-        cl = self.chain_len
-        groups = mol[:cl]
-        bonds = mol[cl:]
-        g_groups = goal_mol[:cl]
-        g_bonds = goal_mol[cl:]
-
+        n = self.chain_len
         ax.text(
             0.5, y_center + 0.17, label,
             ha="center", va="center", fontsize=13, fontweight="bold", color=BLACK_90,
         )
 
         margin = 0.10
-        spacing = (1.0 - 2 * margin) / max(cl - 1, 1)
+        spacing = (1.0 - 2 * margin) / max(n - 1, 1)
         r = 0.028
 
-        for i in range(self.num_bonds):
+        for i in range(n - 1):
             x1 = margin + i * spacing + r + 0.005
             x2 = margin + (i + 1) * spacing - r - 0.005
-            match = bonds[i] == g_bonds[i]
-            bond_color = HORSESHOE if match else ROSE
+            ax.plot(
+                [x1, x2], [y_center, y_center],
+                color=BLACK_30, linewidth=2.0, zorder=1, solid_capstyle="butt",
+            )
 
-            if bonds[i] == SINGLE:
-                ax.plot(
-                    [x1, x2], [y_center, y_center],
-                    color=bond_color, linewidth=2.5, zorder=1, solid_capstyle="butt",
-                )
-            else:
-                off = 0.009
-                ax.plot(
-                    [x1, x2], [y_center - off, y_center - off],
-                    color=bond_color, linewidth=2.0, zorder=1, solid_capstyle="butt",
-                )
-                ax.plot(
-                    [x1, x2], [y_center + off, y_center + off],
-                    color=bond_color, linewidth=2.0, zorder=1, solid_capstyle="butt",
-                )
-
-        for i in range(cl):
+        for i in range(n):
             x = margin + i * spacing
-            match = groups[i] == g_groups[i]
+            g = int(mol[i])
+            match = mol[i] == goal_mol[i]
             circle_color = HORSESHOE if match else GARNET
+
+            is_protected = g in (OPG, NPG)
+            edge_style = dict(
+                edgecolor=HONEYCOMB if is_protected else BLACK_90,
+                linewidth=2.0 if is_protected else 1.2,
+                linestyle="--" if is_protected else "-",
+            )
+
             circle = patches.Circle(
                 (x, y_center), r,
-                facecolor=circle_color, edgecolor=BLACK_90,
-                linewidth=1.2, zorder=3,
+                facecolor=circle_color, zorder=3, **edge_style,
             )
             ax.add_patch(circle)
             ax.text(
@@ -356,12 +373,16 @@ class Retrosynthesis(
                 color="white", zorder=4,
             )
 
-            if groups[i] != H:
-                fg_label = GROUP_LABELS[groups[i]]
-                fg_color = GROUP_COLORS.get(int(groups[i]), BLACK_90)
-                fg_y = y_center + 0.065
+            fg_label = GROUP_LABELS[g]
+            fg_color = GROUP_COLORS[g]
+            if g == H:
                 ax.text(
-                    x, fg_y, fg_label,
+                    x, y_center + 0.055, "H",
+                    ha="center", va="center", fontsize=8, color=BLACK_30, zorder=5,
+                )
+            else:
+                ax.text(
+                    x, y_center + 0.065, fg_label,
                     ha="center", va="center", fontsize=9, fontweight="bold",
                     color=fg_color,
                     bbox=dict(
@@ -370,42 +391,45 @@ class Retrosynthesis(
                     ),
                     zorder=5,
                 )
-            else:
-                fg_y = y_center + 0.055
-                ax.text(
-                    x, fg_y, "H",
-                    ha="center", va="center", fontsize=8, color=BLACK_30, zorder=5,
-                )
 
-        text_str = _mol_to_string(mol, cl)
         ax.text(
-            0.5, y_center - 0.10, text_str,
+            0.5, y_center - 0.10, _mol_to_string(mol),
             ha="center", va="center", fontsize=9, color=BLACK_50, style="italic",
         )
 
     def string_to_action(self, act_str: str) -> Optional[RetroAction]:
         try:
-            parts = act_str.strip().lower().split()
-            if len(parts) == 2:
-                rxn_name = parts[0]
-                pos = int(parts[1])
-                for rxn_id, (name, _, _) in enumerate(FG_REACTIONS):
-                    if name == rxn_name:
-                        if 0 <= pos < self.chain_len:
-                            return RetroAction(rxn_id, pos)
-                if rxn_name == "eliminate" and 0 <= pos < self.num_bonds:
-                    return RetroAction(ELIMINATE_ID, pos)
-                if rxn_name == "hydrogenate" and 0 <= pos < self.num_bonds:
-                    return RetroAction(HYDROGENATE_ID, pos)
+            s = act_str.strip().lower()
+            if "@" in s:
+                name, pos_str = s.rsplit("@", 1)
+                pos = int(pos_str)
+            else:
+                parts = s.split()
+                if len(parts) == 2:
+                    name, pos = parts[0], int(parts[1])
+                else:
+                    name, pos = s, -1
+
+            for rxn_id, rxn_name in enumerate(RXN_NAMES):
+                if rxn_name == name:
+                    if rxn_id < NUM_SELECTIVE:
+                        return RetroAction(rxn_id)
+                    elif 0 <= pos < self.chain_len:
+                        return RetroAction(rxn_id, pos)
+            return None
         except (ValueError, IndexError):
-            pass
-        return None
+            return None
 
     def string_to_action_help(self) -> str:
-        return "'reaction position' (e.g. 'halogenate 2', 'eliminate 0', 'hydrogenate 3')"
+        sel = ", ".join(RXN_NAMES[:NUM_SELECTIVE])
+        pos = ", ".join(RXN_NAMES[NUM_SELECTIVE:])
+        return (
+            f"Site-selective (no position): {sel}\n"
+            f"Position-specific: {pos} (e.g. 'radical_br@2', 'protect 0')"
+        )
 
     def __repr__(self) -> str:
-        return f"Retrosynthesis(chain_len={self.chain_len}, vocab={NUM_GROUPS} groups)"
+        return f"Retrosynthesis(chain_len={self.chain_len})"
 
 
 @domain_factory.register_parser("retro")
@@ -414,4 +438,4 @@ class RetroParser(Parser):
         return {"chain_len": int(args_str)}
 
     def help(self) -> str:
-        return "Chain length. E.g. 'retro.6'"
+        return "Chain length. E.g. 'retro.5'"
