@@ -25,6 +25,7 @@ import pickle
 import os
 import shutil
 import time
+import threading
 
 
 @dataclass
@@ -38,6 +39,7 @@ class TrainArgs:
     :param loss_thresh: Loss threshold for updating.
     :param targ_up_searches: If > 0, do a greedy search with updater for minimum given number of searches to test
     if target network should be updated. Otherwise, it will be updated automatically.
+    :param policy_kl: KL divergence when training policy.
     :param display: Number of iterations to display progress when training nnet. No display if 0.
     :param skip_heur: Skip training of heuristic function
     :param skip_policy: Skip training of policy
@@ -48,6 +50,7 @@ class TrainArgs:
     rb: int = 0
     loss_thresh: float = np.inf
     targ_up_searches: int = 0
+    policy_kl: float = 0.1
     skip_heur: bool = False
     skip_policy: bool = False
     display: int = 100
@@ -217,11 +220,17 @@ class Train(Generic[NNet, Up], ABC):
         db_dtypes: List[np.dtype] = [x[1] for x in shapes_dtypes]
         self.db: DataBuffer = DataBuffer(self.train_args.batch_size * self.updater.up_args.get_up_gen_itrs(), db_shapes, db_dtypes)
 
+        # async pipeline: second buffer for prefetching next round's data
+        self._prefetch_db: DataBuffer = DataBuffer(self.train_args.batch_size * self.updater.up_args.get_up_gen_itrs(), db_shapes, db_dtypes)
+        self._prefetch_thread: Optional[threading.Thread] = None
+        self._prefetch_done: threading.Event = threading.Event()
+        self._prefetch_error: Optional[Exception] = None
+        self._prefetch_itr_init: int = 0
+
         # optimizer and criterion
         self.train_start_time = time.time()
 
     def update_step(self) -> None:
-        self.db.clear()
         itr_init: int = self.status.itr
 
         # print info
@@ -234,21 +243,47 @@ class Train(Generic[NNet, Up], ABC):
         print(f"\nGetting Data - {', '.join(start_info_l)}")
         times: Times = Times()
 
-        # start updater
-        start_time = time.time()
-        self.updater.start_update(self.status.step_probs.tolist(), num_gen, self.train_args.batch_size, self.device, self.on_gpu)
-        times.record_time("up_start", time.time() - start_time)
-
-        # do training
-        self.train_start_time = time.time()
         loss: float
-        if not self.updater.up_args.sync_main:
-            self._get_update_data(num_gen, times)
-            self._end_update(itr_init, times)
-            loss = self._train(times)
-        else:
+        if self.updater.up_args.sync_main:
+            # sync_main path: unchanged
+            self.db.clear()
+            start_time = time.time()
+            self.updater.start_update(self.status.step_probs.tolist(), num_gen, self.train_args.batch_size, self.device, self.on_gpu)
+            times.record_time("up_start", time.time() - start_time)
+            self.train_start_time = time.time()
             loss = self._train_sync_main(num_gen, times)
             self._end_update(itr_init, times)
+        else:
+            # async pipeline path
+            if self._prefetch_thread is not None:
+                # WARM START: prefetch from previous update_step is running
+                start_time = time.time()
+                self._wait_prefetch()
+                times.record_time("prefetch_wait", time.time() - start_time)
+                # swap buffers: _prefetch_db has fresh data
+                self.db, self._prefetch_db = self._prefetch_db, self.db
+                # end the update that was prefetched
+                self._end_update(self._prefetch_itr_init, times)
+            else:
+                # COLD START: first iteration, no prefetch available
+                self.db.clear()
+                start_time = time.time()
+                self.updater.start_update(self.status.step_probs.tolist(), num_gen, self.train_args.batch_size, self.device, self.on_gpu)
+                times.record_time("up_start", time.time() - start_time)
+                self._get_update_data_into(self.db, num_gen, times)
+                self._end_update(itr_init, times)
+
+            # start next round's data generation (overlaps with training below)
+            if self.status.itr + self.updater.up_args.up_itrs <= self.train_args.max_itrs:
+                start_time = time.time()
+                self.updater.start_update(self.status.step_probs.tolist(), num_gen, self.train_args.batch_size, self.device, self.on_gpu)
+                times.record_time("up_start_next", time.time() - start_time)
+                self._prefetch_itr_init = self.status.itr
+                self._start_prefetch(num_gen)
+
+            # train on current data (overlaps with prefetch thread)
+            self.train_start_time = time.time()
+            loss = self._train(times)
 
         # save nnet
         start_time = time.time()
@@ -274,13 +309,48 @@ class Train(Generic[NNet, Up], ABC):
         print(f"Train - itrs: {self.updater.up_args.up_itrs}, loss: {loss:.2E}, targ_updated: {update_targ}")
         print(f"Times - {times.get_time_str()}")
 
-    def _get_update_data(self, num_gen: int, times: Times) -> None:
+    # --- async pipeline helpers ---
+
+    def _get_update_data_into(self, db: DataBuffer, num_gen: int, times: Times) -> None:
         start_time = time.time()
-        while self.db.size() < num_gen:
+        while db.size() < num_gen:
             data_l: List[List[NDArray]] = self.updater.get_update_data()
             for data in data_l:
-                self.db.add(data)
+                db.add(data)
         times.record_time("up_data", time.time() - start_time)
+
+    def _prefetch_data(self, num_gen: int) -> None:
+        try:
+            while self._prefetch_db.size() < num_gen:
+                data_l: List[List[NDArray]] = self.updater.get_update_data()
+                for data in data_l:
+                    self._prefetch_db.add(data)
+        except Exception as e:
+            self._prefetch_error = e
+        finally:
+            self._prefetch_done.set()
+
+    def _start_prefetch(self, num_gen: int) -> None:
+        self._prefetch_db.clear()
+        self._prefetch_done.clear()
+        self._prefetch_error = None
+        self._prefetch_thread = threading.Thread(target=self._prefetch_data, args=(num_gen,), daemon=True)
+        self._prefetch_thread.start()
+
+    def _wait_prefetch(self) -> None:
+        if self._prefetch_thread is not None:
+            self._prefetch_thread.join()
+            self._prefetch_thread = None
+        if self._prefetch_error is not None:
+            raise self._prefetch_error
+
+    def cleanup_prefetch(self) -> None:
+        if self._prefetch_thread is not None:
+            self._wait_prefetch()
+            self.updater.end_update()
+
+    def _get_update_data(self, num_gen: int, times: Times) -> None:
+        self._get_update_data_into(self.db, num_gen, times)
 
     def _train(self, times: Times) -> float:
         loss: float = np.inf

@@ -195,6 +195,11 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
     if (test_args is not None) and up_itr_performed:
         test(domain, heur_nnet_par, train_heur, policy_nnet_par, train_policy, test_args, writer, curr_itr)
 
+    # clean up any active prefetch before stopping procs
+    for train_obj in [train_heur, train_policy]:
+        if train_obj is not None:
+            train_obj.cleanup_prefetch()
+
     # stop procs
     for updater in [update_heur, update_policy]:
         if updater is not None:
