@@ -226,7 +226,7 @@ class Update(Generic[D, FNs, P, Inst], ABC):
 
         num_searches: int = num_gen // self.up_args.search_itrs
         if self.up_args.v:
-            print(f"Generating {format(num_gen, ',')} training instances with {format(num_searches, ',')} searches")
+            print(f"Generating {format(num_gen, ',')} training instances with at least {format(num_searches, ',')} searches")
 
         assert num_gen % self.up_args.search_itrs == 0, (f"Number of instances to generate per for this updater {num_gen} is not divisible by the max number "
                                                          f"of pathfinding iterations to take during the updater ({self.up_args.search_itrs})")

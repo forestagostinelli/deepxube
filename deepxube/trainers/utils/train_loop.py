@@ -14,6 +14,7 @@ from deepxube.utils.command_line_utils import get_pathfind_from_arg, get_pathfin
 from deepxube.nnet import nnet_utils
 from deepxube.utils import data_utils
 
+from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 
 import sys
@@ -37,6 +38,11 @@ class TestArgs:
         return (f"TestArgs(instances={len(self.test_states)}, search_itrs={self.search_itrs}, "
                 f"pathfinds={self.pathfinds}, test_nnet_batch_size={self.test_nnet_batch_size}, "
                 f"test_up_freq={self.test_up_freq}, test_init={self.test_init})")
+
+
+def print_params(nnet: nn.Module) -> None:
+    num_trainable = sum(p.numel() for p in nnet.parameters() if p.requires_grad)
+    print(f"Number of trainable parameters: {format(num_trainable, ',')}")
 
 
 def get_curr_itr(train_heur: Optional[TrainHeur], train_policy: Optional[TrainPolicy]) -> int:
@@ -125,6 +131,7 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
 
         heur_nnet: HeurNNet = heur_nnet_par.get_nnet()
         print(heur_nnet_par)
+        print_params(heur_nnet)
         to_main_q, from_main_qs = update_heur.start_procs(train_args.rb * train_args.batch_size * update_heur.up_args.up_itrs)
         train_heur = TrainHeur(heur_nnet, update_heur, to_main_q, from_main_qs, heur_file, heur_targ_file, heur_status_file, heur_train_summ_file, device,
                                on_gpu, writer, train_args)
@@ -133,6 +140,7 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
 
         policy_nnet: PolicyNNet = policy_nnet_par.get_nnet()
         print(policy_nnet_par)
+        print_params(policy_nnet)
         to_main_q, from_main_qs = update_policy.start_procs(train_args.rb * train_args.batch_size * update_policy.up_args.up_itrs)
         train_policy = TrainPolicy(policy_nnet, update_policy, to_main_q, from_main_qs, policy_file, policy_targ_file, policy_status_file,
                                    policy_train_summ_file, device, on_gpu, writer, train_args)

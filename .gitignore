@@ -2,6 +2,7 @@
 dist/
 future/
 deepxube/domains/data/
+deepxube_paper.txt
 todo.txt
 .tox/
 *.swp
