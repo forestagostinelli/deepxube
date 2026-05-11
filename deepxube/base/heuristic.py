@@ -36,7 +36,7 @@ class DeepXubeNNet(nn.Module, Generic[In], ABC):
         pass
 
     def get_optimizer(self) -> Optimizer:
-        return optim.Adam(self.parameters(), lr=0.001)
+        return optim.Adam(self.parameters(), lr=self.lr)
 
     def update_optimizer(self, optimizer: Optimizer, train_itr: int) -> None:
         lr_itr: float = self.lr * (self.lr_d ** train_itr)
