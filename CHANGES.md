@@ -22,6 +22,7 @@
 * Add checkpointing during training
 * Add more functionality to add neural network functions to domain and use in parallel
 * Add special case of training heuristic with random policy when using pathfinding algorithm that uses a policy and not training a policy
+* Add timing of getting supervised data to supervised pathfinding
 
 ## 0.2.1
 * Consolidate search: Beam search -> special cases: greedy_policy, graph search -> special cases: batch weighted A* search, batch weighted Q* search 

@@ -67,7 +67,9 @@ class PathFindNodeSup(PathFindNode[NodesSupervisable, Any, InstanceNodeSup], Pat
 
     def make_instances_sup(self, steps_gen: List[int], inst_infos: Optional[List[Any]]) -> List[InstanceNodeSup]:
         # get nodes and labels
+        start_time = time.time()
         states_start, goals, labels = self.domain.samp_nodes_and_labels(steps_gen)
+        self.times.record_time("get_sup", time.time() - start_time)
 
         # make instances
         nodes_root: List[Node] = self._create_root_nodes(states_start, goals, False)
@@ -110,7 +112,9 @@ class PathFindEdgeSup(PathFindEdge[EdgesSupervisable, Any, InstanceEdgeSup], Pat
 
     def make_instances_sup(self, steps_gen: List[int], inst_infos: Optional[List[Any]]) -> List[InstanceEdgeSup]:
         # get edges and labels
+        start_time = time.time()
         states_start, goals, actions_init, labels = self.domain.samp_edges_and_labels(steps_gen)
+        self.times.record_time("get_sup", time.time() - start_time)
 
         # make root nodes
         nodes_root: List[Node] = self._create_root_nodes(states_start, goals, False)
@@ -153,7 +157,9 @@ class PathFindEdgeSamp(PathFindEdge[EdgesSampleable, Any, InstanceEdgeSup], Path
 
     def make_instances_sup(self, steps_gen: List[int], inst_infos: Optional[List[Any]]) -> List[InstanceEdgeSup]:
         # get edges and labels
+        start_time = time.time()
         states_start, goals, actions_init = self.domain.samp_edges(steps_gen)
+        self.times.record_time("get_sup", time.time() - start_time)
 
         # make root nodes
         nodes_root: List[Node] = self._create_root_nodes(states_start, goals, False)
