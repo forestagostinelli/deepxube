@@ -67,7 +67,7 @@ def test_train_solve_heur(pathfind_tr_str: str, pathfind_solve_str: str, heur_ty
     if os.path.exists(save_dir):
         shutil.rmtree(save_dir)
 
-    train(domain, heur_nnet_par, updater, None, None, save_dir, train_args)
+    train(domain, heur_nnet_par, updater, None, None, 10, save_dir, train_args)
 
     # solve
     heur_file: str = f"{save_dir}/heur.pt"

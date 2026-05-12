@@ -15,6 +15,7 @@ from deepxube.base.domain import Domain, State, Action, Goal, GoalSampleableFrom
 from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ, HeurFn, HeurFnV, HeurFnQ, PolicyNNetPar, PolicyFn
 from deepxube.base.pathfinding import FNs, FNsP, FNsHV, FNsHQ, FNsHeur, PathFind, PathFindSup, Instance, InstanceNode, InstanceEdge, get_path, Node
 from deepxube.factories.pathfinding_factory import pathfinding_factory
+from deepxube.heuristics.utils.heur_utils import get_rand_policy
 from deepxube.pathfinding.utils.performance import PathFindPerf, print_pathfindperf
 from deepxube.utils.command_line_utils import get_pathfind_name_kwargs
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd, get_nowait_noerr
@@ -546,9 +547,16 @@ class UpdateHasHeur(Update[D, FNsH, P, Inst], Generic[D, FNsH, P, Inst, HNet, H]
 
 
 class UpdateHasPolicy(Update[D, FNsP, P, Inst], ABC):
+    def __init__(self, domain: D, pathfind_arg: str, up_args: UpArgs):
+        super().__init__(domain, pathfind_arg, up_args)
+        self.policy_samp: int = 0
+
     @staticmethod
     def policy_name() -> str:
         return 'policy'
+
+    def set_policy_samp(self, policy_samp: int) -> None:
+        self.policy_samp = policy_samp
 
     def set_policy_nnet(self, policy_nnet: PolicyNNetPar) -> None:
         self.add_nnet_par(self.policy_name(), policy_nnet)
@@ -563,7 +571,11 @@ class UpdateHasPolicy(Update[D, FNsP, P, Inst], ABC):
         return self._get_policy_fn_from_dict()
 
     def _get_policy_fn_from_dict(self) -> PolicyFn:
-        return cast(PolicyFn, self.nnet_fn_dict[self.policy_name()])
+        if self.policy_name() not in self.nnet_fn_dict:
+            assert self.policy_samp > 0
+            return get_rand_policy(self.domain, self.policy_samp)
+        else:
+            return cast(PolicyFn, self.nnet_fn_dict[self.policy_name()])
 
 
 PS = TypeVar('PS', bound=PathFindSup)

@@ -3,8 +3,9 @@ import argparse
 from argparse import ArgumentParser
 
 from deepxube.base.domain import Domain, State, Action, Goal
-from deepxube.base.heuristic import HeurNNetPar, PolicyNNetPar, HeurFn, HeurFnV, HeurFnQ, PolicyFn
+from deepxube.base.heuristic import HeurNNetPar, PolicyNNetPar, HeurFn, PolicyFn
 from deepxube.base.pathfinding import Node, Instance, PathFind, get_path
+from deepxube.heuristics.utils.heur_utils import get_zero_heur, get_rand_policy
 from deepxube.factories.pathfinding_factory import get_pathfind_functions
 from deepxube.pathfinding.beam_search import BeamSearch
 from deepxube.utils.command_line_utils import (get_domain_from_arg, get_pathfind_name_kwargs, get_pathfind_from_arg, get_heur_nnet_par_from_arg,
@@ -89,23 +90,7 @@ def get_heur_fn(domain: Domain, domain_name: str, heur_nnet_str: Optional[str], 
         nnet = nn.DataParallel(nnet)
         heur_fn = heur_nnet_par.get_nnet_fn(nnet, nnet_batch_size, device, None)
     elif heur_type is not None:
-        if heur_type.upper() == "V":
-            class HeurFnZerosV(HeurFnV):
-                def __call__(self, states_in: List[State], goals_in: List[Goal]) -> List[float]:
-                    return [0.0] * len(states_in)
-
-            heur_fn = HeurFnZerosV()
-        elif heur_type.upper() in {"QFIX", "QIN"}:
-            class HeurFnZerosQ(HeurFnQ):
-                def __call__(self, states_in: List[State], goals_in: List[Goal], actions_l_in: List[List[Action]]) -> List[List[float]]:
-                    heur_vals_l: List[List[float]] = []
-                    for actions_in in actions_l_in:
-                        heur_vals_l.append([0.0] * len(actions_in))
-                    return heur_vals_l
-
-            heur_fn = HeurFnZerosQ()
-        else:
-            raise ValueError(f"Unknown heur type {heur_type}")
+        heur_fn = get_zero_heur(heur_type)
 
     return heur_fn
 
@@ -124,11 +109,7 @@ def get_policy_fn(domain: Domain, domain_name: str, policy_nnet_str: Optional[st
         nnet = nn.DataParallel(nnet)
         policy_fn = policy_nnet_par.get_nnet_fn(nnet, nnet_batch_size, device, None)
     else:
-        class PolicyFnRand(PolicyFn):
-            def __call__(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[Action]], List[List[float]]]:
-                return policy_fn_rand(domain, states, policy_samp)
-
-        policy_fn = PolicyFnRand()
+        policy_fn = get_rand_policy(domain, policy_samp)
 
     return policy_fn
 

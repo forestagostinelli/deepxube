@@ -21,6 +21,7 @@
 * PolicyNNet has _forward_train and _forward_eval abstract methods to unify forward method
 * Add checkpointing during training
 * Add more functionality to add neural network functions to domain and use in parallel
+* Add special case of training heuristic with random policy when using pathfinding algorithm that uses a policy and not training a policy
 
 ## 0.2.1
 * Consolidate search: Beam search -> special cases: greedy_policy, graph search -> special cases: batch weighted A* search, batch weighted Q* search 

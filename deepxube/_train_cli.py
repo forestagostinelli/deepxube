@@ -124,4 +124,4 @@ def train_cli(args: argparse.Namespace) -> None:
         goals: List[Goal] = data['goals']
         test_args = TestArgs(states, goals, args.t_search_itrs, args.t_pathfinds.split(","), args.up_nnet_batch_size, args.t_up_freq, args.t_init)
 
-    train(domain, heur_nnet_par, update_heur, policy_nnet_par, update_policy, args.dir, train_args, test_args=test_args, debug=args.debug)
+    train(domain, heur_nnet_par, update_heur, policy_nnet_par, update_policy, args.policy_samp, args.dir, train_args, test_args=test_args, debug=args.debug)
