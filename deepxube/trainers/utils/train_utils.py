@@ -75,8 +75,12 @@ def train_policy_nnet_step(policy: PolicyNNet, states_goals_actions_np: List[NDA
     states_goals_actions: List[Tensor] = nnet_utils.to_pytorch_input(states_goals_actions_np, device)
 
     # forward
-    loss_arr: Tensor = policy(states_goals_actions)[0]
-    loss: Tensor = loss_arr.mean()
+    loss_tensors: List[Tensor] = policy(states_goals_actions)
+    if isinstance(policy, nn.DataParallel):
+        loss, loss_str = policy.module.get_loss_and_info(loss_tensors)
+    else:
+        loss, loss_str = policy.get_loss_and_info(loss_tensors)
+    # loss: Tensor = loss_arr.mean()
 
     # backwards
     loss.backward()
@@ -86,6 +90,10 @@ def train_policy_nnet_step(policy: PolicyNNet, states_goals_actions_np: List[NDA
 
     # display progress
     if (train_args.display > 0) and (train_itr % train_args.display == 0):
-        print(f"Itr: %i, loss: %.2E, Time: {time.time() - start_time:.2f}" % (train_itr, loss.item()))
+        print_str: str = f"Itr: {train_itr}, loss: {loss.item():.2E}"
+        if loss_str is not None:
+            print_str = f"{print_str}, {loss_str}"
+        print_str = f"{print_str}, Time: {time.time() - start_time:.2f}"
+        print(print_str)
 
     return float(loss.item())

@@ -75,9 +75,18 @@ class PolicyNNet(DeepXubeNNet[PNNetIn], ABC):
 
     def forward(self, inputs: List[Tensor]) -> List[Tensor]:
         if self.training:
-            return [self._forward_train(inputs)]
+            return self._forward_train(inputs)
         else:
             return self._forward_eval(inputs)
+
+    @abstractmethod
+    def get_loss_and_info(self, loss_tensors: List[Tensor]) -> Tuple[Tensor, Optional[str]]:
+        """ Reduce tensors to compute loss and get information about loss
+
+        :param loss_tensors: List of tensors obtained from _forward_train
+        :return: scalar Tensor representing loss and optional string with information about loss
+        """
+        pass
 
     @abstractmethod
     def _forward_eval(self, states_goals: List[Tensor]) -> List[Tensor]:
@@ -89,12 +98,12 @@ class PolicyNNet(DeepXubeNNet[PNNetIn], ABC):
         pass
 
     @abstractmethod
-    def _forward_train(self, states_goals_actions: List[Tensor]) -> Tensor:
+    def _forward_train(self, states_goals_actions: List[Tensor]) -> List[Tensor]:
         """
 
         :param states_goals_actions:
-        :return: loss  IMPORTANT: do not perform reduction as main process will take mean so that DataParallel can be used.
-        I.e. dimensionality of loss should be (N,) where N is the batch size
+        :return: List of tensors for computing loss. IMPORTANT: do not perform reduction. get_loss_and_info method will do this so that DataParallel can be
+        used. I.e. the first dimension of each tensor should equal the batch size
         """
         pass
 
@@ -108,6 +117,16 @@ class PolicyVAE(PolicyNNet[PNNetIn]):
         super().__init__(nnet_input, num_samp)
         self.norm_dist = torch.distributions.Normal(0, 1)
         self.kl_weight: float = kl_weight
+
+    def get_loss_and_info(self, loss_tensors: List[Tensor]) -> Tuple[Tensor, Optional[str]]:
+        loss_recon_mean: Tensor = torch.mean(loss_tensors[0], dim=0)
+        loss_kl_mean: Tensor = torch.mean(loss_tensors[1], dim=0)
+
+        loss: Tensor = loss_recon_mean + (self.kl_weight * loss_kl_mean)
+
+        loss_str: str = f"loss_recon: {loss_recon_mean.item():.2E}, loss_kl: {loss_kl_mean.item():.2E}"
+
+        return loss, loss_str
 
     def _forward_eval(self, states_goals: List[Tensor]) -> List[Tensor]:
         recons_l: List[List[Tensor]] = []
@@ -126,7 +145,7 @@ class PolicyVAE(PolicyNNet[PNNetIn]):
         z_all: Tensor = torch.stack(z_l, dim=1)
         return recons_all + [self.norm_dist.log_prob(z_all).sum(dim=2)]
 
-    def _forward_train(self, states_goals_actions: List[Tensor]) -> Tensor:
+    def _forward_train(self, states_goals_actions: List[Tensor]) -> List[Tensor]:
         split_idx: int = self.nnet_input.states_goals_actions_split_idx()
         states_goals: List[Tensor] = states_goals_actions[:split_idx]
         actions: List[Tensor] = states_goals_actions[split_idx:]
@@ -140,10 +159,8 @@ class PolicyVAE(PolicyNNet[PNNetIn]):
         actions_recon: List[Tensor] = self.decode(states_goals, z)
 
         loss_recon: Tensor = self._compute_recon_loss(actions_proc, actions_recon)
-        loss: Tensor = loss_recon + (self.kl_weight * loss_kl)
 
-        # print_str: str = f"loss_recon: {loss_recon.item():.2E}, loss_kl: {loss_kl.item():.2E}"
-        return loss
+        return [loss_recon, loss_kl]
 
     @abstractmethod
     def latent_shape(self) -> Tuple[int, ...]:
@@ -170,7 +187,8 @@ class PolicyVAE(PolicyNNet[PNNetIn]):
     def _compute_recon_loss(self, action_proc: List[Tensor], actions_recon: List[Tensor]) -> Tensor:
         loss_recons: List[Tensor] = []
         for actions_proc_i, actions_recon_i in zip(action_proc, actions_recon):
-            loss_recon_i: Tensor = torch.mean((actions_recon_i - actions_proc_i) ** 2, dim=1)
+            mean_dims: Tuple[int, ...] = tuple(range(1, len(actions_proc_i.shape)))
+            loss_recon_i: Tensor = torch.mean((actions_recon_i - actions_proc_i) ** 2, dim=mean_dims)
             loss_recons.append(loss_recon_i)
 
         return torch.stack(loss_recons, dim=0).mean(dim=0)

@@ -39,7 +39,7 @@ def parser_train(parser: ArgumentParser) -> None:
     train_group.add_argument('--chkpt', type=int, default=0, help="Save checkpoint file of network being trained at initialization and at every given "
                                                                   "number of update checks. Checkpoint number given is training iteration, not update number."
                                                                   "If 0 then checkpointing is not done.")
-    train_group.add_argument('--display', type=int, default=0, help="Display frequency for nnet training.")
+    train_group.add_argument('--display', type=int, default=100, help="Display frequency for nnet training info. 0 for no display.")
     train_group.add_argument('--bal', action='store_true', default=False, help="Set to balance of number of steps to take to generate problem instances based "
                                                                                "on percentage of states solved.")
     train_group.add_argument('--rb', type=int, default=0, help="Number of updates worth of data to keep in replay buffer. If 0 then no replay buffer is used "
