@@ -19,7 +19,7 @@ class ResnetFCHeur(HeurNNet[FlatIn]):
         return FlatIn
 
     def __init__(self, nnet_input: FlatIn, out_dim: int, q_fix: bool, res_dim: int = 1000, num_blocks: int = 4,
-                 batch_norm: bool = False, weight_norm: bool = False, group_norm: int = -1, act_fn: str = "RELU"):
+                 batch_norm: bool = False, weight_norm: bool = False, layer_norm: bool = False, act_fn: str = "RELU"):
         super().__init__(nnet_input, out_dim, q_fix)
         # one hots
         self.one_hots: nn.ModuleList = nn.ModuleList()
@@ -32,6 +32,10 @@ class ResnetFCHeur(HeurNNet[FlatIn]):
 
         # res net
         self.res_dim: int = res_dim
+
+        group_norm: int = -1
+        if layer_norm:
+            group_norm = 1
 
         def res_block_init() -> nn.Module:
             return FullyConnectedModel(res_dim, [res_dim] * 2, [act_fn, "LINEAR"],
@@ -57,7 +61,7 @@ class ResnetFCPolicy(PolicyVAE[FlatInPolicy]):
         return FlatInPolicy
 
     def __init__(self, nnet_input: FlatInPolicy, num_samp: int, kl_weight: float, enc_dim: int = 10, res_dim: int = 1000, num_blocks: int = 4,
-                 batch_norm: bool = False, weight_norm: bool = False, group_norm: int = -1, act_fn: str = "RELU"):
+                 batch_norm: bool = False, weight_norm: bool = False, layer_norm: bool = False, act_fn: str = "RELU"):
         super().__init__(nnet_input, num_samp, kl_weight)
         # one hots
         input_dims, one_hot_depths = self.nnet_input.get_input_info()
@@ -74,6 +78,10 @@ class ResnetFCPolicy(PolicyVAE[FlatInPolicy]):
 
         # res net
         self.res_dim: int = res_dim
+
+        group_norm: int = -1
+        if layer_norm:
+            group_norm = 1
 
         def res_block_init() -> nn.Module:
             return FullyConnectedModel(res_dim, [res_dim] * 2, [act_fn, "LINEAR"],
@@ -118,6 +126,7 @@ class ResnetFCParserHeur(Parser):
             blocks_re = re.search(r"^(\S+)B$", args_str_i)
             bn_re = re.search(r"^bn$", args_str_i)
             wn_re = re.search(r"^wn$", args_str_i)
+            ln_re = re.search(r"^ln$", args_str_i)
             if hidden_re is not None:
                 kwargs["res_dim"] = int(hidden_re.group(1))
             elif blocks_re is not None:
@@ -126,13 +135,15 @@ class ResnetFCParserHeur(Parser):
                 kwargs["batch_norm"] = True
             elif wn_re is not None:
                 kwargs["weight_norm"] = True
+            elif ln_re is not None:
+                kwargs["layer_norm"] = True
             else:
                 raise ValueError(f"Unexpected argument {args_str_i!r}")
         return kwargs
 
     def help(self) -> str:
         return ("Arguments are delimited by '_' and can be in any order.\n<num>H (number of hidden units), "
-                "<num>B (number of blocks), bn (batch_norm), wn (weight_norm).\n"
+                "<num>B (number of blocks), bn (batch_norm), wn (weight_norm), ln (layer_norm).\n"
                 "E.g. resnet_fc.1000H_4B_bn")
 
 
@@ -149,6 +160,7 @@ class ResnetFCParserPolicy(ResnetFCParserHeur):
             kl_re = re.search(r"^(\S+)KL$", args_str_i)
             bn_re = re.search(r"^bn$", args_str_i)
             wn_re = re.search(r"^wn$", args_str_i)
+            ln_re = re.search(r"^ln$", args_str_i)
             if hidden_re is not None:
                 kwargs["res_dim"] = int(hidden_re.group(1))
             elif blocks_re is not None:
@@ -157,6 +169,8 @@ class ResnetFCParserPolicy(ResnetFCParserHeur):
                 kwargs["batch_norm"] = True
             elif wn_re is not None:
                 kwargs["weight_norm"] = True
+            elif ln_re is not None:
+                kwargs["layer_norm"] = True
             elif enc_dim_re is not None:
                 kwargs["enc_dim"] = int(enc_dim_re.group(1))
             elif kl_re is not None:
@@ -167,5 +181,5 @@ class ResnetFCParserPolicy(ResnetFCParserHeur):
 
     def help(self) -> str:
         return ("Arguments are delimited by '_' and can be in any order.\n<num>H (number of hidden units), "
-                "<num>B (number of blocks), <enc_dim>E (encoding dimensionality), bn (batch_norm), wn (weight_norm).\n"
+                "<num>B (number of blocks), <enc_dim>E (encoding dimensionality), bn (batch_norm), wn (weight_norm), ln (layer_norm).\n"
                 "E.g. resnet_fc.1000H_4B_10E_bn")
