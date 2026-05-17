@@ -27,6 +27,7 @@ def data_runner(queue1: Queue, queue2: Queue) -> None:
 
 
 def test_env(env: Domain, num_states: int, step_min: int, step_max: int) -> Tuple[List[State], List[Goal], List[Action]]:
+    print("---Testing basic environment methods---")
     # get data
     start_time = time.time()
     sg_times: Times = Times()
@@ -72,7 +73,7 @@ def test_env(env: Domain, num_states: int, step_min: int, step_max: int) -> Tupl
     print("Got %i random next states in %s seconds (%.2f/second)" % (len(states_next), elapsed_time, states_per_sec))
 
     # multiprocessing
-    print("")
+    print("\n---Testing Multiprocessing---")
     start_time = time.time()
     ctx = get_context("spawn")
     queue1: Queue = ctx.Queue()
@@ -99,6 +100,7 @@ def test_env(env: Domain, num_states: int, step_min: int, step_max: int) -> Tupl
 
 
 def test_envstartgoalrw(env: StartGoalWalkable, num_states: int) -> None:
+    print("\n---Testing StartGoalWalkable---")
     # generate start/goal states
     start_time = time.time()
     states: List[State] = env.sample_start_states(num_states)
@@ -109,6 +111,7 @@ def test_envstartgoalrw(env: StartGoalWalkable, num_states: int) -> None:
 
 
 def test_envenumerableacts(env: ActsEnum, states: List[State]) -> None:
+    print("\n---Testing ActsEnum---")
     torch.set_num_threads(1)
 
     # expand

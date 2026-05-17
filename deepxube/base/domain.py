@@ -267,37 +267,26 @@ class ActsEnum(Domain[S, A, G]):
         :param states: List of states
         :return: Children of each state, actions, transition costs for each state
         """
-        # TODO further validate
-        # initialize
-        states_exp_l: List[List[S]] = [[] for _ in range(len(states))]
-        actions_exp_l: List[List[A]] = [[] for _ in range(len(states))]
-        tcs_l: List[List[float]] = [[] for _ in range(len(states))]
-        state_actions: List[List[A]] = self.get_state_actions(states)
+        # get actions
+        actions_exp_l: List[List[A]] = self.get_state_actions(states)
 
-        num_actions_tot: NDArray[np.int_] = np.array([len(x) for x in state_actions])
-        num_actions_taken: NDArray[np.int_] = np.zeros(len(states), dtype=int)
-        actions_lt: NDArray[np.bool_] = num_actions_taken < num_actions_tot
+        # repeat states according to actions
+        actions_flat, split_idxs = misc_utils.flatten(actions_exp_l)
 
-        # for each move, get next states, transition costs, and if solved
-        while np.any(actions_lt):
-            idxs: NDArray[np.int_] = np.where(actions_lt)[0]
-            states_idxs: List[S] = [states[idx] for idx in idxs]
-            actions_idxs: List[A] = [state_actions[idx].pop(0) for idx in idxs]
+        states_flat: List[S] = []
+        for state, actions_exp in zip(states, actions_exp_l, strict=True):
+            states_flat.extend([state] * len(actions_exp))
 
-            # next state
-            states_next, tcs_move = self.next_state(states_idxs, actions_idxs)
+        assert len(states_flat) == len(actions_flat), f"{len(states_flat)}, {len(actions_flat)}"
 
-            # append
-            idx: int
-            for exp_idx, idx in enumerate(idxs):
-                states_exp_l[idx].append(states_next[exp_idx])
-                actions_exp_l[idx].append(actions_idxs[exp_idx])
-                tcs_l[idx].append(tcs_move[exp_idx])
+        # get next states
+        states_exp_flat, tcs_flat = self.next_state(states_flat, actions_flat)
 
-            num_actions_taken[idxs] = num_actions_taken[idxs] + 1
-            actions_lt[idxs] = num_actions_taken[idxs] < num_actions_tot[idxs]
+        # unflatten
+        states_exp: List[List[S]] = misc_utils.unflatten(states_exp_flat, split_idxs)
+        tcs_l: List[List[float]] = misc_utils.unflatten(tcs_flat, split_idxs)
 
-        return states_exp_l, actions_exp_l, tcs_l
+        return states_exp, actions_exp_l, tcs_l
 
 
 class ActsEnumFixed(ActsEnum[S, A, G], ActsFixed[S, A, G]):
@@ -648,48 +637,12 @@ class NextStateNP(Domain[S, A, G]):
         pass
 
 
-class NextStateNPActsEnum(NextStateNP[S, A, G], ActsEnum[S, A, G], ABC):
-    def expand(self, states: List[S]) -> Tuple[List[List[S]], List[List[A]], List[List[float]]]:
-        # initialize
-        states_np: List[NDArray] = self._states_to_np(states)
-        states_exp_l: List[List[S]] = [[] for _ in range(len(states))]
-        actions_exp_l: List[List[A]] = [[] for _ in range(len(states))]
-        tcs_l: List[List[float]] = [[] for _ in range(len(states))]
-        state_actions: List[List[A]] = self.get_state_actions(states)
-
-        num_actions_tot: NDArray[np.int_] = np.array([len(x) for x in state_actions])
-        num_actions_taken: NDArray[np.int_] = np.zeros(len(states), dtype=int)
-        actions_lt: NDArray[np.bool_] = num_actions_taken < num_actions_tot
-
-        # for each move, get next states, transition costs, and if solved
-        while np.any(actions_lt):
-            idxs: NDArray[np.int_] = np.where(actions_lt)[0]
-            states_np_idxs: List[NDArray] = [states_np_i[idxs] for states_np_i in states_np]
-            actions_idxs: List[A] = [state_actions[idx].pop(0) for idx in idxs]
-
-            # next state
-            states_next_np, tcs_move = self._next_state_np(states_np_idxs, actions_idxs)
-            states_next: List[S] = self._np_to_states(states_next_np)
-
-            # append
-            idx: int
-            for exp_idx, idx in enumerate(idxs):
-                states_exp_l[idx].append(states_next[exp_idx])
-                actions_exp_l[idx].append(actions_idxs[exp_idx])
-                tcs_l[idx].append(tcs_move[exp_idx])
-
-            num_actions_taken[idxs] = num_actions_taken[idxs] + 1
-            actions_lt[idxs] = num_actions_taken[idxs] < num_actions_tot[idxs]
-
-        return states_exp_l, actions_exp_l, tcs_l
-
-
 class NextStateNPActsFixed(NextStateNP[S, A, G], ActsFixed[S, A, G], ABC):
     def _sample_state_np_action(self, states_np: List[NDArray]) -> List[A]:
         return self.sample_action(states_np[0].shape[0])
 
 
-class NextStateNPActsEnumFixed(NextStateNPActsEnum[S, A, G], ActsEnumFixed[S, A, G], ABC):
+class NextStateNPActsEnumFixed(NextStateNP[S, A, G], ActsEnumFixed[S, A, G], ABC):
     def _get_state_np_actions(self, states_np: List[NDArray]) -> List[List[A]]:
         state_actions: List[A] = self.get_actions_fixed()
         return [state_actions.copy() for _ in range(states_np[0].shape[0])]

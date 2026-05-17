@@ -423,7 +423,7 @@ class PathFindNode(PathFind[D, FNs, INode]):
         # get next edges
         start_time = time.time()
         edges_next_flat: List[EdgeQ] = []
-        for instance, nodes_next in zip(instances, nodes_next_by_inst):
+        for instance, nodes_next in zip(instances, nodes_next_by_inst, strict=True):
             edges_popped_inst: List[EdgeQ] = []
             for node in nodes_next:
                 assert (node.parent is not None) and (node.parent_action is not None) and (node.parent_t_cost is not None)
@@ -433,7 +433,7 @@ class PathFindNode(PathFind[D, FNs, INode]):
         self.times.record_time("edges_next", time.time() - start_time)
 
         start_time = time.time()
-        for instance, nodes_next in zip(instances, nodes_next_by_inst):
+        for instance, nodes_next in zip(instances, nodes_next_by_inst, strict=True):
             instance.set_next_nodes(nodes_next)
         self.times.record_time("set_next", time.time() - start_time)
 
@@ -564,7 +564,7 @@ class PathFindEdge(PathFind[D, FNs, IEdge]):  # TODO add nodes popped
         self._set_node_vals(misc_utils.flatten(nodes_next_by_inst)[0])
 
         start_time = time.time()
-        for instance, nodes_next in zip(instances, nodes_next_by_inst):
+        for instance, nodes_next in zip(instances, nodes_next_by_inst, strict=True):
             instance.set_next_nodes(nodes_next)
         self.times.record_time("set_next", time.time() - start_time)
 

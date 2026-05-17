@@ -1,8 +1,8 @@
-from typing import List, cast
+from typing import List, cast, Dict
 import pytest  # type: ignore
 
 from deepxube.factories.domain_factory import domain_factory
-from deepxube.base.domain import Domain, Goal, GoalSampleableFromState, GoalSampleable, ActsRev
+from deepxube.base.domain import Domain, State, Goal, GoalSampleableFromState, GoalSampleable, ActsRev, ActsEnum
 
 
 DOMAIN_NAMES: List[str] = [cls_name for cls_name in domain_factory.get_all_class_names() if cls_name != "sokoban"]
@@ -39,10 +39,18 @@ def domain_goalsamp_fromstate(request) -> Domain:  # type: ignore
 
 
 @pytest.fixture(
-    params=[dom_id for dom_id in DOMAIN_NAMES if issubclass(domain_factory.get_type(dom_id), GoalSampleable)],
+    params=[dom_id for dom_id in DOMAIN_NAMES if issubclass(domain_factory.get_type(dom_id), ActsRev)],
     ids=lambda dom_id: dom_id,
 )  # type: ignore
 def domain_actsrev(request) -> Domain:  # type: ignore
+    return build_domain_from_name(request.param)
+
+
+@pytest.fixture(
+    params=[dom_id for dom_id in DOMAIN_NAMES if issubclass(domain_factory.get_type(dom_id), ActsEnum)],
+    ids=lambda dom_id: dom_id,
+)  # type: ignore
+def domain_actsenum(request) -> Domain:  # type: ignore
     return build_domain_from_name(request.param)
 
 
@@ -75,6 +83,18 @@ def test_actsrev(domain_actsrev: ActsRev, num_states: int) -> None:
     assert all(state == state_fwd for state, state_fwd in zip(states, states_fwd))
     assert all(tc_rev == tc_fwd for tc_rev, tc_fwd in zip(tcs_rev, tcs_fwd))
 
+
+@pytest.mark.parametrize("num_states", [1, 5, 10])  # type: ignore
+def test_actsrev(domain_actsenum: ActsEnum, num_states: int) -> None:
+    states, _ = domain_actsenum.sample_problem_instances(list(range(0, num_states)))
+    states_exp, actions_exp_l, tcs_l = domain_actsenum.expand(states)
+
+    for state, state_exp, actions_exp, tcs in zip(states, states_exp, actions_exp_l, tcs_l, strict=True):
+        states_next, tcs_next = domain_actsenum.next_state([state] * len(actions_exp), actions_exp)
+        assert len(states_next) == len(state_exp)
+        tc_dict_exp: Dict[State, float] = {state: tc for state, tc in zip(state_exp, tcs, strict=True)}
+        tc_dict_next: Dict[State, float] = {state: tc for state, tc in zip(states_next, tcs_next, strict=True)}
+        assert tc_dict_exp == tc_dict_next
 
 """
 def test_get_start_states(domain_id: str):

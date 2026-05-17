@@ -1,7 +1,7 @@
 from typing import List, Tuple, Union, Optional, Dict, Any
 
 from deepxube.base.factory import Parser
-from deepxube.base.domain import State, Action, Goal, ActsEnumFixed, GoalStartRevWalkableActsRev, StateGoalVizable, StringToAct
+from deepxube.base.domain import State, Action, Goal, ActsEnumFixed, GoalStartRevWalkable, StateGoalVizable, StringToAct
 from deepxube.factories.domain_factory import domain_factory
 from deepxube.base.nnet_input import HasFlatSGIn
 import numpy as np
@@ -52,7 +52,7 @@ class NPAction(Action):
 
 
 @domain_factory.register_class("npuzzle")
-class NPuzzle(ActsEnumFixed[NPState, NPAction, NPGoal], GoalStartRevWalkableActsRev[NPState, NPAction, NPGoal], HasFlatSGIn[NPState, NPAction, NPGoal],
+class NPuzzle(ActsEnumFixed[NPState, NPAction, NPGoal], GoalStartRevWalkable[NPState, NPAction, NPGoal], HasFlatSGIn[NPState, NPAction, NPGoal],
               StateGoalVizable[NPState, NPAction, NPGoal], StringToAct[NPState, NPAction, NPGoal]):
     moves: List[str] = ['U', 'D', 'L', 'R']
     moves_rev: List[str] = ['D', 'U', 'R', 'L']
@@ -148,21 +148,8 @@ class NPuzzle(ActsEnumFixed[NPState, NPAction, NPGoal], GoalStartRevWalkableActs
     def get_actions_fixed(self) -> List[NPAction]:
         return self.actions.copy()
 
-    def sample_rev_state(self, states: List[NPState]) -> Tuple[List[NPState], List[NPAction], List[float]]:
-        actions: List[NPAction] = self.sample_state_action(states)
-        states_rev: List[NPState] = self.next_state(states, actions)[0]
-
-        actions_rev: List[NPAction] = []
-        for action in actions:
-            action_val: int = action.action
-            action_val_rev: int
-            if action_val % 2 == 0:
-                action_val_rev = action_val + 1
-            else:
-                action_val_rev = action_val - 1
-            actions_rev.append(NPAction(action_val_rev))
-
-        return states_rev, actions_rev, [1.0] * len(states)
+    def random_walk_rev_no_path_cost(self, states: List[NPState], num_steps_l: List[int]) -> List[NPState]:
+        return self.random_walk(states, num_steps_l)[0]
 
     def is_solved(self, states: List[NPState], goals: List[NPGoal]) -> List[bool]:
         states_np = np.stack([x.tiles for x in states], axis=0)

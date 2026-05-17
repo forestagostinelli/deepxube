@@ -25,6 +25,7 @@
 * Add timing of getting supervised data to supervised pathfinding
 * Add abstract method for loss info for training policy
 * Add layer norm to resnet_fc
+* Vectorize expand
 
 ## 0.2.1
 * Consolidate search: Beam search -> special cases: greedy_policy, graph search -> special cases: batch weighted A* search, batch weighted Q* search 
