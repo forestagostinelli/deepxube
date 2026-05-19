@@ -85,7 +85,7 @@ def test_actsrev(domain_actsrev: ActsRev, num_states: int) -> None:
 
 
 @pytest.mark.parametrize("num_states", [1, 5, 10])  # type: ignore
-def test_actsrev(domain_actsenum: ActsEnum, num_states: int) -> None:
+def test_expand(domain_actsenum: ActsEnum, num_states: int) -> None:
     states, _ = domain_actsenum.sample_problem_instances(list(range(0, num_states)))
     states_exp, actions_exp_l, tcs_l = domain_actsenum.expand(states)
 
@@ -95,6 +95,7 @@ def test_actsrev(domain_actsenum: ActsEnum, num_states: int) -> None:
         tc_dict_exp: Dict[State, float] = {state: tc for state, tc in zip(state_exp, tcs, strict=True)}
         tc_dict_next: Dict[State, float] = {state: tc for state, tc in zip(states_next, tcs_next, strict=True)}
         assert tc_dict_exp == tc_dict_next
+
 
 """
 def test_get_start_states(domain_id: str):

@@ -181,5 +181,6 @@ class ResnetFCParserPolicy(ResnetFCParserHeur):
 
     def help(self) -> str:
         return ("Arguments are delimited by '_' and can be in any order.\n<num>H (number of hidden units), "
-                "<num>B (number of blocks), <enc_dim>E (encoding dimensionality), bn (batch_norm), wn (weight_norm), ln (layer_norm).\n"
+                "<num>B (number of blocks), <enc_dim>E (encoding dimensionality), bn (batch_norm), wn (weight_norm), ln (layer_norm), "
+                "KL (kl divergence penalty).\n"
                 "E.g. resnet_fc.1000H_4B_10E_bn")

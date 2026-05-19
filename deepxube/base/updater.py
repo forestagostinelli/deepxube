@@ -568,10 +568,10 @@ class UpdateHasPolicy(Update[D, FNsP, P, Inst], ABC):
         return cast(PolicyNNetPar, self.nnet_par_dict[self.policy_name()])
 
     def get_policy_fn(self) -> PolicyFn:
-        return self._get_policy_fn_from_dict()
+        update_num: Optional[int] = self.targ_update_nums.get(self.policy_name())
+        update_num_is_0: bool = (update_num is not None) and (update_num == 0)
 
-    def _get_policy_fn_from_dict(self) -> PolicyFn:
-        if self.policy_name() not in self.nnet_fn_dict:
+        if (self.policy_name() not in self.nnet_fn_dict) or update_num_is_0:
             assert self.policy_samp > 0
             return get_rand_policy(self.domain, self.policy_samp)
         else:
