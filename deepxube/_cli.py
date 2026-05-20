@@ -114,6 +114,28 @@ def pathfinding_info(args: argparse.Namespace) -> None:
         print("")
 
 
+def viz_step(domain: StateGoalVizable, data: Dict, idx: int, state_idx: int, state_idx_max: int, states_on_path: List[State], state: State, goal: Goal,
+             fig: Figure) -> Tuple[State, int]:
+    solved: bool = data['solved'][idx]
+
+    action: Action = data['actions'][idx][state_idx]
+    print(f"Action: {action}")
+    state_next_l, tcs = domain.next_state([state], [action])
+    state_next: State = state_next_l[0]
+    print(f"Transition cost: {tcs[0]}")
+    state_idx += 1
+    assert state_next == states_on_path[state_idx]
+    state = state_next
+
+    _viz_state_goal_update(domain, state, goal, fig)
+
+    print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
+    if (state_idx == state_idx_max) and solved:
+        assert domain.is_solved([state], [goal])[0]
+
+    return state, state_idx
+
+
 def viz(args: argparse.Namespace) -> None:
     # domain
     domain, domain_name = get_domain_from_arg(args.domain)
@@ -137,32 +159,22 @@ def viz(args: argparse.Namespace) -> None:
     print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
 
     if args.soln:
-        solved: bool = data['solved'][args.idx]
         states_on_path: Optional[List[State]] = data['states_on_path'][args.idx]
         if states_on_path is not None:
             state_idx: int = 0
             state_idx_max: int = len(states_on_path) - 1
             plt.show(block=False)
             while True:
-                act_str = input(f"State idx {state_idx} of {state_idx_max} on path. Next state (n), Previous state (p), or state idx: ")
+                act_str = input(f"State idx {state_idx} of {state_idx_max} on path. Next state (n), Previous state (p), Video (v), state idx: ")
                 if len(act_str) == 0:
                     break
                 if act_str.upper() == "N":
                     if state_idx < state_idx_max:
-                        action: Action = data['actions'][args.idx][state_idx]
-                        print(f"Action: {action}")
-                        state_next_l, tcs = domain.next_state([state], [action])
-                        state_next: State = state_next_l[0]
-                        print(f"Transition cost: {tcs[0]}")
-                        state_idx += 1
-                        assert state_next == states_on_path[state_idx]
-                        state = state_next
-
-                        _viz_state_goal_update(domain, state, goal, fig)
-
-                        print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
-                        if (state_idx == state_idx_max) and solved:
-                            assert domain.is_solved([state], [goal])[0]
+                        state, state_idx = viz_step(domain, data, args.idx, state_idx, state_idx_max, states_on_path, state, goal, fig)
+                elif act_str.upper() == "V":
+                    while state_idx < state_idx_max:
+                        state, state_idx = viz_step(domain, data, args.idx, state_idx, state_idx_max, states_on_path, state, goal, fig)
+                        plt.pause(float(args.v_time))
                 elif act_str.upper() == "P":
                     if state_idx > 0:
                         state_idx -= 1
@@ -370,6 +382,7 @@ def _parse_viz_info(parser: ArgumentParser) -> None:
     parser.add_argument('--steps', type=int, default=0, help="Number of steps to take to generate problem instnace.")
     parser.add_argument('--file', type=str, default=None, help="If given, visualize results from file.")
     parser.add_argument('--idx', type=int, default=0, help="Index of problem instance in file.")
+    parser.add_argument('--v_time', type=float, default=0.1, help="Pause time for each step when showing video.")
     parser.add_argument('--soln', action='store_true', default=False, help="If true, then assumes file contains solutions for problem instances and will "
                                                                            "visualize them.")
     parser.set_defaults(func=viz)

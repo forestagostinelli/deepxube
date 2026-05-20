@@ -122,8 +122,10 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
                 updater.set_heur_nnet(heur_nnet_par)
                 updater.set_heur_file(heur_targ_file)
 
-    if policy_nnet_par is not None:
+    if update_policy is not None:
         update_policy.set_policy_samp(policy_samp)
+
+    if policy_nnet_par is not None:
         for updater in [update_heur, update_policy]:
             if (updater is not None) and isinstance(updater, UpdateHasPolicy):
                 updater.set_policy_nnet(policy_nnet_par)
