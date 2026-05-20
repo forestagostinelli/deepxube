@@ -47,11 +47,16 @@ def print_params(nnet: nn.Module) -> None:
 
 
 def get_curr_itr(train_heur: Optional[TrainHeur], train_policy: Optional[TrainPolicy]) -> int:
-    if train_heur is not None:
-        return train_heur.status.itr
-    else:
-        assert train_policy is not None
-        return train_policy.status.itr
+    itr: int = -1
+
+    for trainer in [train_heur, train_policy]:
+        if trainer is not None:
+            if itr == -1:
+                itr = trainer.status.itr
+            else:
+                itr = min(itr, trainer.status.itr)
+
+    return itr
 
 
 def get_curr_update_num(train_heur: Optional[TrainHeur], train_policy: Optional[TrainPolicy]) -> int:
