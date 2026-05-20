@@ -148,6 +148,10 @@ class BeamSearchPolicy(BeamSearch[Domain, FNsPolicy, InstanceEdgeBeam], PathFind
     def functions_type() -> Type[FNsPolicy]:
         return FNsPolicy
 
+    @property
+    def num_rand_edges(self) -> int:
+        return 0
+
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True,
                        beam_size: Optional[int] = None, temp: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceEdgeBeam]:
         nodes_root: List[Node] = self._create_root_nodes(states, goals, True)
@@ -231,6 +235,15 @@ class BeamSearchHeurEdgeActsEnum(BeamSearchHeurEdge[ActsEnum, FNsHeurQ], PathFin
 
 @pathfinding_factory.register_class("beam_v_p")
 class BeamSearchHeurNodeActsPolicy(BeamSearchHeurNode[Domain, FNsHeurVPolicy], PathFindActsPolicy[Domain, FNsHeurVPolicy, InstanceNodeBeam]):
+    def __init__(self, domain: Domain, functions: FNsHeurVPolicy, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False,
+                 num_rand_edges: int = 0):
+        super().__init__(domain, functions, beam_size=beam_size, temp=temp, eps=eps, rollout=rollout)
+        self._num_rand_edges = num_rand_edges
+
+    @property
+    def num_rand_edges(self) -> int:
+        return self._num_rand_edges
+
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -239,9 +252,22 @@ class BeamSearchHeurNodeActsPolicy(BeamSearchHeurNode[Domain, FNsHeurVPolicy], P
     def functions_type() -> Type[FNsHeurVPolicy]:
         return FNsHeurVPolicy
 
+    def __repr__(self) -> str:
+        return (f"{type(self).__name__}(beam_size={self.beam_size_default}, temp={self.temp_default}, eps={self.eps_default}, rollout={self.rollout}, "
+                f"num_rand_edges={self.num_rand_edges})")
+
 
 @pathfinding_factory.register_class("beam_q_p")
 class BeamSearchHeurEdgeActsPolicy(BeamSearchHeurEdge[Domain, FNsHeurQPolicy], PathFindActsPolicy[Domain, FNsHeurQPolicy, InstanceEdgeBeam]):
+    def __init__(self, domain: Domain, functions: FNsHeurQPolicy, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False,
+                 num_rand_edges: int = 0):
+        super().__init__(domain, functions, beam_size=beam_size, temp=temp, eps=eps, rollout=rollout)
+        self._num_rand_edges = num_rand_edges
+
+    @property
+    def num_rand_edges(self) -> int:
+        return self._num_rand_edges
+
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -249,6 +275,10 @@ class BeamSearchHeurEdgeActsPolicy(BeamSearchHeurEdge[Domain, FNsHeurQPolicy], P
     @staticmethod
     def functions_type() -> Type[FNsHeurQPolicy]:
         return FNsHeurQPolicy
+
+    def __repr__(self) -> str:
+        return (f"{type(self).__name__}(beam_size={self.beam_size_default}, temp={self.temp_default}, eps={self.eps_default}, rollout={self.rollout}, "
+                f"num_rand_edges={self.num_rand_edges})")
 
 
 class BeamSearchParser(Parser, ABC):
@@ -297,14 +327,46 @@ class BeamSearchEdgeParser(BeamSearchParser):
         return "beam_q"
 
 
+class BeamSearchHasPolicyParser(Parser, ABC):
+    def parse(self, args_str: str) -> Dict[str, Any]:
+        args_str_l: List[str] = args_str.split("_")
+        kwargs: Dict[str, Any] = dict()
+        for args_str_i in args_str_l:
+            beam_re = re.search(r"^(\S+)B$", args_str_i)
+            temp_re = re.search(r"^(\S+)T", args_str_i)
+            eps_re = re.search(r"^(\S+)E", args_str_i)
+            num_rand_edges = re.search(r"^(\S+)R", args_str_i)
+            if beam_re is not None:
+                kwargs["beam_size"] = int(beam_re.group(1))
+            elif temp_re is not None:
+                kwargs["temp"] = float(temp_re.group(1))
+            elif eps_re is not None:
+                kwargs["eps"] = float(eps_re.group(1))
+            elif num_rand_edges is not None:
+                kwargs["num_rand_edges"] = int(num_rand_edges.group(1))
+            else:
+                raise ValueError(f"Unexpected argument {args_str_i!r}")
+        kwargs["rollout"] = False
+        return kwargs
+
+    def help(self) -> str:
+        return ("<int>B (beam size), <float>T (temperature for Boltzmann distribution), <float>E (epsilon for chance to randomly select node), "
+                "<int>R (num rand edges).\n"
+                f"E.g. {self._alg_name()}.10B_1.0T_0.1E_5R")
+
+    @abstractmethod
+    def _alg_name(self) -> str:
+        pass
+
+
 @pathfinding_factory.register_parser("beam_v_p")
-class BeamSearchNodeHasPolicyParser(BeamSearchParser):
+class BeamSearchNodeHasPolicyParser(BeamSearchHasPolicyParser):
     def _alg_name(self) -> str:
         return "beam_v_p"
 
 
 @pathfinding_factory.register_parser("beam_q_p")
-class BeamSearchEdgeHasPolicyParser(BeamSearchParser):
+class BeamSearchEdgeHasPolicyParser(BeamSearchHasPolicyParser):
     def _alg_name(self) -> str:
         return "beam_q_p"
 

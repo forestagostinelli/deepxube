@@ -726,8 +726,13 @@ class PathFindActsEnum(PathFind[DActsEnum, FNs, I], ABC):
 
 
 class PathFindActsPolicy(PathFind[D, FNsP, I], ABC):
+    @property
+    @abstractmethod
+    def num_rand_edges(self) -> int:
+        pass
+
     def expand_states(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
-        actions_l: List[List[Action]] = self.functions.policy_fn(states, goals)[0]
+        actions_l: List[List[Action]] = self._get_actions(states, goals)
 
         # repeat states according to actions
         actions_flat, split_idxs = misc_utils.flatten(actions_l)
@@ -748,7 +753,22 @@ class PathFindActsPolicy(PathFind[D, FNsP, I], ABC):
         return states_exp, actions_l, tcs_l
 
     def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
-        return self.functions.policy_fn(states, goals)[0]
+        return self._get_actions(states, goals)
+
+    def _get_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
+        actions_l: List[List[Action]] = self.functions.policy_fn(states, goals)[0]
+
+        if self.num_rand_edges > 0:
+            states_rep_l: List[List[State]] = [[state] * self.num_rand_edges for state in states]
+            states_rep_flat, split_idxs = misc_utils.flatten(states_rep_l)
+
+            actions_rand_flat: List[Action] = self.domain.sample_state_action(states_rep_flat)
+
+            actions_rand_l: List[List[Action]] = misc_utils.unflatten(actions_rand_flat, split_idxs)
+            for state_idx in range(len(states)):
+                actions_l[state_idx].extend(actions_rand_l[state_idx])
+
+        return actions_l
 
 
 # pathfinding supervised (for training)

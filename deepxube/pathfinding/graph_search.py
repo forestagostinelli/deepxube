@@ -212,6 +212,14 @@ class GraphSearchHeurEdgeActsEnum(GraphSearchHeurEdge[ActsEnum, FNsHeurQ], PathF
 
 @pathfinding_factory.register_class("graph_v_p")
 class GraphSearchHeurNodeActsPolicy(GraphSearchHeurNode[Domain, FNsHeurVPolicy], PathFindActsPolicy[Domain, FNsHeurVPolicy, InstanceNodeGraph]):
+    def __init__(self, domain: Domain, functions: FNsHeurVPolicy, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, num_rand_edges: int = 0):
+        super().__init__(domain, functions, batch_size=batch_size, weight=weight, eps=eps)
+        self._num_rand_edges: int = num_rand_edges
+
+    @property
+    def num_rand_edges(self) -> int:
+        return self._num_rand_edges
+
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -220,9 +228,21 @@ class GraphSearchHeurNodeActsPolicy(GraphSearchHeurNode[Domain, FNsHeurVPolicy],
     def functions_type() -> Type[FNsHeurVPolicy]:
         return FNsHeurVPolicy
 
+    def __repr__(self) -> str:
+        return (f"{type(self).__name__}(batch_size={self.batch_size_default}, weight={self.weight_default}, eps={self.eps_default}, "
+                f"num_rand_edges={self.num_rand_edges})")
+
 
 @pathfinding_factory.register_class("graph_q_p")
 class GraphSearchHeurEdgeActsPolicy(GraphSearchHeurEdge[Domain, FNsHeurQPolicy], PathFindActsPolicy[Domain, FNsHeurQPolicy, InstanceEdgeGraph]):
+    def __init__(self, domain: Domain, functions: FNsHeurQPolicy, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, num_rand_edges: int = 0):
+        super().__init__(domain, functions, batch_size=batch_size, weight=weight, eps=eps)
+        self._num_rand_edges: int = num_rand_edges
+
+    @property
+    def num_rand_edges(self) -> int:
+        return self._num_rand_edges
+
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -230,6 +250,10 @@ class GraphSearchHeurEdgeActsPolicy(GraphSearchHeurEdge[Domain, FNsHeurQPolicy],
     @staticmethod
     def functions_type() -> Type[FNsHeurQPolicy]:
         return FNsHeurQPolicy
+
+    def __repr__(self) -> str:
+        return (f"{type(self).__name__}(batch_size={self.batch_size_default}, weight={self.weight_default}, eps={self.eps_default}, "
+                f"num_rand_edges={self.num_rand_edges})")
 
 
 class GraphSearchParser(Parser, ABC):
@@ -271,13 +295,43 @@ class GraphSearchEdgeParser(GraphSearchParser):
         return "graph_q"
 
 
+class GraphSearchHasPolicyParser(Parser, ABC):
+    def parse(self, args_str: str) -> Dict[str, Any]:
+        args_str_l: List[str] = args_str.split("_")
+        kwargs: Dict[str, Any] = dict()
+        for args_str_i in args_str_l:
+            batch_size_re = re.search(r"^(\S+)B$", args_str_i)
+            weight_re = re.search(r"^(\S+)W", args_str_i)
+            eps_re = re.search(r"^(\S+)E", args_str_i)
+            num_rand_edges = re.search(r"^(\S+)R", args_str_i)
+            if batch_size_re is not None:
+                kwargs["batch_size"] = int(batch_size_re.group(1))
+            elif weight_re is not None:
+                kwargs["weight"] = float(weight_re.group(1))
+            elif eps_re is not None:
+                kwargs["eps"] = float(eps_re.group(1))
+            elif num_rand_edges is not None:
+                kwargs["num_rand_edges"] = int(num_rand_edges.group(1))
+            else:
+                raise ValueError(f"Unexpected argument {args_str_i!r}")
+        return kwargs
+
+    def help(self) -> str:
+        return ("<int>B (batch size), <float>W (weight), <float>E (epsilon for chance to randomly pop node), <int>R (num rand edges).\n"
+                f"E.g. {self._alg_name()}.10B_0.5W_0.1E_5R")
+
+    @abstractmethod
+    def _alg_name(self) -> str:
+        pass
+
+
 @pathfinding_factory.register_parser("graph_v_p")
-class GraphSearchNodeHasPolicyParser(GraphSearchParser):
+class GraphSearchNodeHasPolicyParser(GraphSearchHasPolicyParser):
     def _alg_name(self) -> str:
         return "graph_v_p"
 
 
 @pathfinding_factory.register_parser("graph_q_p")
-class GraphSearchEdgeHasPolicyParser(GraphSearchParser):
+class GraphSearchEdgeHasPolicyParser(GraphSearchHasPolicyParser):
     def _alg_name(self) -> str:
         return "graph_q_p"
