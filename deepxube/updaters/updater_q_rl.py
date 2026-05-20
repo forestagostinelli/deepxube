@@ -56,8 +56,7 @@ class UpdateHeurQRL(UpdateHeurQ[D, FNsHQ, PathFindSetHeurQ], UpdateRL[D, FNsHQ, 
     def _step(self, pathfind: PathFindSetHeurQ, times: Times) -> None:
         _pathfind_q_step(pathfind)
 
-    def _q_learning_target(self, goals: List[Goal], is_solved_l: List[bool], tcs: List[float], states_next: List[State], times: Times) -> List[float]:
-        start_time = time.time()
+    def _q_learning_target(self, goals: List[Goal], is_solved_l: List[bool], tcs: List[float], states_next: List[State]) -> List[float]:
         # min cost-to-go for next state
         actions_next: List[List[Action]] = self.get_pathfind().get_state_actions(states_next, goals)
         qvals_next_l: List[List[float]] = self._get_targ_heur_fn()(states_next, goals, actions_next)
@@ -66,8 +65,6 @@ class UpdateHeurQRL(UpdateHeurQ[D, FNsHQ, PathFindSetHeurQ], UpdateRL[D, FNsHQ, 
         # backup cost-to-go
         ctg_backups: NDArray = np.array(tcs) + np.array(qvals_next_min)
         ctg_backups = ctg_backups * np.logical_not(np.array(is_solved_l))
-
-        times.record_time("qlearn_targ", time.time() - start_time)
 
         return cast(List[float], ctg_backups.tolist())
 
@@ -85,16 +82,18 @@ class UpdateHeurQRL(UpdateHeurQ[D, FNsHQ, PathFindSetHeurQ], UpdateRL[D, FNsHQ, 
                 times: Times) -> None:
         start_time = time.time()
         self.rb.add(list(zip(states, goals, is_solved_l, actions, tcs, states_next, strict=True)))
-        times.record_time("rb_add", time.time() - start_time)
+        times.record_time("add", time.time() - start_time, path=["replay"])
 
     def _sample_rb_qlearn_target(self, num: int, times: Times) -> Tuple[List[State], List[Goal], List[Action], List[float]]:
         # sample from replay buffer
         start_time = time.time()
         states, goals, is_solved_l, actions, tcs, states_next = self.rb.sample(num)
-        times.record_time("rb_samp", time.time() - start_time)
+        times.record_time("samp", time.time() - start_time, path=["replay"])
 
         # value iteration update
-        ctgs_backup: List[float] = self._q_learning_target(goals, is_solved_l, tcs, states_next, times)
+        start_time = time.time()
+        ctgs_backup: List[float] = self._q_learning_target(goals, is_solved_l, tcs, states_next)
+        times.record_time("qlearn_targ", time.time() - start_time, path=["replay"])
 
         return states, goals, actions, ctgs_backup
 
@@ -201,12 +200,12 @@ class UpdateHeurQRLHERABC(UpdateHeurQRL[GoalSampleableFromState, FNsHQ], UpdateH
                 tcs_her.append(tc)
                 states_next_her.append(node_next.state)
 
-        times.record_time("data_her", time.time() - start_time)
+        times.record_time("data", time.time() - start_time, path=["HER"])
 
         # is solved
         start_time = time.time()
         is_solved_l_her: List[bool] = self.domain.is_solved(states_her, goals_her)
-        times.record_time("is_solved_her", time.time() - start_time)
+        times.record_time("is_solved", time.time() - start_time, path=["HER"])
 
         # add to replay buffer
         self._rb_add(states_her, goals_her, is_solved_l_her, actions_her, tcs_her, states_next_her, times)

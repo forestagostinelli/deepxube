@@ -70,13 +70,13 @@ class UpdatePolicyRL(UpdatePolicy[D, FNsP, PathFindActsPolicy, Instance], Update
     def _rb_add(self, states: List[State], goals: List[Goal], actions: List[Action], times: Times) -> None:
         start_time = time.time()
         self.rb.add(list(zip(states, goals, actions, strict=True)))
-        times.record_time("rb_add", time.time() - start_time)
+        times.record_time("add", time.time() - start_time, path=["replay"])
 
     def _sample_rb(self, num: int, times: Times) -> Tuple[List[State], List[Goal], List[Action]]:
         # sample from replay buffer
         start_time = time.time()
         states, goals, actions = self.rb.sample(num)
-        times.record_time("rb_samp", time.time() - start_time)
+        times.record_time("samp", time.time() - start_time, path=["replay"])
 
         return states, goals, actions
 
@@ -155,7 +155,7 @@ class UpdatePolicyRLHERABC(UpdatePolicyRL[GoalSampleableFromState, FNsP], Update
             goals_her.extend([goal_her] * len(states_inst))
             actions_her.extend([edge.action for edge in instance.get_edges_popped()])
 
-        times.record_time("data_her", time.time() - start_time)
+        times.record_time("data", time.time() - start_time, path=["HER"])
 
         # add to replay buffer
         self._rb_add(states_her, goals_her, actions_her, times)

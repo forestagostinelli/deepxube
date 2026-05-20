@@ -60,7 +60,7 @@ def parse_solve(parser: ArgumentParser) -> None:
     parser.add_argument('--pathfind', type=str, required=True, help="Pathfinding algorithm and arguments.")
     parser.add_argument('--file', type=str, required=True, help="File containing problem instances to solve")
 
-    parser.add_argument('--time_limit', type=float, default=-1.0, help="A time limit for search. Default is -1, which means infinite.")
+    parser.add_argument('--time_limit', type=float, default=-1.0, help="A time limit (in seconds) for search. Default is -1, which means infinite.")
     parser.add_argument('--max_itrs', type=int, default=None, help="Maximum number of search iterations. None for infinite.")
 
     parser.add_argument('--results', type=str, required=True, help="Directory to save results. Saves results after every instance.")
@@ -124,10 +124,7 @@ def solve_cli(args: argparse.Namespace) -> None:
     # heur and policy fn
     heur_fn: Optional[HeurFn] = get_heur_fn(domain, domain_name, args.heur, args.heur_file, args.heur_type, args.nnet_batch_size)
     policy_fn: Optional[PolicyFn] = get_policy_fn(domain, domain_name, args.policy, args.policy_file, args.policy_samp, args.nnet_batch_size)
-    print(domain)
     pathfind_functions: Any = get_pathfind_functions(get_pathfind_name_kwargs(args.pathfind)[0], heur_fn, policy_fn)
-    pathfind: PathFind = get_pathfind_from_arg(domain, pathfind_functions, args.pathfind)[0]
-    print(pathfind)
 
     # get data
     data: Dict = pickle.load(open(args.file, "rb"))
@@ -151,6 +148,11 @@ def solve_cli(args: argparse.Namespace) -> None:
                    "num_nodes_generated": [], "solved": []}
         if not args.debug:
             sys.stdout = data_utils.Logger(output_file, "w")
+
+    # print info
+    print(domain)
+    pathfind: PathFind = get_pathfind_from_arg(domain, pathfind_functions, args.pathfind)[0]
+    print(pathfind)
 
     start_idx: int
     if args.start_idx is not None:

@@ -511,12 +511,12 @@ class UpdateHER(Update[GoalSampleableFromState, FNs, P, Inst], ABC):
                         state_deepest = node.state
                 states_deepest.append(state_deepest)
 
-            times.record_time("her_node_deepest", time.time() - start_time)
+            times.record_time("node_deepest", time.time() - start_time, path=["HER"])
 
             # relabel
             start_time = time.time()
             goals_relabel = self.domain.sample_goal_from_state(states_start, states_deepest)
-            times.record_time("her_relabel", time.time() - start_time)
+            times.record_time("relabel", time.time() - start_time, path=["HER"])
 
         return instances_goalkeep + instances_relabel, goals_goalkeep + goals_relabel
 

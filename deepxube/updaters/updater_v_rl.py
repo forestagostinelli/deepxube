@@ -50,9 +50,7 @@ class UpdateHeurVRL(UpdateHeurV[D, FNsHV, PathFindSetHeurV], UpdateRL[D, FNsHV, 
     def _step(self, pathfind: PathFindSetHeurV, times: Times) -> None:
         _pathfind_v_step(pathfind)
 
-    def _value_iteration_target(self, goals: List[Goal], is_solved_l: List[bool], tcs_l: List[List[float]], states_exp: List[List[State]],
-                                times: Times) -> List[float]:
-        start_time = time.time()
+    def _value_iteration_target(self, goals: List[Goal], is_solved_l: List[bool], tcs_l: List[List[float]], states_exp: List[List[State]]) -> List[float]:
         # get cost-to-go of expanded states
         states_exp_flat, split_idxs = misc_utils.flatten(states_exp)
         goals_flat: List[Goal] = []
@@ -66,8 +64,6 @@ class UpdateHeurVRL(UpdateHeurV[D, FNsHV, PathFindSetHeurV], UpdateRL[D, FNsHV, 
 
         ctgs_backup = np.array([np.min(x) for x in ctg_next_p_tc_l]) * np.logical_not(is_solved_l)
         ctgs_backup_l: List[float] = cast(List[float], ctgs_backup.tolist())
-
-        times.record_time("vi_targ", time.time() - start_time)
 
         return ctgs_backup_l
 
@@ -85,21 +81,23 @@ class UpdateHeurVRL(UpdateHeurV[D, FNsHV, PathFindSetHeurV], UpdateRL[D, FNsHV, 
     def _rb_add(self, states: List[State], goals: List[Goal], is_solved_l: List[bool], times: Times) -> None:
         start_time = time.time()
         self.rb.add(list(zip(states, goals, is_solved_l, strict=True)))
-        times.record_time("rb_add", time.time() - start_time)
+        times.record_time("add", time.time() - start_time, path=["replay"])
 
     def _sample_rb_vi_target(self, num: int, times: Times) -> Tuple[List[State], List[Goal], List[float]]:
         # sample from replay buffer
         start_time = time.time()
         states, goals, is_solved_l = self.rb.sample(num)
-        times.record_time("rb_samp", time.time() - start_time)
+        times.record_time("samp", time.time() - start_time, path=["replay"])
 
         # expand states
         start_time = time.time()
         states_exp, _, tcs_l = self.get_pathfind().expand_states(states, goals)
-        times.record_time("vi_expand", time.time() - start_time)
+        times.record_time("vi_expand", time.time() - start_time, path=["replay"])
 
         # value iteration update
-        ctgs_backup: List[float] = self._value_iteration_target(goals, is_solved_l, tcs_l, states_exp, times)
+        start_time = time.time()
+        ctgs_backup: List[float] = self._value_iteration_target(goals, is_solved_l, tcs_l, states_exp)
+        times.record_time("vi_targ", time.time() - start_time, path=["replay"])
 
         return states, goals, ctgs_backup
 
@@ -191,12 +189,12 @@ class UpdateHeurVRLHERABC(UpdateHeurVRL[GoalSampleableFromState, FNsHV], UpdateH
             states_her.extend(states_inst)
             goals_her.extend([goal_her] * len(states_inst))
 
-        times.record_time("data_her", time.time() - start_time)
+        times.record_time("data", time.time() - start_time, path=["HER"])
 
         # is solved
         start_time = time.time()
         is_solved_l_her: List[bool] = self.domain.is_solved(states_her, goals_her)
-        times.record_time("is_solved_her", time.time() - start_time)
+        times.record_time("is_solved", time.time() - start_time, path=["HER"])
 
         # add to replay buffer
         self._rb_add(states_her, goals_her, is_solved_l_her, times)
