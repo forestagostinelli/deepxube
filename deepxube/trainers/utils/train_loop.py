@@ -129,14 +129,14 @@ def train(domain: Domain, heur_nnet_par: Optional[HeurNNetPar], update_heur: Opt
 
     if update_policy is not None:
         update_policy.set_policy_samp(policy_samp)
+    if (update_heur is not None) and isinstance(update_heur, UpdateHasPolicy):
+        update_heur.set_policy_samp(policy_samp)
 
     if policy_nnet_par is not None:
         for updater in [update_heur, update_policy]:
             if (updater is not None) and isinstance(updater, UpdateHasPolicy):
                 updater.set_policy_nnet(policy_nnet_par)
                 updater.set_policy_file(policy_targ_file)
-    elif (update_heur is not None) and isinstance(update_heur, UpdateHasPolicy):
-        update_heur.set_policy_samp(policy_samp)
 
     # start_procs and trainers
     train_heur: Optional[TrainHeur] = None
