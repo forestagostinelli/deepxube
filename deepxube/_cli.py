@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, cast, Type, Dict, Any
+from typing import List, Optional, Tuple, Type, Dict, Any
 import argparse
 from argparse import ArgumentParser
 
@@ -200,20 +200,21 @@ def viz(args: argparse.Namespace) -> None:
         plt.show(block=False)
         while True:
             # get input
-            input_str: str = "Enter 1) blank for random action; 2) '!' to quit"
+            input_options: List[str] = ["nothing for random action"]
             if isinstance(domain, StringToAct):
-                input_str = f"{input_str}; 3) action string"
-            input_str = f"{input_str}: "
+                input_options.append("action string")
+            input_options.append("'!' to quit")
+            input_str = f"Enter {'; or '.join(input_options)}: "
 
             act_str = input(input_str)
             if act_str == "!":
                 break
 
             # get action
-            action_op: Optional[Action]
+            action_op: Optional[Action] = None
             if len(act_str) == 0:
                 action_op = domain.sample_state_action([state])[0]
-            else:
+            elif isinstance(domain, StringToAct):
                 action_op = domain.string_to_action(act_str)
 
             # take action
@@ -225,7 +226,7 @@ def viz(args: argparse.Namespace) -> None:
                 state = states_next[0]
                 print(f"Transition cost: {tcs[0]}")
                 print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
-                _viz_state_goal_update(cast(StateGoalVizable, domain), state, goal, fig)
+                _viz_state_goal_update(domain, state, goal, fig)
 
 
 def _viz_state_goal_update(domain: StateGoalVizable, state: State, goal: Goal, fig: Figure) -> None:

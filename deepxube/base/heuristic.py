@@ -31,9 +31,11 @@ class DeepXubeNNet(nn.Module, Generic[In], ABC):
         self.lr: float = 0.001
         self.lr_d: float = 0.9999993
 
-    @abstractmethod
     def forward(self, inputs: List[Tensor]) -> List[Tensor]:
-        pass
+        if self.training:
+            return self._forward_train(inputs)
+        else:
+            return self._forward_eval(inputs)
 
     def get_optimizer(self) -> Optimizer:
         return optim.Adam(self.parameters(), lr=self.lr)
@@ -42,6 +44,32 @@ class DeepXubeNNet(nn.Module, Generic[In], ABC):
         lr_itr: float = self.lr * (self.lr_d ** train_itr)
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_itr
+
+    @abstractmethod
+    def get_loss_and_info(self, fwd_tr_tensors: List[Tensor], get_info: bool) -> Tuple[Tensor, Optional[str]]:
+        """ Reduce tensors to compute loss and get information about loss
+
+        :param fwd_tr_tensors: List of tensors obtained from _forward_train
+        :param get_info: if true get string info
+        :return: scalar Tensor representing loss and optional string with information about loss
+        """
+        pass
+
+    @abstractmethod
+    def _forward_eval(self, inputs: List[Tensor]) -> List[Tensor]:
+        """ Called during eval
+        """
+        pass
+
+    @abstractmethod
+    def _forward_train(self, inputs: List[Tensor]) -> List[Tensor]:
+        """ Called during training
+
+        :param inputs:
+        :return: List of tensors for computing loss. IMPORTANT: do not perform reduction over the batch. get_loss_and_info method will do this so that
+        DataParallel can be used (i.e. the first dimension of each tensor should equal the batch size)
+        """
+        pass
 
 
 # neural networks
@@ -52,13 +80,37 @@ class HeurNNet(DeepXubeNNet[In]):
         self.out_dim: int = out_dim
         self.q_fix: bool = q_fix
 
-    def forward(self, inputs: List[Tensor]) -> List[Tensor]:
+    def get_loss_and_info(self, fwd_tr_tensors: List[Tensor], get_info: bool) -> Tuple[Tensor, Optional[str]]:
+        assert len(fwd_tr_tensors) == 2
+        ctgs_nnet: Tensor = fwd_tr_tensors[0]
+        ctgs_targ: Tensor = fwd_tr_tensors[1]
+
+        assert ctgs_nnet.size() == ctgs_targ.size()
+
+        loss_mse: Tensor = torch.mean((ctgs_targ - ctgs_nnet) ** 2)
+
+        info: Optional[str] = None
+        if get_info:
+            info = f"targ_ctg: {ctgs_targ.mean().item():.2f}, nnet_ctg: {ctgs_nnet.mean().item():.2f}"
+
+        return loss_mse, info
+
+    def _forward_train(self, inputs: List[Tensor]) -> List[Tensor]:
+        ctgs_targ: Tensor = inputs.pop(-1)
+        ctgs_nnet: Tensor = self._forward_heur(inputs)
+
+        return [ctgs_nnet, ctgs_targ]
+
+    def _forward_eval(self, inputs: List[Tensor]) -> List[Tensor]:
+        return [self._forward_heur(inputs)]
+
+    def _forward_heur(self, inputs: List[Tensor]) -> Tensor:
         if self.q_fix:
             action_idxs: Tensor = inputs[-1].long()
             x: Tensor = self._forward(inputs[:-1])
-            return [torch.gather(x, 1, action_idxs)]
+            return torch.gather(x, 1, action_idxs)
         else:
-            return [self._forward(inputs)]
+            return self._forward(inputs)
 
     @abstractmethod
     def _forward(self, inputs: List[Tensor]) -> Tensor:
@@ -69,43 +121,13 @@ PNNetIn = TypeVar('PNNetIn', bound=PolicyNNetIn)
 
 
 class PolicyNNet(DeepXubeNNet[PNNetIn], ABC):
+    """
+    _forward_train: get states, goals, and actions
+    _forward_eval: Condition on states and goals to sample self.num_samp actions
+    """
     def __init__(self, nnet_input: PNNetIn, num_samp: int, **kwargs: Any):
         super().__init__(nnet_input)
         self.num_samp: int = num_samp
-
-    def forward(self, inputs: List[Tensor]) -> List[Tensor]:
-        if self.training:
-            return self._forward_train(inputs)
-        else:
-            return self._forward_eval(inputs)
-
-    @abstractmethod
-    def get_loss_and_info(self, loss_tensors: List[Tensor]) -> Tuple[Tensor, Optional[str]]:
-        """ Reduce tensors to compute loss and get information about loss
-
-        :param loss_tensors: List of tensors obtained from _forward_train
-        :return: scalar Tensor representing loss and optional string with information about loss
-        """
-        pass
-
-    @abstractmethod
-    def _forward_eval(self, states_goals: List[Tensor]) -> List[Tensor]:
-        """ Condition on states and goals to sample self.num_samp actions
-
-        :param states_goals:
-        :return: List of tensors representing actions with the last Tensor representing the probability density of actions (N x num_samp x ...)
-        """
-        pass
-
-    @abstractmethod
-    def _forward_train(self, states_goals_actions: List[Tensor]) -> List[Tensor]:
-        """
-
-        :param states_goals_actions:
-        :return: List of tensors for computing loss. IMPORTANT: do not perform reduction. get_loss_and_info method will do this so that DataParallel can be
-        used. I.e. the first dimension of each tensor should equal the batch size
-        """
-        pass
 
 
 def _flatten_list(data_l: List[Tensor]) -> Tensor:
@@ -118,13 +140,15 @@ class PolicyVAE(PolicyNNet[PNNetIn]):
         self.norm_dist = torch.distributions.Normal(0, 1)
         self.kl_weight: float = kl_weight
 
-    def get_loss_and_info(self, loss_tensors: List[Tensor]) -> Tuple[Tensor, Optional[str]]:
-        loss_recon_mean: Tensor = torch.mean(loss_tensors[0], dim=0)
-        loss_kl_mean: Tensor = torch.mean(loss_tensors[1], dim=0)
+    def get_loss_and_info(self, fwd_tr_tensors: List[Tensor], get_info: bool) -> Tuple[Tensor, Optional[str]]:
+        loss_recon_mean: Tensor = torch.mean(fwd_tr_tensors[0], dim=0)
+        loss_kl_mean: Tensor = torch.mean(fwd_tr_tensors[1], dim=0)
 
         loss: Tensor = loss_recon_mean + (self.kl_weight * loss_kl_mean)
 
-        loss_str: str = f"loss_recon: {loss_recon_mean.item():.2E}, loss_kl: {loss_kl_mean.item():.2E}"
+        loss_str: Optional[str] = None
+        if get_info:
+            loss_str = f"loss_recon: {loss_recon_mean.item():.2E}, loss_kl: {loss_kl_mean.item():.2E}"
 
         return loss, loss_str
 

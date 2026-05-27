@@ -3,7 +3,7 @@ from typing import List, Tuple
 from deepxube.base.heuristic import PolicyNNet
 from deepxube.base.updater import UpdatePolicy
 from deepxube.base.trainer import Train, update_optimizer
-from deepxube.trainers.utils.train_utils import train_policy_nnet_step
+from deepxube.trainers.utils.train_utils import train_nnet_step
 from deepxube.utils.timing_utils import Times
 
 import numpy as np
@@ -21,7 +21,7 @@ class TrainPolicy(Train[PolicyNNet, UpdatePolicy]):
 
         self.nnet.train()
         update_optimizer(self.optimizer, self.nnet, self.status.itr)
-        loss = train_policy_nnet_step(self.nnet, batch, self.optimizer, self.device, self.status.itr, self.train_args, self.train_start_time)
+        loss = train_nnet_step(self.nnet, batch, self.optimizer, self.device, self.status.itr, self.train_args, self.train_start_time)[1]
         self.writer.add_scalar("train/loss", loss, self.status.itr)
 
         times.record_time("train", time.time() - start_time)
