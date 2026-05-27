@@ -6,6 +6,7 @@ from numpy.typing import NDArray
 
 from deepxube.base.domain import State, Goal, Action, Domain
 from deepxube.base.pathfinding import Instance
+from deepxube.utils.misc_utils import scalar_stats
 
 
 @dataclass
@@ -78,6 +79,7 @@ def print_pathfindperf(step_to_pathfindperf: Dict[int, PathFindPerf]) -> None:
     steps: List[int] = list(step_to_pathfindperf.keys())
     steps = sorted(steps)
     step_show_idxs: List[int] = list(np.unique(np.linspace(0, len(steps) - 1, 30, dtype=int)))
+    print("Stats per step: Mean(Std/Min/Max)")
     for step_show_idx in step_show_idxs:
         step_show: int = steps[step_show_idx]
         pathfindperf: PathFindPerf = step_to_pathfindperf[step_show]
@@ -88,18 +90,18 @@ def print_pathfindperf(step_to_pathfindperf: Dict[int, PathFindPerf]) -> None:
 
         # Get stats
         per_solved = 100 * float(sum(is_solved)) / float(len(is_solved))
-        avg_itrs: float = 0.0
-        avg_path_costs: float = 0.0
+        path_costs: NDArray
+        solve_itrs: NDArray
         if per_solved > 0.0:
-            avg_itrs = float(np.mean(pathfindperf.search_itrs_l))
-            avg_path_costs = float(np.mean(pathfindperf.path_costs))
+            solve_itrs = np.array(pathfindperf.search_itrs_l)
+            path_costs = np.array(pathfindperf.path_costs)
+        else:
+            path_costs = np.zeros(1)
+            solve_itrs = np.zeros(1)
 
         # Print results
-        print(f"Steps: %i, %%Solved: %.2f, avgItrs: {avg_itrs:.2f}, avgPathCosts: {avg_path_costs:.2f}, "
-              f"CTG_Backup: %.2f(%.2f/%.2f/%.2f), "
-              f"Num: {ctgs_bkup.shape[0]}" % (step_show, per_solved, float(np.mean(ctgs_bkup)),
-                                              float(np.std(ctgs_bkup)), float(np.min(ctgs_bkup)),
-                                              float(np.max(ctgs_bkup))))
+        print(f"Steps: {step_show}, %%Solved: {per_solved:.2f}, itrs: {scalar_stats(solve_itrs)}, path_costs: {scalar_stats(path_costs)}, "
+              f"CTG_Backup: {scalar_stats(ctgs_bkup)}, Num: {ctgs_bkup.shape[0]}")
 
 
 def is_valid_soln(state: State, goal: Goal, soln: List[Action], domain: Domain) -> bool:

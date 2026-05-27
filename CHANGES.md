@@ -30,6 +30,9 @@
 * Separate timings for HER and rb
 * Video added to viz when visualizing solutions
 * Can add random edges to graph and beam search when using policy
+* Add random action option to viz
+* Add --no_act option to viz
+* mean(std/min/max) for itrs and path_costs in --up_v
 
 ## 0.2.1
 * Consolidate search: Beam search -> special cases: greedy_policy, graph search -> special cases: batch weighted A* search, batch weighted Q* search 

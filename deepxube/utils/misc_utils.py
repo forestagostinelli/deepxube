@@ -78,3 +78,9 @@ def boltzmann(vals: List[float], temp: float) -> List[float]:
         probs_np: NDArray[np.float64] = exp_vals_np / np.sum(exp_vals_np)
 
         return cast(List[float], probs_np.tolist())
+
+
+def scalar_stats(data: NDArray) -> str:
+    # get mean(std/min/max)
+    stats_str: str = f"{data.mean():.2f}({data.std():.2f}/{data.min():.2f}/{data.max():.2f})"
+    return stats_str

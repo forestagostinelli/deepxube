@@ -115,17 +115,21 @@ def pathfinding_info(args: argparse.Namespace) -> None:
 
 
 def viz_step(domain: StateGoalVizable, data: Dict, idx: int, state_idx: int, state_idx_max: int, states_on_path: List[State], state: State, goal: Goal,
-             fig: Figure) -> Tuple[State, int]:
+             no_act: bool, fig: Figure) -> Tuple[State, int]:
     solved: bool = data['solved'][idx]
 
     action: Action = data['actions'][idx][state_idx]
     print(f"Action: {action}")
-    state_next_l, tcs = domain.next_state([state], [action])
-    state_next: State = state_next_l[0]
-    print(f"Transition cost: {tcs[0]}")
+
     state_idx += 1
-    assert state_next == states_on_path[state_idx]
-    state = state_next
+    if no_act:
+        state = states_on_path[state_idx]
+    else:
+        state_next_l, tcs = domain.next_state([state], [action])
+        state_next: State = state_next_l[0]
+        print(f"Transition cost: {tcs[0]}")
+        assert state_next == states_on_path[state_idx]
+        state = state_next
 
     _viz_state_goal_update(domain, state, goal, fig)
 
@@ -170,10 +174,10 @@ def viz(args: argparse.Namespace) -> None:
                     break
                 if act_str.upper() == "N":
                     if state_idx < state_idx_max:
-                        state, state_idx = viz_step(domain, data, args.idx, state_idx, state_idx_max, states_on_path, state, goal, fig)
+                        state, state_idx = viz_step(domain, data, args.idx, state_idx, state_idx_max, states_on_path, state, goal, args.no_act, fig)
                 elif act_str.upper() == "V":
                     while state_idx < state_idx_max:
-                        state, state_idx = viz_step(domain, data, args.idx, state_idx, state_idx_max, states_on_path, state, goal, fig)
+                        state, state_idx = viz_step(domain, data, args.idx, state_idx, state_idx_max, states_on_path, state, goal, args.no_act, fig)
                         plt.pause(float(args.v_time))
                 elif act_str.upper() == "P":
                     if state_idx > 0:
@@ -193,22 +197,35 @@ def viz(args: argparse.Namespace) -> None:
     else:
         if isinstance(domain, StringToAct):
             print(domain.string_to_action_help())
-            plt.show(block=False)
-            while True:
-                act_str = input("Write action (press enter to quit): ")
-                if len(act_str) == 0:
-                    break
-                action_op: Optional[Action] = domain.string_to_action(act_str)
-                if action_op is None:
-                    print(f"No action {act_str}")
-                else:
-                    states_next, tcs = domain.next_state([state], [action_op])
-                    state = states_next[0]
-                    print(f"Transition cost: {tcs[0]}")
-                    print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
-                    _viz_state_goal_update(cast(StateGoalVizable, domain), state, goal, fig)
-        else:
-            plt.show(block=True)
+        plt.show(block=False)
+        while True:
+            # get input
+            input_str: str = "Enter 1) blank for random action; 2) '!' to quit"
+            if isinstance(domain, StringToAct):
+                input_str = f"{input_str}; 3) action string"
+            input_str = f"{input_str}: "
+
+            act_str = input(input_str)
+            if act_str == "!":
+                break
+
+            # get action
+            action_op: Optional[Action]
+            if len(act_str) == 0:
+                action_op = domain.sample_state_action([state])[0]
+            else:
+                action_op = domain.string_to_action(act_str)
+
+            # take action
+            if action_op is None:
+                print(f"No action '{act_str}'")
+            else:
+                print(action_op)
+                states_next, tcs = domain.next_state([state], [action_op])
+                state = states_next[0]
+                print(f"Transition cost: {tcs[0]}")
+                print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
+                _viz_state_goal_update(cast(StateGoalVizable, domain), state, goal, fig)
 
 
 def _viz_state_goal_update(domain: StateGoalVizable, state: State, goal: Goal, fig: Figure) -> None:
@@ -385,6 +402,8 @@ def _parse_viz_info(parser: ArgumentParser) -> None:
     parser.add_argument('--v_time', type=float, default=0.1, help="Pause time for each step when showing video.")
     parser.add_argument('--soln', action='store_true', default=False, help="If true, then assumes file contains solutions for problem instances and will "
                                                                            "visualize them.")
+    parser.add_argument('--no_act', action='store_true', default=False, help="If true, then will not take action in domain when stepping through solution to "
+                                                                             "verify states match and will just use states on solution path.")
     parser.set_defaults(func=viz)
 
 
