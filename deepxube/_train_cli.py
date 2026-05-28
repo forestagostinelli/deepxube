@@ -36,6 +36,8 @@ def parser_train(parser: ArgumentParser) -> None:
     train_group = parser.add_argument_group('train')
     train_group.add_argument('--batch_size', type=int, default=1000, help="Batch size.")
     train_group.add_argument('--max_itrs', type=int, default=100000, help="Maximum training iterations.")
+    train_group.add_argument('--accum', type=int, default=1, help="Number of gradient accumulation steps to use to split batch. This argument does not change "
+                                                                  "the given batch size, only the number of accumulation steps used to do the forward pass.")
     train_group.add_argument('--chkpt', type=int, default=0, help="Save checkpoint file of network being trained at initialization and at every given "
                                                                   "number of update checks. Checkpoint number given is training iteration, not update number."
                                                                   "If 0 then checkpointing is not done.")
@@ -114,7 +116,7 @@ def train_cli(args: argparse.Namespace) -> None:
 
     # train args
     train_args: TrainArgs = TrainArgs(args.batch_size, args.max_itrs, args.bal, rb=args.rb, loss_thresh=args.up_lt, skip_heur=args.skip_heur,
-                                      skip_policy=args.skip_policy, checkpoint=args.chkpt, display=args.display)
+                                      skip_policy=args.skip_policy, checkpoint=args.chkpt, grad_accum=args.accum, display=args.display)
 
     # test args
     test_args: Optional[TestArgs] = None

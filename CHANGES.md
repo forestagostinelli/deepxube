@@ -34,6 +34,7 @@
 * Add --no_act option to viz
 * mean(std/min/max) for itrs and path_costs in --up_v
 * Make training more generic for DeepXubeNNet to allow more user flexibility
+* Add gradient accumulation
 
 ## 0.2.1
 * Consolidate search: Beam search -> special cases: greedy_policy, graph search -> special cases: batch weighted A* search, batch weighted Q* search 

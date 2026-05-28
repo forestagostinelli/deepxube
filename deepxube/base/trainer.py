@@ -43,6 +43,7 @@ class TrainArgs:
     :param skip_policy: Skip training of policy
     :param checkpoint: Save checkpoint file of network being trained at initialization and at every given number of update checks.
     Checkpoint number given is training iteration, not update number. If 0 then checkpointing is not done.
+    :param grad_accum: Number of times to split batch into sub-batches for gradient accumulation
     :param display: Number of iterations to display progress when training nnet. No display if 0.
     """
     batch_size: int
@@ -54,6 +55,7 @@ class TrainArgs:
     skip_heur: bool = False
     skip_policy: bool = False
     checkpoint: int = 0
+    grad_accum: int = 1
     display: int = 100
 
 
