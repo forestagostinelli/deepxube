@@ -65,6 +65,7 @@ def train_nnet_step(nnet: Union[DeepXubeNNet, nn.DataParallel], data_np: List[ND
         # send data to device
         end_idx: int = start_idx + batch_size_accum
         data_np_accum: List[NDArray] = [data_np_i[start_idx:end_idx] for data_np_i in data_np]
+        batch_size_i: int = data_np_accum[0].shape[0]
         data: List[Tensor] = nnet_utils.to_pytorch_input(data_np_accum, device)
 
         # forward
@@ -73,7 +74,7 @@ def train_nnet_step(nnet: Union[DeepXubeNNet, nn.DataParallel], data_np: List[ND
         fwd_tr_tensors_tot_np_l.append([tens.cpu().data.numpy() for tens in fwd_tr_tensors])
 
         # backwards
-        loss = loss / train_args.grad_accum
+        loss = (batch_size_i * loss) / batch_size
         loss.backward()
         loss_tot += loss.item()
 
