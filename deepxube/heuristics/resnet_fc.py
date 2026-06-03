@@ -1,9 +1,8 @@
-from typing import List, Dict, Any, Type, Tuple
+from typing import List, Type, Tuple
 import torch
 from torch import nn, Tensor
-import re
 
-from deepxube.base.factory import Parser
+from deepxube.base.factory import DelimParser
 from deepxube.base.nnet_input import FlatIn, FlatInPolicy
 from deepxube.base.heuristic import HeurNNet, PolicyVAE
 from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel, OneHot, make_onehots
@@ -116,71 +115,29 @@ class ResnetFCPolicy(PolicyVAE[FlatInPolicy]):
         return [x]
 
 
-@heuristic_factory.register_parser("resnet_fc")
-class ResnetFCParserHeur(Parser):
-    def parse(self, args_str: str) -> Dict[str, Any]:
-        args_str_l: List[str] = args_str.split("_")
-        kwargs: Dict[str, Any] = dict()
-        for args_str_i in args_str_l:
-            hidden_re = re.search(r"^(\S+)H$", args_str_i)
-            blocks_re = re.search(r"^(\S+)B$", args_str_i)
-            bn_re = re.search(r"^bn$", args_str_i)
-            wn_re = re.search(r"^wn$", args_str_i)
-            ln_re = re.search(r"^ln$", args_str_i)
-            if hidden_re is not None:
-                kwargs["res_dim"] = int(hidden_re.group(1))
-            elif blocks_re is not None:
-                kwargs["num_blocks"] = int(blocks_re.group(1))
-            elif bn_re is not None:
-                kwargs["batch_norm"] = True
-            elif wn_re is not None:
-                kwargs["weight_norm"] = True
-            elif ln_re is not None:
-                kwargs["layer_norm"] = True
-            else:
-                raise ValueError(f"Unexpected argument {args_str_i!r}")
-        return kwargs
+class ResnetFCParser(DelimParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.add_argument("H", "res_dim", int, "dimensionality of hidden layers in residual blocks")
+        self.add_argument("B", "num_blocks", int, "number of residual blocks")
+        self.add_argument("bn", "batch_norm", None, "Batch normalization")
+        self.add_argument("wn", "weight_norm", None, "Weight normalization")
+        self.add_argument("ln", "layer_norm", None, "Layer normalization")
 
-    def help(self) -> str:
-        return ("Arguments are delimited by '_' and can be in any order.\n<num>H (number of hidden units), "
-                "<num>B (number of blocks), bn (batch_norm), wn (weight_norm), ln (layer_norm).\n"
-                "E.g. resnet_fc.1000H_4B_bn")
+    @property
+    def delim(self) -> str:
+        return "_"
+
+
+@heuristic_factory.register_parser("resnet_fc")
+class ResnetFCParserHeur(ResnetFCParser):
+    pass
 
 
 @policy_factory.register_parser("resnet_fc")
-class ResnetFCParserPolicy(ResnetFCParserHeur):
-    def parse(self, args_str: str) -> Dict[str, Any]:
-        args_str_l: List[str] = args_str.split("_")
-        kwargs: Dict[str, Any] = dict()
-        kwargs["kl_weight"] = 1.0
-        for args_str_i in args_str_l:
-            hidden_re = re.search(r"^(\S+)H$", args_str_i)
-            blocks_re = re.search(r"^(\S+)B$", args_str_i)
-            enc_dim_re = re.search(r"^(\S+)E$", args_str_i)
-            kl_re = re.search(r"^(\S+)KL$", args_str_i)
-            bn_re = re.search(r"^bn$", args_str_i)
-            wn_re = re.search(r"^wn$", args_str_i)
-            ln_re = re.search(r"^ln$", args_str_i)
-            if hidden_re is not None:
-                kwargs["res_dim"] = int(hidden_re.group(1))
-            elif blocks_re is not None:
-                kwargs["num_blocks"] = int(blocks_re.group(1))
-            elif bn_re is not None:
-                kwargs["batch_norm"] = True
-            elif wn_re is not None:
-                kwargs["weight_norm"] = True
-            elif ln_re is not None:
-                kwargs["layer_norm"] = True
-            elif enc_dim_re is not None:
-                kwargs["enc_dim"] = int(enc_dim_re.group(1))
-            elif kl_re is not None:
-                kwargs["kl_weight"] = float(kl_re.group(1))
-            else:
-                raise ValueError(f"Unexpected argument {args_str_i!r}")
-        return kwargs
-
-    def help(self) -> str:
-        return ("Arguments are delimited by '_' and can be in any order.\n<num>H (number of hidden units), "
-                "<num>B (number of blocks), <enc_dim>E (encoding dimensionality), bn (batch_norm), wn (weight_norm), ln (layer_norm), "
-                "KL (kl divergence penalty).\n"
-                "E.g. resnet_fc.1000H_4B_10E_bn")
+class ResnetFCParserPolicy(ResnetFCParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.add_argument("ln", "layer_norm", None, "Layer normalization")
+        self.add_argument("E", "enc_dim", int, "Dimensionality of encoding layer")
+        self.add_argument("KL", "kl_weight", int, "KL divergence penalty", default=1.0)
