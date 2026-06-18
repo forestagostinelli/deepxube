@@ -20,7 +20,7 @@ class ArgumentSpec:
     arg_name: str
     value_type: Optional[Callable[[str], Any]]
     help_msg: str
-    default: Optional
+    default: Optional[Any]
 
     @property
     def is_boolean(self) -> bool:
@@ -36,7 +36,8 @@ class DelimParser(Parser):
     def delim(self) -> str:
         pass
 
-    def add_argument(self, arg_name_parse: str, arg_name: str, value_type: Optional[Callable[[str], Any]], help_msg: str, default: Optional = None) -> None:
+    def add_argument(self, arg_name_parse: str, arg_name: str, value_type: Optional[Callable[[str], Any]], help_msg: str,
+                     default: Optional[Any] = None) -> None:
         arg_name_parse = arg_name_parse.lower()
         assert (len(arg_name_parse) > 0) and (len(arg_name) > 0), "length of argument names must be > 0"
         assert self.delim not in arg_name_parse, f"Cannot have delimiter {self.delim} in {arg_name_parse}"
@@ -73,7 +74,7 @@ class DelimParser(Parser):
         return kwargs
 
     def help(self) -> str:
-        help_str_l: List[str] = [f"Format <arg_val><arg_name> for non-boolean arguments and <arg_name> for boolean arguments. <arg_name> is case invariant.",
+        help_str_l: List[str] = ["Format <arg_val><arg_name> for non-boolean arguments and <arg_name> for boolean arguments. <arg_name> is case invariant.",
                                  f"Delimited by {self.delim}."]
         for arg_spec in self._args.values():
             if arg_spec.is_boolean:

@@ -45,21 +45,21 @@ def get_immediate_mixins(cls: Type[object], mixin_base: Type) -> List[Type]:
 
 def domain_info(args: argparse.Namespace) -> None:
     domain_names: List[str]
-    if args.names is None:
+    if args.domain is None:
         domain_names = domain_factory.get_all_class_names()
     else:
-        domain_names = args.names.split(",")
+        domain_names = [args.domain]
 
     for domain_name in domain_names:
         domain_t: Type[Domain] = domain_factory.get_type(domain_name)
         print(f"Domain: {domain_name}, {domain_t}")
         parser: Optional[Parser] = domain_factory.get_parser(domain_name)
         if parser is not None:
-            print(textwrap.indent("Parser: " + parser.help(), '\t'))
+            print(textwrap.indent("Parser:\n" + textwrap.indent(parser.help(), '\t'), '\t'))
 
         # mixins
-        mixin_str: str = ', '.join([f"{x}" for x in get_immediate_mixins(domain_t, Domain)])
-        print(textwrap.indent(f"Mixins: {mixin_str}", '\t'))
+        mixin_str: str = textwrap.indent(', '.join([f"{x}" for x in get_immediate_mixins(domain_t, Domain)]), '\t')
+        print(textwrap.indent("Mixins:\n" + mixin_str, '\t'))
 
         # nnet inputs
         nnet_input_t_keys: List[Tuple[str, str]] = get_domain_nnet_input_keys(domain_name)
@@ -381,7 +381,7 @@ def main() -> None:
 
 
 def _parser_domain_info(parser: ArgumentParser) -> None:
-    parser.add_argument('--names', type=str, default=None, help="Comma separated value for only specific names. List all if None.")
+    parser.add_argument('--domain', type=str, default=None, help="Name of domain.")
     parser.set_defaults(func=domain_info)
 
 
