@@ -15,6 +15,8 @@ G = TypeVar('G', bound=Goal)
 
 
 class NNetInput(ABC, Generic[D]):
+    """ Defines how some combination of states/goals/actions for a given domain are converted to a representation suitable for a neural network
+    """
     def __init__(self, domain: D):
         self.domain: D = domain
 

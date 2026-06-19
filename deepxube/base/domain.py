@@ -75,6 +75,8 @@ G = TypeVar('G', bound=Goal)
 
 # TODO method for downloading data?
 class Domain(ABC, Generic[S, A, G]):
+    """ The domain which generates problem instances and defines the relationship between states, actions, and goals
+    """
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.nnet_par_dict: Dict[str, Tuple[str, NNetPar]] = dict()
         self.nnet_fn_dict: Dict[str, NNetCallable] = dict()
@@ -201,6 +203,12 @@ class StateGoalVizable(Domain[S, A, G]):
     """
     @abstractmethod
     def visualize_state_goal(self, state: S, goal: G, fig: Figure) -> None:
+        """ Modifies the given figure to visualize the given state and goal
+
+        :param state: State
+        :param goal: Goal
+        :param fig: Figure to be modified
+        """
         pass
 
 
@@ -228,6 +236,10 @@ class StringToAct(Domain[S, A, G]):
 class ActsFixed(Domain[S, A, G]):
     @abstractmethod
     def sample_action(self, num: int) -> List[A]:
+        """ Sample actions
+        :param num: number of actions to sample
+        :return: Sampled actions
+        """
         pass
 
     def sample_state_action(self, states: List[S]) -> List[A]:
@@ -240,10 +252,10 @@ class ActsRev(Domain[S, A, G], ABC):
     """
     @abstractmethod
     def sample_rev_state(self, states: List[S]) -> Tuple[List[S], List[A], List[float]]:
-        """ Get random reverse state, reverse action that returns reverse state to given state and transition cost of that reverse action
+        """ Get random reverse state, action that returns reverse state to given state and transition cost along edge going to reverse state
 
         :param states: List of states
-        :return: Reverse states, reverse actions, reverse transition costs
+        :return: Reverse states, actions to return to given states, transition cost along edge going to reverse state
         """
         pass
 
@@ -251,7 +263,7 @@ class ActsRev(Domain[S, A, G], ABC):
 class ActsEnum(Domain[S, A, G]):
     @abstractmethod
     def get_state_actions(self, states: List[S]) -> List[List[A]]:
-        """ Get actions applicable to each states
+        """ Get all actions that are applicable to each of the given states
 
         :param states: List of states
         :return: Applicable actions
@@ -299,9 +311,17 @@ class ActsEnumFixed(ActsEnum[S, A, G], ActsFixed[S, A, G]):
 
     @abstractmethod
     def get_actions_fixed(self) -> List[A]:
+        """
+
+        :return: All possible actions. Every action should be applicable to any state in the domain.
+        """
         pass
 
     def get_num_acts(self) -> int:
+        """
+
+        :return: The number of possible actions
+        """
         return len(self.get_actions_fixed())
 
 
@@ -309,18 +329,33 @@ class ActsEnumFixed(ActsEnum[S, A, G], ActsFixed[S, A, G]):
 class NodesSupervisable(Domain[S, A, G]):
     @abstractmethod
     def samp_nodes_and_labels(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[float]]:
+        """ Return problem instances with a supervised label for the cost-to-go. This label need not be the true cost-to-go.
+
+        :param steps_gen: Number of actions to take to sample nodes. Labels are the number of actions taken
+        :return: States, goals, labels
+        """
         pass
 
 
 class EdgesSupervisable(Domain[S, A, G]):
     @abstractmethod
     def samp_edges_and_labels(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[A], List[float]]:
+        """ Return problem instances with a supervised label for the cost-to-go. This label need not be the true cost-to-go.
+
+        :param steps_gen: Number of actions to take to sample nodes. Labels are the number of actions taken
+        :return: States, goals, actions, labels
+        """
         pass
 
 
 class EdgesSampleable(Domain[S, A, G]):
     @abstractmethod
     def samp_edges(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[A]]:
+        """ Sample edges that are on a path to a goal.
+
+        :param steps_gen: Number of steps to take between start state and goal
+        :return: States, goals, actions taken from states that lead to goal
+        """
         pass
 
 
@@ -339,8 +374,8 @@ class GoalStateSampleable(Domain[S, A, G]):
     """ Can sample goal states """
     @abstractmethod
     def sample_goal_states(self, num: int) -> List[S]:
-        """ Sample goal states
-        :return: Goal states
+        """
+        :return: Sampled goal states
         """
         pass
 
