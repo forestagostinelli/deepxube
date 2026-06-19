@@ -1,3 +1,4 @@
+""" Definition of NNetInput """
 from typing import Any, List, Tuple, Generic, TypeVar, Type, ClassVar, Dict, Optional
 from abc import ABC, abstractmethod
 
@@ -15,17 +16,25 @@ G = TypeVar('G', bound=Goal)
 
 
 class NNetInput(ABC, Generic[D]):
-    """ Defines how some combination of states/goals/actions for a given domain are converted to a representation suitable for a neural network
-    """
+    """ Defines how some combination of states/goals/actions for a given domain are converted to a representation suitable for a neural network """
     def __init__(self, domain: D):
         self.domain: D = domain
 
     @abstractmethod
     def get_input_info(self) -> Any:
+        """
+
+        :return: General information relevant to the construction of the neural network (i.e. expected input dimensions)
+        """
         pass
 
     @abstractmethod
     def to_np(self, *args: Any) -> List[NDArray]:
+        """
+
+        :param args: Converts relevant objects to neural network representation as a list of numpy arrays.
+        :return: List of numpy arrays. For each element in the list, the first dimension must be equal to the number of inputs.
+        """
         pass
 
 
@@ -76,14 +85,31 @@ class PolicyNNetIn(NNetInput[D], Generic[D, S, G, A]):
 
     @abstractmethod
     def to_np_fn(self, states: List[S], goals: List[G]) -> List[NDArray]:
+        """ For sampling actions
+
+        :param states: States
+        :param goals: Goals
+        :return: List of numpy array representation for neural network
+        """
         pass
 
     @abstractmethod
     def nnet_out_to_actions(self, nnet_out: List[NDArray[np.float64]]) -> List[A]:
+        """ Converting nnet output to Actions when sampling actions
+
+        :param nnet_out: Output of neural network represented as a list of numpy arrays. The first dimension of each element of the list must be equal to the
+        number of outputs.
+        :return: Actions that the neural network outputs represent
+        """
         pass
 
     @abstractmethod
     def states_goals_actions_split_idx(self) -> int:
+        """ The Policy neural network assumes it will be given the states, goals, and actions during training and that the actions can be
+        separated from the states and goals in the list of numpy arrays.
+
+        :return: Index i such that, for input list l, l[i:] only corresponds to representation for actions
+        """
         pass
 
 
@@ -91,7 +117,7 @@ class FlatInPolicy(FlatIn[D], PolicyNNetIn[D, S, G, A], ABC):
     pass
 
 
-# Env mixins for inputs
+# Domain mixins for inputs
 class DynamicNNetInput(Domain[S, A, G], ABC):
     _nnet_input_register: ClassVar[Dict[str, Type[NNetInput]]] = dict()
 
@@ -102,10 +128,20 @@ class DynamicNNetInput(Domain[S, A, G], ABC):
 
     @classmethod
     def register_nnet_input(cls, nnet_input_t: Type[NNetInput], nnet_input_name: str) -> None:
+        """
+
+        :param nnet_input_t: NNetInput type
+        :param nnet_input_name: name of neural network input
+        :return:
+        """
         cls._nnet_input_register[nnet_input_name] = nnet_input_t
 
     @classmethod
     def get_dynamic_nnet_inputs(cls) -> Dict[str, Type[NNetInput]]:
+        """
+
+        :return: Neural network inputs that can be dynamically created for class.
+        """
         return cls._nnet_input_register.copy()
 
 
@@ -132,19 +168,29 @@ class HasFlatSGIn(DynamicNNetInput[S, A, G]):
     def get_input_info_flat_sg(self) -> Tuple[List[int], List[int]]:
         """
         :return: A list of dimensions of the arrays given to the neural network (pre one_hot), A list of depths for performing a one_hot representation on
-        that corresponding input.
-        If 1, then no one_hot is performed.
+        that corresponding input. If 1, then no one_hot is performed.
         """
         pass
 
     @abstractmethod
     def to_np_flat_sg(self, states: List[S], goals: List[G]) -> List[NDArray]:
+        """
+
+        :param states: States
+        :param goals: Goals
+        :return: Flat (1D) representation
+        """
         pass
 
 
 class HasActsEnumFixedIn(Domain[S, A, G]):
     @abstractmethod
     def actions_to_indices(self, actions: List[A]) -> List[int]:
+        """
+
+        :param actions: Actions
+        :return: Index they correspond to for fixed nnet output
+        """
         pass
 
 
@@ -186,10 +232,22 @@ class HasFlatSGAIn(DynamicNNetInput[S, A, G]):
 
     @abstractmethod
     def get_input_info_flat_sga(self) -> Tuple[List[int], List[int]]:
+        """
+
+        :return: A list of dimensions of the arrays given to the neural network (pre one_hot), A list of depths for performing a one_hot representation on
+        that corresponding input. If 1, then no one_hot is performed.
+        """
         pass
 
     @abstractmethod
     def to_np_flat_sga(self, states: List[S], goals: List[G], actions: List[A]) -> List[NDArray]:
+        """
+
+        :param states: States
+        :param goals: Goals
+        :param actions: Actions
+        :return: Flat (1D) representation
+        """
         pass
 
 

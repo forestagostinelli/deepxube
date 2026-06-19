@@ -900,8 +900,7 @@ possible so that the trained heuristic function generalizes well.</p>
 
 <blockquote>
   <p>A list of dimensions of the arrays given to the neural network (pre one_hot), A list of depths for performing a one_hot representation on
-  that corresponding input.
-  If 1, then no one_hot is performed.</p>
+  that corresponding input. If 1, then no one_hot is performed.</p>
 </blockquote>
 </div>
 
@@ -923,7 +922,14 @@ possible so that the trained heuristic function generalizes well.</p>
 </span></pre></div>
 
 
-    
+            <div class="docstring"><h6 id="returns">Returns</h6>
+
+<blockquote>
+  <p>A list of dimensions of the arrays given to the neural network (pre one_hot), A list of depths for performing a one_hot representation on
+  that corresponding input. If 1, then no one_hot is performed.</p>
+</blockquote>
+</div>
+
 
                             </div>
                             <div id="Grid.to_np_flat_sg" class="classattr">
@@ -943,7 +949,20 @@ possible so that the trained heuristic function generalizes well.</p>
 </span></pre></div>
 
 
-    
+            <div class="docstring"><h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>states</strong>:  States</li>
+<li><strong>goals</strong>:  Goals</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<blockquote>
+  <p>Flat (1D) representation</p>
+</blockquote>
+</div>
+
 
                             </div>
                             <div id="Grid.to_np_flat_sga" class="classattr">
@@ -962,7 +981,21 @@ possible so that the trained heuristic function generalizes well.</p>
 </span></pre></div>
 
 
-    
+            <div class="docstring"><h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>states</strong>:  States</li>
+<li><strong>goals</strong>:  Goals</li>
+<li><strong>actions</strong>:  Actions</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<blockquote>
+  <p>Flat (1D) representation</p>
+</blockquote>
+</div>
+
 
                             </div>
                             <div id="Grid.actions_to_indices" class="classattr">
@@ -981,7 +1014,19 @@ possible so that the trained heuristic function generalizes well.</p>
 </span></pre></div>
 
 
-    
+            <div class="docstring"><h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>actions</strong>:  Actions</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<blockquote>
+  <p>Index they correspond to for fixed nnet output</p>
+</blockquote>
+</div>
+
 
                             </div>
                             <div id="Grid.visualize_state_goal" class="classattr">
@@ -1266,7 +1311,13 @@ inheritance.</p>
 </span></pre></div>
 
 
-    
+            <div class="docstring"><h6 id="returns">Returns</h6>
+
+<blockquote>
+  <p>General information relevant to the construction of the neural network (i.e. expected input dimensions)</p>
+</blockquote>
+</div>
+
 
                             </div>
                             <div id="GridNNetInput.to_np" class="classattr">
@@ -1290,7 +1341,19 @@ inheritance.</p>
 </span></pre></div>
 
 
-    
+            <div class="docstring"><h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>args</strong>:  Converts relevant objects to neural network representation as a list of numpy arrays.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<blockquote>
+  <p>List of numpy arrays. For each element in the list, the first dimension must be equal to the number of inputs.</p>
+</blockquote>
+</div>
+
 
                             </div>
                             <div class="inherited">
