@@ -214,17 +214,36 @@ NNetFn = TypeVar('NNetFn', bound=NNetCallable)
 
 
 class NNetPar(ABC, Generic[NNetFn]):
+    """ A neural network that can be called from other processes """
     @abstractmethod
-    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device,
-                    update_num: Optional[int]) -> NNetFn:
+    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device, update_num: Optional[int]) -> NNetFn:
+        """
+
+        :param nnet: Neural network module
+        :param batch_size: Maximum number of inputs to pass to neural network at a time. Loops until all inputs are given. If None, all inputs are given
+        at once, no matter how large.
+        :param device: Device that the neural network is on
+        :param update_num: Update number (only relevant for training)
+        :return: Neural network function
+        """
         pass
 
     @abstractmethod
     def get_nnet_par_fn(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> NNetFn:
+        """
+
+        :param nnet_par_info: Information of neural network which may exist on a different process
+        :param update_num: Update number (only relevant for training)
+        :return: Neural network function
+        """
         pass
 
     @abstractmethod
     def get_nnet(self) -> nn.Module:
+        """
+
+        :return: Neural network module
+        """
         pass
 
     def __repr__(self) -> str:

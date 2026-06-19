@@ -336,37 +336,56 @@
 </span><span id="L-214"><a href="#L-214"><span class="linenos">214</span></a>
 </span><span id="L-215"><a href="#L-215"><span class="linenos">215</span></a>
 </span><span id="L-216"><a href="#L-216"><span class="linenos">216</span></a><span class="k">class</span><span class="w"> </span><span class="nc">NNetPar</span><span class="p">(</span><span class="n">ABC</span><span class="p">,</span> <span class="n">Generic</span><span class="p">[</span><span class="n">NNetFn</span><span class="p">]):</span>
-</span><span id="L-217"><a href="#L-217"><span class="linenos">217</span></a>    <span class="nd">@abstractmethod</span>
-</span><span id="L-218"><a href="#L-218"><span class="linenos">218</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_nnet_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nnet</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-</span><span id="L-219"><a href="#L-219"><span class="linenos">219</span></a>                    <span class="n">update_num</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NNetFn</span><span class="p">:</span>
-</span><span id="L-220"><a href="#L-220"><span class="linenos">220</span></a>        <span class="k">pass</span>
+</span><span id="L-217"><a href="#L-217"><span class="linenos">217</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot; A neural network that can be called from other processes &quot;&quot;&quot;</span>
+</span><span id="L-218"><a href="#L-218"><span class="linenos">218</span></a>    <span class="nd">@abstractmethod</span>
+</span><span id="L-219"><a href="#L-219"><span class="linenos">219</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_nnet_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nnet</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">update_num</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NNetFn</span><span class="p">:</span>
+</span><span id="L-220"><a href="#L-220"><span class="linenos">220</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="L-221"><a href="#L-221"><span class="linenos">221</span></a>
-</span><span id="L-222"><a href="#L-222"><span class="linenos">222</span></a>    <span class="nd">@abstractmethod</span>
-</span><span id="L-223"><a href="#L-223"><span class="linenos">223</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_nnet_par_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nnet_par_info</span><span class="p">:</span> <span class="n">NNetParInfo</span><span class="p">,</span> <span class="n">update_num</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NNetFn</span><span class="p">:</span>
-</span><span id="L-224"><a href="#L-224"><span class="linenos">224</span></a>        <span class="k">pass</span>
-</span><span id="L-225"><a href="#L-225"><span class="linenos">225</span></a>
-</span><span id="L-226"><a href="#L-226"><span class="linenos">226</span></a>    <span class="nd">@abstractmethod</span>
-</span><span id="L-227"><a href="#L-227"><span class="linenos">227</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_nnet</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
-</span><span id="L-228"><a href="#L-228"><span class="linenos">228</span></a>        <span class="k">pass</span>
-</span><span id="L-229"><a href="#L-229"><span class="linenos">229</span></a>
-</span><span id="L-230"><a href="#L-230"><span class="linenos">230</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span id="L-231"><a href="#L-231"><span class="linenos">231</span></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">get_nnet</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
-</span><span id="L-232"><a href="#L-232"><span class="linenos">232</span></a>
-</span><span id="L-233"><a href="#L-233"><span class="linenos">233</span></a>
-</span><span id="L-234"><a href="#L-234"><span class="linenos">234</span></a><span class="k">def</span><span class="w"> </span><span class="nf">get_nnet_par_out</span><span class="p">(</span><span class="n">inputs_nnet</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">],</span> <span class="n">nnet_par_info</span><span class="p">:</span> <span class="n">NNetParInfo</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">]:</span>
-</span><span id="L-235"><a href="#L-235"><span class="linenos">235</span></a>    <span class="n">inputs_nnet_shm</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">SharedNDArray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">np_to_shnd</span><span class="p">(</span><span class="n">inputs_nnet_i</span><span class="p">)</span>
-</span><span id="L-236"><a href="#L-236"><span class="linenos">236</span></a>                                            <span class="k">for</span> <span class="n">input_idx</span><span class="p">,</span> <span class="n">inputs_nnet_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">inputs_nnet</span><span class="p">)]</span>
-</span><span id="L-237"><a href="#L-237"><span class="linenos">237</span></a>
-</span><span id="L-238"><a href="#L-238"><span class="linenos">238</span></a>    <span class="n">nnet_par_info</span><span class="o">.</span><span class="n">nnet_i_q</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">nnet_par_info</span><span class="o">.</span><span class="n">proc_id</span><span class="p">,</span> <span class="n">inputs_nnet_shm</span><span class="p">))</span>
-</span><span id="L-239"><a href="#L-239"><span class="linenos">239</span></a>
-</span><span id="L-240"><a href="#L-240"><span class="linenos">240</span></a>    <span class="n">out_shm_l</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">SharedNDArray</span><span class="p">]</span> <span class="o">=</span> <span class="n">nnet_par_info</span><span class="o">.</span><span class="n">nnet_o_q</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-</span><span id="L-241"><a href="#L-241"><span class="linenos">241</span></a>    <span class="n">out_l</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">out_shm</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">out_shm</span> <span class="ow">in</span> <span class="n">out_shm_l</span><span class="p">]</span>
-</span><span id="L-242"><a href="#L-242"><span class="linenos">242</span></a>
-</span><span id="L-243"><a href="#L-243"><span class="linenos">243</span></a>    <span class="k">for</span> <span class="n">arr_shm</span> <span class="ow">in</span> <span class="n">inputs_nnet_shm</span> <span class="o">+</span> <span class="n">out_shm_l</span><span class="p">:</span>
-</span><span id="L-244"><a href="#L-244"><span class="linenos">244</span></a>        <span class="n">arr_shm</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-</span><span id="L-245"><a href="#L-245"><span class="linenos">245</span></a>        <span class="n">arr_shm</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
-</span><span id="L-246"><a href="#L-246"><span class="linenos">246</span></a>
-</span><span id="L-247"><a href="#L-247"><span class="linenos">247</span></a>    <span class="k">return</span> <span class="n">out_l</span>
+</span><span id="L-222"><a href="#L-222"><span class="linenos">222</span></a><span class="sd">        :param nnet: Neural network module</span>
+</span><span id="L-223"><a href="#L-223"><span class="linenos">223</span></a><span class="sd">        :param batch_size: Maximum number of inputs to pass to neural network at a time. Loops until all inputs are given. If None, all inputs are given</span>
+</span><span id="L-224"><a href="#L-224"><span class="linenos">224</span></a><span class="sd">        at once, no matter how large.</span>
+</span><span id="L-225"><a href="#L-225"><span class="linenos">225</span></a><span class="sd">        :param device: Device that the neural network is on</span>
+</span><span id="L-226"><a href="#L-226"><span class="linenos">226</span></a><span class="sd">        :param update_num: Update number (only relevant for training)</span>
+</span><span id="L-227"><a href="#L-227"><span class="linenos">227</span></a><span class="sd">        :return: Neural network function</span>
+</span><span id="L-228"><a href="#L-228"><span class="linenos">228</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="L-229"><a href="#L-229"><span class="linenos">229</span></a>        <span class="k">pass</span>
+</span><span id="L-230"><a href="#L-230"><span class="linenos">230</span></a>
+</span><span id="L-231"><a href="#L-231"><span class="linenos">231</span></a>    <span class="nd">@abstractmethod</span>
+</span><span id="L-232"><a href="#L-232"><span class="linenos">232</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_nnet_par_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nnet_par_info</span><span class="p">:</span> <span class="n">NNetParInfo</span><span class="p">,</span> <span class="n">update_num</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NNetFn</span><span class="p">:</span>
+</span><span id="L-233"><a href="#L-233"><span class="linenos">233</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="L-234"><a href="#L-234"><span class="linenos">234</span></a>
+</span><span id="L-235"><a href="#L-235"><span class="linenos">235</span></a><span class="sd">        :param nnet_par_info: Information of neural network which may exist on a different process</span>
+</span><span id="L-236"><a href="#L-236"><span class="linenos">236</span></a><span class="sd">        :param update_num: Update number (only relevant for training)</span>
+</span><span id="L-237"><a href="#L-237"><span class="linenos">237</span></a><span class="sd">        :return: Neural network function</span>
+</span><span id="L-238"><a href="#L-238"><span class="linenos">238</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="L-239"><a href="#L-239"><span class="linenos">239</span></a>        <span class="k">pass</span>
+</span><span id="L-240"><a href="#L-240"><span class="linenos">240</span></a>
+</span><span id="L-241"><a href="#L-241"><span class="linenos">241</span></a>    <span class="nd">@abstractmethod</span>
+</span><span id="L-242"><a href="#L-242"><span class="linenos">242</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_nnet</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
+</span><span id="L-243"><a href="#L-243"><span class="linenos">243</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="L-244"><a href="#L-244"><span class="linenos">244</span></a>
+</span><span id="L-245"><a href="#L-245"><span class="linenos">245</span></a><span class="sd">        :return: Neural network module</span>
+</span><span id="L-246"><a href="#L-246"><span class="linenos">246</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="L-247"><a href="#L-247"><span class="linenos">247</span></a>        <span class="k">pass</span>
+</span><span id="L-248"><a href="#L-248"><span class="linenos">248</span></a>
+</span><span id="L-249"><a href="#L-249"><span class="linenos">249</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="L-250"><a href="#L-250"><span class="linenos">250</span></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">get_nnet</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+</span><span id="L-251"><a href="#L-251"><span class="linenos">251</span></a>
+</span><span id="L-252"><a href="#L-252"><span class="linenos">252</span></a>
+</span><span id="L-253"><a href="#L-253"><span class="linenos">253</span></a><span class="k">def</span><span class="w"> </span><span class="nf">get_nnet_par_out</span><span class="p">(</span><span class="n">inputs_nnet</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">],</span> <span class="n">nnet_par_info</span><span class="p">:</span> <span class="n">NNetParInfo</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">]:</span>
+</span><span id="L-254"><a href="#L-254"><span class="linenos">254</span></a>    <span class="n">inputs_nnet_shm</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">SharedNDArray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">np_to_shnd</span><span class="p">(</span><span class="n">inputs_nnet_i</span><span class="p">)</span>
+</span><span id="L-255"><a href="#L-255"><span class="linenos">255</span></a>                                            <span class="k">for</span> <span class="n">input_idx</span><span class="p">,</span> <span class="n">inputs_nnet_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">inputs_nnet</span><span class="p">)]</span>
+</span><span id="L-256"><a href="#L-256"><span class="linenos">256</span></a>
+</span><span id="L-257"><a href="#L-257"><span class="linenos">257</span></a>    <span class="n">nnet_par_info</span><span class="o">.</span><span class="n">nnet_i_q</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">nnet_par_info</span><span class="o">.</span><span class="n">proc_id</span><span class="p">,</span> <span class="n">inputs_nnet_shm</span><span class="p">))</span>
+</span><span id="L-258"><a href="#L-258"><span class="linenos">258</span></a>
+</span><span id="L-259"><a href="#L-259"><span class="linenos">259</span></a>    <span class="n">out_shm_l</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">SharedNDArray</span><span class="p">]</span> <span class="o">=</span> <span class="n">nnet_par_info</span><span class="o">.</span><span class="n">nnet_o_q</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+</span><span id="L-260"><a href="#L-260"><span class="linenos">260</span></a>    <span class="n">out_l</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">out_shm</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">out_shm</span> <span class="ow">in</span> <span class="n">out_shm_l</span><span class="p">]</span>
+</span><span id="L-261"><a href="#L-261"><span class="linenos">261</span></a>
+</span><span id="L-262"><a href="#L-262"><span class="linenos">262</span></a>    <span class="k">for</span> <span class="n">arr_shm</span> <span class="ow">in</span> <span class="n">inputs_nnet_shm</span> <span class="o">+</span> <span class="n">out_shm_l</span><span class="p">:</span>
+</span><span id="L-263"><a href="#L-263"><span class="linenos">263</span></a>        <span class="n">arr_shm</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</span><span id="L-264"><a href="#L-264"><span class="linenos">264</span></a>        <span class="n">arr_shm</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+</span><span id="L-265"><a href="#L-265"><span class="linenos">265</span></a>
+</span><span id="L-266"><a href="#L-266"><span class="linenos">266</span></a>    <span class="k">return</span> <span class="n">out_l</span>
 </span></pre></div>
 
 
@@ -576,7 +595,7 @@
                             </div>
                             <div id="NNetParInfo.nnet_i_q" class="classattr">
                                 <div class="attr variable">
-            <span class="name">nnet_i_q</span><span class="annotation">: &lt;bound method BaseContext.Queue of &lt;multiprocessing.context.DefaultContext object at 0x10ae0b760&gt;&gt;</span>
+            <span class="name">nnet_i_q</span><span class="annotation">: &lt;bound method BaseContext.Queue of &lt;multiprocessing.context.DefaultContext object at 0x1071e7760&gt;&gt;</span>
 
         
     </div>
@@ -587,7 +606,7 @@
                             </div>
                             <div id="NNetParInfo.nnet_o_q" class="classattr">
                                 <div class="attr variable">
-            <span class="name">nnet_o_q</span><span class="annotation">: &lt;bound method BaseContext.Queue of &lt;multiprocessing.context.DefaultContext object at 0x10ae0b760&gt;&gt;</span>
+            <span class="name">nnet_o_q</span><span class="annotation">: &lt;bound method BaseContext.Queue of &lt;multiprocessing.context.DefaultContext object at 0x1071e7760&gt;&gt;</span>
 
         
     </div>
@@ -796,26 +815,44 @@
     </div>
     <a class="headerlink" href="#NNetPar"></a>
             <div class="pdoc-code codehilite"><pre><span></span><span id="NNetPar-217"><a href="#NNetPar-217"><span class="linenos">217</span></a><span class="k">class</span><span class="w"> </span><span class="nc">NNetPar</span><span class="p">(</span><span class="n">ABC</span><span class="p">,</span> <span class="n">Generic</span><span class="p">[</span><span class="n">NNetFn</span><span class="p">]):</span>
-</span><span id="NNetPar-218"><a href="#NNetPar-218"><span class="linenos">218</span></a>    <span class="nd">@abstractmethod</span>
-</span><span id="NNetPar-219"><a href="#NNetPar-219"><span class="linenos">219</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_nnet_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nnet</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-</span><span id="NNetPar-220"><a href="#NNetPar-220"><span class="linenos">220</span></a>                    <span class="n">update_num</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NNetFn</span><span class="p">:</span>
-</span><span id="NNetPar-221"><a href="#NNetPar-221"><span class="linenos">221</span></a>        <span class="k">pass</span>
+</span><span id="NNetPar-218"><a href="#NNetPar-218"><span class="linenos">218</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot; A neural network that can be called from other processes &quot;&quot;&quot;</span>
+</span><span id="NNetPar-219"><a href="#NNetPar-219"><span class="linenos">219</span></a>    <span class="nd">@abstractmethod</span>
+</span><span id="NNetPar-220"><a href="#NNetPar-220"><span class="linenos">220</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_nnet_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nnet</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">update_num</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NNetFn</span><span class="p">:</span>
+</span><span id="NNetPar-221"><a href="#NNetPar-221"><span class="linenos">221</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="NNetPar-222"><a href="#NNetPar-222"><span class="linenos">222</span></a>
-</span><span id="NNetPar-223"><a href="#NNetPar-223"><span class="linenos">223</span></a>    <span class="nd">@abstractmethod</span>
-</span><span id="NNetPar-224"><a href="#NNetPar-224"><span class="linenos">224</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_nnet_par_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nnet_par_info</span><span class="p">:</span> <span class="n">NNetParInfo</span><span class="p">,</span> <span class="n">update_num</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NNetFn</span><span class="p">:</span>
-</span><span id="NNetPar-225"><a href="#NNetPar-225"><span class="linenos">225</span></a>        <span class="k">pass</span>
-</span><span id="NNetPar-226"><a href="#NNetPar-226"><span class="linenos">226</span></a>
-</span><span id="NNetPar-227"><a href="#NNetPar-227"><span class="linenos">227</span></a>    <span class="nd">@abstractmethod</span>
-</span><span id="NNetPar-228"><a href="#NNetPar-228"><span class="linenos">228</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_nnet</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
-</span><span id="NNetPar-229"><a href="#NNetPar-229"><span class="linenos">229</span></a>        <span class="k">pass</span>
-</span><span id="NNetPar-230"><a href="#NNetPar-230"><span class="linenos">230</span></a>
-</span><span id="NNetPar-231"><a href="#NNetPar-231"><span class="linenos">231</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span id="NNetPar-232"><a href="#NNetPar-232"><span class="linenos">232</span></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">get_nnet</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+</span><span id="NNetPar-223"><a href="#NNetPar-223"><span class="linenos">223</span></a><span class="sd">        :param nnet: Neural network module</span>
+</span><span id="NNetPar-224"><a href="#NNetPar-224"><span class="linenos">224</span></a><span class="sd">        :param batch_size: Maximum number of inputs to pass to neural network at a time. Loops until all inputs are given. If None, all inputs are given</span>
+</span><span id="NNetPar-225"><a href="#NNetPar-225"><span class="linenos">225</span></a><span class="sd">        at once, no matter how large.</span>
+</span><span id="NNetPar-226"><a href="#NNetPar-226"><span class="linenos">226</span></a><span class="sd">        :param device: Device that the neural network is on</span>
+</span><span id="NNetPar-227"><a href="#NNetPar-227"><span class="linenos">227</span></a><span class="sd">        :param update_num: Update number (only relevant for training)</span>
+</span><span id="NNetPar-228"><a href="#NNetPar-228"><span class="linenos">228</span></a><span class="sd">        :return: Neural network function</span>
+</span><span id="NNetPar-229"><a href="#NNetPar-229"><span class="linenos">229</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="NNetPar-230"><a href="#NNetPar-230"><span class="linenos">230</span></a>        <span class="k">pass</span>
+</span><span id="NNetPar-231"><a href="#NNetPar-231"><span class="linenos">231</span></a>
+</span><span id="NNetPar-232"><a href="#NNetPar-232"><span class="linenos">232</span></a>    <span class="nd">@abstractmethod</span>
+</span><span id="NNetPar-233"><a href="#NNetPar-233"><span class="linenos">233</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_nnet_par_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nnet_par_info</span><span class="p">:</span> <span class="n">NNetParInfo</span><span class="p">,</span> <span class="n">update_num</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NNetFn</span><span class="p">:</span>
+</span><span id="NNetPar-234"><a href="#NNetPar-234"><span class="linenos">234</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="NNetPar-235"><a href="#NNetPar-235"><span class="linenos">235</span></a>
+</span><span id="NNetPar-236"><a href="#NNetPar-236"><span class="linenos">236</span></a><span class="sd">        :param nnet_par_info: Information of neural network which may exist on a different process</span>
+</span><span id="NNetPar-237"><a href="#NNetPar-237"><span class="linenos">237</span></a><span class="sd">        :param update_num: Update number (only relevant for training)</span>
+</span><span id="NNetPar-238"><a href="#NNetPar-238"><span class="linenos">238</span></a><span class="sd">        :return: Neural network function</span>
+</span><span id="NNetPar-239"><a href="#NNetPar-239"><span class="linenos">239</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="NNetPar-240"><a href="#NNetPar-240"><span class="linenos">240</span></a>        <span class="k">pass</span>
+</span><span id="NNetPar-241"><a href="#NNetPar-241"><span class="linenos">241</span></a>
+</span><span id="NNetPar-242"><a href="#NNetPar-242"><span class="linenos">242</span></a>    <span class="nd">@abstractmethod</span>
+</span><span id="NNetPar-243"><a href="#NNetPar-243"><span class="linenos">243</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_nnet</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
+</span><span id="NNetPar-244"><a href="#NNetPar-244"><span class="linenos">244</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="NNetPar-245"><a href="#NNetPar-245"><span class="linenos">245</span></a>
+</span><span id="NNetPar-246"><a href="#NNetPar-246"><span class="linenos">246</span></a><span class="sd">        :return: Neural network module</span>
+</span><span id="NNetPar-247"><a href="#NNetPar-247"><span class="linenos">247</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="NNetPar-248"><a href="#NNetPar-248"><span class="linenos">248</span></a>        <span class="k">pass</span>
+</span><span id="NNetPar-249"><a href="#NNetPar-249"><span class="linenos">249</span></a>
+</span><span id="NNetPar-250"><a href="#NNetPar-250"><span class="linenos">250</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="NNetPar-251"><a href="#NNetPar-251"><span class="linenos">251</span></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">get_nnet</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
 </span></pre></div>
 
 
-            <div class="docstring"><p>Helper class that provides a standard way to create an ABC using
-inheritance.</p>
+            <div class="docstring"><p>A neural network that can be called from other processes</p>
 </div>
 
 
@@ -831,14 +868,38 @@ inheritance.</p>
 
     </div>
     <a class="headerlink" href="#NNetPar.get_nnet_fn"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="NNetPar.get_nnet_fn-218"><a href="#NNetPar.get_nnet_fn-218"><span class="linenos">218</span></a>    <span class="nd">@abstractmethod</span>
-</span><span id="NNetPar.get_nnet_fn-219"><a href="#NNetPar.get_nnet_fn-219"><span class="linenos">219</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_nnet_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nnet</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-</span><span id="NNetPar.get_nnet_fn-220"><a href="#NNetPar.get_nnet_fn-220"><span class="linenos">220</span></a>                    <span class="n">update_num</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NNetFn</span><span class="p">:</span>
-</span><span id="NNetPar.get_nnet_fn-221"><a href="#NNetPar.get_nnet_fn-221"><span class="linenos">221</span></a>        <span class="k">pass</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="NNetPar.get_nnet_fn-219"><a href="#NNetPar.get_nnet_fn-219"><span class="linenos">219</span></a>    <span class="nd">@abstractmethod</span>
+</span><span id="NNetPar.get_nnet_fn-220"><a href="#NNetPar.get_nnet_fn-220"><span class="linenos">220</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_nnet_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nnet</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">update_num</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NNetFn</span><span class="p">:</span>
+</span><span id="NNetPar.get_nnet_fn-221"><a href="#NNetPar.get_nnet_fn-221"><span class="linenos">221</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="NNetPar.get_nnet_fn-222"><a href="#NNetPar.get_nnet_fn-222"><span class="linenos">222</span></a>
+</span><span id="NNetPar.get_nnet_fn-223"><a href="#NNetPar.get_nnet_fn-223"><span class="linenos">223</span></a><span class="sd">        :param nnet: Neural network module</span>
+</span><span id="NNetPar.get_nnet_fn-224"><a href="#NNetPar.get_nnet_fn-224"><span class="linenos">224</span></a><span class="sd">        :param batch_size: Maximum number of inputs to pass to neural network at a time. Loops until all inputs are given. If None, all inputs are given</span>
+</span><span id="NNetPar.get_nnet_fn-225"><a href="#NNetPar.get_nnet_fn-225"><span class="linenos">225</span></a><span class="sd">        at once, no matter how large.</span>
+</span><span id="NNetPar.get_nnet_fn-226"><a href="#NNetPar.get_nnet_fn-226"><span class="linenos">226</span></a><span class="sd">        :param device: Device that the neural network is on</span>
+</span><span id="NNetPar.get_nnet_fn-227"><a href="#NNetPar.get_nnet_fn-227"><span class="linenos">227</span></a><span class="sd">        :param update_num: Update number (only relevant for training)</span>
+</span><span id="NNetPar.get_nnet_fn-228"><a href="#NNetPar.get_nnet_fn-228"><span class="linenos">228</span></a><span class="sd">        :return: Neural network function</span>
+</span><span id="NNetPar.get_nnet_fn-229"><a href="#NNetPar.get_nnet_fn-229"><span class="linenos">229</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="NNetPar.get_nnet_fn-230"><a href="#NNetPar.get_nnet_fn-230"><span class="linenos">230</span></a>        <span class="k">pass</span>
 </span></pre></div>
 
 
-    
+            <div class="docstring"><h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>nnet</strong>:  Neural network module</li>
+<li><strong>batch_size</strong>:  Maximum number of inputs to pass to neural network at a time. Loops until all inputs are given. If None, all inputs are given
+at once, no matter how large.</li>
+<li><strong>device</strong>:  Device that the neural network is on</li>
+<li><strong>update_num</strong>:  Update number (only relevant for training)</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<blockquote>
+  <p>Neural network function</p>
+</blockquote>
+</div>
+
 
                             </div>
                             <div id="NNetPar.get_nnet_par_fn" class="classattr">
@@ -853,13 +914,32 @@ inheritance.</p>
 
     </div>
     <a class="headerlink" href="#NNetPar.get_nnet_par_fn"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="NNetPar.get_nnet_par_fn-223"><a href="#NNetPar.get_nnet_par_fn-223"><span class="linenos">223</span></a>    <span class="nd">@abstractmethod</span>
-</span><span id="NNetPar.get_nnet_par_fn-224"><a href="#NNetPar.get_nnet_par_fn-224"><span class="linenos">224</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_nnet_par_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nnet_par_info</span><span class="p">:</span> <span class="n">NNetParInfo</span><span class="p">,</span> <span class="n">update_num</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NNetFn</span><span class="p">:</span>
-</span><span id="NNetPar.get_nnet_par_fn-225"><a href="#NNetPar.get_nnet_par_fn-225"><span class="linenos">225</span></a>        <span class="k">pass</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="NNetPar.get_nnet_par_fn-232"><a href="#NNetPar.get_nnet_par_fn-232"><span class="linenos">232</span></a>    <span class="nd">@abstractmethod</span>
+</span><span id="NNetPar.get_nnet_par_fn-233"><a href="#NNetPar.get_nnet_par_fn-233"><span class="linenos">233</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_nnet_par_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nnet_par_info</span><span class="p">:</span> <span class="n">NNetParInfo</span><span class="p">,</span> <span class="n">update_num</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NNetFn</span><span class="p">:</span>
+</span><span id="NNetPar.get_nnet_par_fn-234"><a href="#NNetPar.get_nnet_par_fn-234"><span class="linenos">234</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="NNetPar.get_nnet_par_fn-235"><a href="#NNetPar.get_nnet_par_fn-235"><span class="linenos">235</span></a>
+</span><span id="NNetPar.get_nnet_par_fn-236"><a href="#NNetPar.get_nnet_par_fn-236"><span class="linenos">236</span></a><span class="sd">        :param nnet_par_info: Information of neural network which may exist on a different process</span>
+</span><span id="NNetPar.get_nnet_par_fn-237"><a href="#NNetPar.get_nnet_par_fn-237"><span class="linenos">237</span></a><span class="sd">        :param update_num: Update number (only relevant for training)</span>
+</span><span id="NNetPar.get_nnet_par_fn-238"><a href="#NNetPar.get_nnet_par_fn-238"><span class="linenos">238</span></a><span class="sd">        :return: Neural network function</span>
+</span><span id="NNetPar.get_nnet_par_fn-239"><a href="#NNetPar.get_nnet_par_fn-239"><span class="linenos">239</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="NNetPar.get_nnet_par_fn-240"><a href="#NNetPar.get_nnet_par_fn-240"><span class="linenos">240</span></a>        <span class="k">pass</span>
 </span></pre></div>
 
 
-    
+            <div class="docstring"><h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>nnet_par_info</strong>:  Information of neural network which may exist on a different process</li>
+<li><strong>update_num</strong>:  Update number (only relevant for training)</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<blockquote>
+  <p>Neural network function</p>
+</blockquote>
+</div>
+
 
                             </div>
                             <div id="NNetPar.get_nnet" class="classattr">
@@ -874,13 +954,23 @@ inheritance.</p>
 
     </div>
     <a class="headerlink" href="#NNetPar.get_nnet"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="NNetPar.get_nnet-227"><a href="#NNetPar.get_nnet-227"><span class="linenos">227</span></a>    <span class="nd">@abstractmethod</span>
-</span><span id="NNetPar.get_nnet-228"><a href="#NNetPar.get_nnet-228"><span class="linenos">228</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_nnet</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
-</span><span id="NNetPar.get_nnet-229"><a href="#NNetPar.get_nnet-229"><span class="linenos">229</span></a>        <span class="k">pass</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="NNetPar.get_nnet-242"><a href="#NNetPar.get_nnet-242"><span class="linenos">242</span></a>    <span class="nd">@abstractmethod</span>
+</span><span id="NNetPar.get_nnet-243"><a href="#NNetPar.get_nnet-243"><span class="linenos">243</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_nnet</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
+</span><span id="NNetPar.get_nnet-244"><a href="#NNetPar.get_nnet-244"><span class="linenos">244</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="NNetPar.get_nnet-245"><a href="#NNetPar.get_nnet-245"><span class="linenos">245</span></a>
+</span><span id="NNetPar.get_nnet-246"><a href="#NNetPar.get_nnet-246"><span class="linenos">246</span></a><span class="sd">        :return: Neural network module</span>
+</span><span id="NNetPar.get_nnet-247"><a href="#NNetPar.get_nnet-247"><span class="linenos">247</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="NNetPar.get_nnet-248"><a href="#NNetPar.get_nnet-248"><span class="linenos">248</span></a>        <span class="k">pass</span>
 </span></pre></div>
 
 
-    
+            <div class="docstring"><h6 id="returns">Returns</h6>
+
+<blockquote>
+  <p>Neural network module</p>
+</blockquote>
+</div>
+
 
                             </div>
                 </section>
@@ -895,20 +985,20 @@ inheritance.</p>
 
     </div>
     <a class="headerlink" href="#get_nnet_par_out"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="get_nnet_par_out-235"><a href="#get_nnet_par_out-235"><span class="linenos">235</span></a><span class="k">def</span><span class="w"> </span><span class="nf">get_nnet_par_out</span><span class="p">(</span><span class="n">inputs_nnet</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">],</span> <span class="n">nnet_par_info</span><span class="p">:</span> <span class="n">NNetParInfo</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">]:</span>
-</span><span id="get_nnet_par_out-236"><a href="#get_nnet_par_out-236"><span class="linenos">236</span></a>    <span class="n">inputs_nnet_shm</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">SharedNDArray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">np_to_shnd</span><span class="p">(</span><span class="n">inputs_nnet_i</span><span class="p">)</span>
-</span><span id="get_nnet_par_out-237"><a href="#get_nnet_par_out-237"><span class="linenos">237</span></a>                                            <span class="k">for</span> <span class="n">input_idx</span><span class="p">,</span> <span class="n">inputs_nnet_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">inputs_nnet</span><span class="p">)]</span>
-</span><span id="get_nnet_par_out-238"><a href="#get_nnet_par_out-238"><span class="linenos">238</span></a>
-</span><span id="get_nnet_par_out-239"><a href="#get_nnet_par_out-239"><span class="linenos">239</span></a>    <span class="n">nnet_par_info</span><span class="o">.</span><span class="n">nnet_i_q</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">nnet_par_info</span><span class="o">.</span><span class="n">proc_id</span><span class="p">,</span> <span class="n">inputs_nnet_shm</span><span class="p">))</span>
-</span><span id="get_nnet_par_out-240"><a href="#get_nnet_par_out-240"><span class="linenos">240</span></a>
-</span><span id="get_nnet_par_out-241"><a href="#get_nnet_par_out-241"><span class="linenos">241</span></a>    <span class="n">out_shm_l</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">SharedNDArray</span><span class="p">]</span> <span class="o">=</span> <span class="n">nnet_par_info</span><span class="o">.</span><span class="n">nnet_o_q</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-</span><span id="get_nnet_par_out-242"><a href="#get_nnet_par_out-242"><span class="linenos">242</span></a>    <span class="n">out_l</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">out_shm</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">out_shm</span> <span class="ow">in</span> <span class="n">out_shm_l</span><span class="p">]</span>
-</span><span id="get_nnet_par_out-243"><a href="#get_nnet_par_out-243"><span class="linenos">243</span></a>
-</span><span id="get_nnet_par_out-244"><a href="#get_nnet_par_out-244"><span class="linenos">244</span></a>    <span class="k">for</span> <span class="n">arr_shm</span> <span class="ow">in</span> <span class="n">inputs_nnet_shm</span> <span class="o">+</span> <span class="n">out_shm_l</span><span class="p">:</span>
-</span><span id="get_nnet_par_out-245"><a href="#get_nnet_par_out-245"><span class="linenos">245</span></a>        <span class="n">arr_shm</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-</span><span id="get_nnet_par_out-246"><a href="#get_nnet_par_out-246"><span class="linenos">246</span></a>        <span class="n">arr_shm</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
-</span><span id="get_nnet_par_out-247"><a href="#get_nnet_par_out-247"><span class="linenos">247</span></a>
-</span><span id="get_nnet_par_out-248"><a href="#get_nnet_par_out-248"><span class="linenos">248</span></a>    <span class="k">return</span> <span class="n">out_l</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="get_nnet_par_out-254"><a href="#get_nnet_par_out-254"><span class="linenos">254</span></a><span class="k">def</span><span class="w"> </span><span class="nf">get_nnet_par_out</span><span class="p">(</span><span class="n">inputs_nnet</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">],</span> <span class="n">nnet_par_info</span><span class="p">:</span> <span class="n">NNetParInfo</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">]:</span>
+</span><span id="get_nnet_par_out-255"><a href="#get_nnet_par_out-255"><span class="linenos">255</span></a>    <span class="n">inputs_nnet_shm</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">SharedNDArray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">np_to_shnd</span><span class="p">(</span><span class="n">inputs_nnet_i</span><span class="p">)</span>
+</span><span id="get_nnet_par_out-256"><a href="#get_nnet_par_out-256"><span class="linenos">256</span></a>                                            <span class="k">for</span> <span class="n">input_idx</span><span class="p">,</span> <span class="n">inputs_nnet_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">inputs_nnet</span><span class="p">)]</span>
+</span><span id="get_nnet_par_out-257"><a href="#get_nnet_par_out-257"><span class="linenos">257</span></a>
+</span><span id="get_nnet_par_out-258"><a href="#get_nnet_par_out-258"><span class="linenos">258</span></a>    <span class="n">nnet_par_info</span><span class="o">.</span><span class="n">nnet_i_q</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">nnet_par_info</span><span class="o">.</span><span class="n">proc_id</span><span class="p">,</span> <span class="n">inputs_nnet_shm</span><span class="p">))</span>
+</span><span id="get_nnet_par_out-259"><a href="#get_nnet_par_out-259"><span class="linenos">259</span></a>
+</span><span id="get_nnet_par_out-260"><a href="#get_nnet_par_out-260"><span class="linenos">260</span></a>    <span class="n">out_shm_l</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">SharedNDArray</span><span class="p">]</span> <span class="o">=</span> <span class="n">nnet_par_info</span><span class="o">.</span><span class="n">nnet_o_q</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+</span><span id="get_nnet_par_out-261"><a href="#get_nnet_par_out-261"><span class="linenos">261</span></a>    <span class="n">out_l</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">out_shm</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">out_shm</span> <span class="ow">in</span> <span class="n">out_shm_l</span><span class="p">]</span>
+</span><span id="get_nnet_par_out-262"><a href="#get_nnet_par_out-262"><span class="linenos">262</span></a>
+</span><span id="get_nnet_par_out-263"><a href="#get_nnet_par_out-263"><span class="linenos">263</span></a>    <span class="k">for</span> <span class="n">arr_shm</span> <span class="ow">in</span> <span class="n">inputs_nnet_shm</span> <span class="o">+</span> <span class="n">out_shm_l</span><span class="p">:</span>
+</span><span id="get_nnet_par_out-264"><a href="#get_nnet_par_out-264"><span class="linenos">264</span></a>        <span class="n">arr_shm</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</span><span id="get_nnet_par_out-265"><a href="#get_nnet_par_out-265"><span class="linenos">265</span></a>        <span class="n">arr_shm</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+</span><span id="get_nnet_par_out-266"><a href="#get_nnet_par_out-266"><span class="linenos">266</span></a>
+</span><span id="get_nnet_par_out-267"><a href="#get_nnet_par_out-267"><span class="linenos">267</span></a>    <span class="k">return</span> <span class="n">out_l</span>
 </span></pre></div>
 
 
