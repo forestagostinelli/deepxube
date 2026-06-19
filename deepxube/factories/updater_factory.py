@@ -81,7 +81,7 @@ def get_updater(domain: Domain, pathfind_arg: str, up_args: UpArgs, her: bool, f
                          f"{up_cls_kept}")
 
     assert len(up_cls_kept) == 1
-    up_cls: Type[Update] = up_cls_kept[0]
+    up_cls = up_cls_kept[0]
     return up_cls(domain, pathfind_arg, up_args)
 
 

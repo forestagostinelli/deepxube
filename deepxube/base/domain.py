@@ -1,3 +1,4 @@
+""" Definition of State, Action, Goal, and Domain """
 from abc import ABC, abstractmethod
 from typing import List, Tuple, Optional, Set, TypeVar, Generic, Dict, Any
 
@@ -164,14 +165,28 @@ class Domain(ABC, Generic[S, A, G]):
         return states_walk, actions_l, path_costs
 
     def get_nnet_par_dict(self) -> Dict[str, Tuple[str, NNetPar]]:
+        """
+
+        :return: Copy of dict with names of nnets mapped to their file and NNetPar
+        """
         return self.nnet_par_dict.copy()
 
     def set_nnet_fns(self, nnet_fn_dict: Dict[str, NNetCallable]) -> None:
+        """
+
+        :param nnet_fn_dict: A dictionary mapping nnet names to NNetCallable
+        :return: None
+        """
         for nnet_name, nnet_fn in nnet_fn_dict.items():
             if nnet_name in self.nnet_par_dict.keys():
                 self.nnet_fn_dict[nnet_name] = nnet_fn
 
     def get_nnet_fn(self, nnet_fn_name: str) -> NNetCallable:
+        """
+
+        :param nnet_fn_name: Name of nnet
+        :return: NNetCallable obtained from self.nnet_fn_dict
+        """
         nnet_fn: Optional[NNetCallable] = self.nnet_fn_dict.get(nnet_fn_name)
         if nnet_fn is None:
             device: torch.device = torch.device("cpu")
@@ -186,6 +201,7 @@ class Domain(ABC, Generic[S, A, G]):
 
             nnet_fn = nnet_par.get_nnet_fn(nnet, None, device, None)
 
+        assert nnet_fn is not None
         return nnet_fn
 
     def _add_nnet_par(self, nnet_name: str, nnet_file: str, nnet_par: NNetPar) -> None:
@@ -194,6 +210,9 @@ class Domain(ABC, Generic[S, A, G]):
     def __getstate__(self) -> Dict:
         self.nnet_fn_dict = dict()
         return self.__dict__
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}"
 
 
 # Visualization mixins
@@ -420,9 +439,13 @@ class GoalFixed(GoalSampleable[S, A, G]):
 
 
 class GoalStateGoalPairSampleable(Domain[S, A, G]):
-    """ Can sample pairs of states and corresponding goals of which the sampled state is a member """
     @abstractmethod
     def sample_goalstate_goal_pairs(self, num: int) -> Tuple[List[S], List[G]]:
+        """
+
+        :param num: Number of state/goal pairs to sample
+        :return: pairs of states and corresponding goals of which the sampled state is a member
+        """
         pass
 
 
@@ -549,6 +572,12 @@ class GoalStartRevWalkableActsRev(GoalStartRevWalkable[S, A, G], ActsRev[S, A, G
         return self.random_walk(states, num_steps_l)[0]
 
     def random_walk_rev(self, states: List[S], num_steps_l: List[int]) -> Tuple[List[S], List[List[A]], List[float]]:
+        """ Start from given states and take random walks using reverse actions
+
+        :param states: States
+        :param num_steps_l: Number of reverse actions to take for each state
+        :return: States along reverse random walk, actions taken along reverse edges, path costs
+        """
         states_walk: List[S] = [state for state in states]
         actions_rev_l: List[List[A]] = [[] for _ in states]
         path_costs: List[float] = [0.0 for _ in states]
@@ -691,14 +720,29 @@ class NextStateNPActsEnumFixed(NextStateNP[S, A, G], ActsEnumFixed[S, A, G], ABC
 class SupportsPDDL(Domain[S, A, G], ABC):
     @abstractmethod
     def get_pddl_domain(self) -> List[str]:
+        """
+
+        :return: PDDL domain where each entry is a new line
+        """
         pass
 
     @abstractmethod
     def prob_inst_to_pddl_inst(self, state: S, goal: G) -> List[str]:
+        """
+
+        :param state: State
+        :param goal: Goal
+        :return: PDDL problem instance of given state and goal where each entry is a new line
+        """
         pass
 
     @abstractmethod
     def pddl_action_to_action(self, pddl_action: str) -> A:
+        """
+
+        :param pddl_action: PDDL action in string representation
+        :return: Action
+        """
         pass
 
 
@@ -706,6 +750,11 @@ class SupportsPDDL(Domain[S, A, G], ABC):
 class GoalGrndAtoms(GoalSampleableFromState[S, A, G]):
     @abstractmethod
     def state_to_model(self, states: List[S]) -> List[Model]:
+        """
+
+        :param states: States
+        :return: Model (set of ground atoms) representation of each state
+        """
         pass
 
     @abstractmethod
@@ -719,10 +768,20 @@ class GoalGrndAtoms(GoalSampleableFromState[S, A, G]):
 
     @abstractmethod
     def goal_to_model(self, goals: List[G]) -> List[Model]:
+        """
+
+        :param goals: Goals
+        :return: Model representation of goals
+        """
         pass
 
     @abstractmethod
     def model_to_goal(self, models: List[Model]) -> List[G]:
+        """
+
+        :param models: Models
+        :return: Goal representation of models
+        """
         pass
 
     def is_solved(self, states: List[S], goals: List[G]) -> List[bool]:
