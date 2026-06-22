@@ -6,6 +6,7 @@ from deepxube._train_cli import parser_train
 from deepxube._solve import parse_solve
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, StateGoalVizable, StringToAct, State, Action, Goal
+from deepxube.base.nnet_input import NNetInput
 from deepxube.base.heuristic import HeurNNet, HeurNNetPar, PolicyNNetPar
 from deepxube.base.pathfinding import PathFind
 from deepxube.factories.domain_factory import domain_factory
@@ -44,74 +45,81 @@ def get_immediate_mixins(cls: Type[object], mixin_base: Type) -> List[Type]:
 
 
 def domain_info(args: argparse.Namespace) -> None:
-    domain_names: List[str]
+    domain_name: str
+    domain_t: Type[Domain]
     if args.domain is None:
-        domain_names = domain_factory.get_all_class_names()
+        domain_names: List[str] = domain_factory.get_all_class_names()
+        for domain_name in domain_names:
+            domain_t = domain_factory.get_type(domain_name)
+            print(f"Domain (Name, Module, Class): {domain_name}, {domain_t.__module__}, {domain_t.__qualname__}")
     else:
-        domain_names = [args.domain]
+        domain_name = args.domain
 
-    for domain_name in domain_names:
-        domain_t: Type[Domain] = domain_factory.get_type(domain_name)
-        print(f"Domain: {domain_name}, {domain_t}")
+        domain_t = domain_factory.get_type(domain_name)
+        print(f"Domain (Name, Module, Class): {domain_name}, {domain_t.__module__}, {domain_t.__qualname__}")
         parser: Optional[Parser] = domain_factory.get_parser(domain_name)
         if parser is not None:
-            print(textwrap.indent("Parser:\n" + textwrap.indent(parser.help(), '\t'), '\t'))
+            print("Parser help:\n" + textwrap.indent(parser.help(), '\t'), '\t')
 
         # mixins
-        mixin_str: str = textwrap.indent(', '.join([f"{x}" for x in get_immediate_mixins(domain_t, Domain)]), '\t')
-        print(textwrap.indent("Mixins:\n" + mixin_str, '\t'))
+        mixin_str: str = textwrap.indent(', '.join([f"{x.__qualname__}" for x in get_immediate_mixins(domain_t, Domain)]), '\t')
+        print("Mixins:\n" + mixin_str, '\t')
 
         # nnet inputs
         nnet_input_t_keys: List[Tuple[str, str]] = get_domain_nnet_input_keys(domain_name)
-        print(textwrap.indent("NNet Inputs:", '\t'))
+        print("NNet Inputs (Name, Module, Class):")
         for nnet_input_t_key in nnet_input_t_keys:
-            print(textwrap.indent(f"Name: {nnet_input_t_key[1]}, Type: {get_nnet_input_t(nnet_input_t_key)}", '\t\t'))
+            nnet_input_t: Type[NNetInput] = get_nnet_input_t(nnet_input_t_key)
+            print(textwrap.indent(f"{nnet_input_t_key[1]}, {nnet_input_t.__module__}, {nnet_input_t.__qualname__}", '\t'))
 
         # pathfinding
         pathfind_names: List[str] = get_domain_compat_pathfind_names(domain_t)
-        print(textwrap.indent("Pathfinding:", '\t'))
+        print("Pathfinding (Name, Module, Class):")
         for pathfind_name in pathfind_names:
-            print(textwrap.indent(f"Name: {pathfind_name}, Type: {pathfinding_factory.get_type(pathfind_name)}", '\t\t'))
+            pathfind_t: Type[PathFind] = pathfinding_factory.get_type(pathfind_name)
+            print(textwrap.indent(f"{pathfind_name}, {pathfind_t.__module__}, {pathfind_t.__qualname__}", '\t'))
         print("")
 
 
 def heur_info(args: argparse.Namespace) -> None:
-    heur_nnet_names: List[str]
-    if args.names is None:
-        heur_nnet_names = heuristic_factory.get_all_class_names()
+    heur_nnet_name: str
+    heur_nnet_t: Type[HeurNNet]
+    if args.name is None:
+        heur_nnet_names: List[str] = heuristic_factory.get_all_class_names()
+        for heur_nnet_name in heur_nnet_names:
+            heur_nnet_t = heuristic_factory.get_type(heur_nnet_name)
+            print(f"Heur NNet (Name, Module, Class): {heur_nnet_name}, {heur_nnet_t.__module__}, {heur_nnet_t.__qualname__}")
     else:
-        heur_nnet_names = args.names.split(",")
-
-    for heur_nnet_name in heur_nnet_names:
-        heur_nnet_t: Type[HeurNNet] = heuristic_factory.get_type(heur_nnet_name)
-        print(f"Heur NNet: {heur_nnet_name}, {heur_nnet_t}")
-        print(textwrap.indent(f"NNet_Input type expected: {heur_nnet_t.nnet_input_type()}", '\t'))
+        heur_nnet_name = args.name
+        heur_nnet_t = heuristic_factory.get_type(heur_nnet_name)
+        print(f"Heur NNet (Name, Module, Class): {heur_nnet_name}, {heur_nnet_t.__module__}, {heur_nnet_t.__qualname__}")
+        nnet_input_t: Type[NNetInput] = heur_nnet_t.nnet_input_type()
+        print(f"NNet_Input type expected (Module, Class): {nnet_input_t.__module__}, {nnet_input_t.__qualname__}")
         parser: Optional[Parser] = heuristic_factory.get_parser(heur_nnet_name)
         if parser is not None:
-            print(textwrap.indent("Parser: " + parser.help(), '\t'))
-        print("")
+            print("Parser help:\n" + textwrap.indent(parser.help(), '\t'))
 
 
 def pathfinding_info(args: argparse.Namespace) -> None:
-    names: List[str]
-    if args.names is None:
-        names = pathfinding_factory.get_all_class_names()
+    name: str
+    pathfind_t: Type[PathFind]
+    if args.name is None:
+        names: List[str] = pathfinding_factory.get_all_class_names()
+        for name in names:
+            pathfind_t = pathfinding_factory.get_type(name)
+            print(f"PathFind (Name, Module, Class): {name}, {pathfind_t.__module__}, {pathfind_t.__qualname__}")
     else:
-        names = args.names.split(",")
-
-    for name in names:
-        pathfind_t: Type[PathFind] = pathfinding_factory.get_type(name)
-        print(f"PathFind: {name}, {pathfind_t}")
-        mixin_str: str = ', '.join([f"{x}" for x in get_immediate_mixins(pathfind_t, PathFind)])
-        print(textwrap.indent(f"Mixins: {mixin_str}", '\t'))
-
-        print(textwrap.indent(f"Domain type expected: {pathfind_t.domain_type()}", '\t'))
-        print(textwrap.indent(f"Functions type expected: {pathfind_t.functions_type()}", '\t'))
+        name = args.name
+        pathfind_t = pathfinding_factory.get_type(name)
+        print(f"PathFind (Name, Module, Class): {name}, {pathfind_t.__module__}, {pathfind_t.__qualname__}")
+        mixin_str: str = ', '.join([f"{x.__qualname__}" for x in get_immediate_mixins(pathfind_t, PathFind)])
+        print(f"Mixins: {mixin_str}", '\t')
+        print(f"Domain type expected: {pathfind_t.domain_type().__qualname__}", '\t')
+        print(f"Functions type expected: {pathfind_t.functions_type().__qualname__}", '\t')
 
         parser: Optional[Parser] = pathfinding_factory.get_parser(name)
         if parser is not None:
-            print(textwrap.indent("Parser: " + parser.help(), '\t'))
-        print("")
+            print("Parser help:\n" + textwrap.indent(parser.help(), '\t'))
 
 
 def viz_step(domain: StateGoalVizable, data: Dict, idx: int, state_idx: int, state_idx_max: int, states_on_path: List[State], state: State, goal: Goal,
@@ -381,17 +389,17 @@ def main() -> None:
 
 
 def _parser_domain_info(parser: ArgumentParser) -> None:
-    parser.add_argument('--domain', type=str, default=None, help="Name of domain.")
+    parser.add_argument('--domain', '--name', type=str, default=None, help="Name of domain.")
     parser.set_defaults(func=domain_info)
 
 
 def _parser_heur_info(parser: ArgumentParser) -> None:
-    parser.add_argument('--names', type=str, default=None, help="Comma separated value for only specific names. List all if None.")
+    parser.add_argument('--name', type=str, default=None, help="Name of heuristic.")
     parser.set_defaults(func=heur_info)
 
 
 def _parser_pathfind_info(parser: ArgumentParser) -> None:
-    parser.add_argument('--names', type=str, default=None, help="Comma separated value for only specific names. List all if None.")
+    parser.add_argument('--name', type=str, default=None, help="Name of pathfinding method.")
     parser.set_defaults(func=pathfinding_info)
 
 

@@ -52,28 +52,28 @@ There is a simple example domain and heuristic function located in `deepxube/dom
 
 After installing deepxube run:
 
-- **Information**
+- **Information (use --name \<name\> for more specific info)**
   - Domain information: `deepxube domain_info`
   - Heuristic information: `deepxube heuristic_info`
   - Pathfinding information: `deepxube pathfinding_info`
-- **Generate problem instances for solving:** `deepxube problem_inst --domain grid.7 --step_max 1000 --num 100 --file valid.pkl --redo`
+- **Generate problem instances for solving:** `deepxube problem_inst --domain grid.7d --step_max 1000 --num 100 --file valid.pkl --redo`
 - **Visualization**
-  - Visualize random problem instance: `deepxube viz --domain grid.7 --steps 10`
-  - Visualize a problem instance from a file: `deepxube viz --domain grid.7 --file valid.pkl --idx 13`
+  - Visualize random problem instance: `deepxube viz --domain grid.7d --steps 10`
+  - Visualize a problem instance from a file: `deepxube viz --domain grid.7d --file valid.pkl --idx 13`
 - **Time to ensure basic functionality** (Can use breakpoints in your code to debug): 
-  - With deepxube residual neural network: `deepxube time --domain grid.7 --heur resnet_fc.100H_2B_bn --heur_type V`
-  - With deepxube residual neural network and deep Q-network: `deepxube time --domain grid.7 --heur resnet_fc.100H_2B_bn --heur_type QFix`
-  - With custom neural network: `deepxube time --domain grid.7 --heur gridnet.8CH_200FC --heur_type V`
+  - With deepxube residual neural network: `deepxube time --domain grid.7d --heur resnet_fc.100H_2B_bn --heur_type V`
+  - With deepxube residual neural network and deep Q-network: `deepxube time --domain grid.7d --heur resnet_fc.100H_2B_bn --heur_type QFix`
+  - With custom neural network: `deepxube time --domain grid.7d --heur gridnet.8CH_200FC --heur_type V`
 - **Training**
-  - Train heuristic function: `deepxube train --domain grid.7 --heur resnet_fc.100H_2B_bn --heur_type V --pathfind graph_v --step_max 100 --up_itrs 100 --search_itrs 20 --backup -1 --procs 1 --batch_size 50 --max_itrs 5000 --dir dummy/`
+  - Train heuristic function: `deepxube train --domain grid.7d --heur resnet_fc.100H_2B_bn --heur_type V --pathfind graph_v --step_max 100 --up_itrs 100 --search_itrs 20 --backup -1 --procs 1 --batch_size 50 --max_itrs 5000 --dir dummy/`
   - Use tensorboard to see training progress: `tensorboard --logdir=dummy/`
   - Plot more detailed training information with interactive slider for training iteration: `deepxube train_summary --dir dummy` 
 - **Solving**
-  - Solve problem instances with all-zero heuristic: `deepxube solve --domain grid.7 --heur_type V --pathfind graph_v.1B_1.0W --file valid.pkl --results results_zeros_ex/ --redo`
-  - Solve problem instances with trained heuristic: `deepxube solve --domain grid.7 --heur resnet_fc.100H_2B_bn --heur_file dummy/heur.pt --heur_type V --pathfind graph_v.1B_1.0W --file valid.pkl --results results_trained_ex/ --redo`
+  - Solve problem instances with all-zero heuristic: `deepxube solve --domain grid.7d --heur_type V --pathfind graph_v.1B_1.0W --file valid.pkl --results results_zeros_ex/ --redo`
+  - Solve problem instances with trained heuristic: `deepxube solve --domain grid.7d --heur resnet_fc.100H_2B_bn --heur_file dummy/heur.pt --heur_type V --pathfind graph_v.1B_1.0W --file valid.pkl --results results_trained_ex/ --redo`
   - Solving with the trained heuristic should have a significantly lower number of nodes generated and number of iterations.
   - You can get the actions taken for each instance with the "actions" key in the dictionary saved in the `results.pkl` file in the `--results` directory.
-  - Visualize solutions with `deepxube viz --domain grid.7 --file results_trained_ex/results.pkl --idx 3 --soln`. 
+  - Visualize solutions with `deepxube viz --domain grid.7d --file results_trained_ex/results.pkl --idx 3 --soln`. 
 This prints actions taken. You can implement `__repr__` for the action class to determine what gets printed for each action.
 
 ### Domains
@@ -97,8 +97,8 @@ Visualization of states/goals and the domain transition function can be useful t
 To accomplish this, a domain can inherit from `StateGoalVizable` to convert state/goal pairs to figures
 and inherit from `StringToAct` to be able to type actions into the command line and see how it changes the state.
 
-By running `deepxube viz --domain grid.7 --steps 10` will create a start/goal pair by taking a random walk of length 10 and visualize it.
-One can vary the grid size by simply changing the number (e.g. `deepxube viz --domain grid.10 --steps 10`).
+By running `deepxube viz --domain grid.7d --steps 10` will create a start/goal pair by taking a random walk of length 10 and visualize it.
+One can vary the grid size by simply changing the number (e.g. `deepxube viz --domain grid.10d --steps 10`).
 After applying an action, the transition cost and whether or not the goal is reached will be printed.
 
 

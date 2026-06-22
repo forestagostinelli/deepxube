@@ -1,9 +1,9 @@
-from typing import List, Tuple, Dict, Any, Optional, Type
+from typing import List, Tuple, Optional, Type
 import numpy as np
 from matplotlib.figure import Figure
 from torch import nn, Tensor
 
-from deepxube.base.factory import Parser
+from deepxube.base.factory import DelimParser
 from deepxube.base.domain import State, Action, Goal, ActsEnumFixed, StartGoalWalkable, StateGoalVizable, StringToAct
 from deepxube.base.nnet_input import StateGoalIn, HasFlatSGActsEnumFixedIn, HasFlatSGAIn
 from deepxube.base.heuristic import HeurNNet
@@ -16,8 +16,6 @@ from deepxube.factories.nnet_input_factory import register_nnet_input
 from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as plt
 from numpy.typing import NDArray
-
-import re
 
 
 # Define states, goals, and actions
@@ -130,12 +128,14 @@ class Grid(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalkable[Gri
 
 
 @domain_factory.register_parser("grid")
-class GridParser(Parser):
-    def parse(self, args_str: str) -> Dict[str, Any]:
-        return {"dim": int(args_str)}
+class GridParser(DelimParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.add_argument("d", "dim", int, "dimensionality of grid")
 
-    def help(self) -> str:
-        return "An integer for the dimension. E.g. 'grid.7'"
+    @property
+    def delim(self) -> str:
+        return "_"
 
 
 @register_nnet_input("grid", "grid_nnet_input")
@@ -177,22 +177,12 @@ class GridNet(HeurNNet[GridNNetInput]):
 
 
 @heuristic_factory.register_parser("gridnet")
-class GridNetParser(Parser):
-    def parse(self, args_str: str) -> Dict[str, Any]:
-        args_str_l: List[str] = args_str.split("_")
-        kwargs: Dict[str, Any] = dict()
-        for args_str_i in args_str_l:
-            channel_re = re.search(r"^(\S+)CH$", args_str_i)
-            fc_re = re.search(r"^(\S+)FC$", args_str_i)
-            if channel_re is not None:
-                kwargs["chan_size"] = int(channel_re.group(1))
-            elif fc_re is not None:
-                kwargs["fc_size"] = int(fc_re.group(1))
-            else:
-                raise ValueError(f"Unexpected argument {args_str_i!r}")
-        return kwargs
+class GridNetParser(DelimParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.add_argument("ch", "chan_size", int, "number of channels")
+        self.add_argument("fc", "fc_size", int, "size of fully connected layer")
 
-    def help(self) -> str:
-        return ("Arguments are delimited by '_' and can be in any order.\n<num>C (number of channels), "
-                "<num>FC (width of fully-connected layer), bn (batch_norm), wn (weight_norm).\n"
-                "E.g. gridnet.10CH_200FC")
+    @property
+    def delim(self) -> str:
+        return "_"

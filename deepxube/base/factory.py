@@ -38,6 +38,15 @@ class DelimParser(Parser):
 
     def add_argument(self, arg_name_parse: str, arg_name: str, value_type: Optional[Callable[[str], Any]], help_msg: str,
                      default: Optional[Any] = None) -> None:
+        """
+
+        :param arg_name_parse: Name on command line
+        :param arg_name: Name of argument given to class
+        :param value_type: Type
+        :param help_msg: Help message
+        :param default: Default value.
+        :return: None
+        """
         arg_name_parse = arg_name_parse.lower()
         assert (len(arg_name_parse) > 0) and (len(arg_name) > 0), "length of argument names must be > 0"
         assert self.delim not in arg_name_parse, f"Cannot have delimiter {self.delim} in {arg_name_parse}"
