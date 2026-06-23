@@ -1,6 +1,5 @@
 from typing import List, Tuple, Optional, Type
 import numpy as np
-from matplotlib.figure import Figure
 from torch import nn, Tensor
 
 from deepxube.base.factory import DelimParser
@@ -13,12 +12,13 @@ from deepxube.factories.heuristic_factory import heuristic_factory
 from deepxube.factories.domain_factory import domain_factory
 from deepxube.factories.nnet_input_factory import register_nnet_input
 
-from matplotlib.colors import ListedColormap
-import matplotlib.pyplot as plt
 from numpy.typing import NDArray
 
+from matplotlib.figure import Figure
+from matplotlib.colors import ListedColormap
+import matplotlib.pyplot as plt
 
-# Define states, goals, and actions
+
 class GridState(State):
     def __init__(self, robot_x: int, robot_y: int):
         self.robot_x: int = robot_x
@@ -94,12 +94,6 @@ class Grid(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalkable[Gri
 
     def sample_goal_from_state(self, states_start: Optional[List[GridState]], states_goal: List[GridState]) -> List[GridGoal]:
         return [GridGoal(state_goal.robot_x, state_goal.robot_y) for state_goal in states_goal]
-
-    def get_input_info_flat_sg(self) -> Tuple[List[int], List[int]]:
-        return [4], [self.dim]
-
-    def get_input_info_flat_sga(self) -> Tuple[List[int], List[int]]:
-        return [4, 1], [self.dim, self.get_num_acts()]
 
     def visualize_state_goal(self, state: GridState, goal: GridGoal, fig: Figure) -> None:
         ax = plt.axes()
