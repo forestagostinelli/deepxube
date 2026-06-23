@@ -152,9 +152,9 @@ class GridFlatInQFix(StateGoalActFixIn[Grid, GridState, GridGoal, GridAction], F
         return [4], [self.domain.dim]
 
     def to_np(self, states: List[GridState], goals: List[GridGoal], actions_l: List[List[GridAction]]) -> List[NDArray]:
-        actions_idxs: NDArray = np.array([[action_i.action for action_i in actions] for actions in actions_l])
+        actions_np: NDArray = np.array([[action_i.action for action_i in actions] for actions in actions_l])
         return [np.stack([np.stack([state.robot_x for state in states]), np.stack([state.robot_y for state in states]),
-                          np.stack([goal.robot_x for goal in goals]), np.stack([goal.robot_y for goal in goals])], axis=1)] + [actions_idxs]
+                          np.stack([goal.robot_x for goal in goals]), np.stack([goal.robot_y for goal in goals])], axis=1)] + [actions_np]
 
 
 @register_nnet_input("grid", "grid_flat_in_actin")
@@ -163,10 +163,9 @@ class GridFlatInActIn(StateGoalActIn[Grid, GridState, GridGoal, GridAction], Fla
         return [4, 1], [self.domain.dim, self.domain.get_num_acts()]
 
     def to_np(self, states: List[GridState], goals: List[GridGoal], actions: List[GridAction]) -> List[NDArray]:
-        actions: NDArray = np.expand_dims(np.array([action_i.action for action_i in actions]), 1)
+        actions_np: NDArray = np.expand_dims(np.array([action_i.action for action_i in actions]), 1)
         return [np.stack([np.stack([state.robot_x for state in states]), np.stack([state.robot_y for state in states]),
-                          np.stack([goal.robot_x for goal in goals]), np.stack([goal.robot_y for goal in goals])], axis=1)] + [actions]
-
+                          np.stack([goal.robot_x for goal in goals]), np.stack([goal.robot_y for goal in goals])], axis=1)] + [actions_np]
 
 
 @register_nnet_input("grid", "grid_nnet_input")
