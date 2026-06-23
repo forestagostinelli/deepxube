@@ -1,4 +1,8 @@
 # <img src="./misc/images/scrambledCube.png" width="50"> DeepXube <img src="./misc/images/solvedCube.png" width="50">
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](
+https://codespaces.new/forestagostinelli/deepxube?quickstart=1
+)
+
 ![Tests](https://github.com/forestagostinelli/deepxube/actions/workflows/test.yml/badge.svg)
 
 --------------------------------------------------------------------------------
