@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.widgets import Slider
 from matplotlib.figure import Figure
+from PIL import Image
 import pickle
 import textwrap
 import numpy as np
@@ -122,6 +123,12 @@ def pathfinding_info(args: argparse.Namespace) -> None:
             print("Parser help:\n" + textwrap.indent(parser.help(), '\t'))
 
 
+def fig_to_rgba(fig: Figure) -> NDArray:
+    fig.canvas.draw()
+    rgba: NDArray = np.asarray(fig.canvas.buffer_rgba())
+    return rgba
+
+
 def viz_step(domain: StateGoalVizable, data: Dict, idx: int, state_idx: int, state_idx_max: int, states_on_path: List[State], state: State, goal: Goal,
              no_act: bool, fig: Figure) -> Tuple[State, int]:
     solved: bool = data['solved'][idx]
@@ -175,66 +182,82 @@ def viz(args: argparse.Namespace) -> None:
         if states_on_path is not None:
             state_idx: int = 0
             state_idx_max: int = len(states_on_path) - 1
-            plt.show(block=False)
-            while True:
-                act_str = input(f"State idx {state_idx} of {state_idx_max} on path. Next state (n), Previous state (p), Video (v), state idx: ")
-                if len(act_str) == 0:
-                    break
-                if act_str.upper() == "N":
-                    if state_idx < state_idx_max:
-                        state, state_idx = viz_step(domain, data, args.idx, state_idx, state_idx_max, states_on_path, state, goal, args.no_act, fig)
-                elif act_str.upper() == "V":
-                    while state_idx < state_idx_max:
-                        state, state_idx = viz_step(domain, data, args.idx, state_idx, state_idx_max, states_on_path, state, goal, args.no_act, fig)
-                        plt.pause(float(args.v_time))
-                elif act_str.upper() == "P":
-                    if state_idx > 0:
-                        state_idx -= 1
+            if args.o is not None:
+                rgba_l: List = []
+                while state_idx < state_idx_max:
+                    rgba_l.append(fig_to_rgba(fig).copy())
+                    state, state_idx = viz_step(domain, data, args.idx, state_idx, state_idx_max, states_on_path, state, goal, args.no_act, fig)
+                rgba_l.append(fig_to_rgba(fig).copy())
+
+                frames: List[Image.Image] = [Image.fromarray(rgba, mode="RGBA") for rgba in rgba_l]
+                frames[0].save(args.o, save_all=True, append_images=frames[1:], duration=1000 * args.v_time, loop=0)
+            else:
+                plt.show(block=False)
+                while True:
+                    act_str = input(f"State idx {state_idx} of {state_idx_max} on path. Next state (n), Previous state (p), Video (v), state idx, "
+                                    f"'!' to quit: ")
+                    if act_str == "!":
+                        break
+                    if act_str.upper() == "N":
+                        if state_idx < state_idx_max:
+                            state, state_idx = viz_step(domain, data, args.idx, state_idx, state_idx_max, states_on_path, state, goal, args.no_act, fig)
+                    elif act_str.upper() == "V":
+                        while state_idx < state_idx_max:
+                            state, state_idx = viz_step(domain, data, args.idx, state_idx, state_idx_max, states_on_path, state, goal, args.no_act, fig)
+                            plt.pause(float(args.v_time))
+                    elif act_str.upper() == "P":
+                        if state_idx > 0:
+                            state_idx -= 1
+                            state = states_on_path[state_idx]
+                            _viz_state_goal_update(domain, state, goal, fig)
+
+                            print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
+                    else:
+                        state_idx = int(act_str)
+                        assert state_idx >= 0
                         state = states_on_path[state_idx]
                         _viz_state_goal_update(domain, state, goal, fig)
-
                         print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
-                else:
-                    state_idx = int(act_str)
-                    assert state_idx >= 0
-                    state = states_on_path[state_idx]
-                    _viz_state_goal_update(domain, state, goal, fig)
-                    print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
         else:
             input("No path (press enter to quit): ")
     else:
         if isinstance(domain, StringToAct):
             print(domain.string_to_action_help())
-        plt.show(block=False)
-        while True:
-            # get input
-            input_options: List[str] = ["nothing for random action"]
-            if isinstance(domain, StringToAct):
-                input_options.append("action string")
-            input_options.append("'!' to quit")
-            input_str = f"Enter {'; or '.join(input_options)}: "
+        if args.o is not None:
+            rgba: NDArray = fig_to_rgba(fig)
+            img = Image.fromarray(rgba, mode="RGBA")
+            img.save(args.o)
+        else:
+            plt.show(block=False)
+            while True:
+                # get input
+                input_options: List[str] = ["nothing for random action"]
+                if isinstance(domain, StringToAct):
+                    input_options.append("action string")
+                input_options.append("'!' to quit")
+                input_str = f"Enter {'; or '.join(input_options)}: "
 
-            act_str = input(input_str)
-            if act_str == "!":
-                break
+                act_str = input(input_str)
+                if act_str == "!":
+                    break
 
-            # get action
-            action_op: Optional[Action] = None
-            if len(act_str) == 0:
-                action_op = domain.sample_state_action([state])[0]
-            elif isinstance(domain, StringToAct):
-                action_op = domain.string_to_action(act_str)
+                # get action
+                action_op: Optional[Action] = None
+                if len(act_str) == 0:
+                    action_op = domain.sample_state_action([state])[0]
+                elif isinstance(domain, StringToAct):
+                    action_op = domain.string_to_action(act_str)
 
-            # take action
-            if action_op is None:
-                print(f"No action '{act_str}'")
-            else:
-                print(action_op)
-                states_next, tcs = domain.next_state([state], [action_op])
-                state = states_next[0]
-                print(f"Transition cost: {tcs[0]}")
-                print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
-                _viz_state_goal_update(domain, state, goal, fig)
+                # take action
+                if action_op is None:
+                    print(f"No action '{act_str}'")
+                else:
+                    print(action_op)
+                    states_next, tcs = domain.next_state([state], [action_op])
+                    state = states_next[0]
+                    print(f"Transition cost: {tcs[0]}")
+                    print(f"Goal Reached: {domain.is_solved([state], [goal])[0]}")
+                    _viz_state_goal_update(domain, state, goal, fig)
 
 
 def _viz_state_goal_update(domain: StateGoalVizable, state: State, goal: Goal, fig: Figure) -> None:
@@ -408,11 +431,12 @@ def _parse_viz_info(parser: ArgumentParser) -> None:
     parser.add_argument('--steps', type=int, default=0, help="Number of steps to take to generate problem instnace.")
     parser.add_argument('--file', type=str, default=None, help="If given, visualize results from file.")
     parser.add_argument('--idx', type=int, default=0, help="Index of problem instance in file.")
-    parser.add_argument('--v_time', type=float, default=0.1, help="Pause time for each step when showing video.")
+    parser.add_argument('--v_time', type=float, default=0.1, help="Pause time for each step when showing video (in seconds).")
     parser.add_argument('--soln', action='store_true', default=False, help="If true, then assumes file contains solutions for problem instances and will "
                                                                            "visualize them.")
     parser.add_argument('--no_act', action='store_true', default=False, help="If true, then will not take action in domain when stepping through solution to "
                                                                              "verify states match and will just use states on solution path.")
+    parser.add_argument('--o', type=str, default=None, help="Output file. Extension should be .png for single image and .gif for solution.")
     parser.set_defaults(func=viz)
 
 

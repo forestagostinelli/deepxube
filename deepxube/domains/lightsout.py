@@ -3,8 +3,12 @@ import numpy as np
 
 from deepxube.base.factory import Parser
 from deepxube.base.nnet_input import HasFlatSGAIn, HasFlatSGActsEnumFixedIn, HasTwoDSGActsEnumFixedIn
-from deepxube.base.domain import State, Action, Goal, GoalStartRevWalkableActsRev, NextStateNPActsEnumFixed
+from deepxube.base.domain import State, Action, Goal, GoalStartRevWalkableActsRev, NextStateNPActsEnumFixed, StateGoalVizable, StringToAct
 from deepxube.factories.domain_factory import domain_factory
+
+from matplotlib.figure import Figure
+from matplotlib.colors import ListedColormap
+from matplotlib.axes import Axes
 
 from numpy.typing import NDArray
 
@@ -20,6 +24,7 @@ class LOState(State):
         if self.hash is None:
             self.hash = hash(self.tiles.tobytes())
 
+        assert self.hash is not None
         return self.hash
 
     def __eq__(self, other: object) -> bool:
@@ -34,20 +39,27 @@ class LOGoal(Goal):
 
 
 class LOAction(Action):
-    def __init__(self, action: int):
-        self.action = action
+    def __init__(self, action: int, dim: int):
+        self.action: int = action
+        self.dim: int = dim
 
     def __hash__(self) -> int:
-        return self.action
+        return hash((self.action, self.dim))
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, LOAction):
             return self.action == other.action
         return NotImplemented
 
+    def __repr__(self) -> str:
+        x: int = self.action % self.dim
+        y: int = self.action // self.dim
+        return f"{x},{y}"
+
 
 @domain_factory.register_class("lightsout")
 class LightsOut(NextStateNPActsEnumFixed[LOState, LOAction, LOGoal], GoalStartRevWalkableActsRev[LOState, LOAction, LOGoal],
+                StateGoalVizable[LOState, LOAction, LOGoal], StringToAct[LOState, LOAction, LOGoal],
                 HasFlatSGActsEnumFixedIn[LOState, LOAction, LOGoal], HasFlatSGAIn[LOState, LOAction, LOGoal],
                 HasTwoDSGActsEnumFixedIn[LOState, LOAction, LOGoal]):
     def __init__(self, dim: int = 7):
@@ -67,7 +79,7 @@ class LightsOut(NextStateNPActsEnumFixed[LOState, LOAction, LOGoal], GoalStartRe
 
             self.move_matrix[move] = [move, right, left, up, down]
 
-        self.actions_fixed: List[LOAction] = [LOAction(x) for x in range(self.num_tiles)]
+        self.actions_fixed: List[LOAction] = [LOAction(x, self.dim) for x in range(self.num_tiles)]
         self.goal_np: NDArray = np.zeros(self.num_tiles, dtype=np.uint8)
 
     def is_solved(self, states: List[LOState], goals: List[LOGoal]) -> List[bool]:
@@ -112,6 +124,46 @@ class LightsOut(NextStateNPActsEnumFixed[LOState, LOAction, LOGoal], GoalStartRe
 
     def get_actions_fixed(self) -> List[LOAction]:
         return self.actions_fixed.copy()
+
+    def visualize_state_goal(self, state: LOState, goal: LOGoal, fig: Figure) -> None:
+        state_grid: NDArray = state.tiles.reshape((self.dim, self.dim))
+
+        ax: Axes = fig.subplots(1, 1)
+
+        self._make_ax(state_grid, ax)
+        fig.tight_layout()
+
+    def string_to_action_help(self) -> str:
+        return "Comma separated X,Y locations. For example: 3,5"
+
+    def string_to_action(self, act_str: str) -> Optional[LOAction]:
+        x_str, y_str = act_str.split(",")
+        action: LOAction = LOAction(int(y_str) * self.dim + int(x_str), self.dim)
+        return action
+
+    def _make_ax(self, grid: NDArray, ax: Axes) -> None:
+        cmap = ListedColormap([
+            "#003b00",  # dark green
+            "#00ff00",  # bright green
+        ])
+
+        ax.imshow(grid.astype(int), cmap=cmap, vmin=0, vmax=1)
+
+        ax.set_xticks(np.arange(self.dim))
+        ax.set_yticks(np.arange(self.dim))
+
+        ax.set_xticklabels([str(i) for i in range(self.dim)])
+        ax.set_yticklabels([str(i) for i in range(self.dim)])
+
+        ax.set_xticks(np.arange(-0.5, self.dim, 1), minor=True)
+        ax.set_yticks(np.arange(-0.5, self.dim, 1), minor=True)
+        ax.grid(which="minor", color="black", linewidth=2)
+        ax.tick_params(which="minor", bottom=False, left=False)
+
+        ax.set_xlim(-0.5, self.dim - 0.5)
+        ax.set_ylim(self.dim - 0.5, -0.5)
+
+        ax.set_aspect("equal")
 
     def _states_to_np(self, states: List[LOState]) -> List[NDArray[np.uint8]]:
         return [np.stack([x.tiles for x in states], axis=0)]

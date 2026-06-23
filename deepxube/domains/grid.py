@@ -5,7 +5,7 @@ from torch import nn, Tensor
 
 from deepxube.base.factory import DelimParser
 from deepxube.base.domain import State, Action, Goal, ActsEnumFixed, StartGoalWalkable, StateGoalVizable, StringToAct
-from deepxube.base.nnet_input import StateGoalIn, HasFlatSGActsEnumFixedIn, HasFlatSGAIn
+from deepxube.base.nnet_input import StateGoalIn, StateGoalActFixIn, StateGoalActIn, FlatIn
 from deepxube.base.heuristic import HeurNNet
 from deepxube.nnet.pytorch_models import Conv2dModel, FullyConnectedModel
 from deepxube.factories.heuristic_factory import heuristic_factory
@@ -63,10 +63,10 @@ class GridAction(Action):
 
         raise ValueError(f"Unknown action {self.action}")
 
+
 @domain_factory.register_class("grid")
 class Grid(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalkable[GridState, GridAction, GridGoal],
-           StateGoalVizable[GridState, GridAction, GridGoal], StringToAct[GridState, GridAction, GridGoal],
-           HasFlatSGActsEnumFixedIn[GridState, GridAction, GridGoal], HasFlatSGAIn[GridState, GridAction, GridGoal]):
+           StateGoalVizable[GridState, GridAction, GridGoal], StringToAct[GridState, GridAction, GridGoal]):
     def __init__(self, dim: int = 7):
         super().__init__()
         self.dim: int = dim
@@ -101,16 +101,6 @@ class Grid(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalkable[Gri
     def get_input_info_flat_sga(self) -> Tuple[List[int], List[int]]:
         return [4, 1], [self.dim, self.get_num_acts()]
 
-    def to_np_flat_sg(self, states: List[GridState], goals: List[GridGoal]) -> List[NDArray]:
-        return [np.stack([np.stack([state.robot_x for state in states]), np.stack([state.robot_y for state in states]),
-                          np.stack([goal.robot_x for goal in goals]), np.stack([goal.robot_y for goal in goals])], axis=1)]
-
-    def to_np_flat_sga(self, states: List[GridState], goals: List[GridGoal], actions: List[GridAction]) -> List[NDArray]:
-        return self.to_np_flat_sg(states, goals) + [np.expand_dims(np.array(self.actions_to_indices(actions)), 1)]
-
-    def actions_to_indices(self, actions: List[GridAction]) -> List[int]:
-        return [action_i.action for action_i in actions]
-
     def visualize_state_goal(self, state: GridState, goal: GridGoal, fig: Figure) -> None:
         ax = plt.axes()
         grid: NDArray = np.zeros((self.dim, self.dim))
@@ -144,6 +134,39 @@ class GridParser(DelimParser):
     @property
     def delim(self) -> str:
         return "_"
+
+
+@register_nnet_input("grid", "grid_flat_in")
+class GridFlatIn(StateGoalIn[Grid, GridState, GridGoal], FlatIn[Grid]):
+    def get_input_info(self) -> Tuple[List[int], List[int]]:
+        return [4], [self.domain.dim]
+
+    def to_np(self, states: List[GridState], goals: List[GridGoal]) -> List[NDArray]:
+        return [np.stack([np.stack([state.robot_x for state in states]), np.stack([state.robot_y for state in states]),
+                          np.stack([goal.robot_x for goal in goals]), np.stack([goal.robot_y for goal in goals])], axis=1)]
+
+
+@register_nnet_input("grid", "grid_flat_in_qfix")
+class GridFlatInQFix(StateGoalActFixIn[Grid, GridState, GridGoal, GridAction], FlatIn[Grid]):
+    def get_input_info(self) -> Tuple[List[int], List[int]]:
+        return [4], [self.domain.dim]
+
+    def to_np(self, states: List[GridState], goals: List[GridGoal], actions_l: List[List[GridAction]]) -> List[NDArray]:
+        actions_idxs: NDArray = np.array([[action_i.action for action_i in actions] for actions in actions_l])
+        return [np.stack([np.stack([state.robot_x for state in states]), np.stack([state.robot_y for state in states]),
+                          np.stack([goal.robot_x for goal in goals]), np.stack([goal.robot_y for goal in goals])], axis=1)] + [actions_idxs]
+
+
+@register_nnet_input("grid", "grid_flat_in_actin")
+class GridFlatInActIn(StateGoalActIn[Grid, GridState, GridGoal, GridAction], FlatIn[Grid]):
+    def get_input_info(self) -> Tuple[List[int], List[int]]:
+        return [4, 1], [self.domain.dim, self.domain.get_num_acts()]
+
+    def to_np(self, states: List[GridState], goals: List[GridGoal], actions: List[GridAction]) -> List[NDArray]:
+        actions: NDArray = np.expand_dims(np.array([action_i.action for action_i in actions]), 1)
+        return [np.stack([np.stack([state.robot_x for state in states]), np.stack([state.robot_y for state in states]),
+                          np.stack([goal.robot_x for goal in goals]), np.stack([goal.robot_y for goal in goals])], axis=1)] + [actions]
+
 
 
 @register_nnet_input("grid", "grid_nnet_input")

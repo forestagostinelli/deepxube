@@ -69,6 +69,14 @@ class StateGoalIn(NNetInput[D], Generic[D, S, G]):
 class StateGoalActFixIn(NNetInput[D], Generic[D, S, G, A]):
     @abstractmethod
     def to_np(self, states: List[S], goals: List[G], actions_l: List[List[A]]) -> List[NDArray]:
+        """
+
+        :param states: States
+        :param goals: Goals
+        :param actions_l: Actions. Assumes same number of actions for each state and goal (i.e. each list in list of lists is same length).
+        :return: List of numpy arrays representing states and goals. The last element in the list of numpy arrays of the input corresponds to the index of the
+        action
+        """
         pass
 
 

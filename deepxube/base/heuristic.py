@@ -97,6 +97,13 @@ class DeepXubeNNet(nn.Module, Generic[In], ABC):
 
 class HeurNNet(DeepXubeNNet[In]):
     def __init__(self, nnet_input: In, out_dim: int, q_fix: bool, **kwargs: Any):
+        """
+
+        :param nnet_input: Neural network input
+        :param out_dim: Output dimensionality. If q_fix is true, this is the dimensionality of the number of actions, must be 1 otherwise
+        :param q_fix: If true, the last element in the list of numpy arrays of the input corresponds to the index of the action
+        :param kwargs: kwargs
+        """
         super().__init__(nnet_input)
         self.out_dim: int = out_dim
         self.q_fix: bool = q_fix
