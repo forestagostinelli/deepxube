@@ -3,7 +3,7 @@ import pytest  # type: ignore
 
 from deepxube.factories.updater_factory import get_updater
 
-from deepxube.base.heuristic import HeurNNetPar
+from deepxube.base.heuristic import HeurNNetPar, HeurFnV, HeurFnQ
 from deepxube.base.pathfinding import Node, Instance, get_path
 from deepxube.pathfinding.utils.performance import is_valid_soln, PathFindPerf
 from deepxube.base.pathfinding import PathFind, FNsHeurV, FNsHeurQ
@@ -42,7 +42,7 @@ cases = (
 @pytest.mark.parametrize("pathfind_tr_str,pathfind_solve_str,heur_type,bal,ub_heur_solns,backup,sync_main,soln_thresh", cases)
 def test_train_solve_heur(pathfind_tr_str: str, pathfind_solve_str: str, heur_type: str, bal: bool, ub_heur_solns: bool, backup: int, sync_main: bool,
                           soln_thresh: float) -> None:
-    domain_str: str = "grid.7"
+    domain_str: str = "grid.7d"
     heur_str: str = "resnet_fc.100H_1B_bn"
     search_itrs: int = 20
     domain, domain_name = get_domain_from_arg(domain_str)
@@ -82,8 +82,10 @@ def test_train_solve_heur(pathfind_tr_str: str, pathfind_solve_str: str, heur_ty
     # do pathfinding
     functions: Any
     if heur_type == "V":
+        assert isinstance(heur_fn, HeurFnV)
         functions = FNsHeurV(heur_fn)
     else:
+        assert isinstance(heur_fn, HeurFnQ)
         functions = FNsHeurQ(heur_fn)
 
     pathfind: PathFind = get_pathfind_from_arg(domain, functions, pathfind_solve_str)[0]

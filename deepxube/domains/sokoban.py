@@ -67,6 +67,18 @@ class SkAction(Action):
             return self.action == other.action
         return NotImplemented
 
+    def __repr__(self) -> str:
+        if self.action == 0:
+            return "UP"
+        elif self.action == 1:
+            return "DOWN"
+        elif self.action == 2:
+            return "LEFT"
+        elif self.action == 3:
+            return "RIGHT"
+
+        raise ValueError(f"Unknown action {self.action}")
+
 
 def load_states(data_dir: str) -> List[SkState]:
     states_np = pickle.load(open(f"{data_dir}/sokoban/train.pkl", "rb"))

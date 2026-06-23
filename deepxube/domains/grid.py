@@ -52,8 +52,16 @@ class GridAction(Action):
         return NotImplemented
 
     def __repr__(self) -> str:
-        return f"{self.action}"
+        if self.action == 0:
+            return "UP"
+        elif self.action == 1:
+            return "DOWN"
+        elif self.action == 2:
+            return "LEFT"
+        elif self.action == 3:
+            return "RIGHT"
 
+        raise ValueError(f"Unknown action {self.action}")
 
 @domain_factory.register_class("grid")
 class Grid(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalkable[GridState, GridAction, GridGoal],
@@ -73,13 +81,13 @@ class Grid(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalkable[Gri
     def next_state(self, states: List[GridState], actions: List[GridAction]) -> Tuple[List[GridState], List[float]]:
         states_next: List[GridState] = []
         for state, action in zip(states, actions):
-            if action.action == 0:  # up
+            if action.action == 1:  # up
                 states_next.append(GridState(min(state.robot_x + 1, self.dim - 1), state.robot_y))
-            elif action.action == 1:  # down
+            elif action.action == 0:  # down
                 states_next.append(GridState(max(state.robot_x - 1, 0), state.robot_y))
-            elif action.action == 2:  # left
+            elif action.action == 3:  # left
                 states_next.append(GridState(state.robot_x, min(state.robot_y + 1, self.dim - 1)))
-            elif action.action == 3:  # right
+            elif action.action == 2:  # right
                 states_next.append(GridState(state.robot_x, max(state.robot_y - 1, 0)))
 
         return states_next, [1.0] * len(states_next)
@@ -112,13 +120,13 @@ class Grid(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalkable[Gri
         fig.add_axes(ax)
 
     def string_to_action(self, act_str: str) -> Optional[GridAction]:
-        if act_str in {"0", "1", "2", "3"}:
-            return GridAction(int(act_str))
+        if act_str in {"w", "s", "a", "d"}:
+            return GridAction(["w", "s", "a", "d"].index(act_str))
         else:
             return None
 
     def string_to_action_help(self) -> str:
-        return "0, 1, 2, or 3 for down, up, right, and left, respectively."
+        return "w, s, a, or d for up, down, left, and right, respectively."
 
     def get_actions_fixed(self) -> List[GridAction]:
         return self.actions_fixed.copy()
