@@ -6,13 +6,15 @@ from deepxube.base.factory import DelimParser
 from deepxube.base.domain import State, Action, Goal, ActsEnumFixed, StartGoalWalkable, StateGoalVizable, StringToAct
 from deepxube.base.nnet_input import StateGoalIn, StateGoalActFixIn, StateGoalActIn, FlatIn
 from deepxube.base.heuristic import HeurNNet
-from deepxube.nnet.pytorch_models import Conv2dModel, FullyConnectedModel
-from deepxube.factories.heuristic_factory import heuristic_factory
 
+from deepxube.factories.heuristic_factory import heuristic_factory
 from deepxube.factories.domain_factory import domain_factory
 from deepxube.factories.nnet_input_factory import register_nnet_input
 
+from deepxube.nnet.pytorch_models import Conv2dModel, FullyConnectedModel
+
 from numpy.typing import NDArray
+import random
 
 from matplotlib.figure import Figure
 from matplotlib.colors import ListedColormap
@@ -52,16 +54,7 @@ class GridAction(Action):
         return NotImplemented
 
     def __repr__(self) -> str:
-        if self.action == 0:
-            return "UP"
-        elif self.action == 1:
-            return "DOWN"
-        elif self.action == 2:
-            return "LEFT"
-        elif self.action == 3:
-            return "RIGHT"
-
-        raise ValueError(f"Unknown action {self.action}")
+        return ["UP", "DOWN", "LEFT", "RIGHT"][self.action]
 
 
 @domain_factory.register_class("grid")
@@ -76,7 +69,7 @@ class Grid(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalkable[Gri
         return [(state.robot_x == goal.robot_x) and (state.robot_y == goal.robot_y) for state, goal in zip(states, goals)]
 
     def sample_start_states(self, num_states: int) -> List[GridState]:
-        return [GridState(np.random.randint(self.dim), np.random.randint(self.dim)) for _ in range(num_states)]
+        return [GridState(random.randint(0, self.dim - 1), random.randint(0, self.dim - 1)) for _ in range(num_states)]
 
     def next_state(self, states: List[GridState], actions: List[GridAction]) -> Tuple[List[GridState], List[float]]:
         states_next: List[GridState] = []
