@@ -1,10 +1,10 @@
 # <img src="./misc/images/scrambledCube.png" width="50"> DeepXube <img src="./misc/images/solvedCube.png" width="50">
+![Tests](https://github.com/forestagostinelli/deepxube/actions/workflows/test.yml/badge.svg)
+
+GitHub Codespaces:\
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](
 https://codespaces.new/forestagostinelli/deepxube?quickstart=1
 )
-
-
-![Tests](https://github.com/forestagostinelli/deepxube/actions/workflows/test.yml/badge.svg)
 
 --------------------------------------------------------------------------------
 ## Write-Up
@@ -39,8 +39,6 @@ For any issues, you can create a GitHub issue or contact Forest Agostinelli (for
 ## Installation
 
 `pip install deepxube`
-
-See [INSTALL.md](INSTALL.md) for more information.
 
 ## Documentation
 Documentation of all modules is [here](https://forestagostinelli.github.io/deepxube/deepxube.html).
