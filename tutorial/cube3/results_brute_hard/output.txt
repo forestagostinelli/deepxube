@@ -1,0 +1,42 @@
+Cube3()
+GraphSearchHeurNodeActsEnum(batch_size=1, weight=1.0, eps=0.0)
+State: 0, SolnCost: inf, # Nodes Gen: 948,696, Itrs: 79058, Itrs/sec: 7905.73, Solved: False, Time: 10.00
+Times - root: 0.00, heur: 0.13, pop: 0.23, is_solved: 0.61, goal: 0.04, expand: 3.54, nodes: 2.13, up_inst: 0.33, filt: 0.88, cost: 0.68, pushpop: 0.59, edges_next: 0.07, set_next: 0.04, Tot: 9.29, num_itrs: 79058
+Means - SolnCost: 0.00, # Nodes Gen: 0.00, Itrs: 0.00, Itrs/sec: 0.00, Solved: 0.00%, Time: 0.00
+
+State: 1, SolnCost: inf, # Nodes Gen: 926,160, Itrs: 77180, Itrs/sec: 7442.95, Solved: False, Time: 10.37
+Times - root: 0.00, heur: 0.12, pop: 0.21, is_solved: 0.55, goal: 0.04, expand: 3.62, nodes: 1.66, up_inst: 0.29, filt: 0.80, cost: 0.62, pushpop: 1.66, edges_next: 0.07, set_next: 0.04, Tot: 9.67, num_itrs: 77180
+Means - SolnCost: 0.00, # Nodes Gen: 0.00, Itrs: 0.00, Itrs/sec: 0.00, Solved: 0.00%, Time: 0.00
+
+State: 2, SolnCost: inf, # Nodes Gen: 858,564, Itrs: 71547, Itrs/sec: 7154.64, Solved: False, Time: 10.00
+Times - root: 0.00, heur: 0.11, pop: 0.20, is_solved: 0.53, goal: 0.04, expand: 2.75, nodes: 1.76, up_inst: 0.53, filt: 0.74, cost: 0.59, pushpop: 1.98, edges_next: 0.06, set_next: 0.03, Tot: 9.33, num_itrs: 71547
+Means - SolnCost: 0.00, # Nodes Gen: 0.00, Itrs: 0.00, Itrs/sec: 0.00, Solved: 0.00%, Time: 0.00
+
+State: 3, SolnCost: inf, # Nodes Gen: 898,836, Itrs: 74903, Itrs/sec: 7490.28, Solved: False, Time: 10.00
+Times - root: 0.00, heur: 0.11, pop: 0.20, is_solved: 0.52, goal: 0.04, expand: 2.75, nodes: 3.28, up_inst: 0.28, filt: 0.75, cost: 0.59, pushpop: 0.70, edges_next: 0.06, set_next: 0.03, Tot: 9.33, num_itrs: 74903
+Means - SolnCost: 0.00, # Nodes Gen: 0.00, Itrs: 0.00, Itrs/sec: 0.00, Solved: 0.00%, Time: 0.00
+
+State: 4, SolnCost: inf, # Nodes Gen: 824,556, Itrs: 68713, Itrs/sec: 6871.28, Solved: False, Time: 10.00
+Times - root: 0.00, heur: 0.12, pop: 0.20, is_solved: 0.54, goal: 0.04, expand: 3.22, nodes: 1.29, up_inst: 1.38, filt: 0.76, cost: 0.60, pushpop: 1.06, edges_next: 0.07, set_next: 0.03, Tot: 9.32, num_itrs: 68713
+Means - SolnCost: 0.00, # Nodes Gen: 0.00, Itrs: 0.00, Itrs/sec: 0.00, Solved: 0.00%, Time: 0.00
+
+State: 5, SolnCost: inf, # Nodes Gen: 953,256, Itrs: 79438, Itrs/sec: 7601.42, Solved: False, Time: 10.45
+Times - root: 0.00, heur: 0.12, pop: 0.22, is_solved: 0.57, goal: 0.04, expand: 3.54, nodes: 2.68, up_inst: 0.30, filt: 0.81, cost: 0.64, pushpop: 0.72, edges_next: 0.07, set_next: 0.04, Tot: 9.74, num_itrs: 79438
+Means - SolnCost: 0.00, # Nodes Gen: 0.00, Itrs: 0.00, Itrs/sec: 0.00, Solved: 0.00%, Time: 0.00
+
+State: 6, SolnCost: inf, # Nodes Gen: 898,536, Itrs: 74878, Itrs/sec: 7487.76, Solved: False, Time: 10.00
+Times - root: 0.00, heur: 0.11, pop: 0.20, is_solved: 0.51, goal: 0.04, expand: 2.70, nodes: 1.74, up_inst: 0.49, filt: 0.73, cost: 0.58, pushpop: 2.14, edges_next: 0.06, set_next: 0.03, Tot: 9.34, num_itrs: 74878
+Means - SolnCost: 0.00, # Nodes Gen: 0.00, Itrs: 0.00, Itrs/sec: 0.00, Solved: 0.00%, Time: 0.00
+
+State: 7, SolnCost: inf, # Nodes Gen: 855,336, Itrs: 71278, Itrs/sec: 7127.80, Solved: False, Time: 10.00
+Times - root: 0.00, heur: 0.11, pop: 0.19, is_solved: 0.49, goal: 0.03, expand: 2.98, nodes: 2.52, up_inst: 0.49, filt: 0.70, cost: 0.56, pushpop: 1.20, edges_next: 0.06, set_next: 0.03, Tot: 9.36, num_itrs: 71278
+Means - SolnCost: 0.00, # Nodes Gen: 0.00, Itrs: 0.00, Itrs/sec: 0.00, Solved: 0.00%, Time: 0.00
+
+State: 8, SolnCost: inf, # Nodes Gen: 850,500, Itrs: 70875, Itrs/sec: 7074.23, Solved: False, Time: 10.02
+Times - root: 0.00, heur: 0.11, pop: 0.18, is_solved: 0.48, goal: 0.03, expand: 2.54, nodes: 3.85, up_inst: 0.26, filt: 0.68, cost: 0.55, pushpop: 0.64, edges_next: 0.06, set_next: 0.03, Tot: 9.40, num_itrs: 70875
+Means - SolnCost: 0.00, # Nodes Gen: 0.00, Itrs: 0.00, Itrs/sec: 0.00, Solved: 0.00%, Time: 0.00
+
+State: 9, SolnCost: inf, # Nodes Gen: 875,712, Itrs: 72976, Itrs/sec: 7297.59, Solved: False, Time: 10.00
+Times - root: 0.00, heur: 0.11, pop: 0.19, is_solved: 0.50, goal: 0.03, expand: 2.90, nodes: 1.92, up_inst: 0.26, filt: 0.71, cost: 0.56, pushpop: 2.08, edges_next: 0.06, set_next: 0.03, Tot: 9.36, num_itrs: 72976
+Means - SolnCost: 0.00, # Nodes Gen: 0.00, Itrs: 0.00, Itrs/sec: 0.00, Solved: 0.00%, Time: 0.00
+

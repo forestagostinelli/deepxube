@@ -324,9 +324,20 @@ def train_summary(args: argparse.Namespace) -> None:
         plot_itr_data(axs, step_slider, itr, itr_to_in_out, itr_to_steps_to_pathfindperf)
         fig.canvas.draw()
 
-    step_slider.on_changed(update)
     fig.tight_layout()
-    plt.show()
+
+    if args.o is not None:
+        rgba_l: List = []
+        for idx_gif in range(len(itrs)):
+            step_slider.set_val(idx_gif)
+            update(idx_gif)
+            rgba_l.append(fig_to_rgba(fig).copy())
+
+        frames: List[Image.Image] = [Image.fromarray(rgba, mode="RGBA") for rgba in rgba_l]
+        frames[0].save(args.o, save_all=True, append_images=frames[1:], duration=1000 * args.v_time, loop=0)
+    else:
+        step_slider.on_changed(update)
+        plt.show()
 
 
 def problem_inst_gen(args: argparse.Namespace) -> None:
@@ -431,7 +442,7 @@ def _parse_viz_info(parser: ArgumentParser) -> None:
     parser.add_argument('--steps', type=int, default=0, help="Number of steps to take to generate problem instnace.")
     parser.add_argument('--file', type=str, default=None, help="If given, visualize results from file.")
     parser.add_argument('--idx', type=int, default=0, help="Index of problem instance in file.")
-    parser.add_argument('--v_time', type=float, default=0.1, help="Pause time for each step when showing video (in seconds).")
+    parser.add_argument('--v_time', type=float, default=0.5, help="Pause time for each step when showing video or gif (in seconds).")
     parser.add_argument('--soln', action='store_true', default=False, help="If true, then assumes file contains solutions for problem instances and will "
                                                                            "visualize them.")
     parser.add_argument('--no_act', action='store_true', default=False, help="If true, then will not take action in domain when stepping through solution to "
@@ -465,4 +476,6 @@ def _parse_problem_instance(parser: ArgumentParser) -> None:
 def _parse_train_summary(parser: ArgumentParser) -> None:
     parser.add_argument('--dir', type=str, required=True, help="Training directory.")
     parser.add_argument('--type', type=str, default="heur", help="heur or policy")
+    parser.add_argument('--v_time', type=float, default=0.5, help="Pause time for each step when making gif (in seconds).")
+    parser.add_argument('--o', type=str, default=None, help="Output file. Extensrion should be .gif.")
     parser.set_defaults(func=train_summary)

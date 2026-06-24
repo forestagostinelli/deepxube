@@ -41,7 +41,7 @@ For any issues, you can create a GitHub issue or contact Forest Agostinelli (for
 `pip install deepxube`
 
 ## Documentation
-Documentation of all modules is [here](https://forestagostinelli.github.io/deepxube/deepxube.html).
+Documentation of all modules is [here](https://forestagostinelli.github.io/deepxube/).
 
 
 ## Command Line

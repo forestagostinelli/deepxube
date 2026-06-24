@@ -35,6 +35,7 @@ then you can save the image as a .png using the `--o <file>` argument.
 `deepxube viz --domain cube3 --steps 100 --o img.png`
 ```
 
+
 ## Generating Problem Instances
 The maximum number actions required to solve the Rubik's cube with 90 degree face turns is 26 {cite:p}`rokicki_2014`.
 With 12 actions for each state, in the worst case, a brute force search would require generating $12^{26}$($\approx 1.1 \times 10^{28}$) states.
@@ -57,6 +58,15 @@ To visualize and interact with the generated problem instances, use:
 
 `--idx` is the index of the problem instance in the file.
 
+<div style="text-align: center;">
+<img src="../_static/images/cube3_easy_viz.png" alt="Scrambled Rubik's Cube viz" width="50%">
+</div>
+
+
+```{note}
+Your visualizations may look different since problem instances are randomly generated. 
+```
+
 ## Brute Force Search
 
 We will use uniform-cost search to solve problem instances. 
@@ -66,40 +76,40 @@ heuristic function.
 
 `deepxube solve --domain cube3 --heur_type V --pathfind graph_v.1B_1.0W --file tutorial/cube3/easy.pkl --results tutorial/cube3/results_brute_easy/ --redo`
 
-This should result in solving all 10 instances with an average path cost of around 2.5 and an average time of around 0.1 seconds:
+This should result in solving all 10 instances with an average path cost of about 2.5 and an average solve time of about 0.1 seconds:
 ```{literalinclude} ../../tutorial/cube3/results_brute_easy/output.txt
 :language: none
-:caption: Example output
+:class: scroll-code
 ```
+
+```{tip}
+An output file is saved in output.txt in the results directory.
+```
+
 
 Trying to solve the hard instances with brute force search will most likely result in 
 your computer will running out of memory.
 To set a time limit so this does not happen:
 
-`deepxube solve --domain cube3 --heur_type V --pathfind graph_v.1B_1.0W --file hard.pkl --results results_hard_brute_force/ --redo --time_limit 10`
+`deepxube solve --domain cube3 --heur_type V --pathfind graph_v.1B_1.0W --file tutorial/cube3/hard.pkl --results tutorial/cube3/results_brute_hard/ --redo --time_limit 10`
 
 This should result in no instances being solved:
 
-```none
-Cube3()
-GraphSearchHeurNodeActsEnum(batch_size=1, weight=1.0, eps=0.0)
-State: 0, SolnCost: inf, # Nodes Gen: 938,748, Itrs: 78229, Itrs/sec: 7822.82, Solved: False, Time: 10.00
-Times - root: 0.00, heur: 0.13, pop: 0.23, is_solved: 0.62, goal: 0.04, expand: 3.58, nodes: 2.07, up_inst: 0.33, filt: 0.89, cost: 0.70, pushpop: 0.57, edges_next: 0.07, set_next: 0.04, Tot: 9.28, num_itrs: 78229
-Means - SolnCost: 0.00, # Nodes Gen: 0.00, Itrs: 0.00, Itrs/sec: 0.00, Solved: 0.00%, Time: 0.00
-
-...
-
-State: 9, SolnCost: inf, # Nodes Gen: 797,388, Itrs: 66449, Itrs/sec: 6439.21, Solved: False, Time: 10.32
-Times - root: 0.00, heur: 0.11, pop: 0.19, is_solved: 0.51, goal: 0.03, expand: 3.71, nodes: 2.65, up_inst: 0.27, filt: 0.72, cost: 0.58, pushpop: 0.80, edges_next: 0.06, set_next: 0.03, Tot: 9.67, num_itrs: 66449
-Means - SolnCost: 0.00, # Nodes Gen: 0.00, Itrs: 0.00, Itrs/sec: 0.00, Solved: 0.00%, Time: 0.00
+```{literalinclude} ../../tutorial/cube3/results_brute_hard/output.txt
+:language: none
+:class: scroll-code
 ```
-
 
 ### Visualizing Solutions
 For the problem instances that were solved, visualizations of the solution can be obtained
 from the results file. The solution can be manually or automatically stepped through. 
 
-`deepxube viz --domain cube3 --file results_easy_brute_force/results.pkl --idx 3 --soln`
+`deepxube viz --domain cube3 --file tutorial/cube3/results_brute_easy/results.pkl --idx 5 --soln`
+
+<div style="text-align: center;">
+<img src="../_static/gifs/cube3_easy_viz_soln.gif" alt="Scrambled Rubik's Cube solution (easy)" width="50%">
+</div>
+
 
 ```{tip}
 A .gif of the solution can be saved by adding `--o <file_name>.gif`
@@ -119,7 +129,7 @@ and batch normalization {cite:p}`ioffe2015batch`. Building on
 approximate value iteration {cite:p}`bellman1957dynamic,bertsekas1996neuro`, the DNN
 will be trained with limited-horizon Bellman-based learning (LHBL) {cite:p}`hadar2025beyond`.
 
-`deepxube train --domain cube3 --heur resnet_fc.200H_2B_bn --heur_type V --pathfind graph_v --step_max 100 --up_itrs 100 --search_itrs 50 --backup -1 --procs 2 --batch_size 200 --max_itrs 5000 --dir models/`
+`deepxube train --domain cube3 --heur resnet_fc.200H_2B_bn --heur_type V --pathfind graph_v --step_max 100 --up_itrs 100 --search_itrs 50 --backup -1 --procs 2 --batch_size 200 --max_itrs 5000 --dir tutorial/cube3/models/`
 
 `--step_max 100` uses 100 steps to generate problem instances. In the Rubik's Cube domain, this starts from the goal and 
 takes between 0 and 100 actions to generate a problem instance.
@@ -144,35 +154,20 @@ batched versions of search cannot currently be used during training.
 
 Training should result in a heuristic function that goes from solving about 3% to about 11% of problem instances during training.
 
-```none
-...
-
-Getting Data - itr: 0, update_num: 0, targ_update: 0, num_gen: 20,000
-Times - steps_gen: 0.03, inst_info: 0.00, inst_add: 0.00, backup: 0.06, get_tr_data: 0.00, to_np: 0.01, update_perf: 0.00, put: 0.01, gc: 0.45, ->get_states: 0.05, ->pathfinding: 4.24, Tot: 4.84
-        (get_states): sample_goalstate_goal_pairs: 0.00, random_walk: 0.05, Tot: 0.05
-        (pathfinding): root: 0.00, pop: 0.01, is_solved: 0.03, goal: 0.00, expand: 0.69, nodes: 0.82, up_inst: 0.07, heur: 2.26, filt: 0.21, cost: 0.05, pushpop: 0.08, edges_next: 0.01, set_next: 0.00, Tot: 4.24
-Data - %solved: 3.17, path_costs: 1.200, search_itrs: 16.970, cost-to-go (mean/min/max): 1.01/0.00/2.00
-Itr: 0, loss: 2.46E+00, targ_ctg: 1.00, nnet_ctg: -0.43, Time: 3.16
-Train - itrs: 100, loss: 2.89E-02, targ_updated: True
-Times - up_start: 0.01, up_data: 2.81, up_end: 0.33, data_samp: 0.00, train: 0.46, save_net: 0.00, save_status: 0.00, Tot: 3.62
-
-...
-
-Getting Data - itr: 4900, update_num: 49, targ_update: 49, num_gen: 20,000
-Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.07, get_tr_data: 0.00, to_np: 0.01, update_perf: 0.00, put: 0.01, gc: 0.51, ->get_states: 0.06, ->pathfinding: 4.89, Tot: 5.56
-        (get_states): sample_goalstate_goal_pairs: 0.00, random_walk: 0.06, Tot: 0.06
-        (pathfinding): root: 0.00, pop: 0.01, is_solved: 0.02, goal: 0.00, expand: 0.58, nodes: 1.03, up_inst: 0.08, heur: 2.83, filt: 0.17, cost: 0.05, pushpop: 0.10, edges_next: 0.01, set_next: 0.00, Tot: 4.89
-Data - %solved: 11.22, path_costs: 4.386, search_itrs: 9.133, cost-to-go (mean/min/max): 17.64/0.00/25.92
-Itr: 4900, loss: 4.84E+00, targ_ctg: 17.78, nnet_ctg: 19.23, Time: 3.02
-Train - itrs: 100, loss: 2.08E+00, targ_updated: True
-Times - up_start: 0.00, up_data: 2.67, up_end: 0.34, data_samp: 0.00, train: 0.55, save_net: 0.00, save_status: 0.00, Tot: 3.57
-Done
+```{literalinclude} ../../tutorial/cube3/models/output.txt
+:language: none
+:class: scroll-code
 ```
+
+```{tip}
+An output file is saved in output.txt in the training directory.
+```
+
 
 ### Monitoring Training
 
 An interactive visualization of training can be obtained during or after training with:
-`deepxube train_summary --dir models/`.
+`deepxube train_summary --dir tutorial/cube3/models/`.
 
 This shows the percentage solves, path costs of solutions, search iterations of solved instances, cost-to-go targets, and 
 number of instances created as a function of the number of steps used to generate problem instances. It also shows the 
@@ -180,7 +175,7 @@ neural network prediction as a function of the target cost-to-go. The slider at 
 training iteration. This plot is updated once every target network update.
 
 <div style="text-align: center;">
-<img src="../_static/images/train_summary.png" alt="Scrambled Rubik's Cube" width="100%">
+<img src="../_static/gifs/train_summary.gif" alt="Train summary" width="100%">
 </div>
 
 ```{note}
@@ -190,5 +185,35 @@ $i$ is solved, then a new problem instance is generated with $K_i$ steps. Theref
 case that there are more problem instances with fewer number of steps. 
 ```
 
+```{tip}
+A .gif of the train summary can be saved by adding `--o <file_name>.gif`
+```
+
 
 ## Heuristic Search
+The trained heuristic function only solved about 11% of problem instances from the training set with A* search.
+To improve solution rate without improving the heuristic function we can search for more iterations as well as perform
+batch weighted A* search (BWAS) {cite:p}`pohl1970heuristic,agostinelli2019solving,li2022optimal`. To perform BWAS
+with a batch size of 100 and a weight of 0.1 on the path cost with the trained heuristic function:
+
+`deepxube solve --domain cube3 --heur resnet_fc.200H_2B_bn --heur_file tutorial/cube3/models/heur.pt --heur_type V --pathfind graph_v.100B_0.1W --file tutorial/cube3/hard.pkl --results tutorial/cube3/results_heur_hard/ --redo`
+
+This should result in solving all of the hard instances with an average path cost of about 47 and an average solve time of about 3.5 seconds.
+```{literalinclude} ../../tutorial/cube3/results_heur_hard/output.txt
+:language: none
+:class: scroll-code
+```
+
+Visualizations of these solutions can also be obtained:
+
+`deepxube viz --domain cube3 --file tutorial/cube3/results_heur_hard/results.pkl --idx 5 --soln`
+
+<div style="text-align: center;">
+<img src="../_static/gifs/cube3_hard_viz_soln.gif" alt="Scrambled Rubik's Cube solution (easy)" width="50%">
+</div>
+
+```{tip}
+Improving the heuristic function, itself, can result in significantly lower path costs when performing heuristic search.
+This can be achieved by training with larger DNNs (resnet_fc.1000H_4B_bn), batch sizes (between 1,000 and 10,000), 
+and for more iterations (around 1,000,000). This training is best done using one or two GPUs.
+```
