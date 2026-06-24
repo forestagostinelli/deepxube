@@ -7,6 +7,7 @@ extensions = [
     "myst_parser",
     "sphinx_copybutton",
     "sphinx.ext.mathjax",
+    "sphinx.ext.githubpages",
     "sphinxcontrib.bibtex",
 ]
 

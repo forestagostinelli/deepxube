@@ -41,15 +41,19 @@ With 12 actions for each state, in the worst case, a brute force search would re
 Therefore, we will create "easy" problem instances for brute-force search and "hard" 
 problem instances for deep reinforcement learning and batch-weighted A* search.
 
-`deepxube problem_inst --domain cube3 --step_min 2 --step_max 3 --num 10 --file easy.pkl --redo`
+`mkdir tutorial`
 
-`deepxube problem_inst --domain cube3 --step_min 1000 --step_max 10000 --num 10 --file hard.pkl --redo`
+`mkdir tutorial/cube3/`
+
+`deepxube problem_inst --domain cube3 --step_min 2 --step_max 3 --num 10 --file tutorial/cube3/easy.pkl --redo`
+
+`deepxube problem_inst --domain cube3 --step_min 1000 --step_max 10000 --num 10 --file tutorial/cube3/hard.pkl --redo`
 
 ### Visualizing Generated Problem Instances
 
 To visualize and interact with the generated problem instances, use:
 
-`deepxube viz --domain cube3 --file easy.pkl --idx 5`
+`deepxube viz --domain cube3 --file tutorial/cube3/easy.pkl --idx 5`
 
 `--idx` is the index of the problem instance in the file.
 
@@ -60,21 +64,12 @@ We can achieve this by performing A* search with a heuristic function that is al
 By not giving any file for the heuristic function, DeepXube automatically uses this always-zero 
 heuristic function.
 
-`deepxube solve --domain cube3 --heur_type V --pathfind graph_v.1B_1.0W --file easy.pkl --results results_easy_brute_force/ --redo`
+`deepxube solve --domain cube3 --heur_type V --pathfind graph_v.1B_1.0W --file tutorial/cube3/easy.pkl --results tutorial/cube3/results_brute_easy/ --redo`
 
 This should result in solving all 10 instances with an average path cost of around 2.5 and an average time of around 0.1 seconds:
-```none
-Cube3()
-GraphSearchHeurNodeActsEnum(batch_size=1, weight=1.0, eps=0.0)
-State: 0, SolnCost: 3.00, # Nodes Gen: 13,968, Itrs: 1164, Itrs/sec: 7724.83, Solved: True, Time: 0.15
-Times - root: 0.00, heur: 0.00, pop: 0.00, is_solved: 0.01, goal: 0.00, expand: 0.05, nodes: 0.04, up_inst: 0.00, filt: 0.01, cost: 0.01, pushpop: 0.01, edges_next: 0.00, set_next: 0.00, Tot: 0.14, num_itrs: 1164
-Means - SolnCost: 3.00, # Nodes Gen: 13968.00, Itrs: 1164.00, Itrs/sec: 7724.83, Solved: 100.00%, Time: 0.15
-
-...
-
-State: 9, SolnCost: 2.00, # Nodes Gen: 432, Itrs: 36, Itrs/sec: 7424.28, Solved: True, Time: 0.00
-Times - root: 0.00, heur: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.00, nodes: 0.00, up_inst: 0.00, filt: 0.00, cost: 0.00, pushpop: 0.00, edges_next: 0.00, set_next: 0.00, Tot: 0.00, num_itrs: 36
-Means - SolnCost: 2.50, # Nodes Gen: 5083.20, Itrs: 423.60, Itrs/sec: 8074.00, Solved: 100.00%, Time: 0.06
+```{literalinclude} ../../tutorial/cube3/results_brute_easy/output.txt
+:language: none
+:caption: Example output
 ```
 
 Trying to solve the hard instances with brute force search will most likely result in 
