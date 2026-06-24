@@ -1,0 +1,725 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Rubik’s Cube Example &#8212; DeepXube  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=a95f357e85573c9b56d5" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=a95f357e85573c9b56d5" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=a95f357e85573c9b56d5"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=a95f357e85573c9b56d5" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=a95f357e85573c9b56d5" />
+
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'tutorial/example';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Creating a New Domain" href="creating.html" />
+    <link rel="prev" title="DeepXube Basics" href="basics.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">DeepXube  documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../background/index.html">
+    Core Concepts
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="index.html">
+    DeepXube Tutorial
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../api.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../references.html">
+    References
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/forestagostinelli/deepxube" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../background/index.html">
+    Core Concepts
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="index.html">
+    DeepXube Tutorial
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../api.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../references.html">
+    References
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/forestagostinelli/deepxube" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar"><svg class="pst-icon svg-inline--fa" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics.html">DeepXube Basics</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Rubik’s Cube Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="creating.html">Creating a New Domain</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">DeepXube Tutorial</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Rubik’s Cube Example</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section class="tex2jax_ignore mathjax_ignore" id="rubik-s-cube-example">
+<h1>Rubik’s Cube Example<a class="headerlink" href="#rubik-s-cube-example" title="Link to this heading">#</a></h1>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This example can be done in 5-10 minutes on a laptop or in GitHub Codespaces (<a class="reference external" href="https://github.com/forestagostinelli/deepxube">See README</a>).</p>
+</div>
+<section id="the-rubik-s-cube">
+<h2>The Rubik’s Cube<a class="headerlink" href="#the-rubik-s-cube" title="Link to this heading">#</a></h2>
+<div style="text-align: center;">
+<img src="../_static/images/scrambledCube.png" alt="Scrambled Rubik's Cube" width="20%">
+<img src="../_static/images/solvedCube.png" alt="Solved Rubik's Cube" width="20%">
+</div>
+<p>We will be using DeepXube to solve the Rubik’s Cube. The Rubik’s Cube is a 3x3x3 cube consisting of six faces and 54 stickers,
+where each face has 9 stickers. Each face can be moved 90 degrees clockwise or counterclockwise for a total of 12 actions.
+There are approximately <span class="math notranslate nohighlight">\(4.3 \times 10^{19}\)</span> possible states (i.e. sticker permutations).</p>
+</section>
+<section id="visualizing-states">
+<h2>Visualizing States<a class="headerlink" href="#visualizing-states" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">cube3</span></code> is the name for the Rubik’s Cube domain.
+You can see the solved Rubik’s Cube using:</p>
+<p><code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">viz</span> <span class="pre">--domain</span> <span class="pre">cube3</span> <span class="pre">--steps</span> <span class="pre">0</span></code></p>
+<p>Since states are generated by starting from the solved cube and taking actions,
+increasing the number of steps will increase the number of times the cube is scrambled:</p>
+<p><code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">viz</span> <span class="pre">--domain</span> <span class="pre">cube3</span> <span class="pre">--steps</span> <span class="pre">100</span></code></p>
+<p>This command will produce an image of the cube. You can click and drag it to rotate it.
+You can also interact with the terminal to take actions.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>If you are doing this exercise using a remote machine and cannot see the rendered image,
+then you can save the image as a .png using the <code class="docutils literal notranslate"><span class="pre">--o</span> <span class="pre">&lt;file&gt;</span></code> argument.</p>
+<p><code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">viz</span> <span class="pre">--domain</span> <span class="pre">cube3</span> <span class="pre">--steps</span> <span class="pre">100</span> <span class="pre">--o</span> <span class="pre">img.png</span></code></p>
+</div>
+</section>
+<section id="generating-problem-instances">
+<h2>Generating Problem Instances<a class="headerlink" href="#generating-problem-instances" title="Link to this heading">#</a></h2>
+<p>The maximum number actions required to solve the Rubik’s cube with 90 degree face turns is 26 <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id2" title="Tomas Rokicki. God's number is 26 in the quarter-turn metric. http://www.cube20.org/qtm/, Aug 2014.">Rok14</a>]</span>.
+With 12 actions for each state, in the worst case, a brute force search would require generating <span class="math notranslate nohighlight">\(12^{26}\)</span>(<span class="math notranslate nohighlight">\(\approx 1.1 \times 10^{28}\)</span>) states.
+Therefore, we will create “easy” problem instances for brute-force search and “hard”
+problem instances for deep reinforcement learning and batch-weighted A* search.</p>
+<p><code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">problem_inst</span> <span class="pre">--domain</span> <span class="pre">cube3</span> <span class="pre">--step_min</span> <span class="pre">2</span> <span class="pre">--step_max</span> <span class="pre">3</span> <span class="pre">--num</span> <span class="pre">10</span> <span class="pre">--file</span> <span class="pre">easy.pkl</span> <span class="pre">--redo</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">problem_inst</span> <span class="pre">--domain</span> <span class="pre">cube3</span> <span class="pre">--step_min</span> <span class="pre">1000</span> <span class="pre">--step_max</span> <span class="pre">10000</span> <span class="pre">--num</span> <span class="pre">10</span> <span class="pre">--file</span> <span class="pre">hard.pkl</span> <span class="pre">--redo</span></code></p>
+<section id="visualizing-generated-problem-instances">
+<h3>Visualizing Generated Problem Instances<a class="headerlink" href="#visualizing-generated-problem-instances" title="Link to this heading">#</a></h3>
+<p>To visualize and interact with the generated problem instances, use:</p>
+<p><code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">viz</span> <span class="pre">--domain</span> <span class="pre">cube3</span> <span class="pre">--file</span> <span class="pre">easy.pkl</span> <span class="pre">--idx</span> <span class="pre">5</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">--idx</span></code> is the index of the problem instance in the file.</p>
+</section>
+</section>
+<section id="brute-force-search">
+<h2>Brute Force Search<a class="headerlink" href="#brute-force-search" title="Link to this heading">#</a></h2>
+<p>We will use uniform-cost search to solve problem instances.
+We can achieve this by performing A* search with a heuristic function that is always zero.
+By not giving any file for the heuristic function, DeepXube automatically uses this always-zero
+heuristic function.</p>
+<p><code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">solve</span> <span class="pre">--domain</span> <span class="pre">cube3</span> <span class="pre">--heur_type</span> <span class="pre">V</span> <span class="pre">--pathfind</span> <span class="pre">graph_v.1B_1.0W</span> <span class="pre">--file</span> <span class="pre">easy.pkl</span> <span class="pre">--results</span> <span class="pre">results_easy_brute_force/</span> <span class="pre">--redo</span></code></p>
+<p>This should result in solving all 10 instances with an average path cost of around 2.5 and an average time of around 0.1 seconds:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Cube3()
+GraphSearchHeurNodeActsEnum(batch_size=1, weight=1.0, eps=0.0)
+State: 0, SolnCost: 3.00, # Nodes Gen: 13,968, Itrs: 1164, Itrs/sec: 7724.83, Solved: True, Time: 0.15
+Times - root: 0.00, heur: 0.00, pop: 0.00, is_solved: 0.01, goal: 0.00, expand: 0.05, nodes: 0.04, up_inst: 0.00, filt: 0.01, cost: 0.01, pushpop: 0.01, edges_next: 0.00, set_next: 0.00, Tot: 0.14, num_itrs: 1164
+Means - SolnCost: 3.00, # Nodes Gen: 13968.00, Itrs: 1164.00, Itrs/sec: 7724.83, Solved: 100.00%, Time: 0.15
+
+...
+
+State: 9, SolnCost: 2.00, # Nodes Gen: 432, Itrs: 36, Itrs/sec: 7424.28, Solved: True, Time: 0.00
+Times - root: 0.00, heur: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.00, nodes: 0.00, up_inst: 0.00, filt: 0.00, cost: 0.00, pushpop: 0.00, edges_next: 0.00, set_next: 0.00, Tot: 0.00, num_itrs: 36
+Means - SolnCost: 2.50, # Nodes Gen: 5083.20, Itrs: 423.60, Itrs/sec: 8074.00, Solved: 100.00%, Time: 0.06
+</pre></div>
+</div>
+<p>Trying to solve the hard instances with brute force search will most likely result in
+your computer will running out of memory.
+To set a time limit so this does not happen:</p>
+<p><code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">solve</span> <span class="pre">--domain</span> <span class="pre">cube3</span> <span class="pre">--heur_type</span> <span class="pre">V</span> <span class="pre">--pathfind</span> <span class="pre">graph_v.1B_1.0W</span> <span class="pre">--file</span> <span class="pre">hard.pkl</span> <span class="pre">--results</span> <span class="pre">results_hard_brute_force/</span> <span class="pre">--redo</span> <span class="pre">--time_limit</span> <span class="pre">10</span></code></p>
+<p>This should result in no instances being solved:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Cube3()
+GraphSearchHeurNodeActsEnum(batch_size=1, weight=1.0, eps=0.0)
+State: 0, SolnCost: inf, # Nodes Gen: 938,748, Itrs: 78229, Itrs/sec: 7822.82, Solved: False, Time: 10.00
+Times - root: 0.00, heur: 0.13, pop: 0.23, is_solved: 0.62, goal: 0.04, expand: 3.58, nodes: 2.07, up_inst: 0.33, filt: 0.89, cost: 0.70, pushpop: 0.57, edges_next: 0.07, set_next: 0.04, Tot: 9.28, num_itrs: 78229
+Means - SolnCost: 0.00, # Nodes Gen: 0.00, Itrs: 0.00, Itrs/sec: 0.00, Solved: 0.00%, Time: 0.00
+
+...
+
+State: 9, SolnCost: inf, # Nodes Gen: 797,388, Itrs: 66449, Itrs/sec: 6439.21, Solved: False, Time: 10.32
+Times - root: 0.00, heur: 0.11, pop: 0.19, is_solved: 0.51, goal: 0.03, expand: 3.71, nodes: 2.65, up_inst: 0.27, filt: 0.72, cost: 0.58, pushpop: 0.80, edges_next: 0.06, set_next: 0.03, Tot: 9.67, num_itrs: 66449
+Means - SolnCost: 0.00, # Nodes Gen: 0.00, Itrs: 0.00, Itrs/sec: 0.00, Solved: 0.00%, Time: 0.00
+</pre></div>
+</div>
+<section id="visualizing-solutions">
+<h3>Visualizing Solutions<a class="headerlink" href="#visualizing-solutions" title="Link to this heading">#</a></h3>
+<p>For the problem instances that were solved, visualizations of the solution can be obtained
+from the results file. The solution can be manually or automatically stepped through.</p>
+<p><code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">viz</span> <span class="pre">--domain</span> <span class="pre">cube3</span> <span class="pre">--file</span> <span class="pre">results_easy_brute_force/results.pkl</span> <span class="pre">--idx</span> <span class="pre">3</span> <span class="pre">--soln</span></code></p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>A .gif of the solution can be saved by adding <code class="docutils literal notranslate"><span class="pre">--o</span> <span class="pre">&lt;file_name&gt;.gif</span></code></p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p><code class="docutils literal notranslate"><span class="pre">results.pkl</span></code> can be opened in Python using <code class="docutils literal notranslate"><span class="pre">pickle</span></code> to obtain the actions
+for each solution, the states on the solution path, and other
+relevant information.</p>
+</div>
+</section>
+</section>
+<section id="training-a-heuristic-function">
+<h2>Training a Heuristic Function<a class="headerlink" href="#training-a-heuristic-function" title="Link to this heading">#</a></h2>
+<p>We will train a heuristic function represented as a deep neural network (DNN).
+Specifically, the DNN is a deep residual neural network <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id6" title="Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. Deep residual learning for image recognition. In Proceedings of the IEEE conference on computer vision and pattern recognition, 770–778. 2016.">HZRS16</a>]</span> with
+two residual blocks, two layers of width 200 per block,
+and batch normalization <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../references.html#id5" title="Sergey Ioffe and Christian Szegedy. Batch normalization: accelerating deep network training by reducing internal covariate shift. arXiv preprint arXiv:1502.03167, 2015.">IS15</a>]</span>. Building on
+approximate value iteration <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../references.html#id3" title="Richard Bellman. Dynamic Programming. Princeton University Press, 1957.">Bel57</a>, <a class="reference internal" href="../references.html#id4" title="Dimitri P Bertsekas and John N Tsitsiklis. Neuro-dynamic programming. Athena Scientific, 1996. ISBN 1-886529-10-8.">BT96</a>]</span>, the DNN
+will be trained with limited-horizon Bellman-based learning (LHBL) <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../references.html#id7" title="Gal Hadar, Forest Agostinelli, and Shahaf S Shperberg. Beyond single-step updates: reinforcement learning of heuristics with limited-horizon search. In AAAI. 2026.">HAS26</a>]</span>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">train</span> <span class="pre">--domain</span> <span class="pre">cube3</span> <span class="pre">--heur</span> <span class="pre">resnet_fc.200H_2B_bn</span> <span class="pre">--heur_type</span> <span class="pre">V</span> <span class="pre">--pathfind</span> <span class="pre">graph_v</span> <span class="pre">--step_max</span> <span class="pre">100</span> <span class="pre">--up_itrs</span> <span class="pre">100</span> <span class="pre">--search_itrs</span> <span class="pre">50</span> <span class="pre">--backup</span> <span class="pre">-1</span> <span class="pre">--procs</span> <span class="pre">2</span> <span class="pre">--batch_size</span> <span class="pre">200</span> <span class="pre">--max_itrs</span> <span class="pre">5000</span> <span class="pre">--dir</span> <span class="pre">models/</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">--step_max</span> <span class="pre">100</span></code> uses 100 steps to generate problem instances. In the Rubik’s Cube domain, this starts from the goal and
+takes between 0 and 100 actions to generate a problem instance.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--up_itrs</span> <span class="pre">100</span></code> updates the target network every 100 iterations.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--search_itrs</span> <span class="pre">50</span></code> performs search for 50 iterations on each generated problem instances. All states expanded during search are
+added to the training set.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--backup</span> <span class="pre">-1</span></code> uses the LHBL training update by backing up the entire search tree.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--procs</span> <span class="pre">2</span></code> uses two parallel processes to generate training data.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The product of the number of update steps and batch size should be divisible by the number of search iterations.</p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Currently, DeepXube expects the given pathfinding algorithm expand exactly one state each iteration. Therefore,
+batched versions of search cannot currently be used during training.</p>
+</div>
+<p>Training should result in a heuristic function that goes from solving about 3% to about 11% of problem instances during training.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>...
+
+Getting Data - itr: 0, update_num: 0, targ_update: 0, num_gen: 20,000
+Times - steps_gen: 0.03, inst_info: 0.00, inst_add: 0.00, backup: 0.06, get_tr_data: 0.00, to_np: 0.01, update_perf: 0.00, put: 0.01, gc: 0.45, -&gt;get_states: 0.05, -&gt;pathfinding: 4.24, Tot: 4.84
+        (get_states): sample_goalstate_goal_pairs: 0.00, random_walk: 0.05, Tot: 0.05
+        (pathfinding): root: 0.00, pop: 0.01, is_solved: 0.03, goal: 0.00, expand: 0.69, nodes: 0.82, up_inst: 0.07, heur: 2.26, filt: 0.21, cost: 0.05, pushpop: 0.08, edges_next: 0.01, set_next: 0.00, Tot: 4.24
+Data - %solved: 3.17, path_costs: 1.200, search_itrs: 16.970, cost-to-go (mean/min/max): 1.01/0.00/2.00
+Itr: 0, loss: 2.46E+00, targ_ctg: 1.00, nnet_ctg: -0.43, Time: 3.16
+Train - itrs: 100, loss: 2.89E-02, targ_updated: True
+Times - up_start: 0.01, up_data: 2.81, up_end: 0.33, data_samp: 0.00, train: 0.46, save_net: 0.00, save_status: 0.00, Tot: 3.62
+
+...
+
+Getting Data - itr: 4900, update_num: 49, targ_update: 49, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.07, get_tr_data: 0.00, to_np: 0.01, update_perf: 0.00, put: 0.01, gc: 0.51, -&gt;get_states: 0.06, -&gt;pathfinding: 4.89, Tot: 5.56
+        (get_states): sample_goalstate_goal_pairs: 0.00, random_walk: 0.06, Tot: 0.06
+        (pathfinding): root: 0.00, pop: 0.01, is_solved: 0.02, goal: 0.00, expand: 0.58, nodes: 1.03, up_inst: 0.08, heur: 2.83, filt: 0.17, cost: 0.05, pushpop: 0.10, edges_next: 0.01, set_next: 0.00, Tot: 4.89
+Data - %solved: 11.22, path_costs: 4.386, search_itrs: 9.133, cost-to-go (mean/min/max): 17.64/0.00/25.92
+Itr: 4900, loss: 4.84E+00, targ_ctg: 17.78, nnet_ctg: 19.23, Time: 3.02
+Train - itrs: 100, loss: 2.08E+00, targ_updated: True
+Times - up_start: 0.00, up_data: 2.67, up_end: 0.34, data_samp: 0.00, train: 0.55, save_net: 0.00, save_status: 0.00, Tot: 3.57
+Done
+</pre></div>
+</div>
+<section id="monitoring-training">
+<h3>Monitoring Training<a class="headerlink" href="#monitoring-training" title="Link to this heading">#</a></h3>
+<p>An interactive visualization of training can be obtained during or after training with:
+<code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">train_summary</span> <span class="pre">--dir</span> <span class="pre">models/</span></code>.</p>
+<p>This shows the percentage solves, path costs of solutions, search iterations of solved instances, cost-to-go targets, and
+number of instances created as a function of the number of steps used to generate problem instances. It also shows the
+neural network prediction as a function of the target cost-to-go. The slider at the bottom can be used to step through
+training iteration. This plot is updated once every target network update.</p>
+<div style="text-align: center;">
+<img src="../_static/images/train_summary.png" alt="Scrambled Rubik's Cube" width="100%">
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The number of problem instances initially generated is the number of update steps times the batch size
+divided by the number of search iterations. Each instance <span class="math notranslate nohighlight">\(i\)</span> is generated with <span class="math notranslate nohighlight">\(K_i\)</span> steps. If instance
+<span class="math notranslate nohighlight">\(i\)</span> is solved, then a new problem instance is generated with <span class="math notranslate nohighlight">\(K_i\)</span> steps. Therefore, it is usually the
+case that there are more problem instances with fewer number of steps.</p>
+</div>
+</section>
+</section>
+<section id="heuristic-search">
+<h2>Heuristic Search<a class="headerlink" href="#heuristic-search" title="Link to this heading">#</a></h2>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="basics.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">DeepXube Basics</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="creating.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Creating a New Domain</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#the-rubik-s-cube">The Rubik’s Cube</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#visualizing-states">Visualizing States</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#generating-problem-instances">Generating Problem Instances</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#visualizing-generated-problem-instances">Visualizing Generated Problem Instances</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#brute-force-search">Brute Force Search</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#visualizing-solutions">Visualizing Solutions</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#training-a-heuristic-function">Training a Heuristic Function</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#monitoring-training">Monitoring Training</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#heuristic-search">Heuristic Search</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  
+  <div class="tocsection editthispage">
+    <a href="https://github.com/forestagostinelli/deepxube/edit/main/docs_tutorial/tutorial/example.md">
+      <i class="fa-solid fa-pencil"></i>
+      
+      
+        
+          Edit on GitHub
+        
+      
+    </a>
+  </div>
+</div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../_sources/tutorial/example.md.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=a95f357e85573c9b56d5"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=a95f357e85573c9b56d5"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.19.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
