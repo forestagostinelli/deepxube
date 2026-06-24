@@ -21,6 +21,11 @@ DeepXube is a generalization of DeepCubeA ([code](https://github.com/forestagost
 
 For any issues, you can create a GitHub issue or contact Forest Agostinelli (foresta@cse.sc.edu).
 
+## Documentation/Tutorials
+
+Core concepts, tutorials, and API is [here](https://forestagostinelli.github.io/deepxube/).
+
+## Quick Start
 **Outline**:
 
 - [Installation](#installation)
@@ -39,10 +44,6 @@ For any issues, you can create a GitHub issue or contact Forest Agostinelli (for
 ## Installation
 
 `pip install deepxube`
-
-## Documentation
-Documentation of all modules is [here](https://forestagostinelli.github.io/deepxube/).
-
 
 ## Command Line
 deepxube can be run from the command line via the `deepxube` command (you may have to use `python -m deepxube` on Windows).

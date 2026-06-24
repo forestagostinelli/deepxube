@@ -13,7 +13,13 @@ See {ref}`custom_domain_section` for implementing custom domain, neural network 
 
 ## Domains
 
+
 ## Training
-<div style="text-align: center;">
-<img src="../_static/images/deepxube_overview.png" alt="DeepXube Overview" width="100%">
-</div>
+
+```{figure} ../_static/images/deepxube_overview.png
+:alt: DeepXube Overview
+:width: 100%
+:align: center
+
+Overview of the DeepXube training pipeline.
+```

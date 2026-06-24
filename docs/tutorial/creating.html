@@ -6,12 +6,12 @@
 <link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="API Reference" href="../apidocs/index.html"><link rel="prev" title="Rubik’s Cube Example" href="example.html">
 
     <!-- Generated with Sphinx 8.1.3 and Furo 2025.12.19 -->
-        <title>Creating a New Domain - DeepXube documentation</title>
+        <title>Creating a Custom Domain and Heuristic Function - DeepXube documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=3df943ea" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=6adfbdd4" />
     
     
 
@@ -180,7 +180,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -210,7 +210,7 @@
 <li class="toctree-l2"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="basics.html">DeepXube Basics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="example.html">Rubik’s Cube Example</a></li>
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Creating a New Domain</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Creating a Custom Domain and Heuristic Function</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../apidocs/index.html">API Reference</a><input aria-label="Toggle navigation of API Reference" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -348,13 +348,465 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section class="tex2jax_ignore mathjax_ignore" id="creating-a-new-domain">
-<span id="custom-domain-section"></span><h1>Creating a New Domain<a class="headerlink" href="#creating-a-new-domain" title="Link to this heading">¶</a></h1>
+          <section class="tex2jax_ignore mathjax_ignore" id="creating-a-custom-domain-and-heuristic-function">
+<span id="custom-domain-section"></span><h1>Creating a Custom Domain and Heuristic Function<a class="headerlink" href="#creating-a-custom-domain-and-heuristic-function" title="Link to this heading">¶</a></h1>
+<p>We will create a simple grid domain where the agent can move up, down, left, or right along a two-dimensional grid to reach a goal
+square. We will create neural network inputs for a neural network that DeepXube provides as well as a neural network input for
+our own custom neural network.</p>
+<p>In the directory in which you run deepxube, create a <code class="docutils literal notranslate"><span class="pre">domains/grid_tutorial.py</span></code> directory.
+DeepXube automatically looks in the <code class="docutils literal notranslate"><span class="pre">domains/</span></code> folder to see what is registered.</p>
+<section id="implementation">
+<h2>Implementation<a class="headerlink" href="#implementation" title="Link to this heading">¶</a></h2>
+<p>The entire domain file is here. This includes the states, actions, goals, domain, neural network inputs, custom neural network, and parsers.
+This file will be explained part-by-part.</p>
+<div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Type</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span><span class="p">,</span> <span class="n">Tensor</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepxube.base.factory</span><span class="w"> </span><span class="kn">import</span> <span class="n">DelimParser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepxube.base.domain</span><span class="w"> </span><span class="kn">import</span> <span class="n">State</span><span class="p">,</span> <span class="n">Action</span><span class="p">,</span> <span class="n">Goal</span><span class="p">,</span> <span class="n">ActsEnumFixed</span><span class="p">,</span> <span class="n">StartGoalWalkable</span><span class="p">,</span> <span class="n">StateGoalVizable</span><span class="p">,</span> <span class="n">StringToAct</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepxube.base.nnet_input</span><span class="w"> </span><span class="kn">import</span> <span class="n">StateGoalIn</span><span class="p">,</span> <span class="n">StateGoalActFixIn</span><span class="p">,</span> <span class="n">StateGoalActIn</span><span class="p">,</span> <span class="n">FlatIn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepxube.base.heuristic</span><span class="w"> </span><span class="kn">import</span> <span class="n">HeurNNet</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepxube.factories.heuristic_factory</span><span class="w"> </span><span class="kn">import</span> <span class="n">heuristic_factory</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepxube.factories.domain_factory</span><span class="w"> </span><span class="kn">import</span> <span class="n">domain_factory</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepxube.factories.nnet_input_factory</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_nnet_input</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepxube.nnet.pytorch_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Conv2dModel</span><span class="p">,</span> <span class="n">FullyConnectedModel</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">numpy.typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.figure</span><span class="w"> </span><span class="kn">import</span> <span class="n">Figure</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.colors</span><span class="w"> </span><span class="kn">import</span> <span class="n">ListedColormap</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+
+<span class="c1"># state, action, goal</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GridState</span><span class="p">(</span><span class="n">State</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">robot_x</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">robot_y</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">robot_x</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">robot_x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">robot_y</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">robot_y</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">robot_x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">robot_y</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GridState</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">robot_x</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">robot_x</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">robot_y</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">robot_y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">GridGoal</span><span class="p">(</span><span class="n">Goal</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">robot_x</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">robot_y</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">robot_x</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">robot_x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">robot_y</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">robot_y</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">GridAction</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">action</span> <span class="o">=</span> <span class="n">action</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">action</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">action</span>
+        <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;UP&quot;</span><span class="p">,</span> <span class="s2">&quot;DOWN&quot;</span><span class="p">,</span> <span class="s2">&quot;LEFT&quot;</span><span class="p">,</span> <span class="s2">&quot;RIGHT&quot;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="p">]</span>
+
+
+<span class="c1"># domain definition</span>
+<span class="nd">@domain_factory</span><span class="o">.</span><span class="n">register_class</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Grid</span><span class="p">(</span><span class="n">ActsEnumFixed</span><span class="p">[</span><span class="n">GridState</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">],</span> <span class="n">StartGoalWalkable</span><span class="p">[</span><span class="n">GridState</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">],</span>
+           <span class="n">StateGoalVizable</span><span class="p">[</span><span class="n">GridState</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">],</span> <span class="n">StringToAct</span><span class="p">[</span><span class="n">GridState</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">]):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">7</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">actions_fixed</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridAction</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">GridAction</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_solved</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">],</span> <span class="n">goals</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridGoal</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[(</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span> <span class="o">==</span> <span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">robot_y</span> <span class="o">==</span> <span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span><span class="p">)</span> <span class="k">for</span> <span class="n">state</span><span class="p">,</span> <span class="n">goal</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">goals</span><span class="p">)]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">sample_start_states</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_states</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">GridState</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_states</span><span class="p">)]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">next_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">],</span> <span class="n">actions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridAction</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
+        <span class="n">states_next</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">state</span><span class="p">,</span> <span class="n">action</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">actions</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">action</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># up</span>
+                <span class="n">states_next</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GridState</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">state</span><span class="o">.</span><span class="n">robot_y</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">action</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># down</span>
+                <span class="n">states_next</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GridState</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">state</span><span class="o">.</span><span class="n">robot_y</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">action</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>  <span class="c1"># left</span>
+                <span class="n">states_next</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GridState</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">robot_y</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)))</span>
+            <span class="k">elif</span> <span class="n">action</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>  <span class="c1"># right</span>
+                <span class="n">states_next</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GridState</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">robot_y</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)))</span>
+
+        <span class="k">return</span> <span class="n">states_next</span><span class="p">,</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">states_next</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">sample_goal_from_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states_start</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">]],</span> <span class="n">states_goal</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">GridGoal</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">GridGoal</span><span class="p">(</span><span class="n">state_goal</span><span class="o">.</span><span class="n">robot_x</span><span class="p">,</span> <span class="n">state_goal</span><span class="o">.</span><span class="n">robot_y</span><span class="p">)</span> <span class="k">for</span> <span class="n">state_goal</span> <span class="ow">in</span> <span class="n">states_goal</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">visualize_state_goal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">goal</span><span class="p">:</span> <span class="n">GridGoal</span><span class="p">,</span> <span class="n">fig</span><span class="p">:</span> <span class="n">Figure</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">axes</span><span class="p">()</span>
+        <span class="n">grid</span><span class="p">:</span> <span class="n">NDArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">))</span>
+        <span class="n">grid</span><span class="p">[</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span><span class="p">,</span> <span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="n">grid</span><span class="p">[</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">robot_y</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">ListedColormap</span><span class="p">([</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="s2">&quot;green&quot;</span><span class="p">]),</span> <span class="n">origin</span><span class="o">=</span><span class="s2">&quot;upper&quot;</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">string_to_action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">act_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">GridAction</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">act_str</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;s&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;d&quot;</span><span class="p">}:</span>
+            <span class="k">return</span> <span class="n">GridAction</span><span class="p">([</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;s&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;d&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">act_str</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">string_to_action_help</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;w, s, a, or d for up, down, left, and right, respectively.&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_actions_fixed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">GridAction</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">actions_fixed</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Grid(dim=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="si">}</span><span class="s2">)&quot;</span>
+
+
+<span class="c1"># domain parser definition</span>
+<span class="nd">@domain_factory</span><span class="o">.</span><span class="n">register_parser</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GridParser</span><span class="p">(</span><span class="n">DelimParser</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;d&quot;</span><span class="p">,</span> <span class="s2">&quot;dim&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="s2">&quot;dimensionality of grid&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delim</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;_&quot;</span>
+
+
+<span class="c1"># gridflatin definition</span>
+<span class="nd">@register_nnet_input</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">,</span> <span class="s2">&quot;grid_flat_in&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GridFlatIn</span><span class="p">(</span><span class="n">StateGoalIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">,</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">],</span> <span class="n">FlatIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">]):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_input_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">dim</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_np</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">],</span> <span class="n">goals</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridGoal</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span>
+                          <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span>
+
+
+<span class="c1"># gridflatinqfix definition</span>
+<span class="nd">@register_nnet_input</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">,</span> <span class="s2">&quot;grid_flat_in_qfix&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GridFlatInQFix</span><span class="p">(</span><span class="n">StateGoalActFixIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">,</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">],</span> <span class="n">FlatIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">]):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_input_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">dim</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_np</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">],</span> <span class="n">goals</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridGoal</span><span class="p">],</span> <span class="n">actions_l</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">GridAction</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">]:</span>
+        <span class="n">actions_np</span><span class="p">:</span> <span class="n">NDArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">action_i</span><span class="o">.</span><span class="n">action</span> <span class="k">for</span> <span class="n">action_i</span> <span class="ow">in</span> <span class="n">actions</span><span class="p">]</span> <span class="k">for</span> <span class="n">actions</span> <span class="ow">in</span> <span class="n">actions_l</span><span class="p">])</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span>
+                          <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span> <span class="o">+</span> <span class="p">[</span><span class="n">actions_np</span><span class="p">]</span>
+
+
+<span class="c1"># gridflatinactin definition</span>
+<span class="nd">@register_nnet_input</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">,</span> <span class="s2">&quot;grid_flat_in_actin&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GridFlatInActIn</span><span class="p">(</span><span class="n">StateGoalActIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">,</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">],</span> <span class="n">FlatIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">]):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_input_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">get_num_acts</span><span class="p">()]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_np</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">],</span> <span class="n">goals</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridGoal</span><span class="p">],</span> <span class="n">actions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridAction</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">]:</span>
+        <span class="n">actions_np</span><span class="p">:</span> <span class="n">NDArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">action_i</span><span class="o">.</span><span class="n">action</span> <span class="k">for</span> <span class="n">action_i</span> <span class="ow">in</span> <span class="n">actions</span><span class="p">]),</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span>
+                          <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span> <span class="o">+</span> <span class="p">[</span><span class="n">actions_np</span><span class="p">]</span>
+
+
+<span class="c1"># grid nnet definition</span>
+<span class="nd">@register_nnet_input</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">,</span> <span class="s2">&quot;grid_nnet_input&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GridNNetInput</span><span class="p">(</span><span class="n">StateGoalIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">,</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">]):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_input_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">dim</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_np</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">],</span> <span class="n">goals</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridGoal</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">]:</span>
+        <span class="n">np_rep</span><span class="p">:</span> <span class="n">NDArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">states</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">dim</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">goal</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">goals</span><span class="p">)):</span>
+            <span class="n">np_rep</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">robot_x</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">robot_y</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">np_rep</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span><span class="p">,</span> <span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">np_rep</span><span class="p">]</span>
+
+
+<span class="nd">@heuristic_factory</span><span class="o">.</span><span class="n">register_class</span><span class="p">(</span><span class="s2">&quot;gridnet_tut&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GridNet</span><span class="p">(</span><span class="n">HeurNNet</span><span class="p">[</span><span class="n">GridNNetInput</span><span class="p">]):</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">nnet_input_type</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Type</span><span class="p">[</span><span class="n">GridNNetInput</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">GridNNetInput</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nnet_input</span><span class="p">:</span> <span class="n">GridNNetInput</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">q_fix</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">chan_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span> <span class="n">fc_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nnet_input</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">,</span> <span class="n">q_fix</span><span class="p">)</span>
+        <span class="c1"># one hots</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">one_hots</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="n">grid_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nnet_input</span><span class="o">.</span><span class="n">get_input_info</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">heur</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="n">Conv2dModel</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="p">[</span><span class="n">chan_size</span><span class="p">,</span> <span class="n">chan_size</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;RELU&quot;</span><span class="p">,</span> <span class="s2">&quot;RELU&quot;</span><span class="p">],</span> <span class="n">batch_norms</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">]),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
+            <span class="n">FullyConnectedModel</span><span class="p">(</span><span class="n">grid_dim</span> <span class="o">*</span> <span class="n">grid_dim</span> <span class="o">*</span> <span class="n">chan_size</span><span class="p">,</span> <span class="p">[</span><span class="n">fc_size</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;RELU&quot;</span><span class="p">],</span> <span class="n">batch_norms</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">]),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">fc_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_dim</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tensor</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">heur</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+
+<span class="nd">@heuristic_factory</span><span class="o">.</span><span class="n">register_parser</span><span class="p">(</span><span class="s2">&quot;gridnet_tut&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GridNetParser</span><span class="p">(</span><span class="n">DelimParser</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;ch&quot;</span><span class="p">,</span> <span class="s2">&quot;chan_size&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="s2">&quot;number of channels&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;fc&quot;</span><span class="p">,</span> <span class="s2">&quot;fc_size&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="s2">&quot;size of fully connected layer&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delim</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;_&quot;</span>
+</pre></div>
+</div>
+<section id="state-action-goal">
+<h3>State, Action, Goal<a class="headerlink" href="#state-action-goal" title="Link to this heading">¶</a></h3>
+<p>To faciliate using states with Python dictionary objects and re-identifying states during search, all State objects must implement
+<code class="docutils literal notranslate"><span class="pre">__hash__</span></code> and <code class="docutils literal notranslate"><span class="pre">__eq__</span></code>. This must also be done for Action objects.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Implementing <code class="docutils literal notranslate"><span class="pre">__repr__</span></code> for action objects can be convenient since actions are printed to the screen when interacting with problem
+instances with <code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">viz</span></code>.</p>
+</div>
+<div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">GridState</span><span class="p">(</span><span class="n">State</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">robot_x</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">robot_y</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">robot_x</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">robot_x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">robot_y</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">robot_y</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">robot_x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">robot_y</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GridState</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">robot_x</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">robot_x</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">robot_y</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">robot_y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">GridGoal</span><span class="p">(</span><span class="n">Goal</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">robot_x</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">robot_y</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">robot_x</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">robot_x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">robot_y</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">robot_y</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">GridAction</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">action</span> <span class="o">=</span> <span class="n">action</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">action</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">action</span>
+        <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;UP&quot;</span><span class="p">,</span> <span class="s2">&quot;DOWN&quot;</span><span class="p">,</span> <span class="s2">&quot;LEFT&quot;</span><span class="p">,</span> <span class="s2">&quot;RIGHT&quot;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="p">]</span>
+
+
+<span class="c1"># domain definition</span>
+</pre></div>
+</div>
+</section>
+<section id="domain">
+<h3>Domain<a class="headerlink" href="#domain" title="Link to this heading">¶</a></h3>
+<div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@domain_factory</span><span class="o">.</span><span class="n">register_class</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Grid</span><span class="p">(</span><span class="n">ActsEnumFixed</span><span class="p">[</span><span class="n">GridState</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">],</span> <span class="n">StartGoalWalkable</span><span class="p">[</span><span class="n">GridState</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">],</span>
+           <span class="n">StateGoalVizable</span><span class="p">[</span><span class="n">GridState</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">],</span> <span class="n">StringToAct</span><span class="p">[</span><span class="n">GridState</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">]):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">7</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">actions_fixed</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridAction</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">GridAction</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_solved</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">],</span> <span class="n">goals</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridGoal</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[(</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span> <span class="o">==</span> <span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">robot_y</span> <span class="o">==</span> <span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span><span class="p">)</span> <span class="k">for</span> <span class="n">state</span><span class="p">,</span> <span class="n">goal</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">goals</span><span class="p">)]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">sample_start_states</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_states</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">GridState</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_states</span><span class="p">)]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">next_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">],</span> <span class="n">actions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridAction</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
+        <span class="n">states_next</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">state</span><span class="p">,</span> <span class="n">action</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">actions</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">action</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># up</span>
+                <span class="n">states_next</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GridState</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">state</span><span class="o">.</span><span class="n">robot_y</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">action</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># down</span>
+                <span class="n">states_next</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GridState</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">state</span><span class="o">.</span><span class="n">robot_y</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">action</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>  <span class="c1"># left</span>
+                <span class="n">states_next</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GridState</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">robot_y</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)))</span>
+            <span class="k">elif</span> <span class="n">action</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>  <span class="c1"># right</span>
+                <span class="n">states_next</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GridState</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">robot_y</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)))</span>
+
+        <span class="k">return</span> <span class="n">states_next</span><span class="p">,</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">states_next</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">sample_goal_from_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states_start</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">]],</span> <span class="n">states_goal</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">GridGoal</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">GridGoal</span><span class="p">(</span><span class="n">state_goal</span><span class="o">.</span><span class="n">robot_x</span><span class="p">,</span> <span class="n">state_goal</span><span class="o">.</span><span class="n">robot_y</span><span class="p">)</span> <span class="k">for</span> <span class="n">state_goal</span> <span class="ow">in</span> <span class="n">states_goal</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">visualize_state_goal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">goal</span><span class="p">:</span> <span class="n">GridGoal</span><span class="p">,</span> <span class="n">fig</span><span class="p">:</span> <span class="n">Figure</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">axes</span><span class="p">()</span>
+        <span class="n">grid</span><span class="p">:</span> <span class="n">NDArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">))</span>
+        <span class="n">grid</span><span class="p">[</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span><span class="p">,</span> <span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="n">grid</span><span class="p">[</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">robot_y</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">ListedColormap</span><span class="p">([</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="s2">&quot;green&quot;</span><span class="p">]),</span> <span class="n">origin</span><span class="o">=</span><span class="s2">&quot;upper&quot;</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">string_to_action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">act_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">GridAction</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">act_str</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;s&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;d&quot;</span><span class="p">}:</span>
+            <span class="k">return</span> <span class="n">GridAction</span><span class="p">([</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;s&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;d&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">act_str</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">string_to_action_help</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;w, s, a, or d for up, down, left, and right, respectively.&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_actions_fixed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">GridAction</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">actions_fixed</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Grid(dim=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="si">}</span><span class="s2">)&quot;</span>
+
+
+</pre></div>
+</div>
+<section id="domain-parser">
+<h4>Domain Parser<a class="headerlink" href="#domain-parser" title="Link to this heading">¶</a></h4>
+<div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@domain_factory</span><span class="o">.</span><span class="n">register_parser</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GridParser</span><span class="p">(</span><span class="n">DelimParser</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;d&quot;</span><span class="p">,</span> <span class="s2">&quot;dim&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="s2">&quot;dimensionality of grid&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delim</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;_&quot;</span>
+
+
+</pre></div>
+</div>
+</section>
+</section>
+<section id="neural-network-inputs">
+<h3>Neural Network Inputs<a class="headerlink" href="#neural-network-inputs" title="Link to this heading">¶</a></h3>
+<section id="flat-input">
+<h4>Flat Input<a class="headerlink" href="#flat-input" title="Link to this heading">¶</a></h4>
+<div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@register_nnet_input</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">,</span> <span class="s2">&quot;grid_flat_in&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GridFlatIn</span><span class="p">(</span><span class="n">StateGoalIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">,</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">],</span> <span class="n">FlatIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">]):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_input_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">dim</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_np</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">],</span> <span class="n">goals</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridGoal</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span>
+                          <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span>
+
+
+</pre></div>
+</div>
+</section>
+<section id="flat-input-for-a-q-network-with-a-fixed-action-output">
+<h4>Flat Input for a Q-Network with a Fixed Action Output<a class="headerlink" href="#flat-input-for-a-q-network-with-a-fixed-action-output" title="Link to this heading">¶</a></h4>
+<div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@register_nnet_input</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">,</span> <span class="s2">&quot;grid_flat_in_qfix&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GridFlatInQFix</span><span class="p">(</span><span class="n">StateGoalActFixIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">,</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">],</span> <span class="n">FlatIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">]):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_input_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">dim</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_np</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">],</span> <span class="n">goals</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridGoal</span><span class="p">],</span> <span class="n">actions_l</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">GridAction</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">]:</span>
+        <span class="n">actions_np</span><span class="p">:</span> <span class="n">NDArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">action_i</span><span class="o">.</span><span class="n">action</span> <span class="k">for</span> <span class="n">action_i</span> <span class="ow">in</span> <span class="n">actions</span><span class="p">]</span> <span class="k">for</span> <span class="n">actions</span> <span class="ow">in</span> <span class="n">actions_l</span><span class="p">])</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span>
+                          <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span> <span class="o">+</span> <span class="p">[</span><span class="n">actions_np</span><span class="p">]</span>
+
+
+</pre></div>
+</div>
+</section>
+<section id="flat-input-for-a-q-network-with-the-action-as-an-input">
+<h4>Flat Input for a Q-Network with the Action as an Input<a class="headerlink" href="#flat-input-for-a-q-network-with-the-action-as-an-input" title="Link to this heading">¶</a></h4>
+<div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@register_nnet_input</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">,</span> <span class="s2">&quot;grid_flat_in_actin&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GridFlatInActIn</span><span class="p">(</span><span class="n">StateGoalActIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">,</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">],</span> <span class="n">FlatIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">]):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_input_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">get_num_acts</span><span class="p">()]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_np</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">],</span> <span class="n">goals</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridGoal</span><span class="p">],</span> <span class="n">actions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridAction</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">]:</span>
+        <span class="n">actions_np</span><span class="p">:</span> <span class="n">NDArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">action_i</span><span class="o">.</span><span class="n">action</span> <span class="k">for</span> <span class="n">action_i</span> <span class="ow">in</span> <span class="n">actions</span><span class="p">]),</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span>
+                          <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span> <span class="o">+</span> <span class="p">[</span><span class="n">actions_np</span><span class="p">]</span>
+
+
+</pre></div>
+</div>
+</section>
+</section>
+<section id="custom-neural-network">
+<h3>Custom Neural Network<a class="headerlink" href="#custom-neural-network" title="Link to this heading">¶</a></h3>
+<div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@register_nnet_input</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">,</span> <span class="s2">&quot;grid_nnet_input&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GridNNetInput</span><span class="p">(</span><span class="n">StateGoalIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">,</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">]):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_input_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">dim</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_np</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">],</span> <span class="n">goals</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridGoal</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">]:</span>
+        <span class="n">np_rep</span><span class="p">:</span> <span class="n">NDArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">states</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">dim</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">goal</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">goals</span><span class="p">)):</span>
+            <span class="n">np_rep</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">robot_x</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">robot_y</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">np_rep</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span><span class="p">,</span> <span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">np_rep</span><span class="p">]</span>
+
+
+<span class="nd">@heuristic_factory</span><span class="o">.</span><span class="n">register_class</span><span class="p">(</span><span class="s2">&quot;gridnet_tut&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GridNet</span><span class="p">(</span><span class="n">HeurNNet</span><span class="p">[</span><span class="n">GridNNetInput</span><span class="p">]):</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">nnet_input_type</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Type</span><span class="p">[</span><span class="n">GridNNetInput</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">GridNNetInput</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nnet_input</span><span class="p">:</span> <span class="n">GridNNetInput</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">q_fix</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">chan_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span> <span class="n">fc_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nnet_input</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">,</span> <span class="n">q_fix</span><span class="p">)</span>
+        <span class="c1"># one hots</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">one_hots</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="n">grid_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nnet_input</span><span class="o">.</span><span class="n">get_input_info</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">heur</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="n">Conv2dModel</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="p">[</span><span class="n">chan_size</span><span class="p">,</span> <span class="n">chan_size</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;RELU&quot;</span><span class="p">,</span> <span class="s2">&quot;RELU&quot;</span><span class="p">],</span> <span class="n">batch_norms</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">]),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
+            <span class="n">FullyConnectedModel</span><span class="p">(</span><span class="n">grid_dim</span> <span class="o">*</span> <span class="n">grid_dim</span> <span class="o">*</span> <span class="n">chan_size</span><span class="p">,</span> <span class="p">[</span><span class="n">fc_size</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;RELU&quot;</span><span class="p">],</span> <span class="n">batch_norms</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">]),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">fc_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_dim</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tensor</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">heur</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+
+<span class="nd">@heuristic_factory</span><span class="o">.</span><span class="n">register_parser</span><span class="p">(</span><span class="s2">&quot;gridnet_tut&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GridNetParser</span><span class="p">(</span><span class="n">DelimParser</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;ch&quot;</span><span class="p">,</span> <span class="s2">&quot;chan_size&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="s2">&quot;number of channels&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;fc&quot;</span><span class="p">,</span> <span class="s2">&quot;fc_size&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="s2">&quot;size of fully connected layer&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delim</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;_&quot;</span>
+</pre></div>
+</div>
+</section>
+</section>
 </section>
 
         </article>
@@ -394,14 +846,71 @@
             
           </div>
           <div class="right-details">
-            
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/forestagostinelli/deepxube" aria-label="GitHub">
+            <svg stroke="currentColor" fill="currentColor" stroke-width="0"
+                 viewBox="0 0 16 16">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53
+                5.47 7.59.4.07.55-.17.55-.38
+                0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49
+                -2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15
+                -.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72
+                1.21 1.87.87 2.33.66.07-.52.28-.87.51
+                -1.07-1.78-.2-3.64-.89-3.64-3.95
+                0-.87.31-1.59.82-2.15-.08-.2-.36
+                -1.02.08-2.12 0 0 .67-.21 2.2.82A7.65
+                7.65 0 0 1 8 4.58c.68 0 1.36.09
+                2 .24 1.53-1.04 2.2-.82 2.2-.82.44
+                1.1.16 1.92.08 2.12.51.56.82
+                1.27.82 2.15 0 3.07-1.87 3.75
+                -3.65 3.95.29.25.54.73.54 1.48
+                0 1.07-.01 1.93-.01 2.2 0
+                .21.15.46.55.38A8.01 8.01 0 0 0
+                16 8c0-4.42-3.58-8-8-8z"/>
+            </svg>
+        </a>
+              
+            </div>
           </div>
         </div>
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Creating a Custom Domain and Heuristic Function</a><ul>
+<li><a class="reference internal" href="#implementation">Implementation</a><ul>
+<li><a class="reference internal" href="#state-action-goal">State, Action, Goal</a></li>
+<li><a class="reference internal" href="#domain">Domain</a><ul>
+<li><a class="reference internal" href="#domain-parser">Domain Parser</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#neural-network-inputs">Neural Network Inputs</a><ul>
+<li><a class="reference internal" href="#flat-input">Flat Input</a></li>
+<li><a class="reference internal" href="#flat-input-for-a-q-network-with-a-fixed-action-output">Flat Input for a Q-Network with a Fixed Action Output</a></li>
+<li><a class="reference internal" href="#flat-input-for-a-q-network-with-the-action-as-an-input">Flat Input for a Q-Network with the Action as an Input</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#custom-neural-network">Custom Neural Network</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
