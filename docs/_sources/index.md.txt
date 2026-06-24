@@ -5,7 +5,7 @@
 
 background/index
 tutorial/index
-api
+apidocs/index
 references
 ```
 

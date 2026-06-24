@@ -7,24 +7,58 @@ extensions = [
     "myst_parser",
     "sphinx_copybutton",
     "sphinx.ext.mathjax",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
     "sphinx.ext.githubpages",
     "sphinxcontrib.bibtex",
+    "autodoc2",
 ]
 
-html_theme = "pydata_sphinx_theme"
+
+autodoc2_packages = [
+    {
+        "path": "../deepxube",
+        "module": "deepxube",
+        "exclude_files": [],
+    }
+]
+
+autodoc2_output_dir = "apidocs"
+autodoc2_render_plugin = "rst"
+autodoc2_module_summary = True
+
+autosummary_generate = True
+
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": True,
+    "show-inheritance": True,
+}
+
+html_theme = "furo"
+# html_theme = "pydata_sphinx_theme"
 
 html_theme_options = {
-    "show_prev_next": True,
-    "show_toc_level": 2,
-    "github_url": "https://github.com/forestagostinelli/deepxube",
-    "use_edit_page_button": True,
+    "navigation_with_keys": True,
+    "light_css_variables": {
+        "color-brand-primary": "#0f172a",
+        "color-brand-content": "#0f172a",
+    },
+    "dark_css_variables": {
+        "color-brand-primary": "#60a5fa",
+        "color-brand-content": "#e6eefc",
+    },
+    "source_repository": "https://github.com/forestagostinelli/deepxube",
+    "source_branch": "main",
+    "source_directory": "docs_gen/",
+    "top_of_page_buttons": ["view"],
 }
 
 html_context = {
     "github_user": "forestagostinelli",
     "github_repo": "deepxube",
     "github_version": "main",
-    "doc_path": "docs_tutorial",
+    "doc_path": "docs_gen/",
 }
 
 html_static_path = ["_static"]
@@ -32,8 +66,6 @@ html_static_path = ["_static"]
 html_css_files = [
     "custom.css",
 ]
-
-html_extra_path = ["pdoc_api"]
 
 myst_enable_extensions = [
     "dollarmath",
