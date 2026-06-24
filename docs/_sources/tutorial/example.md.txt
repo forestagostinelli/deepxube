@@ -215,5 +215,6 @@ Visualizations of these solutions can also be obtained:
 ```{tip}
 Improving the heuristic function, itself, can result in significantly lower path costs when performing heuristic search.
 This can be achieved by training with larger DNNs (resnet_fc.1000H_4B_bn), batch sizes (between 1,000 and 10,000), 
-and for more iterations (around 1,000,000). This training is best done using one or two GPUs.
+and for more iterations (around 1,000,000). This training is best done using one or two GPUs and 8-48 CPUs for 
+training data generation.
 ```
