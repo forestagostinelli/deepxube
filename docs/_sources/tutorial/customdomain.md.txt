@@ -99,6 +99,7 @@ desired goal.
 :end-before: end startgoalwalkable methods
 ```
 
+#### Visualization and Interaction Methods
 
 Since the domain is registered, we should be able to see "grid_tut" with: 
 `deepxube domain_info`.
