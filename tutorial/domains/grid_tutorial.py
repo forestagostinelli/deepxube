@@ -66,12 +66,11 @@ class Grid(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalkable[Gri
         super().__init__()
         self.dim: int = dim
         self.actions_fixed: List[GridAction] = [GridAction(x) for x in [0, 1, 2, 3]]
+    # end init
 
+    # start domain methods
     def is_solved(self, states: List[GridState], goals: List[GridGoal]) -> List[bool]:
         return [(state.robot_x == goal.robot_x) and (state.robot_y == goal.robot_y) for state, goal in zip(states, goals)]
-
-    def sample_start_states(self, num_states: int) -> List[GridState]:
-        return [GridState(random.randint(0, self.dim - 1), random.randint(0, self.dim - 1)) for _ in range(num_states)]
 
     def next_state(self, states: List[GridState], actions: List[GridAction]) -> Tuple[List[GridState], List[float]]:
         states_next: List[GridState] = []
@@ -86,9 +85,20 @@ class Grid(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalkable[Gri
                 states_next.append(GridState(state.robot_x, max(state.robot_y - 1, 0)))
 
         return states_next, [1.0] * len(states_next)
+    # end domain methods
+
+    # start actsenumfixed methods
+    def get_actions_fixed(self) -> List[GridAction]:
+        return self.actions_fixed.copy()
+    # end actsenumfixed methods
+
+    # start startgoalwalkable methods
+    def sample_start_states(self, num_states: int) -> List[GridState]:
+        return [GridState(random.randint(0, self.dim - 1), random.randint(0, self.dim - 1)) for _ in range(num_states)]
 
     def sample_goal_from_state(self, states_start: Optional[List[GridState]], states_goal: List[GridState]) -> List[GridGoal]:
         return [GridGoal(state_goal.robot_x, state_goal.robot_y) for state_goal in states_goal]
+    # end startgoalwalkable methods
 
     def visualize_state_goal(self, state: GridState, goal: GridGoal, fig: Figure) -> None:
         ax = plt.axes()
@@ -106,9 +116,6 @@ class Grid(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalkable[Gri
 
     def string_to_action_help(self) -> str:
         return "w, s, a, or d for up, down, left, and right, respectively."
-
-    def get_actions_fixed(self) -> List[GridAction]:
-        return self.actions_fixed.copy()
 
     def __repr__(self) -> str:
         return f"Grid(dim={self.dim})"

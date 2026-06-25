@@ -4,7 +4,7 @@
 :maxdepth: 2
 
 installation
-basics
 example
-creating
+customdomain
+customnnopt
 ```
