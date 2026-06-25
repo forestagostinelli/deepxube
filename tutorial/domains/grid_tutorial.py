@@ -100,6 +100,7 @@ class Grid(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalkable[Gri
         return [GridGoal(state_goal.robot_x, state_goal.robot_y) for state_goal in states_goal]
     # end startgoalwalkable methods
 
+    # start viz methods
     def visualize_state_goal(self, state: GridState, goal: GridGoal, fig: Figure) -> None:
         ax = plt.axes()
         grid: NDArray = np.zeros((self.dim, self.dim))
@@ -116,6 +117,7 @@ class Grid(ActsEnumFixed[GridState, GridAction, GridGoal], StartGoalWalkable[Gri
 
     def string_to_action_help(self) -> str:
         return "w, s, a, or d for up, down, left, and right, respectively."
+    # end viz methods
 
     def __repr__(self) -> str:
         return f"Grid(dim={self.dim})"

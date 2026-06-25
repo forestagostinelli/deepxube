@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Creating a Custom Domain and Heuristic Function" href="customdomain.html"><link rel="prev" title="Installation" href="installation.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Creating a Custom Domain and Heuristic Function" href="customdomain.html"><link rel="prev" title="DeepXube Basics" href="basics.html">
 
     <!-- Generated with Sphinx 8.1.3 and Furo 2025.12.19 -->
         <title>Rubik’s Cube Example - DeepXube documentation</title>
@@ -201,6 +201,7 @@
   <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">DeepXube Tutorial</a><input aria-label="Toggle navigation of DeepXube Tutorial" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="basics.html">DeepXube Basics</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Rubik’s Cube Example</a></li>
 <li class="toctree-l2"><a class="reference internal" href="customdomain.html">Creating a Custom Domain and Heuristic Function</a></li>
 <li class="toctree-l2"><a class="reference internal" href="customnnopt.html">Creating a Custom Neural Network Optimizer</a></li>
@@ -1082,7 +1083,7 @@ case that there are more problem instances with fewer number of steps.</p>
 <h2>Heuristic Search<a class="headerlink" href="#heuristic-search" title="Link to this heading">¶</a></h2>
 <p>The trained heuristic function only solved about 11% of problem instances from the training set with A* search.
 To improve solution rate without improving the heuristic function we can search for more iterations as well as perform
-batch weighted A* search (BWAS) <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../references.html#id9" title="Forest Agostinelli, Stephen McAleer, Alexander Shmakov, and Pierre Baldi. Solving the Rubik’s cube with deep reinforcement learning and search. Nature Machine Intelligence, 1(8):356–363, 2019.">AMSB19</a>, <a class="reference internal" href="../references.html#id10" title="Tianhua Li, Ruimin Chen, Borislav Mavrin, Nathan R Sturtevant, Doron Nadav, and Ariel Felner. Optimal search with neural networks: challenges and approaches. In Proceedings of the International Symposium on Combinatorial Search, volume 15, 109–117. 2022.">LCM+22</a>, <a class="reference internal" href="../references.html#id8" title="Ira Pohl. Heuristic search viewed as path finding in a graph. Artificial intelligence, 1(3-4):193–204, 1970.">Poh70</a>]</span>. To perform BWAS
+batch weighted A* search (BWAS) <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../references.html#id9" title="Forest Agostinelli, Stephen McAleer, Alexander Shmakov, and Pierre Baldi. Solving the Rubik’s cube with deep reinforcement learning and search. Nature Machine Intelligence, 1(8):356–363, 2019.">AMSB19</a>, <a class="reference internal" href="../references.html#id11" title="Tianhua Li, Ruimin Chen, Borislav Mavrin, Nathan R Sturtevant, Doron Nadav, and Ariel Felner. Optimal search with neural networks: challenges and approaches. In Proceedings of the International Symposium on Combinatorial Search, volume 15, 109–117. 2022.">LCM+22</a>, <a class="reference internal" href="../references.html#id8" title="Ira Pohl. Heuristic search viewed as path finding in a graph. Artificial intelligence, 1(3-4):193–204, 1970.">Poh70</a>]</span>. To perform BWAS
 with a batch size of 100 and a weight of 0.1 on the path cost with the trained heuristic function:</p>
 <p><code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">solve</span> <span class="pre">--domain</span> <span class="pre">cube3</span> <span class="pre">--heur</span> <span class="pre">resnet_fc.200H_2B_bn</span> <span class="pre">--heur_file</span> <span class="pre">tutorial/cube3/models/heur.pt</span> <span class="pre">--heur_type</span> <span class="pre">V</span> <span class="pre">--pathfind</span> <span class="pre">graph_v.100B_0.1W</span> <span class="pre">--file</span> <span class="pre">tutorial/cube3/hard.pkl</span> <span class="pre">--results</span> <span class="pre">tutorial/cube3/results_heur_hard/</span> <span class="pre">--redo</span></code></p>
 <p>This should result in solving all of the hard instances with an average path cost of about 47 and an average solve time of about 3.5 seconds.</p>
@@ -1159,14 +1160,14 @@ training data generation.</p>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="installation.html">
+          <a class="prev-page" href="basics.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Installation</div>
+                <div class="title">DeepXube Basics</div>
                 
               </div>
             </a>

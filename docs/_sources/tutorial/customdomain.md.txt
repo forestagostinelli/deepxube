@@ -39,10 +39,10 @@ instances with `deepxube viz`.
 We will register the domain with the name `grid_tut`. This tells DeepXube that this name
 refers to the domain being defined.
 
-We will use the `ActsEnumFixed` mixin since the action space is fixed (up, down, left, right) and enumerable. We will use the 
-`StartGoalWalkable` to generate problem instances by sampling a start state, taking a random walk, 
-and using the terminal state to sample a goal.We will also use the `StateGoalVizable` 
-and `StringToAct` to interact with the domain using `deepxube viz`. 
+We will use the {class}`deepxube.base.domain.ActsEnumFixed` mixin since the action space is fixed (up, down, left, right) and enumerable. We will use the 
+{class}`deepxube.base.domain.StartGoalWalkable` to generate problem instances by sampling a start state, taking a random walk, 
+and using the terminal state to sample a goal.We will also use the {class}`deepxube.base.domain.StateGoalVizable` 
+and {class}`deepxube.base.domain.StringToAct` to interact with the domain using `deepxube viz`. 
 The domain will be given an argument for its dimensionality.
 
 ```{literalinclude} ../../tutorial/domains/grid_tutorial.py
@@ -100,6 +100,10 @@ desired goal.
 ```
 
 #### Visualization and Interaction Methods
+{class}`deepxube.base.domain.StateGoalVizable` 
+and {class}`deepxube.base.domain.StringToAct`
+
+
 
 Since the domain is registered, we should be able to see "grid_tut" with: 
 `deepxube domain_info`.

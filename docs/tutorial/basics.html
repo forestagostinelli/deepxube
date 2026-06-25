@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Rubik’s Cube Example" href="example.html"><link rel="prev" title="Installation" href="installation.html">
 
     <!-- Generated with Sphinx 8.1.3 and Furo 2025.12.19 -->
         <title>DeepXube Basics - DeepXube documentation</title>
@@ -198,9 +198,10 @@
   <input type="hidden" name="area" value="default">
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
-  <ul>
-<li class="toctree-l1 has-children"><a class="reference internal" href="index.html">DeepXube Tutorial</a><input aria-label="Toggle navigation of DeepXube Tutorial" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+  <ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">DeepXube Tutorial</a><input aria-label="Toggle navigation of DeepXube Tutorial" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">DeepXube Basics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="example.html">Rubik’s Cube Example</a></li>
 <li class="toctree-l2"><a class="reference internal" href="customdomain.html">Creating a Custom Domain and Heuristic Function</a></li>
 <li class="toctree-l2"><a class="reference internal" href="customnnopt.html">Creating a Custom Neural Network Optimizer</a></li>
@@ -348,12 +349,36 @@
         <article role="main" id="furo-main-content">
           <section class="tex2jax_ignore mathjax_ignore" id="deepxube-basics">
 <h1>DeepXube Basics<a class="headerlink" href="#deepxube-basics" title="Link to this heading">¶</a></h1>
+<p>To familiarize yourself with the core concepts, please read the writeup <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id17" title="Forest Agostinelli. The deepxube software package for solving pathfinding problems with learned heuristic functions and search. arXiv preprint arXiv:2603.23873, 2026.">Ago26</a>]</span>.</p>
+<ul class="simple">
+<li><p>Relevant deep reinforcement learning <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id16" title="Richard S Sutton and Andrew G Barto. Reinforcement learning: An introduction. MIT press, 2018.">SB18</a>]</span> methods include:</p>
+<ul>
+<li><p>Approximate value iteration <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../references.html#id9" title="Forest Agostinelli, Stephen McAleer, Alexander Shmakov, and Pierre Baldi. Solving the Rubik’s cube with deep reinforcement learning and search. Nature Machine Intelligence, 1(8):356–363, 2019.">AMSB19</a>, <a class="reference internal" href="../references.html#id3" title="Richard Bellman. Dynamic Programming. Princeton University Press, 1957.">Bel57</a>, <a class="reference internal" href="../references.html#id4" title="Dimitri P Bertsekas and John N Tsitsiklis. Neuro-dynamic programming. Athena Scientific, 1996. ISBN 1-886529-10-8.">BT96</a>]</span></p></li>
+<li><p>Deep Q-learning <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../references.html#id13" title="Volodymyr Mnih, Koray Kavukcuoglu, David Silver, Andrei A Rusu, Joel Veness, Marc G Bellemare, Alex Graves, Martin Riedmiller, Andreas K Fidjeland, Georg Ostrovski, Stig Petersen, Charles Beattie, Amir Sadik, Ioannis Antonoglou, Helen King, Dharshan Kumaran, Daan Wierstra, Shane Legg, and Demis Hassabis. Human-level control through deep reinforcement learning. Nature, 518(7540):529–533, 2015.">MKS+15</a>, <a class="reference internal" href="../references.html#id12" title="Christopher JCH Watkins and Peter Dayan. Q-learning. Machine learning, 8(3-4):279–292, 1992.">WD92</a>]</span></p></li>
+<li><p>Hindsight experience replay <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../references.html#id14" title="Marcin Andrychowicz, Filip Wolski, Alex Ray, Jonas Schneider, Rachel Fong, Peter Welinder, Bob McGrew, Josh Tobin, OpenAI Pieter Abbeel, and Wojciech Zaremba. Hindsight experience replay. In Advances in Neural Information Processing Systems, 5048–5058. 2017.">AWR+17</a>]</span></p></li>
+<li><p>Limited-horizon Bellman-based learning (LHBL) <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../references.html#id7" title="Gal Hadar, Forest Agostinelli, and Shahaf S Shperberg. Beyond single-step updates: reinforcement learning of heuristics with limited-horizon search. In AAAI. 2026.">HAS26</a>]</span></p></li>
+</ul>
+</li>
+<li><p>Relevant heuristic search methods include:</p>
+<ul>
+<li><p>A* Search: <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../references.html#id15" title="Peter E Hart, Nils J Nilsson, and Bertram Raphael. A formal basis for the heuristic determination of minimum cost paths. IEEE transactions on Systems Science and Cybernetics, 4(2):100–107, 1968.">HNR68</a>]</span></p></li>
+<li><p>Batch weighted A* search: <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../references.html#id9" title="Forest Agostinelli, Stephen McAleer, Alexander Shmakov, and Pierre Baldi. Solving the Rubik’s cube with deep reinforcement learning and search. Nature Machine Intelligence, 1(8):356–363, 2019.">AMSB19</a>, <a class="reference internal" href="../references.html#id11" title="Tianhua Li, Ruimin Chen, Borislav Mavrin, Nathan R Sturtevant, Doron Nadav, and Ariel Felner. Optimal search with neural networks: challenges and approaches. In Proceedings of the International Symposium on Combinatorial Search, volume 15, 109–117. 2022.">LCM+22</a>]</span></p></li>
+<li><p>Batch weighted Q* search: <span class="bibtex-citation" id="id9">[<a class="reference internal" href="../references.html#id10" title="Forest Agostinelli, Shahaf S Shperberg, Alexander Shmakov, Stephen McAleer, Roy Fox, and Pierre Baldi. Q* search: heuristic search with deep Q-networks. In ICAPS PRL Workshop. 2024.">ASS+24</a>]</span></p></li>
+</ul>
+</li>
+<li><p>Relevant supervised learning methods include:</p>
+<ul>
+<li><p>Heuristic supervision from random walks: <span class="bibtex-citation" id="id10">[<a class="reference internal" href="../references.html#id18" title="Alexander Chervov, Kirill Khoruzhii, Nikita Bukhal, Jalal Naghiyev, Vladislav Zamkovoy, Ivan Koltsov, Lyudmila Cheldieva, Arsenii Sychev, Arsenii Lenin, Mark Obozov, and others. A machine learning approach that beats rubik's cubes. In NeurIPS. 2025.">CKB+25</a>]</span></p></li>
+<li><p>Policy supervision from random walks: <span class="bibtex-citation" id="id11">[<a class="reference internal" href="../references.html#id19" title="Kyo Takano. Self-supervision is all you need for solving rubik's cube. arXiv preprint arXiv:2106.03157, 2021.">Tak21</a>]</span></p></li>
+</ul>
+</li>
+</ul>
 <section id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h2>
 <p>The objective of DeepXube is to automate the solution of pathfinding problems by using deep reinforcement learning to
 learn heuristic functions that guide heuristic search to solve problems. As a result, user implementation is reduced to the
-definition of the <a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.Domain" title="deepxube.base.domain.Domain"><code class="xref py py-class docutils literal notranslate"><span class="pre">domain</span></code></a>, <a class="reference internal" href="../apidocs/deepxube/deepxube.base.nnet_input.html#deepxube.base.nnet_input.NNetInput" title="deepxube.base.nnet_input.NNetInput"><code class="xref py py-class docutils literal notranslate"><span class="pre">neural</span> <span class="pre">network</span> <span class="pre">input</span></code></a>,
-and <a class="reference internal" href="../apidocs/deepxube/deepxube.base.heuristic.html#deepxube.base.heuristic.HeurNNet" title="deepxube.base.heuristic.HeurNNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">heuristic</span> <span class="pre">function</span></code></a>. Furthermore, since DeepXube comes with common
+definition of the <a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.Domain" title="deepxube.base.domain.Domain"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.domain.Domain</span></code></a>, <a class="reference internal" href="../apidocs/deepxube/deepxube.base.nnet_input.html#deepxube.base.nnet_input.NNetInput" title="deepxube.base.nnet_input.NNetInput"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.nnet_input.NNetInput</span></code></a>,
+and <a class="reference internal" href="../apidocs/deepxube/deepxube.base.heuristic.html#deepxube.base.heuristic.DeepXubeNNet" title="deepxube.base.heuristic.DeepXubeNNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.heuristic.DeepXubeNNet</span></code></a>. Furthermore, since DeepXube comes with common
 neural networks, such as residual neural networks, the implementation of a heuristic function architecture may not be necessary.</p>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
@@ -362,16 +387,147 @@ neural networks, such as residual neural networks, the implementation of a heuri
 </section>
 <section id="domains">
 <h2>Domains<a class="headerlink" href="#domains" title="Link to this heading">¶</a></h2>
+<p>The <a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.Domain" title="deepxube.base.domain.Domain"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.domain.Domain</span></code></a> class defines the relationship between states, actions, and goals. DeepXube makes use
+of “mixins” that add functionality and simplify domain definition by automatically implementing methods based on the
+implementation of simpler methods. A summary of the primary mixins are shown here:</p>
+<figure class="align-center" id="id13">
+<a class="reference internal image-reference" href="../_images/domain_mixins.png"><img alt="DeepXube Domain Mixins" src="../_images/domain_mixins.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">The primary mixin classes used to construct domains. Methods in white are abstract and methods in black are implemented by the class.
+Mixins inherit all functionality of their ancestors.</span><a class="headerlink" href="#id13" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>While problem instances can be generated using arbitrary code, DeepXube provides two mixins to faciliate the generation of problem
+instances with random walks:</p>
+<figure class="align-center" id="id14">
+<a class="reference internal image-reference" href="../_images/probinstgen.png"><img alt="DeepXube Pathfinding" src="../_images/probinstgen.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">A visualization of the problem instance generation function along with two mixin classes for generating problem instances by
+either 1) sampling a start state, taking a random walk, and sampling a goal from the terminal state of that random walk;
+or 2) sampling a goal and a corresponding goal state, taking a random walk in reverse, and using the terminal state of that
+random walk as the start state.</span><a class="headerlink" href="#id14" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="neural-network-inputs-and-neural-networks">
+<h2>Neural Network Inputs and Neural Networks<a class="headerlink" href="#neural-network-inputs-and-neural-networks" title="Link to this heading">¶</a></h2>
+<p>The <a class="reference internal" href="../apidocs/deepxube/deepxube.base.nnet_input.html#deepxube.base.nnet_input.NNetInput" title="deepxube.base.nnet_input.NNetInput"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.nnet_input.NNetInput</span></code></a> class defines the information about the data given to a
+neural network (i.e. its dimensionality) and a function that converts data (i.e. state/goal pairs) to a representation suitable for
+the neural network. The <a class="reference internal" href="../apidocs/deepxube/deepxube.base.heuristic.html#deepxube.base.heuristic.DeepXubeNNet" title="deepxube.base.heuristic.DeepXubeNNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.heuristic.DeepXubeNNet</span></code></a> defines how the converted data is processed during training,
+evaluation, and what loss function and optimizer is used.</p>
+<p>For training heuristic functions, the <a class="reference internal" href="../apidocs/deepxube/deepxube.base.heuristic.html#deepxube.base.heuristic.HeurNNet" title="deepxube.base.heuristic.HeurNNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.heuristic.HeurNNet</span></code></a> class is used and for training policies, the
+<a class="reference internal" href="../apidocs/deepxube/deepxube.base.heuristic.html#deepxube.base.heuristic.PolicyNNet" title="deepxube.base.heuristic.PolicyNNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.heuristic.PolicyNNet</span></code></a>.</p>
+<p>Mixins define what kind of heuristic function is being created and impact what input and output data to expect:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../apidocs/deepxube/deepxube.base.nnet_input.html#deepxube.base.nnet_input.StateGoalIn" title="deepxube.base.nnet_input.StateGoalIn"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.nnet_input.StateGoalIn</span></code></a>: mixin for heuristic functions that map state/goal pairs to the estimated
+cost-to-go</p></li>
+<li><p><a class="reference internal" href="../apidocs/deepxube/deepxube.base.nnet_input.html#deepxube.base.nnet_input.StateGoalActIn" title="deepxube.base.nnet_input.StateGoalActIn"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.nnet_input.StateGoalActIn</span></code></a>: mixin for heuristic functions that map state/goal/action tuples to the estimated
+transition cost when taking the given action plus cost-to-go of the resulting state</p></li>
+<li><p><a class="reference internal" href="../apidocs/deepxube/deepxube.base.nnet_input.html#deepxube.base.nnet_input.StateGoalActFixIn" title="deepxube.base.nnet_input.StateGoalActFixIn"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.nnet_input.StateGoalActFixIn</span></code></a>, mixin for deep Q-network <span class="bibtex-citation" id="id12">[<a class="reference internal" href="../references.html#id13" title="Volodymyr Mnih, Koray Kavukcuoglu, David Silver, Andrei A Rusu, Joel Veness, Marc G Bellemare, Alex Graves, Martin Riedmiller, Andreas K Fidjeland, Georg Ostrovski, Stig Petersen, Charles Beattie, Amir Sadik, Ioannis Antonoglou, Helen King, Dharshan Kumaran, Daan Wierstra, Shane Legg, and Demis Hassabis. Human-level control through deep reinforcement learning. Nature, 518(7540):529–533, 2015.">MKS+15</a>]</span> heuristic functions that map
+state/goal pairs to the estimated transition cost when taking plus cost-to-go of the resulting state for all actions</p></li>
+</ul>
+<figure class="align-center" id="id15">
+<a class="reference internal image-reference" href="../_images/nnets.png"><img alt="DeepXube Neural Network Inputs and Neural Networks" src="../_images/nnets.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">The interaction between domains, states, goals, actions, neural network inputs, and heuristic/policy functions.</span><a class="headerlink" href="#id15" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>DeepXube integration with policy neural networks is preliminary and may significantly change in the future.</p>
+</div>
+</section>
+<section id="pathfinding">
+<h2>Pathfinding<a class="headerlink" href="#pathfinding" title="Link to this heading">¶</a></h2>
+<p>DeepXube has pathfinding algorithms that search over both nodes and edges, that operate on enumerable and infinite action spaces,
+and that perform beam search or graph search. Pathfinding algorithms specify what mixin class a domain must subclass as well as
+what functions it uses.</p>
+<figure class="align-center" id="id16">
+<a class="reference internal image-reference" href="../_images/pathfind.png"><img alt="DeepXube Pathfinding" src="../_images/pathfind.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">The available pathfinding algorithms. The mixin class that the domain must subclass is in blue and the functions used are in green.
+If both a heuristic and policy function are used, then the pathfinding algorithm is guided by the heuristic function and the policy function is used to sample actions.</span><a class="headerlink" href="#id16" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>While the methods for training policy functions may change, the pathfinding algorithms that expect policy functions only assume
+the ability to sample actions from the policy function and, therefore, are agnostic to how the policy function is trained.</p>
+</div>
 </section>
 <section id="training">
 <h2>Training<a class="headerlink" href="#training" title="Link to this heading">¶</a></h2>
-<figure class="align-center" id="id1">
-<a class="reference internal image-reference" href="../_images/deepxube_overview.png"><img alt="DeepXube Overview" src="../_images/deepxube_overview.png" style="width: 100%;" />
+<p>Given a domain, neural network, and pathfinding algorithm, DeepXube uses the domain to generate problem instances, the pathfinding
+algorithm to attempt to solve those problem instances, adds nodes/edges encountered during pathfinding to the training set, computes
+an update for these nodes/edges using reinforcement learning, and trains the neural network using this data.</p>
+<figure class="align-center" id="id17">
+<a class="reference internal image-reference" href="../_images/deepxube_overview.png"><img alt="DeepXube training" src="../_images/deepxube_overview.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Overview of the DeepXube training pipeline.</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+<p><span class="caption-text">Overview of the DeepXube training pipeline.</span><a class="headerlink" href="#id17" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
+<p>DeepXube leverages parallelism with GPUs to compute target network updates and train the neural network and uses
+parallelism with CPUs sample problem instances and perform pathfinding.</p>
+<figure class="align-center" id="id18">
+<a class="reference internal image-reference" href="../_images/train_multiproc.png"><img alt="DeepXube multiprocessing during training" src="../_images/train_multiproc.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Training is parallelized across <span class="math notranslate nohighlight">\(C\)</span> CPUs and <span class="math notranslate nohighlight">\(G\)</span> GPUs. CPUs sample problem instances, perform heuristic search, and
+compute targets for training. When computing targets, the CPU sends the corresponding input data and its process ID to the
+target network queue, which sends the data to the first available target network. The output of the target network is obtained
+and sent to the correct CPU via the given process ID.</span><a class="headerlink" href="#id18" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<section id="reinforcement-learning">
+<h3>Reinforcement learning<a class="headerlink" href="#reinforcement-learning" title="Link to this heading">¶</a></h3>
+<p>Problem instances are generated with a given parameter, <span class="math notranslate nohighlight">\(K\)</span>, where each problem instance is generated with a value,
+<span class="math notranslate nohighlight">\(k\)</span>, where <span class="math notranslate nohighlight">\(k\)</span> is uniformly distributed between 0 and <span class="math notranslate nohighlight">\(K\)</span> and <span class="math notranslate nohighlight">\(k\)</span> denotes the length of the random walk used to generate the problem.
+However, user-defined implementations of sampling problem instances can ignore <span class="math notranslate nohighlight">\(k\)</span> if deemed necessary.
+Every <span class="math notranslate nohighlight">\(U\)</span> iterations, there is a check to see if the parameters of the target network, <span class="math notranslate nohighlight">\(\theta^-\)</span>, should be updated to the
+current parameters, <span class="math notranslate nohighlight">\(\theta\)</span>. This check can always return true or be based on a threshold for the training loss.
+During the first <span class="math notranslate nohighlight">\(U\)</span> training iterations, the target network is a function that returns zero for all inputs.</p>
+<p>Given a training batch size, <span class="math notranslate nohighlight">\(N\)</span>, <span class="math notranslate nohighlight">\(U\cdot N\)</span> training data instances are generated per update check.
+Search with a given pathfinding algorithm is then performed for a maximum of <span class="math notranslate nohighlight">\(I\)</span> iterations.
+All nodes expanded or edges traversed during search are used for training.
+Therefore, <span class="math notranslate nohighlight">\(\frac{U\cdot N}{I}\)</span> problem instances are generated and, if a problem instance, <span class="math notranslate nohighlight">\(i\)</span>,
+generated with random walk length, <span class="math notranslate nohighlight">\(k_i\)</span>, is solved, then a new problem instance is generated in its place using the same <span class="math notranslate nohighlight">\(k_i\)</span>.
+Since a good value for <span class="math notranslate nohighlight">\(K\)</span> may not be known beforehand, DeepXube has the option to automatically adapt <span class="math notranslate nohighlight">\(K\)</span> during training by
+starting with <span class="math notranslate nohighlight">\(K=1\)</span> and doubling it when 50% of instances are solved. This is done until <span class="math notranslate nohighlight">\(K\)</span> reaches some given <span class="math notranslate nohighlight">\(K_{\text{max}}\)</span>.</p>
+<section id="hindsight-experience-replay">
+<h4>Hindsight Experience Replay<a class="headerlink" href="#hindsight-experience-replay" title="Link to this heading">¶</a></h4>
+<p>The user may choose to use hindsight experience replay (HER) where, if the pathfinding algorithm fails to solve the problem in <span class="math notranslate nohighlight">\(I\)</span>
+iterations, HER selects a deepest node in the search tree to generate a goal. This ensures that every search produces an example of
+a reached goal, which can facilitate learning when the generated problem instances are all difficult to solve.</p>
+<figure class="align-center" id="id19">
+<a class="reference internal image-reference" href="../_images/trainRL.png"><img alt="DeepXube rl training" src="../_images/trainRL.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">The two RL training approaches. For both approaches, problem instances are generated and the selected pathfinding algorithm is
+used to try to reach the goal from the start state. When using HER, if a path to the goal is not found, a goal is sampled from
+the state associated with a deepest node in the search tree and is used in place of the original goal.</span><a class="headerlink" href="#id19" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+</section>
+<section id="supervised-learning">
+<h3>Supervised Learning<a class="headerlink" href="#supervised-learning" title="Link to this heading">¶</a></h3>
+<p>Random walks can be used to create supervised labels for heuristic functions or policies. While these labels may be inaccurate,
+they can be accurate enough to learn effective heuristic functions and policies. Furthermore, they have the benefit of not needing
+a neural network to obtain training data; thererfore, often computing targets much faster than reinforcement learning approaches.</p>
+<figure class="align-center" id="id20">
+<a class="reference internal image-reference" href="../_images/pathfind_sup.png"><img alt="DeepXube supervised training" src="../_images/pathfind_sup.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">The mixins for supervised learning and the pathfinding algorithms along with their required mixin. Mixins from <a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#module-deepxube.base.domain" title="deepxube.base.domain"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.base.domain</span></code></a>
+can be used to automatically implement the functionality of the mixins for supervised learning.</span><a class="headerlink" href="#id20" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
 </section>
 </section>
 
@@ -380,8 +536,26 @@ neural networks, such as residual neural networks, the implementation of a heuri
       <footer>
         
         <div class="related-pages">
-          
-          
+          <a class="next-page" href="example.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Rubik’s Cube Example</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="installation.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Installation</div>
+                
+              </div>
+            </a>
         </div>
         <div class="bottom-of-page">
           <div class="left-details">
@@ -439,7 +613,16 @@ neural networks, such as residual neural networks, the implementation of a heuri
 <li><a class="reference internal" href="#">DeepXube Basics</a><ul>
 <li><a class="reference internal" href="#overview">Overview</a></li>
 <li><a class="reference internal" href="#domains">Domains</a></li>
-<li><a class="reference internal" href="#training">Training</a></li>
+<li><a class="reference internal" href="#neural-network-inputs-and-neural-networks">Neural Network Inputs and Neural Networks</a></li>
+<li><a class="reference internal" href="#pathfinding">Pathfinding</a></li>
+<li><a class="reference internal" href="#training">Training</a><ul>
+<li><a class="reference internal" href="#reinforcement-learning">Reinforcement learning</a><ul>
+<li><a class="reference internal" href="#hindsight-experience-replay">Hindsight Experience Replay</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#supervised-learning">Supervised Learning</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -457,5 +640,7 @@ neural networks, such as residual neural networks, the implementation of a heuri
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

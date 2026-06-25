@@ -201,6 +201,7 @@
   <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">DeepXube Tutorial</a><input aria-label="Toggle navigation of DeepXube Tutorial" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="basics.html">DeepXube Basics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="example.html">Rubik’s Cube Example</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Creating a Custom Domain and Heuristic Function</a></li>
 <li class="toctree-l2"><a class="reference internal" href="customnnopt.html">Creating a Custom Neural Network Optimizer</a></li>
@@ -459,6 +460,7 @@ This file will be explained part-by-part.</p>
         <span class="k">return</span> <span class="p">[</span><span class="n">GridGoal</span><span class="p">(</span><span class="n">state_goal</span><span class="o">.</span><span class="n">robot_x</span><span class="p">,</span> <span class="n">state_goal</span><span class="o">.</span><span class="n">robot_y</span><span class="p">)</span> <span class="k">for</span> <span class="n">state_goal</span> <span class="ow">in</span> <span class="n">states_goal</span><span class="p">]</span>
     <span class="c1"># end startgoalwalkable methods</span>
 
+    <span class="c1"># start viz methods</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">visualize_state_goal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">goal</span><span class="p">:</span> <span class="n">GridGoal</span><span class="p">,</span> <span class="n">fig</span><span class="p">:</span> <span class="n">Figure</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">axes</span><span class="p">()</span>
         <span class="n">grid</span><span class="p">:</span> <span class="n">NDArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">))</span>
@@ -475,6 +477,7 @@ This file will be explained part-by-part.</p>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">string_to_action_help</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">&quot;w, s, a, or d for up, down, left, and right, respectively.&quot;</span>
+    <span class="c1"># end viz methods</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Grid(dim=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="si">}</span><span class="s2">)&quot;</span>
@@ -633,10 +636,10 @@ instances with <code class="docutils literal notranslate"><span class="pre">deep
 <h4>Registration and Mixins<a class="headerlink" href="#registration-and-mixins" title="Link to this heading">¶</a></h4>
 <p>We will register the domain with the name <code class="docutils literal notranslate"><span class="pre">grid_tut</span></code>. This tells DeepXube that this name
 refers to the domain being defined.</p>
-<p>We will use the <code class="docutils literal notranslate"><span class="pre">ActsEnumFixed</span></code> mixin since the action space is fixed (up, down, left, right) and enumerable. We will use the
-<code class="docutils literal notranslate"><span class="pre">StartGoalWalkable</span></code> to generate problem instances by sampling a start state, taking a random walk,
-and using the terminal state to sample a goal.We will also use the <code class="docutils literal notranslate"><span class="pre">StateGoalVizable</span></code>
-and <code class="docutils literal notranslate"><span class="pre">StringToAct</span></code> to interact with the domain using <code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">viz</span></code>.
+<p>We will use the <a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.ActsEnumFixed" title="deepxube.base.domain.ActsEnumFixed"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.domain.ActsEnumFixed</span></code></a> mixin since the action space is fixed (up, down, left, right) and enumerable. We will use the
+<a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.StartGoalWalkable" title="deepxube.base.domain.StartGoalWalkable"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.domain.StartGoalWalkable</span></code></a> to generate problem instances by sampling a start state, taking a random walk,
+and using the terminal state to sample a goal.We will also use the <a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.StateGoalVizable" title="deepxube.base.domain.StateGoalVizable"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.domain.StateGoalVizable</span></code></a>
+and <a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.StringToAct" title="deepxube.base.domain.StringToAct"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.domain.StringToAct</span></code></a> to interact with the domain using <code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">viz</span></code>.
 The domain will be given an argument for its dimensionality.</p>
 <div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@domain_factory</span><span class="o">.</span><span class="n">register_class</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Grid</span><span class="p">(</span><span class="n">ActsEnumFixed</span><span class="p">[</span><span class="n">GridState</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">],</span> <span class="n">StartGoalWalkable</span><span class="p">[</span><span class="n">GridState</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">],</span>
@@ -708,6 +711,8 @@ desired goal.</p>
 </section>
 <section id="visualization-and-interaction-methods">
 <h4>Visualization and Interaction Methods<a class="headerlink" href="#visualization-and-interaction-methods" title="Link to this heading">¶</a></h4>
+<p><a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.StateGoalVizable" title="deepxube.base.domain.StateGoalVizable"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.domain.StateGoalVizable</span></code></a>
+and <a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.StringToAct" title="deepxube.base.domain.StringToAct"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.domain.StringToAct</span></code></a></p>
 <p>Since the domain is registered, we should be able to see “grid_tut” with:
 <code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">domain_info</span></code>.</p>
 <div class="admonition tip">
