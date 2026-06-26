@@ -4,6 +4,7 @@
 :maxdepth: 2
 
 installation
+background
 basics
 example
 customdomain

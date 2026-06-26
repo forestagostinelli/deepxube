@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Creating a Custom Neural Network Optimizer" href="customnnopt.html"><link rel="prev" title="Rubik’s Cube Example" href="example.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Creating a Custom Heuristic Function Optimizer and Loss" href="customnnopt.html"><link rel="prev" title="Rubik’s Cube Example" href="example.html">
 
     <!-- Generated with Sphinx 8.1.3 and Furo 2025.12.19 -->
         <title>Creating a Custom Domain and Heuristic Function - DeepXube documentation</title>
@@ -201,10 +201,11 @@
   <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">DeepXube Tutorial</a><input aria-label="Toggle navigation of DeepXube Tutorial" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="background.html">Background Literature</a></li>
 <li class="toctree-l2"><a class="reference internal" href="basics.html">DeepXube Basics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="example.html">Rubik’s Cube Example</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Creating a Custom Domain and Heuristic Function</a></li>
-<li class="toctree-l2"><a class="reference internal" href="customnnopt.html">Creating a Custom Neural Network Optimizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="customnnopt.html">Creating a Custom Heuristic Function Optimizer and Loss</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../apidocs/index.html">API Reference</a><input aria-label="Toggle navigation of API Reference" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -352,7 +353,7 @@
 <p>We will create a simple grid domain where the agent can move up, down, left, or right along a two-dimensional grid to reach a goal
 square. We will create neural network inputs for a neural network that DeepXube provides as well as a neural network input for
 our own custom neural network.</p>
-<p>In the directory in which you run deepxube, create a <code class="docutils literal notranslate"><span class="pre">domains/grid_tutorial.py</span></code> directory.
+<p>In the directory in which you run deepxube, create a <code class="docutils literal notranslate"><span class="pre">domains/grid_tutorial.py</span></code> file.
 DeepXube automatically looks in the <code class="docutils literal notranslate"><span class="pre">domains/</span></code> folder to see what is registered.</p>
 <section id="implementation">
 <h2>Implementation<a class="headerlink" href="#implementation" title="Link to this heading">¶</a></h2>
@@ -378,10 +379,10 @@ This file will be explained part-by-part.</p>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.figure</span><span class="w"> </span><span class="kn">import</span> <span class="n">Figure</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.colors</span><span class="w"> </span><span class="kn">import</span> <span class="n">ListedColormap</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.axes</span><span class="w"> </span><span class="kn">import</span> <span class="n">Axes</span>
 
 
-<span class="c1"># state, action, goal</span>
+<span class="c1"># start sag</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GridState</span><span class="p">(</span><span class="n">State</span><span class="p">):</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">robot_x</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">robot_y</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">robot_x</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">robot_x</span>
@@ -416,9 +417,10 @@ This file will be explained part-by-part.</p>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;UP&quot;</span><span class="p">,</span> <span class="s2">&quot;DOWN&quot;</span><span class="p">,</span> <span class="s2">&quot;LEFT&quot;</span><span class="p">,</span> <span class="s2">&quot;RIGHT&quot;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="p">]</span>
+<span class="c1"># end sag</span>
 
 
-<span class="c1"># domain definition</span>
+<span class="c1"># start def</span>
 <span class="nd">@domain_factory</span><span class="o">.</span><span class="n">register_class</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Grid</span><span class="p">(</span><span class="n">ActsEnumFixed</span><span class="p">[</span><span class="n">GridState</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">],</span> <span class="n">StartGoalWalkable</span><span class="p">[</span><span class="n">GridState</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">],</span>
            <span class="n">StateGoalVizable</span><span class="p">[</span><span class="n">GridState</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">],</span> <span class="n">StringToAct</span><span class="p">[</span><span class="n">GridState</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">]):</span>
@@ -462,12 +464,11 @@ This file will be explained part-by-part.</p>
 
     <span class="c1"># start viz methods</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">visualize_state_goal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">goal</span><span class="p">:</span> <span class="n">GridGoal</span><span class="p">,</span> <span class="n">fig</span><span class="p">:</span> <span class="n">Figure</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">axes</span><span class="p">()</span>
+        <span class="n">ax</span><span class="p">:</span> <span class="n">Axes</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
         <span class="n">grid</span><span class="p">:</span> <span class="n">NDArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">))</span>
         <span class="n">grid</span><span class="p">[</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span><span class="p">,</span> <span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
         <span class="n">grid</span><span class="p">[</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">robot_y</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">ListedColormap</span><span class="p">([</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="s2">&quot;green&quot;</span><span class="p">]),</span> <span class="n">origin</span><span class="o">=</span><span class="s2">&quot;upper&quot;</span><span class="p">)</span>
-        <span class="n">fig</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">string_to_action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">act_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">GridAction</span><span class="p">]:</span>
         <span class="k">if</span> <span class="n">act_str</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;s&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;d&quot;</span><span class="p">}:</span>
@@ -479,11 +480,13 @@ This file will be explained part-by-part.</p>
         <span class="k">return</span> <span class="s2">&quot;w, s, a, or d for up, down, left, and right, respectively.&quot;</span>
     <span class="c1"># end viz methods</span>
 
+    <span class="c1"># start repr methods</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Grid(dim=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="si">}</span><span class="s2">)&quot;</span>
+    <span class="c1"># end repr methods</span>
 
 
-<span class="c1"># domain parser definition</span>
+<span class="c1"># start domain parser</span>
 <span class="nd">@domain_factory</span><span class="o">.</span><span class="n">register_parser</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GridParser</span><span class="p">(</span><span class="n">DelimParser</span><span class="p">):</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -493,9 +496,10 @@ This file will be explained part-by-part.</p>
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">delim</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">&quot;_&quot;</span>
+<span class="c1"># end domain parser</span>
 
 
-<span class="c1"># gridflatin definition</span>
+<span class="c1"># start gridflatin definition</span>
 <span class="nd">@register_nnet_input</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">,</span> <span class="s2">&quot;grid_flat_in&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GridFlatIn</span><span class="p">(</span><span class="n">StateGoalIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">,</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">],</span> <span class="n">FlatIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">]):</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_input_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
@@ -504,9 +508,10 @@ This file will be explained part-by-part.</p>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_np</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">],</span> <span class="n">goals</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridGoal</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">]:</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span>
                           <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span>
+<span class="c1"># end gridflatin definition</span>
 
 
-<span class="c1"># gridflatinqfix definition</span>
+<span class="c1"># start gridflatinqfix definition</span>
 <span class="nd">@register_nnet_input</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">,</span> <span class="s2">&quot;grid_flat_in_qfix&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GridFlatInQFix</span><span class="p">(</span><span class="n">StateGoalActFixIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">,</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">],</span> <span class="n">FlatIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">]):</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_input_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
@@ -516,9 +521,10 @@ This file will be explained part-by-part.</p>
         <span class="n">actions_np</span><span class="p">:</span> <span class="n">NDArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">action_i</span><span class="o">.</span><span class="n">action</span> <span class="k">for</span> <span class="n">action_i</span> <span class="ow">in</span> <span class="n">actions</span><span class="p">]</span> <span class="k">for</span> <span class="n">actions</span> <span class="ow">in</span> <span class="n">actions_l</span><span class="p">])</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span>
                           <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span> <span class="o">+</span> <span class="p">[</span><span class="n">actions_np</span><span class="p">]</span>
+<span class="c1"># end gridflatinqfix definition</span>
 
 
-<span class="c1"># gridflatinactin definition</span>
+<span class="c1"># start gridflatinactin definition</span>
 <span class="nd">@register_nnet_input</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">,</span> <span class="s2">&quot;grid_flat_in_actin&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GridFlatInActIn</span><span class="p">(</span><span class="n">StateGoalActIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">,</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">],</span> <span class="n">FlatIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">]):</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_input_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
@@ -528,9 +534,10 @@ This file will be explained part-by-part.</p>
         <span class="n">actions_np</span><span class="p">:</span> <span class="n">NDArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">action_i</span><span class="o">.</span><span class="n">action</span> <span class="k">for</span> <span class="n">action_i</span> <span class="ow">in</span> <span class="n">actions</span><span class="p">]),</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span>
                           <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span> <span class="o">+</span> <span class="p">[</span><span class="n">actions_np</span><span class="p">]</span>
+<span class="c1"># end gridflatinactin definition</span>
 
 
-<span class="c1"># grid nnet definition</span>
+<span class="c1"># start grid nnet definition</span>
 <span class="nd">@register_nnet_input</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">,</span> <span class="s2">&quot;grid_nnet_input&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GridNNetInput</span><span class="p">(</span><span class="n">StateGoalIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">,</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">]):</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_input_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -581,15 +588,15 @@ This file will be explained part-by-part.</p>
         <span class="k">return</span> <span class="s2">&quot;_&quot;</span>
 </pre></div>
 </div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Since the domain is registered, we should be able to see “grid_tut” with:
+<code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">domain_info</span></code> after it is put in your <code class="docutils literal notranslate"><span class="pre">domains/</span></code> folder.</p>
+</div>
 <section id="state-action-goal">
 <h3>State, Action, Goal<a class="headerlink" href="#state-action-goal" title="Link to this heading">¶</a></h3>
 <p>To faciliate using states with Python dictionary objects and re-identifying states during search, all State objects must implement
 <code class="docutils literal notranslate"><span class="pre">__hash__</span></code> and <code class="docutils literal notranslate"><span class="pre">__eq__</span></code>. This must also be done for Action objects.</p>
-<div class="admonition tip">
-<p class="admonition-title">Tip</p>
-<p>Implementing <code class="docutils literal notranslate"><span class="pre">__repr__</span></code> for Action objects can be convenient since actions are printed to the screen when interacting with problem
-instances with <code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">viz</span></code>.</p>
-</div>
 <div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">GridState</span><span class="p">(</span><span class="n">State</span><span class="p">):</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">robot_x</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">robot_y</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">robot_x</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">robot_x</span>
@@ -624,16 +631,29 @@ instances with <code class="docutils literal notranslate"><span class="pre">deep
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;UP&quot;</span><span class="p">,</span> <span class="s2">&quot;DOWN&quot;</span><span class="p">,</span> <span class="s2">&quot;LEFT&quot;</span><span class="p">,</span> <span class="s2">&quot;RIGHT&quot;</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="p">]</span>
+<span class="c1"># end sag</span>
 
 
-<span class="c1"># domain definition</span>
+<span class="c1"># start def</span>
+<span class="nd">@domain_factory</span><span class="o">.</span><span class="n">register_class</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Grid</span><span class="p">(</span><span class="n">ActsEnumFixed</span><span class="p">[</span><span class="n">GridState</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">],</span> <span class="n">StartGoalWalkable</span><span class="p">[</span><span class="n">GridState</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">],</span>
+           <span class="n">StateGoalVizable</span><span class="p">[</span><span class="n">GridState</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">],</span> <span class="n">StringToAct</span><span class="p">[</span><span class="n">GridState</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">]):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">7</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">actions_fixed</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridAction</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">GridAction</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span>
 </pre></div>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Implementing <code class="docutils literal notranslate"><span class="pre">__repr__</span></code> for Action objects can be convenient since actions are printed to the screen when interacting with problem
+instances with <code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">viz</span></code>.</p>
 </div>
 </section>
 <section id="domain">
 <h3>Domain<a class="headerlink" href="#domain" title="Link to this heading">¶</a></h3>
-<section id="registration-and-mixins">
-<h4>Registration and Mixins<a class="headerlink" href="#registration-and-mixins" title="Link to this heading">¶</a></h4>
+<section id="registration-mixins-and-initialization">
+<h4>Registration, Mixins, and Initialization<a class="headerlink" href="#registration-mixins-and-initialization" title="Link to this heading">¶</a></h4>
 <p>We will register the domain with the name <code class="docutils literal notranslate"><span class="pre">grid_tut</span></code>. This tells DeepXube that this name
 refers to the domain being defined.</p>
 <p>We will use the <a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.ActsEnumFixed" title="deepxube.base.domain.ActsEnumFixed"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.domain.ActsEnumFixed</span></code></a> mixin since the action space is fixed (up, down, left, right) and enumerable. We will use the
@@ -711,10 +731,33 @@ desired goal.</p>
 </section>
 <section id="visualization-and-interaction-methods">
 <h4>Visualization and Interaction Methods<a class="headerlink" href="#visualization-and-interaction-methods" title="Link to this heading">¶</a></h4>
-<p><a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.StateGoalVizable" title="deepxube.base.domain.StateGoalVizable"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.domain.StateGoalVizable</span></code></a>
-and <a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.StringToAct" title="deepxube.base.domain.StringToAct"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.domain.StringToAct</span></code></a></p>
-<p>Since the domain is registered, we should be able to see “grid_tut” with:
-<code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">domain_info</span></code>.</p>
+<p><a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.StateGoalVizable" title="deepxube.base.domain.StateGoalVizable"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.domain.StateGoalVizable</span></code></a> and <a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.StringToAct" title="deepxube.base.domain.StringToAct"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.domain.StringToAct</span></code></a> allow for the visualization of problem
+instances and interaction with them using the terminal. A simple grid is created with black and green to indicate the locations of
+the agent and goal, respectively.</p>
+<div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">visualize_state_goal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">goal</span><span class="p">:</span> <span class="n">GridGoal</span><span class="p">,</span> <span class="n">fig</span><span class="p">:</span> <span class="n">Figure</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ax</span><span class="p">:</span> <span class="n">Axes</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">grid</span><span class="p">:</span> <span class="n">NDArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">))</span>
+        <span class="n">grid</span><span class="p">[</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span><span class="p">,</span> <span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="n">grid</span><span class="p">[</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">robot_y</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">ListedColormap</span><span class="p">([</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="s2">&quot;green&quot;</span><span class="p">]),</span> <span class="n">origin</span><span class="o">=</span><span class="s2">&quot;upper&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">string_to_action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">act_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">GridAction</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">act_str</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;s&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;d&quot;</span><span class="p">}:</span>
+            <span class="k">return</span> <span class="n">GridAction</span><span class="p">([</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;s&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;d&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">act_str</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">string_to_action_help</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;w, s, a, or d for up, down, left, and right, respectively.&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="representation-method">
+<h4>Representation Method<a class="headerlink" href="#representation-method" title="Link to this heading">¶</a></h4>
+<div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Grid(dim=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="si">}</span><span class="s2">)&quot;</span>
+</pre></div>
+</div>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
 <p>Implementing <code class="docutils literal notranslate"><span class="pre">__repr__</span></code> for Domain objects can be convenient since the domain is printed to the screen and output.txt file during
@@ -724,7 +767,9 @@ when looking back on different runs.</p>
 </section>
 <section id="domain-parser">
 <h4>Domain Parser<a class="headerlink" href="#domain-parser" title="Link to this heading">¶</a></h4>
-<p>To allow the user to</p>
+<p>To allow the user to set parameters of the domain via the command line, one can implement a <a class="reference internal" href="../apidocs/deepxube/deepxube.base.factory.html#deepxube.base.factory.Parser" title="deepxube.base.factory.Parser"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.factory.Parser</span></code></a>
+class and register it with the same name as the domain. The <a class="reference internal" href="../apidocs/deepxube/deepxube.base.factory.html#deepxube.base.factory.DelimParser" title="deepxube.base.factory.DelimParser"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.factory.DelimParser</span></code></a> is a subclass that makes it
+easy to define parsing and help messages.</p>
 <div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@domain_factory</span><span class="o">.</span><span class="n">register_parser</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GridParser</span><span class="p">(</span><span class="n">DelimParser</span><span class="p">):</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -734,9 +779,14 @@ when looking back on different runs.</p>
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">delim</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">&quot;_&quot;</span>
-
-
 </pre></div>
+</div>
+<p>Now, grid domains of different dimensions can be created using the command-line:</p>
+<p><code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">viz</span> <span class="pre">--domain</span> <span class="pre">grid_tut.7d</span> <span class="pre">--steps</span> <span class="pre">100</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">viz</span> <span class="pre">--domain</span> <span class="pre">grid_tut.20d</span> <span class="pre">--steps</span> <span class="pre">100</span></code></p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Everything after the “.” in the domain name is given to the parser to be parsed.</p>
 </div>
 </section>
 </section>
@@ -752,8 +802,6 @@ when looking back on different runs.</p>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_np</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridState</span><span class="p">],</span> <span class="n">goals</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GridGoal</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">NDArray</span><span class="p">]:</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span>
                           <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span>
-
-
 </pre></div>
 </div>
 </section>
@@ -768,8 +816,6 @@ when looking back on different runs.</p>
         <span class="n">actions_np</span><span class="p">:</span> <span class="n">NDArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">action_i</span><span class="o">.</span><span class="n">action</span> <span class="k">for</span> <span class="n">action_i</span> <span class="ow">in</span> <span class="n">actions</span><span class="p">]</span> <span class="k">for</span> <span class="n">actions</span> <span class="ow">in</span> <span class="n">actions_l</span><span class="p">])</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span>
                           <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span> <span class="o">+</span> <span class="p">[</span><span class="n">actions_np</span><span class="p">]</span>
-
-
 </pre></div>
 </div>
 </section>
@@ -784,8 +830,6 @@ when looking back on different runs.</p>
         <span class="n">actions_np</span><span class="p">:</span> <span class="n">NDArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">action_i</span><span class="o">.</span><span class="n">action</span> <span class="k">for</span> <span class="n">action_i</span> <span class="ow">in</span> <span class="n">actions</span><span class="p">]),</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">state</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]),</span>
                           <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span> <span class="o">+</span> <span class="p">[</span><span class="n">actions_np</span><span class="p">]</span>
-
-
 </pre></div>
 </div>
 </section>
@@ -844,6 +888,9 @@ when looking back on different runs.</p>
 </div>
 </section>
 </section>
+<section id="timing-and-debugging">
+<h2>Timing and Debugging<a class="headerlink" href="#timing-and-debugging" title="Link to this heading">¶</a></h2>
+</section>
 </section>
 
         </article>
@@ -856,7 +903,7 @@ when looking back on different runs.</p>
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Creating a Custom Neural Network Optimizer</div>
+                <div class="title">Creating a Custom Heuristic Function Optimizer and Loss</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
@@ -929,11 +976,12 @@ when looking back on different runs.</p>
 <li><a class="reference internal" href="#implementation">Implementation</a><ul>
 <li><a class="reference internal" href="#state-action-goal">State, Action, Goal</a></li>
 <li><a class="reference internal" href="#domain">Domain</a><ul>
-<li><a class="reference internal" href="#registration-and-mixins">Registration and Mixins</a></li>
+<li><a class="reference internal" href="#registration-mixins-and-initialization">Registration, Mixins, and Initialization</a></li>
 <li><a class="reference internal" href="#domain-methods">Domain methods</a></li>
 <li><a class="reference internal" href="#actsenumfixed-methods">ActsEnumFixed methods</a></li>
 <li><a class="reference internal" href="#startgoalwalkable-methods">StartGoalWalkable methods</a></li>
 <li><a class="reference internal" href="#visualization-and-interaction-methods">Visualization and Interaction Methods</a></li>
+<li><a class="reference internal" href="#representation-method">Representation Method</a></li>
 <li><a class="reference internal" href="#domain-parser">Domain Parser</a></li>
 </ul>
 </li>
@@ -946,6 +994,7 @@ when looking back on different runs.</p>
 <li><a class="reference internal" href="#custom-neural-network">Custom Neural Network</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#timing-and-debugging">Timing and Debugging</a></li>
 </ul>
 </li>
 </ul>
