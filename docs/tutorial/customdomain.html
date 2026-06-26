@@ -355,8 +355,6 @@ square. We will create neural network inputs for a neural network that DeepXube 
 our own custom neural network.</p>
 <p>In the directory in which you run deepxube, create a <code class="docutils literal notranslate"><span class="pre">domains/grid_tutorial.py</span></code> file.
 DeepXube automatically looks in the <code class="docutils literal notranslate"><span class="pre">domains/</span></code> folder to see what is registered.</p>
-<section id="implementation">
-<h2>Implementation<a class="headerlink" href="#implementation" title="Link to this heading">¶</a></h2>
 <p>The entire domain file is here. This includes the states, actions, goals, domain, neural network inputs, custom neural network, and parsers.
 This file will be explained part-by-part.</p>
 <div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Type</span>
@@ -562,8 +560,6 @@ This file will be explained part-by-part.</p>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nnet_input</span><span class="p">:</span> <span class="n">GridNNetInput</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">q_fix</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">chan_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span> <span class="n">fc_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nnet_input</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">,</span> <span class="n">q_fix</span><span class="p">)</span>
-        <span class="c1"># one hots</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">one_hots</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
         <span class="n">grid_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nnet_input</span><span class="o">.</span><span class="n">get_input_info</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">heur</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
@@ -601,7 +597,7 @@ More specific information can be obtained about a domain with
 <code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">domain_info</span> <span class="pre">--name</span> <span class="pre">grid_tut</span></code></p>
 </div>
 <section id="state-action-goal">
-<h3>State, Action, Goal<a class="headerlink" href="#state-action-goal" title="Link to this heading">¶</a></h3>
+<h2>State, Action, Goal<a class="headerlink" href="#state-action-goal" title="Link to this heading">¶</a></h2>
 <p>To faciliate using states with Python dictionary objects and re-identifying states during search, all State objects must implement
 <code class="docutils literal notranslate"><span class="pre">__hash__</span></code> and <code class="docutils literal notranslate"><span class="pre">__eq__</span></code>. This must also be done for Action objects.</p>
 <div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">GridState</span><span class="p">(</span><span class="n">State</span><span class="p">):</span>
@@ -658,9 +654,9 @@ instances with <code class="docutils literal notranslate"><span class="pre">deep
 </div>
 </section>
 <section id="domain">
-<h3>Domain<a class="headerlink" href="#domain" title="Link to this heading">¶</a></h3>
+<h2>Domain<a class="headerlink" href="#domain" title="Link to this heading">¶</a></h2>
 <section id="registration-mixins-and-initialization">
-<h4>Registration, Mixins, and Initialization<a class="headerlink" href="#registration-mixins-and-initialization" title="Link to this heading">¶</a></h4>
+<h3>Registration, Mixins, and Initialization<a class="headerlink" href="#registration-mixins-and-initialization" title="Link to this heading">¶</a></h3>
 <p>We will register the domain with the name <code class="docutils literal notranslate"><span class="pre">grid_tut</span></code>. This tells DeepXube that this name
 refers to the domain being defined.</p>
 <p>We will use the <a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.ActsEnumFixed" title="deepxube.base.domain.ActsEnumFixed"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.domain.ActsEnumFixed</span></code></a> mixin since the action space is fixed (up, down, left, right) and enumerable. We will use the
@@ -683,7 +679,7 @@ The domain will be given an argument for its dimensionality.</p>
 </div>
 </section>
 <section id="domain-methods">
-<h4>Domain methods<a class="headerlink" href="#domain-methods" title="Link to this heading">¶</a></h4>
+<h3>Domain methods<a class="headerlink" href="#domain-methods" title="Link to this heading">¶</a></h3>
 <p>The abstract methods from <a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.Domain" title="deepxube.base.domain.Domain"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.domain.Domain</span></code></a> not implemented by
 mixins are <a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.Domain.is_solved" title="deepxube.base.domain.Domain.is_solved"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepxube.base.domain.Domain.is_solved()</span></code></a> and
 <a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.Domain.next_state" title="deepxube.base.domain.Domain.next_state"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepxube.base.domain.Domain.next_state()</span></code></a>. <code class="docutils literal notranslate"><span class="pre">is_solved</span></code> checks if the x and y
@@ -709,7 +705,7 @@ in the corresponding direction with a transition cost of 1 for all actions.</p>
 </div>
 </section>
 <section id="actsenumfixed-methods">
-<h4>ActsEnumFixed methods<a class="headerlink" href="#actsenumfixed-methods" title="Link to this heading">¶</a></h4>
+<h3>ActsEnumFixed methods<a class="headerlink" href="#actsenumfixed-methods" title="Link to this heading">¶</a></h3>
 <p><a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.ActsEnumFixed" title="deepxube.base.domain.ActsEnumFixed"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.domain.ActsEnumFixed</span></code></a> automatically implements
 <a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.Domain.sample_state_action" title="deepxube.base.domain.Domain.sample_state_action"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepxube.base.domain.Domain.sample_state_action()</span></code></a> based on the abstract method
 <a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.ActsEnumFixed.get_actions_fixed" title="deepxube.base.domain.ActsEnumFixed.get_actions_fixed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepxube.base.domain.ActsEnumFixed.get_actions_fixed()</span></code></a>. This is implemented by
@@ -720,7 +716,7 @@ simply returning a copy of the list created in the <code class="docutils literal
 </div>
 </section>
 <section id="startgoalwalkable-methods">
-<h4>StartGoalWalkable methods<a class="headerlink" href="#startgoalwalkable-methods" title="Link to this heading">¶</a></h4>
+<h3>StartGoalWalkable methods<a class="headerlink" href="#startgoalwalkable-methods" title="Link to this heading">¶</a></h3>
 <p><a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.StartGoalWalkable" title="deepxube.base.domain.StartGoalWalkable"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.domain.StartGoalWalkable</span></code></a> automatically implements
 <a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.Domain.sample_problem_instances" title="deepxube.base.domain.Domain.sample_problem_instances"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepxube.base.domain.Domain.sample_problem_instances()</span></code></a> based on the abstract methods
 <a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.StartGoalWalkable.sample_start_states" title="deepxube.base.domain.StartGoalWalkable.sample_start_states"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepxube.base.domain.StartGoalWalkable.sample_start_states()</span></code></a> and
@@ -737,7 +733,7 @@ desired goal.</p>
 </div>
 </section>
 <section id="visualization-and-interaction-methods">
-<h4>Visualization and Interaction Methods<a class="headerlink" href="#visualization-and-interaction-methods" title="Link to this heading">¶</a></h4>
+<h3>Visualization and Interaction Methods<a class="headerlink" href="#visualization-and-interaction-methods" title="Link to this heading">¶</a></h3>
 <p><a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.StateGoalVizable" title="deepxube.base.domain.StateGoalVizable"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.domain.StateGoalVizable</span></code></a> and <a class="reference internal" href="../apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.StringToAct" title="deepxube.base.domain.StringToAct"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.domain.StringToAct</span></code></a> allow for the visualization of problem
 instances and interaction with them using the terminal. A simple grid is created with black and green to indicate the locations of
 the agent and goal, respectively.</p>
@@ -760,7 +756,7 @@ the agent and goal, respectively.</p>
 </div>
 </section>
 <section id="representation-method">
-<h4>Representation Method<a class="headerlink" href="#representation-method" title="Link to this heading">¶</a></h4>
+<h3>Representation Method<a class="headerlink" href="#representation-method" title="Link to this heading">¶</a></h3>
 <div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Grid(dim=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="si">}</span><span class="s2">)&quot;</span>
 </pre></div>
@@ -773,7 +769,7 @@ when looking back on different runs.</p>
 </div>
 </section>
 <section id="domain-parser">
-<h4>Domain Parser<a class="headerlink" href="#domain-parser" title="Link to this heading">¶</a></h4>
+<h3>Domain Parser<a class="headerlink" href="#domain-parser" title="Link to this heading">¶</a></h3>
 <p>To allow the user to set parameters of the domain via the command line, one can implement a <a class="reference internal" href="../apidocs/deepxube/deepxube.base.factory.html#deepxube.base.factory.Parser" title="deepxube.base.factory.Parser"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.factory.Parser</span></code></a>
 class and register it with the same name as the domain. The <a class="reference internal" href="../apidocs/deepxube/deepxube.base.factory.html#deepxube.base.factory.DelimParser" title="deepxube.base.factory.DelimParser"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepxube.base.factory.DelimParser</span></code></a> is a subclass that makes it
 easy to define parsing and help messages.</p>
@@ -794,9 +790,9 @@ easy to define parsing and help messages.</p>
 </section>
 </section>
 <section id="neural-network-inputs">
-<h3>Neural Network Inputs<a class="headerlink" href="#neural-network-inputs" title="Link to this heading">¶</a></h3>
+<h2>Neural Network Inputs<a class="headerlink" href="#neural-network-inputs" title="Link to this heading">¶</a></h2>
 <section id="flat-input">
-<h4>Flat Input<a class="headerlink" href="#flat-input" title="Link to this heading">¶</a></h4>
+<h3>Flat Input<a class="headerlink" href="#flat-input" title="Link to this heading">¶</a></h3>
 <p>This input gives the x, y coordinates of the agent and goal locations
 to a one-dimensional representation. It is then converted to a one-hot
 representation on the GPU with depth equal to the dimensionality of the
@@ -968,7 +964,7 @@ Done
 </div>
 </section>
 <section id="flat-input-for-a-q-network-with-a-fixed-action-output">
-<h4>Flat Input for a Q-Network with a Fixed Action Output<a class="headerlink" href="#flat-input-for-a-q-network-with-a-fixed-action-output" title="Link to this heading">¶</a></h4>
+<h3>Flat Input for a Q-Network with a Fixed Action Output<a class="headerlink" href="#flat-input-for-a-q-network-with-a-fixed-action-output" title="Link to this heading">¶</a></h3>
 <p>This neural network input assumes a fixed and enumerable action space
 and outputs a vector that corresponds to the transition cost plus
 cost-to-go of the resulting state for every possible
@@ -1141,7 +1137,7 @@ matches the number of actions (4)
 </div>
 </section>
 <section id="flat-input-for-a-q-network-with-the-action-as-an-input">
-<h4>Flat Input for a Q-Network with the Action as an Input<a class="headerlink" href="#flat-input-for-a-q-network-with-the-action-as-an-input" title="Link to this heading">¶</a></h4>
+<h3>Flat Input for a Q-Network with the Action as an Input<a class="headerlink" href="#flat-input-for-a-q-network-with-the-action-as-an-input" title="Link to this heading">¶</a></h3>
 <p>Ths neural network input assumes the action will be given to the neural
 network along with the state and goal. This can be useful for domains with
 dynamic action spaces that have transition functions that are expensive to
@@ -1302,7 +1298,7 @@ Done
 </section>
 </section>
 <section id="custom-neural-network">
-<h3>Custom Neural Network<a class="headerlink" href="#custom-neural-network" title="Link to this heading">¶</a></h3>
+<h2>Custom Neural Network<a class="headerlink" href="#custom-neural-network" title="Link to this heading">¶</a></h2>
 <p>Instead of using a neural network that comes with DeepXube a custom neural
 network, along with its own parser and custom neural network input,
 can be implemented.</p>
@@ -1310,7 +1306,11 @@ can be implemented.</p>
 to convolutional layers, flattens it, passes it to a fully-connected layer,
 and then to the output layer.</p>
 <section id="neural-network-input">
-<h4>Neural Network Input<a class="headerlink" href="#neural-network-input" title="Link to this heading">¶</a></h4>
+<h3>Neural Network Input<a class="headerlink" href="#neural-network-input" title="Link to this heading">¶</a></h3>
+<p>The information given to the neural network is the dimensionality of the
+grid. The state and goal will be converted to two 2D NxN grids with an indicator
+in one grid for the location of the agent and in the other grid for the
+location of the goal.</p>
 <div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@register_nnet_input</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">,</span> <span class="s2">&quot;grid_nnet_input&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GridNNetInput</span><span class="p">(</span><span class="n">StateGoalIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">,</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">]):</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_input_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -1327,7 +1327,9 @@ and then to the output layer.</p>
 </div>
 </section>
 <section id="neural-network">
-<h4>Neural Network<a class="headerlink" href="#neural-network" title="Link to this heading">¶</a></h4>
+<h3>Neural Network<a class="headerlink" href="#neural-network" title="Link to this heading">¶</a></h3>
+<p>While the neural network uses DeepXube modules to implement convolutional layers followed by a fully connected layer, arbitrary PyTorch code
+can be used to implement neural networks. The user implements <a class="reference internal" href="../apidocs/deepxube/deepxube.base.heuristic.html#deepxube.base.heuristic.HeurNNet._forward" title="deepxube.base.heuristic.HeurNNet._forward"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.base.heuristic.HeurNNet._forward</span></code></a>, which is used by superclass.</p>
 <div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@heuristic_factory</span><span class="o">.</span><span class="n">register_class</span><span class="p">(</span><span class="s2">&quot;gridnet_tut&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GridNet</span><span class="p">(</span><span class="n">HeurNNet</span><span class="p">[</span><span class="n">GridNNetInput</span><span class="p">]):</span>
     <span class="nd">@staticmethod</span>
@@ -1336,8 +1338,6 @@ and then to the output layer.</p>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nnet_input</span><span class="p">:</span> <span class="n">GridNNetInput</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">q_fix</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">chan_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span> <span class="n">fc_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nnet_input</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">,</span> <span class="n">q_fix</span><span class="p">)</span>
-        <span class="c1"># one hots</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">one_hots</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
         <span class="n">grid_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nnet_input</span><span class="o">.</span><span class="n">get_input_info</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">heur</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
@@ -1354,12 +1354,30 @@ and then to the output layer.</p>
 </div>
 <div class="admonition important">
 <p class="admonition-title">Important</p>
+<p>The neural network should return the type of neural network input it is expecting with
+<a class="reference internal" href="../apidocs/deepxube/deepxube.base.heuristic.html#deepxube.base.heuristic.DeepXubeNNet.nnet_input_type" title="deepxube.base.heuristic.DeepXubeNNet.nnet_input_type"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.base.heuristic.DeepXubeNNet.nnet_input_type</span></code></a>. The neural network can access it with <code class="docutils literal notranslate"><span class="pre">self.nnet_input</span></code>.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">out_dim</span></code> argument is 1 except in the case where a qfix neural network is used.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">q_fix</span></code> input is not used directly by the neural network, but is used by the superclass.</p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
 <p>DeepXube expects the first three arguments, <code class="docutils literal notranslate"><span class="pre">nnet_input:</span> <span class="pre">FlatIn,</span> <span class="pre">out_dim:</span> <span class="pre">int,</span> <span class="pre">q_fix:</span> <span class="pre">bool</span></code> to have these exact names so the
 neural network can be properly initialized.</p>
 </div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>The custom neural network can be seen with <code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">heuristic_info</span></code> and more specific information can be seen with
+<code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">heuristic_info</span> <span class="pre">--name</span> <span class="pre">gridnet_tut</span></code>.</p>
+</div>
 </section>
 <section id="parser">
-<h4>Parser<a class="headerlink" href="#parser" title="Link to this heading">¶</a></h4>
+<h3>Parser<a class="headerlink" href="#parser" title="Link to this heading">¶</a></h3>
 <div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@heuristic_factory</span><span class="o">.</span><span class="n">register_parser</span><span class="p">(</span><span class="s2">&quot;gridnet_tut&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GridNetParser</span><span class="p">(</span><span class="n">DelimParser</span><span class="p">):</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1372,7 +1390,6 @@ neural network can be properly initialized.</p>
         <span class="k">return</span> <span class="s2">&quot;_&quot;</span>
 </pre></div>
 </div>
-</section>
 </section>
 </section>
 <section id="timing-and-debugging">
@@ -1460,7 +1477,6 @@ neural network can be properly initialized.</p>
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Creating a Custom Domain and Heuristic Function</a><ul>
-<li><a class="reference internal" href="#implementation">Implementation</a><ul>
 <li><a class="reference internal" href="#state-action-goal">State, Action, Goal</a></li>
 <li><a class="reference internal" href="#domain">Domain</a><ul>
 <li><a class="reference internal" href="#registration-mixins-and-initialization">Registration, Mixins, and Initialization</a></li>
@@ -1482,8 +1498,6 @@ neural network can be properly initialized.</p>
 <li><a class="reference internal" href="#neural-network-input">Neural Network Input</a></li>
 <li><a class="reference internal" href="#neural-network">Neural Network</a></li>
 <li><a class="reference internal" href="#parser">Parser</a></li>
-</ul>
-</li>
 </ul>
 </li>
 <li><a class="reference internal" href="#timing-and-debugging">Timing and Debugging</a></li>

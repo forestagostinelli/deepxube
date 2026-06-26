@@ -201,8 +201,6 @@ class GridNet(HeurNNet[GridNNetInput]):
 
     def __init__(self, nnet_input: GridNNetInput, out_dim: int, q_fix: bool, chan_size: int = 8, fc_size: int = 100):
         super().__init__(nnet_input, out_dim, q_fix)
-        # one hots
-        self.one_hots: nn.ModuleList = nn.ModuleList()
         grid_dim: int = self.nnet_input.get_input_info()
 
         self.heur: nn.Module = nn.Sequential(

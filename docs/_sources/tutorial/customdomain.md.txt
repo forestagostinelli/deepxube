@@ -8,7 +8,6 @@ our own custom neural network.
 In the directory in which you run deepxube, create a `domains/grid_tutorial.py` file. 
 DeepXube automatically looks in the `domains/` folder to see what is registered.
 
-## Implementation
 The entire domain file is here. This includes the states, actions, goals, domain, neural network inputs, custom neural network, and parsers. 
 This file will be explained part-by-part.
 ```{literalinclude} ../../domains/grid_tutorial.py
@@ -24,7 +23,7 @@ More specific information can be obtained about a domain with
 ```
 
 
-### State, Action, Goal
+## State, Action, Goal
 
 To faciliate using states with Python dictionary objects and re-identifying states during search, all State objects must implement
 `__hash__` and `__eq__`. This must also be done for Action objects.
@@ -41,9 +40,9 @@ Implementing `__repr__` for Action objects can be convenient since actions are p
 instances with `deepxube viz`.
 ```
 
-### Domain
+## Domain
 
-#### Registration, Mixins, and Initialization
+### Registration, Mixins, and Initialization
 We will register the domain with the name `grid_tut`. This tells DeepXube that this name
 refers to the domain being defined.
 
@@ -64,7 +63,7 @@ The domain will be given an argument for its dimensionality.
 A default value should be set for all Domain arguments in case they are not set via the command line.
 ```
 
-#### Domain methods
+### Domain methods
 The abstract methods from {class}`deepxube.base.domain.Domain` not implemented by
 mixins are {meth}`deepxube.base.domain.Domain.is_solved` and 
 {meth}`deepxube.base.domain.Domain.next_state`. `is_solved` checks if the x and y
@@ -78,7 +77,7 @@ in the corresponding direction with a transition cost of 1 for all actions.
 :end-before: end domain methods
 ```
 
-#### ActsEnumFixed methods
+### ActsEnumFixed methods
 {class}`deepxube.base.domain.ActsEnumFixed` automatically implements 
 {meth}`deepxube.base.domain.Domain.sample_state_action` based on the abstract method
 {meth}`deepxube.base.domain.ActsEnumFixed.get_actions_fixed`. This is implemented by 
@@ -91,7 +90,7 @@ simply returning a copy of the list created in the `__init__` method containing 
 :end-before: end actsenumfixed methods
 ```
 
-#### StartGoalWalkable methods
+### StartGoalWalkable methods
 {class}`deepxube.base.domain.StartGoalWalkable` automatically implements
 {meth}`deepxube.base.domain.Domain.sample_problem_instances` based on the abstract methods
 {meth}`deepxube.base.domain.StartGoalWalkable.sample_start_states` and 
@@ -107,7 +106,7 @@ desired goal.
 :end-before: end startgoalwalkable methods
 ```
 
-#### Visualization and Interaction Methods
+### Visualization and Interaction Methods
 {class}`deepxube.base.domain.StateGoalVizable` and {class}`deepxube.base.domain.StringToAct` allow for the visualization of problem
 instances and interaction with them using the terminal. A simple grid is created with black and green to indicate the locations of
 the agent and goal, respectively.
@@ -120,7 +119,7 @@ the agent and goal, respectively.
 :end-before: end viz methods
 ```
 
-#### Representation Method
+### Representation Method
 
 ```{literalinclude} ../../domains/grid_tutorial.py
 :language: python
@@ -135,7 +134,7 @@ training and solving. Having an identifiable name for the domain along with a cl
 when looking back on different runs. 
 ```
 
-#### Domain Parser
+### Domain Parser
 
 To allow the user to set parameters of the domain via the command line, one can implement a {class}`deepxube.base.factory.Parser` 
 class and register it with the same name as the domain. The {class}`deepxube.base.factory.DelimParser` is a subclass that makes it
@@ -154,9 +153,9 @@ Now, grid domains of different dimensions can be created using the command-line:
 
 `deepxube viz --domain grid_tut.20d --steps 100`
 
-### Neural Network Inputs
+## Neural Network Inputs
 
-#### Flat Input
+### Flat Input
 
 This input gives the x, y coordinates of the agent and goal locations
 to a one-dimensional representation. It is then converted to a one-hot
@@ -196,7 +195,7 @@ grid domain. It should learn to solve over 95% of problem instances with
 :class: scroll-code
 ```
 
-#### Flat Input for a Q-Network with a Fixed Action Output
+### Flat Input for a Q-Network with a Fixed Action Output
 
 This neural network input assumes a fixed and enumerable action space 
 and outputs a vector that corresponds to the transition cost plus 
@@ -235,7 +234,7 @@ matches the number of actions (4)
 `(2): Linear(in_features=100, out_features=4, bias=True)`
 ```
 
-#### Flat Input for a Q-Network with the Action as an Input
+### Flat Input for a Q-Network with the Action as an Input
 
 Ths neural network input assumes the action will be given to the neural 
 network along with the state and goal. This can be useful for domains with
@@ -261,7 +260,7 @@ flat input for the grid domain.
 :class: scroll-code
 ```
 
-### Custom Neural Network
+## Custom Neural Network
 Instead of using a neural network that comes with DeepXube a custom neural
 network, along with its own parser and custom neural network input, 
 can be implemented.
@@ -271,7 +270,13 @@ to convolutional layers, flattens it, passes it to a fully-connected layer,
 and then to the output layer.
 
 
-#### Neural Network Input
+### Neural Network Input
+
+The information given to the neural network is the dimensionality of the 
+grid. The state and goal will be converted to two 2D NxN grids with an indicator
+in one grid for the location of the agent and in the other grid for the 
+location of the goal.
+
 ```{literalinclude} ../../domains/grid_tutorial.py
 :language: python
 :class: scroll-code
@@ -279,7 +284,9 @@ and then to the output layer.
 :end-before: end grid nnet input definition
 ```
 
-#### Neural Network
+### Neural Network
+While the neural network uses DeepXube modules to implement convolutional layers followed by a fully connected layer, arbitrary PyTorch code 
+can be used to implement neural networks. The user implements {mod}`deepxube.base.heuristic.HeurNNet._forward`, which is used by superclass.
 
 ```{literalinclude} ../../domains/grid_tutorial.py
 :language: python
@@ -289,12 +296,30 @@ and then to the output layer.
 ```
 
 ```{important}
+The neural network should return the type of neural network input it is expecting with 
+{mod}`deepxube.base.heuristic.DeepXubeNNet.nnet_input_type`. The neural network can access it with `self.nnet_input`.
+```
+
+```{note}
+The `out_dim` argument is 1 except in the case where a qfix neural network is used.
+```
+
+```{note}
+The `q_fix` input is not used directly by the neural network, but is used by the superclass.
+```
+
+```{important}
 DeepXube expects the first three arguments, `nnet_input: FlatIn, out_dim: int, q_fix: bool` to have these exact names so the 
 neural network can be properly initialized.
 ```
 
+```{tip}
+The custom neural network can be seen with `deepxube heuristic_info` and more specific information can be seen with 
+`deepxube heuristic_info --name gridnet_tut`.
+```
 
-#### Parser
+
+### Parser
 ```{literalinclude} ../../domains/grid_tutorial.py
 :language: python
 :class: scroll-code
