@@ -537,7 +537,7 @@ This file will be explained part-by-part.</p>
 <span class="c1"># end gridflatinactin definition</span>
 
 
-<span class="c1"># start grid nnet definition</span>
+<span class="c1"># start grid nnet input definition</span>
 <span class="nd">@register_nnet_input</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">,</span> <span class="s2">&quot;grid_nnet_input&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GridNNetInput</span><span class="p">(</span><span class="n">StateGoalIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">,</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">]):</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_input_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -550,8 +550,10 @@ This file will be explained part-by-part.</p>
             <span class="n">np_rep</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span><span class="p">,</span> <span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
 
         <span class="k">return</span> <span class="p">[</span><span class="n">np_rep</span><span class="p">]</span>
+<span class="c1"># end grid nnet input definition</span>
 
 
+<span class="c1"># start grid nnet definition</span>
 <span class="nd">@heuristic_factory</span><span class="o">.</span><span class="n">register_class</span><span class="p">(</span><span class="s2">&quot;gridnet_tut&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GridNet</span><span class="p">(</span><span class="n">HeurNNet</span><span class="p">[</span><span class="n">GridNNetInput</span><span class="p">]):</span>
     <span class="nd">@staticmethod</span>
@@ -574,8 +576,10 @@ This file will be explained part-by-part.</p>
     <span class="k">def</span><span class="w"> </span><span class="nf">_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tensor</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
         <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">heur</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">x</span>
+<span class="c1"># end grid nnet definition</span>
 
 
+<span class="c1"># start grid nnet parser definition</span>
 <span class="nd">@heuristic_factory</span><span class="o">.</span><span class="n">register_parser</span><span class="p">(</span><span class="s2">&quot;gridnet_tut&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GridNetParser</span><span class="p">(</span><span class="n">DelimParser</span><span class="p">):</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -586,12 +590,15 @@ This file will be explained part-by-part.</p>
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">delim</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">&quot;_&quot;</span>
+<span class="c1"># end grid nnet parser definition</span>
 </pre></div>
 </div>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
-<p>Since the domain is registered, we should be able to see “grid_tut” with:
-<code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">domain_info</span></code> after it is put in your <code class="docutils literal notranslate"><span class="pre">domains/</span></code> folder.</p>
+<p>Since the domain is registered, we should be able to see “grid_tut” with
+<code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">domain_info</span></code> after it is put in your <code class="docutils literal notranslate"><span class="pre">domains/</span></code> folder.
+More specific information can be obtained about a domain with
+<code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">domain_info</span> <span class="pre">--name</span> <span class="pre">grid_tut</span></code></p>
 </div>
 <section id="state-action-goal">
 <h3>State, Action, Goal<a class="headerlink" href="#state-action-goal" title="Link to this heading">¶</a></h3>
@@ -784,16 +791,16 @@ easy to define parsing and help messages.</p>
 <p>Now, grid domains of different dimensions can be created using the command-line:</p>
 <p><code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">viz</span> <span class="pre">--domain</span> <span class="pre">grid_tut.7d</span> <span class="pre">--steps</span> <span class="pre">100</span></code></p>
 <p><code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">viz</span> <span class="pre">--domain</span> <span class="pre">grid_tut.20d</span> <span class="pre">--steps</span> <span class="pre">100</span></code></p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Everything after the “.” in the domain name is given to the parser to be parsed.</p>
-</div>
 </section>
 </section>
 <section id="neural-network-inputs">
 <h3>Neural Network Inputs<a class="headerlink" href="#neural-network-inputs" title="Link to this heading">¶</a></h3>
 <section id="flat-input">
 <h4>Flat Input<a class="headerlink" href="#flat-input" title="Link to this heading">¶</a></h4>
+<p>This input gives the x, y coordinates of the agent and goal locations
+to a one-dimensional representation. It is then converted to a one-hot
+representation on the GPU with depth equal to the dimensionality of the
+domain.</p>
 <div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@register_nnet_input</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">,</span> <span class="s2">&quot;grid_flat_in&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GridFlatIn</span><span class="p">(</span><span class="n">StateGoalIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">,</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">],</span> <span class="n">FlatIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">]):</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_input_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
@@ -804,9 +811,168 @@ easy to define parsing and help messages.</p>
                           <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span>
 </pre></div>
 </div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>The domain is passed to the neural network input and is accessible
+via <code class="docutils literal notranslate"><span class="pre">self.domain</span></code>.</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Converting data to a one-hot representation on the GPU instead of the CPU
+can speed up CPU to GPU transfer.</p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Each element in the list of numpy arrays that the <code class="docutils literal notranslate"><span class="pre">to_np</span></code> method returns
+must have its first dimension be equal to the number of inputs.</p>
+</div>
+<p>We can now train a heuristic function that takes a flat input for the
+grid domain. It should learn to solve over 95% of problem instances with
+20 iterations of A* search during training.</p>
+<p><code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">train</span> <span class="pre">--domain</span> <span class="pre">grid_tut.7d</span> <span class="pre">--heur</span> <span class="pre">resnet_fc.100H_1B_bn</span> <span class="pre">--heur_type</span> <span class="pre">V</span> <span class="pre">--pathfind</span> <span class="pre">graph_v</span> <span class="pre">--step_max</span> <span class="pre">100</span> <span class="pre">--up_itrs</span> <span class="pre">100</span> <span class="pre">--search_itrs</span> <span class="pre">20</span> <span class="pre">--backup</span> <span class="pre">-1</span> <span class="pre">--procs</span> <span class="pre">2</span> <span class="pre">--batch_size</span> <span class="pre">200</span> <span class="pre">--max_itrs</span> <span class="pre">1000</span> <span class="pre">--dir</span> <span class="pre">tutorial/grid_tut/flatin_v/</span></code></p>
+<div class="scroll-code highlight-none notranslate"><div class="highlight"><pre><span></span>device: cpu, devices: [], on_gpu: False
+ResnetFCHeur(
+  (one_hots): ModuleList(
+    (0): OneHot()
+  )
+  (heur): Sequential(
+    (0): Linear(in_features=28, out_features=100, bias=True)
+    (1): ResnetModel(
+      (blocks): ModuleList(
+        (0): ModuleList(
+          (0): FullyConnectedModel(
+            (layers): ModuleList(
+              (0): ModuleList(
+                (0): Linear(in_features=100, out_features=100, bias=True)
+                (1): BatchNorm1d(100, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (2): ReLU()
+              )
+              (1): ModuleList(
+                (0): Linear(in_features=100, out_features=100, bias=True)
+                (1): BatchNorm1d(100, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (2): LinearAct()
+              )
+            )
+          )
+        )
+      )
+      (act_fns): ModuleList(
+        (0): ReLU()
+      )
+    )
+    (2): Linear(in_features=100, out_features=1, bias=True)
+  )
+)
+Number of trainable parameters: 23,601
+Initializing data buffer with max size 20,000
+Input array sizes:
+index: 0, dtype: int64, shape: (4,)
+index: 1, dtype: float64, shape: ()
+Data buffer initialized. Time: 0.00016999244689941406
+UpdateHeurVRLKeepGoal(UpArgs(procs=2, up_itrs=100, step_max=100, search_itrs=20, ub_heur_solns=False, backup=-1, policy_rand_prob=0.0, up_gen_itrs=None, up_batch_size=100, nnet_batch_size=20000, sync_main=False, v=False))
+GraphSearchHeurNodeActsEnum(batch_size=1, weight=1.0, eps=0.0)
+TrainArgs(batch_size=200, max_itrs=1000, balance_steps=False, rb=0, loss_thresh=inf, targ_up_searches=0, skip_heur=False, skip_policy=False, checkpoint=0, grad_accum=1, display=100)
+Grid(dim=7)
+
+Getting Data - itr: 0, update_num: 0, targ_update: 0, num_gen: 20,000
+Times - steps_gen: 0.03, inst_info: 0.00, inst_add: 0.00, backup: 0.02, get_tr_data: 0.00, to_np: 0.02, update_perf: 0.00, put: 0.01, gc: 0.29, -&gt;get_states: 0.10, -&gt;pathfinding: 1.34, Tot: 1.81
+	(get_states): sample_start_states: 0.00, random_walk: 0.10, sample_goal: 0.00, Tot: 0.10
+	(pathfinding): root: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.04, nodes: 0.07, up_inst: 0.09, heur: 1.07, filt: 0.03, cost: 0.01, pushpop: 0.02, edges_next: 0.01, set_next: 0.00, Tot: 1.34
+Data - %solved: 56.73, path_costs: 2.130, search_itrs: 8.821, cost-to-go (mean/min/max): 0.98/0.00/2.00
+Itr: 0, loss: 2.16E+00, targ_ctg: 1.03, nnet_ctg: -0.38, Time: 1.24
+Train - itrs: 100, loss: 3.83E-02, targ_updated: True
+Times - up_start: 0.01, up_data: 1.05, up_end: 0.18, data_samp: 0.00, train: 0.10, save_net: 0.00, save_status: 0.00, Tot: 1.33
+
+Getting Data - itr: 100, update_num: 1, targ_update: 1, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.02, get_tr_data: 0.00, to_np: 0.02, update_perf: 0.00, put: 0.01, gc: 0.29, -&gt;get_states: 0.10, -&gt;pathfinding: 1.58, Tot: 2.02
+	(get_states): sample_start_states: 0.00, random_walk: 0.09, sample_goal: 0.00, Tot: 0.10
+	(pathfinding): root: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.04, nodes: 0.07, up_inst: 0.04, heur: 1.36, filt: 0.03, cost: 0.01, pushpop: 0.02, edges_next: 0.01, set_next: 0.00, Tot: 1.58
+Data - %solved: 63.60, path_costs: 2.285, search_itrs: 7.843, cost-to-go (mean/min/max): 1.78/0.00/3.17
+Itr: 100, loss: 8.73E-01, targ_ctg: 1.82, nnet_ctg: 0.98, Time: 1.18
+Train - itrs: 100, loss: 5.70E-02, targ_updated: True
+Times - up_start: 0.00, up_data: 0.99, up_end: 0.18, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.27
+
+Getting Data - itr: 200, update_num: 2, targ_update: 2, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.02, get_tr_data: 0.00, to_np: 0.02, update_perf: 0.00, put: 0.01, gc: 0.32, -&gt;get_states: 0.12, -&gt;pathfinding: 1.62, Tot: 2.12
+	(get_states): sample_start_states: 0.00, random_walk: 0.12, sample_goal: 0.00, Tot: 0.12
+	(pathfinding): root: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.05, nodes: 0.07, up_inst: 0.04, heur: 1.39, filt: 0.03, cost: 0.01, pushpop: 0.02, edges_next: 0.01, set_next: 0.00, Tot: 1.62
+Data - %solved: 76.21, path_costs: 2.748, search_itrs: 7.174, cost-to-go (mean/min/max): 2.40/0.00/4.21
+Itr: 200, loss: 5.76E-01, targ_ctg: 2.34, nnet_ctg: 1.74, Time: 1.25
+Train - itrs: 100, loss: 6.96E-02, targ_updated: True
+Times - up_start: 0.00, up_data: 1.04, up_end: 0.21, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.34
+
+Getting Data - itr: 300, update_num: 3, targ_update: 3, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.02, get_tr_data: 0.00, to_np: 0.03, update_perf: 0.00, put: 0.01, gc: 0.30, -&gt;get_states: 0.15, -&gt;pathfinding: 1.78, Tot: 2.28
+	(get_states): sample_start_states: 0.00, random_walk: 0.14, sample_goal: 0.00, Tot: 0.15
+	(pathfinding): root: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.04, nodes: 0.07, up_inst: 0.04, heur: 1.55, filt: 0.03, cost: 0.01, pushpop: 0.02, edges_next: 0.01, set_next: 0.00, Tot: 1.78
+Data - %solved: 89.44, path_costs: 2.945, search_itrs: 5.904, cost-to-go (mean/min/max): 2.75/0.00/5.18
+Itr: 300, loss: 3.82E-01, targ_ctg: 2.85, nnet_ctg: 2.43, Time: 1.29
+Train - itrs: 100, loss: 6.73E-02, targ_updated: True
+Times - up_start: 0.00, up_data: 1.12, up_end: 0.17, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.38
+
+Getting Data - itr: 400, update_num: 4, targ_update: 4, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.02, get_tr_data: 0.00, to_np: 0.02, update_perf: 0.00, put: 0.01, gc: 0.30, -&gt;get_states: 0.16, -&gt;pathfinding: 1.63, Tot: 2.14
+	(get_states): sample_start_states: 0.00, random_walk: 0.15, sample_goal: 0.00, Tot: 0.16
+	(pathfinding): root: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.05, nodes: 0.07, up_inst: 0.04, heur: 1.40, filt: 0.03, cost: 0.01, pushpop: 0.02, edges_next: 0.01, set_next: 0.00, Tot: 1.63
+Data - %solved: 94.26, path_costs: 3.201, search_itrs: 5.631, cost-to-go (mean/min/max): 2.96/0.00/6.12
+Itr: 400, loss: 2.04E-01, targ_ctg: 2.87, nnet_ctg: 2.70, Time: 1.22
+Train - itrs: 100, loss: 8.11E-02, targ_updated: True
+Times - up_start: 0.00, up_data: 1.05, up_end: 0.17, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.31
+
+Getting Data - itr: 500, update_num: 5, targ_update: 5, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.02, get_tr_data: 0.00, to_np: 0.02, update_perf: 0.00, put: 0.01, gc: 0.31, -&gt;get_states: 0.17, -&gt;pathfinding: 1.62, Tot: 2.16
+	(get_states): sample_start_states: 0.00, random_walk: 0.17, sample_goal: 0.00, Tot: 0.17
+	(pathfinding): root: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.05, nodes: 0.07, up_inst: 0.04, heur: 1.39, filt: 0.03, cost: 0.01, pushpop: 0.02, edges_next: 0.01, set_next: 0.00, Tot: 1.62
+Data - %solved: 96.72, path_costs: 3.351, search_itrs: 5.467, cost-to-go (mean/min/max): 2.90/0.00/6.93
+Itr: 500, loss: 1.48E-01, targ_ctg: 2.72, nnet_ctg: 2.83, Time: 1.23
+Train - itrs: 100, loss: 5.69E-02, targ_updated: True
+Times - up_start: 0.00, up_data: 1.06, up_end: 0.17, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.32
+
+Getting Data - itr: 600, update_num: 6, targ_update: 6, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.02, get_tr_data: 0.00, to_np: 0.02, update_perf: 0.00, put: 0.01, gc: 0.30, -&gt;get_states: 0.18, -&gt;pathfinding: 1.64, Tot: 2.16
+	(get_states): sample_start_states: 0.00, random_walk: 0.17, sample_goal: 0.00, Tot: 0.18
+	(pathfinding): root: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.05, nodes: 0.07, up_inst: 0.04, heur: 1.40, filt: 0.03, cost: 0.01, pushpop: 0.02, edges_next: 0.01, set_next: 0.00, Tot: 1.64
+Data - %solved: 98.14, path_costs: 3.331, search_itrs: 5.297, cost-to-go (mean/min/max): 2.74/0.00/8.12
+Itr: 600, loss: 1.82E-01, targ_ctg: 2.54, nnet_ctg: 2.85, Time: 1.24
+Train - itrs: 100, loss: 4.36E-02, targ_updated: True
+Times - up_start: 0.00, up_data: 1.07, up_end: 0.17, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.33
+
+Getting Data - itr: 700, update_num: 7, targ_update: 7, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.02, get_tr_data: 0.00, to_np: 0.02, update_perf: 0.00, put: 0.01, gc: 0.31, -&gt;get_states: 0.18, -&gt;pathfinding: 1.66, Tot: 2.20
+	(get_states): sample_start_states: 0.00, random_walk: 0.17, sample_goal: 0.00, Tot: 0.18
+	(pathfinding): root: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.05, nodes: 0.07, up_inst: 0.04, heur: 1.43, filt: 0.03, cost: 0.01, pushpop: 0.02, edges_next: 0.01, set_next: 0.00, Tot: 1.66
+Data - %solved: 98.21, path_costs: 3.428, search_itrs: 5.431, cost-to-go (mean/min/max): 2.78/0.00/9.15
+Itr: 700, loss: 7.89E-02, targ_ctg: 2.78, nnet_ctg: 2.79, Time: 1.25
+Train - itrs: 100, loss: 7.82E-02, targ_updated: True
+Times - up_start: 0.00, up_data: 1.08, up_end: 0.16, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.35
+
+Getting Data - itr: 800, update_num: 8, targ_update: 8, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.02, get_tr_data: 0.00, to_np: 0.02, update_perf: 0.00, put: 0.01, gc: 0.31, -&gt;get_states: 0.18, -&gt;pathfinding: 1.66, Tot: 2.20
+	(get_states): sample_start_states: 0.00, random_walk: 0.18, sample_goal: 0.00, Tot: 0.18
+	(pathfinding): root: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.05, nodes: 0.07, up_inst: 0.04, heur: 1.42, filt: 0.03, cost: 0.01, pushpop: 0.02, edges_next: 0.01, set_next: 0.00, Tot: 1.66
+Data - %solved: 98.93, path_costs: 3.470, search_itrs: 5.161, cost-to-go (mean/min/max): 2.73/0.00/10.21
+Itr: 800, loss: 5.96E-02, targ_ctg: 2.89, nnet_ctg: 2.90, Time: 1.26
+Train - itrs: 100, loss: 2.67E-02, targ_updated: True
+Times - up_start: 0.00, up_data: 1.09, up_end: 0.17, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.36
+
+Getting Data - itr: 900, update_num: 9, targ_update: 9, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.02, get_tr_data: 0.00, to_np: 0.03, update_perf: 0.00, put: 0.01, gc: 0.33, -&gt;get_states: 0.18, -&gt;pathfinding: 1.77, Tot: 2.34
+	(get_states): sample_start_states: 0.00, random_walk: 0.18, sample_goal: 0.00, Tot: 0.18
+	(pathfinding): root: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.06, nodes: 0.07, up_inst: 0.04, heur: 1.52, filt: 0.03, cost: 0.01, pushpop: 0.02, edges_next: 0.01, set_next: 0.00, Tot: 1.77
+Data - %solved: 98.75, path_costs: 3.500, search_itrs: 5.425, cost-to-go (mean/min/max): 2.70/0.00/11.19
+Itr: 900, loss: 1.03E-01, targ_ctg: 2.63, nnet_ctg: 2.78, Time: 1.33
+Train - itrs: 100, loss: 1.16E-01, targ_updated: True
+Times - up_start: 0.00, up_data: 1.15, up_end: 0.17, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.42
+Done
+</pre></div>
+</div>
 </section>
 <section id="flat-input-for-a-q-network-with-a-fixed-action-output">
 <h4>Flat Input for a Q-Network with a Fixed Action Output<a class="headerlink" href="#flat-input-for-a-q-network-with-a-fixed-action-output" title="Link to this heading">¶</a></h4>
+<p>This neural network input assumes a fixed and enumerable action space
+and outputs a vector that corresponds to the transition cost plus
+cost-to-go of the resulting state for every possible
+action <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id13" title="Volodymyr Mnih, Koray Kavukcuoglu, David Silver, Andrei A Rusu, Joel Veness, Marc G Bellemare, Alex Graves, Martin Riedmiller, Andreas K Fidjeland, Georg Ostrovski, Stig Petersen, Charles Beattie, Amir Sadik, Ioannis Antonoglou, Helen King, Dharshan Kumaran, Daan Wierstra, Shane Legg, and Demis Hassabis. Human-level control through deep reinforcement learning. Nature, 518(7540):529–533, 2015.">MKS+15</a>]</span>.</p>
 <div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@register_nnet_input</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">,</span> <span class="s2">&quot;grid_flat_in_qfix&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GridFlatInQFix</span><span class="p">(</span><span class="n">StateGoalActFixIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">,</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">],</span> <span class="n">FlatIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">]):</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_input_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
@@ -818,9 +984,170 @@ easy to define parsing and help messages.</p>
                           <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span> <span class="o">+</span> <span class="p">[</span><span class="n">actions_np</span><span class="p">]</span>
 </pre></div>
 </div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>It is assumed that every element in <code class="docutils literal notranslate"><span class="pre">actions_l</span></code> is of the same length.</p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The last element in the list of numpy arrays returned by <code class="docutils literal notranslate"><span class="pre">to_np</span></code> must
+be the index of the output that corresponds to each action in <code class="docutils literal notranslate"><span class="pre">actions_l</span></code>.</p>
+</div>
+<p>We can now train a deep Q-network that takes a flat input for the
+grid domain.</p>
+<p><code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">train</span> <span class="pre">--domain</span> <span class="pre">grid_tut.7d</span> <span class="pre">--heur</span> <span class="pre">resnet_fc.100H_1B_bn</span> <span class="pre">--heur_type</span> <span class="pre">QFix</span> <span class="pre">--pathfind</span> <span class="pre">graph_q</span> <span class="pre">--step_max</span> <span class="pre">100</span> <span class="pre">--up_itrs</span> <span class="pre">100</span> <span class="pre">--search_itrs</span> <span class="pre">20</span> <span class="pre">--backup</span> <span class="pre">-1</span> <span class="pre">--procs</span> <span class="pre">2</span> <span class="pre">--batch_size</span> <span class="pre">200</span> <span class="pre">--max_itrs</span> <span class="pre">1000</span> <span class="pre">--dir</span> <span class="pre">tutorial/grid_tut/flatin_qfix/</span></code></p>
+<div class="scroll-code highlight-none notranslate"><div class="highlight"><pre><span></span>device: cpu, devices: [], on_gpu: False
+ResnetFCHeur(
+  (one_hots): ModuleList(
+    (0): OneHot()
+  )
+  (heur): Sequential(
+    (0): Linear(in_features=28, out_features=100, bias=True)
+    (1): ResnetModel(
+      (blocks): ModuleList(
+        (0): ModuleList(
+          (0): FullyConnectedModel(
+            (layers): ModuleList(
+              (0): ModuleList(
+                (0): Linear(in_features=100, out_features=100, bias=True)
+                (1): BatchNorm1d(100, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (2): ReLU()
+              )
+              (1): ModuleList(
+                (0): Linear(in_features=100, out_features=100, bias=True)
+                (1): BatchNorm1d(100, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (2): LinearAct()
+              )
+            )
+          )
+        )
+      )
+      (act_fns): ModuleList(
+        (0): ReLU()
+      )
+    )
+    (2): Linear(in_features=100, out_features=4, bias=True)
+  )
+)
+Number of trainable parameters: 23,904
+Initializing data buffer with max size 20,000
+Input array sizes:
+index: 0, dtype: int64, shape: (4,)
+index: 1, dtype: int64, shape: (1,)
+index: 2, dtype: float64, shape: ()
+Data buffer initialized. Time: 0.00015163421630859375
+UpdateHeurQRLKeepGoal(UpArgs(procs=2, up_itrs=100, step_max=100, search_itrs=20, ub_heur_solns=False, backup=-1, policy_rand_prob=0.0, up_gen_itrs=None, up_batch_size=100, nnet_batch_size=20000, sync_main=False, v=False))
+GraphSearchHeurEdgeActsEnum(batch_size=1, weight=1.0, eps=0.0)
+TrainArgs(batch_size=200, max_itrs=1000, balance_steps=False, rb=0, loss_thresh=inf, targ_up_searches=0, skip_heur=False, skip_policy=False, checkpoint=0, grad_accum=1, display=100)
+Grid(dim=7)
+
+Getting Data - itr: 0, update_num: 0, targ_update: 0, num_gen: 20,000
+Times - steps_gen: 0.02, inst_info: 0.00, inst_add: 0.00, backup: 0.00, get_tr_data: 0.00, to_np: 0.03, update_perf: 0.00, put: 0.01, gc: 0.27, -&gt;get_states: 0.05, -&gt;pathfinding: 1.19, Tot: 1.58
+	(get_states): sample_start_states: 0.00, random_walk: 0.05, sample_goal: 0.00, Tot: 0.05
+	(pathfinding): root: 0.00, actions: 0.00, heur: 1.03, pop: 0.00, is_solved: 0.00, goal: 0.00, filt: 0.01, edges: 0.01, cost: 0.07, pushpop: 0.02, next_state: 0.01, nodes: 0.02, up_inst: 0.00, set_next: 0.00, Tot: 1.19
+Data - %solved: 31.43, path_costs: 1.490, search_itrs: 12.344, cost-to-go (mean/min/max): 1.18/0.00/2.00
+Itr: 0, loss: 1.70E+00, targ_ctg: 1.18, nnet_ctg: 0.04, Time: 1.13
+Train - itrs: 100, loss: 1.86E-01, targ_updated: True
+Times - up_start: 0.01, up_data: 0.96, up_end: 0.17, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.22
+
+Getting Data - itr: 100, update_num: 1, targ_update: 1, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.00, get_tr_data: 0.00, to_np: 0.03, update_perf: 0.00, put: 0.01, gc: 0.27, -&gt;get_states: 0.08, -&gt;pathfinding: 1.53, Tot: 1.93
+	(get_states): sample_start_states: 0.00, random_walk: 0.08, sample_goal: 0.00, Tot: 0.08
+	(pathfinding): root: 0.00, actions: 0.00, heur: 1.43, pop: 0.00, is_solved: 0.00, goal: 0.00, filt: 0.01, edges: 0.01, cost: 0.02, pushpop: 0.02, next_state: 0.02, nodes: 0.01, up_inst: 0.00, set_next: 0.00, Tot: 1.53
+Data - %solved: 35.46, path_costs: 1.512, search_itrs: 7.840, cost-to-go (mean/min/max): 2.14/0.00/3.32
+Itr: 100, loss: 1.16E+00, targ_ctg: 2.10, nnet_ctg: 1.12, Time: 1.11
+Train - itrs: 100, loss: 1.49E-01, targ_updated: True
+Times - up_start: 0.00, up_data: 0.95, up_end: 0.16, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.20
+
+Getting Data - itr: 200, update_num: 2, targ_update: 2, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.00, get_tr_data: 0.00, to_np: 0.03, update_perf: 0.00, put: 0.01, gc: 0.28, -&gt;get_states: 0.08, -&gt;pathfinding: 1.50, Tot: 1.91
+	(get_states): sample_start_states: 0.00, random_walk: 0.08, sample_goal: 0.00, Tot: 0.08
+	(pathfinding): root: 0.00, actions: 0.00, heur: 1.39, pop: 0.00, is_solved: 0.00, goal: 0.00, filt: 0.01, edges: 0.01, cost: 0.02, pushpop: 0.02, next_state: 0.02, nodes: 0.01, up_inst: 0.00, set_next: 0.00, Tot: 1.50
+Data - %solved: 42.14, path_costs: 1.663, search_itrs: 6.875, cost-to-go (mean/min/max): 2.98/0.00/4.48
+Itr: 200, loss: 1.05E+00, targ_ctg: 2.86, nnet_ctg: 2.05, Time: 1.11
+Train - itrs: 100, loss: 2.22E-01, targ_updated: True
+Times - up_start: 0.00, up_data: 0.94, up_end: 0.17, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.20
+
+Getting Data - itr: 300, update_num: 3, targ_update: 3, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.00, get_tr_data: 0.00, to_np: 0.03, update_perf: 0.00, put: 0.01, gc: 0.28, -&gt;get_states: 0.10, -&gt;pathfinding: 1.48, Tot: 1.91
+	(get_states): sample_start_states: 0.00, random_walk: 0.10, sample_goal: 0.00, Tot: 0.10
+	(pathfinding): root: 0.00, actions: 0.00, heur: 1.38, pop: 0.00, is_solved: 0.00, goal: 0.00, filt: 0.01, edges: 0.01, cost: 0.02, pushpop: 0.02, next_state: 0.01, nodes: 0.01, up_inst: 0.00, set_next: 0.00, Tot: 1.48
+Data - %solved: 56.72, path_costs: 2.047, search_itrs: 6.727, cost-to-go (mean/min/max): 3.67/0.00/5.73
+Itr: 300, loss: 1.15E+00, targ_ctg: 3.70, nnet_ctg: 2.90, Time: 1.10
+Train - itrs: 100, loss: 2.51E-01, targ_updated: True
+Times - up_start: 0.00, up_data: 0.94, up_end: 0.16, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.19
+
+Getting Data - itr: 400, update_num: 4, targ_update: 4, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.00, get_tr_data: 0.00, to_np: 0.03, update_perf: 0.00, put: 0.01, gc: 0.27, -&gt;get_states: 0.12, -&gt;pathfinding: 1.47, Tot: 1.92
+	(get_states): sample_start_states: 0.00, random_walk: 0.12, sample_goal: 0.00, Tot: 0.12
+	(pathfinding): root: 0.00, actions: 0.01, heur: 1.36, pop: 0.00, is_solved: 0.00, goal: 0.00, filt: 0.01, edges: 0.01, cost: 0.02, pushpop: 0.02, next_state: 0.01, nodes: 0.01, up_inst: 0.01, set_next: 0.00, Tot: 1.47
+Data - %solved: 74.82, path_costs: 2.428, search_itrs: 5.493, cost-to-go (mean/min/max): 4.06/0.00/6.72
+Itr: 400, loss: 9.80E-01, targ_ctg: 4.33, nnet_ctg: 3.62, Time: 1.10
+Train - itrs: 100, loss: 1.88E-01, targ_updated: True
+Times - up_start: 0.00, up_data: 0.95, up_end: 0.15, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.19
+
+Getting Data - itr: 500, update_num: 5, targ_update: 5, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.01, get_tr_data: 0.00, to_np: 0.03, update_perf: 0.00, put: 0.01, gc: 0.27, -&gt;get_states: 0.15, -&gt;pathfinding: 1.47, Tot: 1.95
+	(get_states): sample_start_states: 0.00, random_walk: 0.15, sample_goal: 0.00, Tot: 0.15
+	(pathfinding): root: 0.00, actions: 0.01, heur: 1.35, pop: 0.00, is_solved: 0.00, goal: 0.00, filt: 0.01, edges: 0.01, cost: 0.02, pushpop: 0.02, next_state: 0.01, nodes: 0.02, up_inst: 0.01, set_next: 0.00, Tot: 1.47
+Data - %solved: 89.14, path_costs: 3.001, search_itrs: 5.164, cost-to-go (mean/min/max): 3.89/0.00/8.12
+Itr: 500, loss: 3.64E-01, targ_ctg: 3.67, nnet_ctg: 3.77, Time: 1.15
+Train - itrs: 100, loss: 1.21E-01, targ_updated: True
+Times - up_start: 0.00, up_data: 0.96, up_end: 0.18, data_samp: 0.00, train: 0.10, save_net: 0.00, save_status: 0.00, Tot: 1.25
+
+Getting Data - itr: 600, update_num: 6, targ_update: 6, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.01, get_tr_data: 0.00, to_np: 0.03, update_perf: 0.00, put: 0.01, gc: 0.27, -&gt;get_states: 0.18, -&gt;pathfinding: 1.55, Tot: 2.05
+	(get_states): sample_start_states: 0.00, random_walk: 0.17, sample_goal: 0.00, Tot: 0.18
+	(pathfinding): root: 0.00, actions: 0.00, heur: 1.43, pop: 0.00, is_solved: 0.00, goal: 0.00, filt: 0.01, edges: 0.02, cost: 0.02, pushpop: 0.02, next_state: 0.01, nodes: 0.02, up_inst: 0.01, set_next: 0.00, Tot: 1.55
+Data - %solved: 95.16, path_costs: 3.270, search_itrs: 4.922, cost-to-go (mean/min/max): 3.69/0.00/9.09
+Itr: 600, loss: 3.12E-01, targ_ctg: 3.74, nnet_ctg: 3.70, Time: 1.18
+Train - itrs: 100, loss: 2.01E-01, targ_updated: True
+Times - up_start: 0.00, up_data: 1.01, up_end: 0.16, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.27
+
+Getting Data - itr: 700, update_num: 7, targ_update: 7, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.01, get_tr_data: 0.00, to_np: 0.03, update_perf: 0.00, put: 0.01, gc: 0.27, -&gt;get_states: 0.19, -&gt;pathfinding: 1.51, Tot: 2.03
+	(get_states): sample_start_states: 0.00, random_walk: 0.18, sample_goal: 0.00, Tot: 0.19
+	(pathfinding): root: 0.00, actions: 0.00, heur: 1.39, pop: 0.00, is_solved: 0.00, goal: 0.00, filt: 0.01, edges: 0.02, cost: 0.02, pushpop: 0.02, next_state: 0.01, nodes: 0.02, up_inst: 0.01, set_next: 0.00, Tot: 1.51
+Data - %solved: 98.50, path_costs: 3.485, search_itrs: 4.903, cost-to-go (mean/min/max): 3.22/0.00/10.75
+Itr: 700, loss: 2.05E-01, targ_ctg: 3.65, nnet_ctg: 3.62, Time: 1.18
+Train - itrs: 100, loss: 1.14E-01, targ_updated: True
+Times - up_start: 0.00, up_data: 1.00, up_end: 0.17, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.28
+
+Getting Data - itr: 800, update_num: 8, targ_update: 8, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.01, get_tr_data: 0.01, to_np: 0.03, update_perf: 0.00, put: 0.01, gc: 0.28, -&gt;get_states: 0.20, -&gt;pathfinding: 1.52, Tot: 2.05
+	(get_states): sample_start_states: 0.00, random_walk: 0.19, sample_goal: 0.00, Tot: 0.20
+	(pathfinding): root: 0.00, actions: 0.00, heur: 1.39, pop: 0.00, is_solved: 0.00, goal: 0.00, filt: 0.01, edges: 0.02, cost: 0.02, pushpop: 0.02, next_state: 0.01, nodes: 0.02, up_inst: 0.00, set_next: 0.00, Tot: 1.52
+Data - %solved: 98.75, path_costs: 3.551, search_itrs: 4.843, cost-to-go (mean/min/max): 3.03/0.00/11.49
+Itr: 800, loss: 9.48E-02, targ_ctg: 3.17, nnet_ctg: 3.15, Time: 1.17
+Train - itrs: 100, loss: 1.08E-01, targ_updated: True
+Times - up_start: 0.00, up_data: 1.01, up_end: 0.16, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.27
+
+Getting Data - itr: 900, update_num: 9, targ_update: 9, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.01, get_tr_data: 0.01, to_np: 0.04, update_perf: 0.00, put: 0.02, gc: 0.35, -&gt;get_states: 0.22, -&gt;pathfinding: 1.57, Tot: 2.20
+	(get_states): sample_start_states: 0.00, random_walk: 0.21, sample_goal: 0.00, Tot: 0.22
+	(pathfinding): root: 0.00, actions: 0.00, heur: 1.43, pop: 0.00, is_solved: 0.00, goal: 0.00, filt: 0.01, edges: 0.03, cost: 0.02, pushpop: 0.03, next_state: 0.01, nodes: 0.02, up_inst: 0.01, set_next: 0.00, Tot: 1.57
+Data - %solved: 99.06, path_costs: 3.673, search_itrs: 4.902, cost-to-go (mean/min/max): 2.89/0.00/11.52
+Itr: 900, loss: 7.77E-02, targ_ctg: 2.83, nnet_ctg: 2.98, Time: 1.32
+Train - itrs: 100, loss: 1.39E-01, targ_updated: True
+Times - up_start: 0.00, up_data: 1.06, up_end: 0.26, data_samp: 0.00, train: 0.10, save_net: 0.00, save_status: 0.00, Tot: 1.43
+Done
+</pre></div>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>We can verify in the output that the final layer of the deep Q-network
+matches the number of actions (4)
+<code class="docutils literal notranslate"><span class="pre">(2):</span> <span class="pre">Linear(in_features=100,</span> <span class="pre">out_features=4,</span> <span class="pre">bias=True)</span></code></p>
+</div>
 </section>
 <section id="flat-input-for-a-q-network-with-the-action-as-an-input">
 <h4>Flat Input for a Q-Network with the Action as an Input<a class="headerlink" href="#flat-input-for-a-q-network-with-the-action-as-an-input" title="Link to this heading">¶</a></h4>
+<p>Ths neural network input assumes the action will be given to the neural
+network along with the state and goal. This can be useful for domains with
+dynamic action spaces that have transition functions that are expensive to
+compute since, when used with Q* search <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id10" title="Forest Agostinelli, Shahaf S Shperberg, Alexander Shmakov, Stephen McAleer, Roy Fox, and Pierre Baldi. Q* search: heuristic search with deep Q-networks. In ICAPS PRL Workshop. 2024.">ASS+24</a>]</span>, the
+number of calls to the transition function is constant with respect to the
+number of applicable actions.</p>
 <div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@register_nnet_input</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">,</span> <span class="s2">&quot;grid_flat_in_actin&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GridFlatInActIn</span><span class="p">(</span><span class="n">StateGoalActIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">,</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">,</span> <span class="n">GridAction</span><span class="p">],</span> <span class="n">FlatIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">]):</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_input_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
@@ -832,10 +1159,158 @@ easy to define parsing and help messages.</p>
                           <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span> <span class="k">for</span> <span class="n">goal</span> <span class="ow">in</span> <span class="n">goals</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span> <span class="o">+</span> <span class="p">[</span><span class="n">actions_np</span><span class="p">]</span>
 </pre></div>
 </div>
+<p>We can now train a deep Q-network that takes the action as in input and a
+flat input for the grid domain.</p>
+<p><code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">train</span> <span class="pre">--domain</span> <span class="pre">grid_tut.7d</span> <span class="pre">--heur</span> <span class="pre">resnet_fc.100H_1B_bn</span> <span class="pre">--heur_type</span> <span class="pre">QIn</span> <span class="pre">--pathfind</span> <span class="pre">graph_q</span> <span class="pre">--step_max</span> <span class="pre">100</span> <span class="pre">--up_itrs</span> <span class="pre">100</span> <span class="pre">--search_itrs</span> <span class="pre">20</span> <span class="pre">--backup</span> <span class="pre">-1</span> <span class="pre">--procs</span> <span class="pre">2</span> <span class="pre">--batch_size</span> <span class="pre">200</span> <span class="pre">--max_itrs</span> <span class="pre">1000</span> <span class="pre">--dir</span> <span class="pre">tutorial/grid_tut/flatin_qin/</span> </code></p>
+<div class="scroll-code highlight-none notranslate"><div class="highlight"><pre><span></span>device: cpu, devices: [], on_gpu: False
+ResnetFCHeur(
+  (one_hots): ModuleList(
+    (0-1): 2 x OneHot()
+  )
+  (heur): Sequential(
+    (0): Linear(in_features=32, out_features=100, bias=True)
+    (1): ResnetModel(
+      (blocks): ModuleList(
+        (0): ModuleList(
+          (0): FullyConnectedModel(
+            (layers): ModuleList(
+              (0): ModuleList(
+                (0): Linear(in_features=100, out_features=100, bias=True)
+                (1): BatchNorm1d(100, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (2): ReLU()
+              )
+              (1): ModuleList(
+                (0): Linear(in_features=100, out_features=100, bias=True)
+                (1): BatchNorm1d(100, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (2): LinearAct()
+              )
+            )
+          )
+        )
+      )
+      (act_fns): ModuleList(
+        (0): ReLU()
+      )
+    )
+    (2): Linear(in_features=100, out_features=1, bias=True)
+  )
+)
+Number of trainable parameters: 24,001
+Initializing data buffer with max size 20,000
+Input array sizes:
+index: 0, dtype: int64, shape: (4,)
+index: 1, dtype: int64, shape: (1,)
+index: 2, dtype: float64, shape: ()
+Data buffer initialized. Time: 0.00016117095947265625
+UpdateHeurQRLKeepGoal(UpArgs(procs=2, up_itrs=100, step_max=100, search_itrs=20, ub_heur_solns=False, backup=-1, policy_rand_prob=0.0, up_gen_itrs=None, up_batch_size=100, nnet_batch_size=20000, sync_main=False, v=False))
+GraphSearchHeurEdgeActsEnum(batch_size=1, weight=1.0, eps=0.0)
+TrainArgs(batch_size=200, max_itrs=1000, balance_steps=False, rb=0, loss_thresh=inf, targ_up_searches=0, skip_heur=False, skip_policy=False, checkpoint=0, grad_accum=1, display=100)
+Grid(dim=7)
+
+Getting Data - itr: 0, update_num: 0, targ_update: 0, num_gen: 20,000
+Times - steps_gen: 0.03, inst_info: 0.00, inst_add: 0.00, backup: 0.01, get_tr_data: 0.00, to_np: 0.03, update_perf: 0.00, put: 0.01, gc: 0.30, -&gt;get_states: 0.06, -&gt;pathfinding: 1.35, Tot: 1.78
+	(get_states): sample_start_states: 0.00, random_walk: 0.06, sample_goal: 0.00, Tot: 0.06
+	(pathfinding): root: 0.00, actions: 0.00, heur: 1.19, pop: 0.00, is_solved: 0.00, goal: 0.00, filt: 0.01, edges: 0.06, cost: 0.02, pushpop: 0.03, next_state: 0.01, nodes: 0.01, up_inst: 0.00, set_next: 0.00, Tot: 1.35
+Data - %solved: 30.85, path_costs: 1.438, search_itrs: 11.551, cost-to-go (mean/min/max): 1.18/0.00/2.00
+Itr: 0, loss: 1.39E+00, targ_ctg: 1.20, nnet_ctg: 0.18, Time: 1.28
+Train - itrs: 100, loss: 1.85E-01, targ_updated: True
+Times - up_start: 0.01, up_data: 1.04, up_end: 0.22, data_samp: 0.00, train: 0.10, save_net: 0.00, save_status: 0.00, Tot: 1.37
+
+Getting Data - itr: 100, update_num: 1, targ_update: 1, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.01, get_tr_data: 0.01, to_np: 0.03, update_perf: 0.00, put: 0.01, gc: 0.29, -&gt;get_states: 0.08, -&gt;pathfinding: 1.58, Tot: 1.99
+	(get_states): sample_start_states: 0.00, random_walk: 0.08, sample_goal: 0.00, Tot: 0.08
+	(pathfinding): root: 0.00, actions: 0.00, heur: 1.47, pop: 0.00, is_solved: 0.00, goal: 0.00, filt: 0.01, edges: 0.01, cost: 0.02, pushpop: 0.02, next_state: 0.02, nodes: 0.01, up_inst: 0.00, set_next: 0.00, Tot: 1.58
+Data - %solved: 35.00, path_costs: 1.474, search_itrs: 7.304, cost-to-go (mean/min/max): 2.21/0.00/3.37
+Itr: 100, loss: 1.41E+00, targ_ctg: 2.27, nnet_ctg: 1.17, Time: 1.16
+Train - itrs: 100, loss: 1.95E-01, targ_updated: True
+Times - up_start: 0.00, up_data: 0.98, up_end: 0.18, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.25
+
+Getting Data - itr: 200, update_num: 2, targ_update: 2, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.01, get_tr_data: 0.01, to_np: 0.03, update_perf: 0.00, put: 0.01, gc: 0.28, -&gt;get_states: 0.08, -&gt;pathfinding: 1.57, Tot: 1.98
+	(get_states): sample_start_states: 0.00, random_walk: 0.08, sample_goal: 0.00, Tot: 0.08
+	(pathfinding): root: 0.00, actions: 0.00, heur: 1.46, pop: 0.00, is_solved: 0.00, goal: 0.00, filt: 0.01, edges: 0.01, cost: 0.02, pushpop: 0.02, next_state: 0.02, nodes: 0.01, up_inst: 0.00, set_next: 0.00, Tot: 1.57
+Data - %solved: 41.78, path_costs: 1.697, search_itrs: 7.491, cost-to-go (mean/min/max): 3.12/0.00/4.51
+Itr: 200, loss: 1.18E+00, targ_ctg: 3.06, nnet_ctg: 2.20, Time: 1.14
+Train - itrs: 100, loss: 2.99E-01, targ_updated: True
+Times - up_start: 0.00, up_data: 0.97, up_end: 0.16, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.23
+
+Getting Data - itr: 300, update_num: 3, targ_update: 3, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.01, get_tr_data: 0.01, to_np: 0.03, update_perf: 0.00, put: 0.01, gc: 0.31, -&gt;get_states: 0.10, -&gt;pathfinding: 1.64, Tot: 2.10
+	(get_states): sample_start_states: 0.00, random_walk: 0.10, sample_goal: 0.00, Tot: 0.10
+	(pathfinding): root: 0.00, actions: 0.00, heur: 1.52, pop: 0.00, is_solved: 0.00, goal: 0.00, filt: 0.01, edges: 0.01, cost: 0.02, pushpop: 0.03, next_state: 0.02, nodes: 0.01, up_inst: 0.01, set_next: 0.00, Tot: 1.64
+Data - %solved: 54.56, path_costs: 1.990, search_itrs: 6.358, cost-to-go (mean/min/max): 3.84/0.00/5.98
+Itr: 300, loss: 1.23E+00, targ_ctg: 3.97, nnet_ctg: 3.12, Time: 1.21
+Train - itrs: 100, loss: 2.65E-01, targ_updated: True
+Times - up_start: 0.00, up_data: 1.03, up_end: 0.17, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.30
+
+Getting Data - itr: 400, update_num: 4, targ_update: 4, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.01, get_tr_data: 0.01, to_np: 0.03, update_perf: 0.00, put: 0.01, gc: 0.29, -&gt;get_states: 0.13, -&gt;pathfinding: 1.61, Tot: 2.09
+	(get_states): sample_start_states: 0.00, random_walk: 0.13, sample_goal: 0.00, Tot: 0.13
+	(pathfinding): root: 0.00, actions: 0.01, heur: 1.49, pop: 0.00, is_solved: 0.00, goal: 0.00, filt: 0.01, edges: 0.01, cost: 0.02, pushpop: 0.02, next_state: 0.01, nodes: 0.01, up_inst: 0.01, set_next: 0.00, Tot: 1.61
+Data - %solved: 76.86, path_costs: 2.619, search_itrs: 5.711, cost-to-go (mean/min/max): 4.07/0.00/7.12
+Itr: 400, loss: 6.90E-01, targ_ctg: 4.06, nnet_ctg: 3.72, Time: 1.19
+Train - itrs: 100, loss: 2.17E-01, targ_updated: True
+Times - up_start: 0.00, up_data: 1.03, up_end: 0.16, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.29
+
+Getting Data - itr: 500, update_num: 5, targ_update: 5, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.01, get_tr_data: 0.01, to_np: 0.03, update_perf: 0.00, put: 0.01, gc: 0.27, -&gt;get_states: 0.16, -&gt;pathfinding: 1.60, Tot: 2.08
+	(get_states): sample_start_states: 0.00, random_walk: 0.16, sample_goal: 0.00, Tot: 0.16
+	(pathfinding): root: 0.00, actions: 0.01, heur: 1.48, pop: 0.00, is_solved: 0.00, goal: 0.00, filt: 0.01, edges: 0.01, cost: 0.02, pushpop: 0.02, next_state: 0.01, nodes: 0.02, up_inst: 0.01, set_next: 0.00, Tot: 1.60
+Data - %solved: 90.52, path_costs: 2.994, search_itrs: 4.911, cost-to-go (mean/min/max): 3.84/0.00/8.13
+Itr: 500, loss: 3.71E-01, targ_ctg: 3.48, nnet_ctg: 3.85, Time: 1.19
+Train - itrs: 100, loss: 1.12E-01, targ_updated: True
+Times - up_start: 0.00, up_data: 1.03, up_end: 0.16, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.28
+
+Getting Data - itr: 600, update_num: 6, targ_update: 6, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.01, get_tr_data: 0.01, to_np: 0.03, update_perf: 0.00, put: 0.01, gc: 0.28, -&gt;get_states: 0.18, -&gt;pathfinding: 1.59, Tot: 2.10
+	(get_states): sample_start_states: 0.00, random_walk: 0.17, sample_goal: 0.00, Tot: 0.18
+	(pathfinding): root: 0.00, actions: 0.00, heur: 1.47, pop: 0.00, is_solved: 0.00, goal: 0.00, filt: 0.01, edges: 0.02, cost: 0.02, pushpop: 0.02, next_state: 0.01, nodes: 0.02, up_inst: 0.01, set_next: 0.00, Tot: 1.59
+Data - %solved: 95.68, path_costs: 3.249, search_itrs: 4.896, cost-to-go (mean/min/max): 3.56/0.00/8.96
+Itr: 600, loss: 2.20E-01, targ_ctg: 3.48, nnet_ctg: 3.73, Time: 1.20
+Train - itrs: 100, loss: 1.57E-01, targ_updated: True
+Times - up_start: 0.00, up_data: 1.04, up_end: 0.16, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.29
+
+Getting Data - itr: 700, update_num: 7, targ_update: 7, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.01, get_tr_data: 0.01, to_np: 0.03, update_perf: 0.00, put: 0.01, gc: 0.29, -&gt;get_states: 0.19, -&gt;pathfinding: 1.69, Tot: 2.22
+	(get_states): sample_start_states: 0.00, random_walk: 0.19, sample_goal: 0.00, Tot: 0.19
+	(pathfinding): root: 0.00, actions: 0.00, heur: 1.56, pop: 0.00, is_solved: 0.00, goal: 0.00, filt: 0.01, edges: 0.02, cost: 0.02, pushpop: 0.02, next_state: 0.01, nodes: 0.02, up_inst: 0.01, set_next: 0.00, Tot: 1.69
+Data - %solved: 98.11, path_costs: 3.430, search_itrs: 4.794, cost-to-go (mean/min/max): 3.31/0.00/10.11
+Itr: 700, loss: 1.46E-01, targ_ctg: 3.37, nnet_ctg: 3.54, Time: 1.30
+Train - itrs: 100, loss: 4.09E-01, targ_updated: True
+Times - up_start: 0.00, up_data: 1.09, up_end: 0.21, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.39
+
+Getting Data - itr: 800, update_num: 8, targ_update: 8, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.01, get_tr_data: 0.01, to_np: 0.03, update_perf: 0.00, put: 0.01, gc: 0.32, -&gt;get_states: 0.20, -&gt;pathfinding: 1.73, Tot: 2.32
+	(get_states): sample_start_states: 0.00, random_walk: 0.20, sample_goal: 0.00, Tot: 0.20
+	(pathfinding): root: 0.00, actions: 0.00, heur: 1.59, pop: 0.00, is_solved: 0.00, goal: 0.00, filt: 0.01, edges: 0.02, cost: 0.02, pushpop: 0.02, next_state: 0.01, nodes: 0.02, up_inst: 0.01, set_next: 0.00, Tot: 1.73
+Data - %solved: 98.63, path_costs: 3.572, search_itrs: 5.010, cost-to-go (mean/min/max): 3.06/0.00/11.32
+Itr: 800, loss: 2.19E-01, targ_ctg: 2.96, nnet_ctg: 3.23, Time: 1.32
+Train - itrs: 100, loss: 6.38E-02, targ_updated: True
+Times - up_start: 0.00, up_data: 1.15, up_end: 0.17, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.41
+
+Getting Data - itr: 900, update_num: 9, targ_update: 9, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.01, get_tr_data: 0.01, to_np: 0.03, update_perf: 0.00, put: 0.01, gc: 0.33, -&gt;get_states: 0.20, -&gt;pathfinding: 1.74, Tot: 2.32
+	(get_states): sample_start_states: 0.00, random_walk: 0.19, sample_goal: 0.00, Tot: 0.20
+	(pathfinding): root: 0.00, actions: 0.00, heur: 1.61, pop: 0.00, is_solved: 0.00, goal: 0.00, filt: 0.01, edges: 0.02, cost: 0.02, pushpop: 0.02, next_state: 0.01, nodes: 0.02, up_inst: 0.01, set_next: 0.00, Tot: 1.74
+Data - %solved: 99.31, path_costs: 3.550, search_itrs: 5.036, cost-to-go (mean/min/max): 2.81/0.00/11.72
+Itr: 900, loss: 1.44E-01, targ_ctg: 2.82, nnet_ctg: 3.08, Time: 1.34
+Train - itrs: 100, loss: 1.08E-01, targ_updated: True
+Times - up_start: 0.00, up_data: 1.15, up_end: 0.19, data_samp: 0.00, train: 0.09, save_net: 0.00, save_status: 0.00, Tot: 1.44
+Done
+</pre></div>
+</div>
 </section>
 </section>
 <section id="custom-neural-network">
 <h3>Custom Neural Network<a class="headerlink" href="#custom-neural-network" title="Link to this heading">¶</a></h3>
+<p>Instead of using a neural network that comes with DeepXube a custom neural
+network, along with its own parser and custom neural network input,
+can be implemented.</p>
+<p>We will implement a neural network that passes the two-dimensional grid
+to convolutional layers, flattens it, passes it to a fully-connected layer,
+and then to the output layer.</p>
+<section id="neural-network-input">
+<h4>Neural Network Input<a class="headerlink" href="#neural-network-input" title="Link to this heading">¶</a></h4>
 <div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@register_nnet_input</span><span class="p">(</span><span class="s2">&quot;grid_tut&quot;</span><span class="p">,</span> <span class="s2">&quot;grid_nnet_input&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GridNNetInput</span><span class="p">(</span><span class="n">StateGoalIn</span><span class="p">[</span><span class="n">Grid</span><span class="p">,</span> <span class="n">GridState</span><span class="p">,</span> <span class="n">GridGoal</span><span class="p">]):</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_input_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -848,9 +1323,12 @@ easy to define parsing and help messages.</p>
             <span class="n">np_rep</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">goal</span><span class="o">.</span><span class="n">robot_x</span><span class="p">,</span> <span class="n">goal</span><span class="o">.</span><span class="n">robot_y</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
 
         <span class="k">return</span> <span class="p">[</span><span class="n">np_rep</span><span class="p">]</span>
-
-
-<span class="nd">@heuristic_factory</span><span class="o">.</span><span class="n">register_class</span><span class="p">(</span><span class="s2">&quot;gridnet_tut&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="neural-network">
+<h4>Neural Network<a class="headerlink" href="#neural-network" title="Link to this heading">¶</a></h4>
+<div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@heuristic_factory</span><span class="o">.</span><span class="n">register_class</span><span class="p">(</span><span class="s2">&quot;gridnet_tut&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GridNet</span><span class="p">(</span><span class="n">HeurNNet</span><span class="p">[</span><span class="n">GridNNetInput</span><span class="p">]):</span>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">nnet_input_type</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Type</span><span class="p">[</span><span class="n">GridNNetInput</span><span class="p">]:</span>
@@ -872,9 +1350,17 @@ easy to define parsing and help messages.</p>
     <span class="k">def</span><span class="w"> </span><span class="nf">_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tensor</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
         <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">heur</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">x</span>
-
-
-<span class="nd">@heuristic_factory</span><span class="o">.</span><span class="n">register_parser</span><span class="p">(</span><span class="s2">&quot;gridnet_tut&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>DeepXube expects the first three arguments, <code class="docutils literal notranslate"><span class="pre">nnet_input:</span> <span class="pre">FlatIn,</span> <span class="pre">out_dim:</span> <span class="pre">int,</span> <span class="pre">q_fix:</span> <span class="pre">bool</span></code> to have these exact names so the
+neural network can be properly initialized.</p>
+</div>
+</section>
+<section id="parser">
+<h4>Parser<a class="headerlink" href="#parser" title="Link to this heading">¶</a></h4>
+<div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@heuristic_factory</span><span class="o">.</span><span class="n">register_parser</span><span class="p">(</span><span class="s2">&quot;gridnet_tut&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GridNetParser</span><span class="p">(</span><span class="n">DelimParser</span><span class="p">):</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -886,6 +1372,7 @@ easy to define parsing and help messages.</p>
         <span class="k">return</span> <span class="s2">&quot;_&quot;</span>
 </pre></div>
 </div>
+</section>
 </section>
 </section>
 <section id="timing-and-debugging">
@@ -991,7 +1478,12 @@ easy to define parsing and help messages.</p>
 <li><a class="reference internal" href="#flat-input-for-a-q-network-with-the-action-as-an-input">Flat Input for a Q-Network with the Action as an Input</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#custom-neural-network">Custom Neural Network</a></li>
+<li><a class="reference internal" href="#custom-neural-network">Custom Neural Network</a><ul>
+<li><a class="reference internal" href="#neural-network-input">Neural Network Input</a></li>
+<li><a class="reference internal" href="#neural-network">Neural Network</a></li>
+<li><a class="reference internal" href="#parser">Parser</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a class="reference internal" href="#timing-and-debugging">Timing and Debugging</a></li>

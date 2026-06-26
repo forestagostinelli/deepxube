@@ -176,7 +176,7 @@ class GridFlatInActIn(StateGoalActIn[Grid, GridState, GridGoal, GridAction], Fla
 # end gridflatinactin definition
 
 
-# start grid nnet definition
+# start grid nnet input definition
 @register_nnet_input("grid_tut", "grid_nnet_input")
 class GridNNetInput(StateGoalIn[Grid, GridState, GridGoal]):
     def get_input_info(self) -> int:
@@ -189,8 +189,10 @@ class GridNNetInput(StateGoalIn[Grid, GridState, GridGoal]):
             np_rep[idx, 1, goal.robot_x, goal.robot_y] = 1
 
         return [np_rep]
+# end grid nnet input definition
 
 
+# start grid nnet definition
 @heuristic_factory.register_class("gridnet_tut")
 class GridNet(HeurNNet[GridNNetInput]):
     @staticmethod
@@ -213,8 +215,10 @@ class GridNet(HeurNNet[GridNNetInput]):
     def _forward(self, inputs: List[Tensor]) -> Tensor:
         x: Tensor = self.heur(inputs[0])
         return x
+# end grid nnet definition
 
 
+# start grid nnet parser definition
 @heuristic_factory.register_parser("gridnet_tut")
 class GridNetParser(DelimParser):
     def __init__(self) -> None:
@@ -225,3 +229,4 @@ class GridNetParser(DelimParser):
     @property
     def delim(self) -> str:
         return "_"
+# end grid nnet parser definition

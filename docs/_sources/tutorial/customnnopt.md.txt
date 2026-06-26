@@ -53,7 +53,6 @@ exponential learning rate decay, we implement a step decay.
 :end-before: end parser
 ```
 
-
 ## Training
 
 `deepxube train --domain cube3 --heur resnet_fc_asym.200H_2B_bn_20o --heur_type V --pathfind graph_v --step_max 100 --up_itrs 100 --search_itrs 50 --backup -1 --procs 2 --batch_size 200 --max_itrs 5000 --dir tutorial/heur_asym_loss/models/ --display 50`

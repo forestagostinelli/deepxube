@@ -11,6 +11,19 @@ neural networks, such as residual neural networks, the implementation of a heuri
 See {ref}`custom_domain_section` for implementing custom domain, neural network input, and heuristic function architecture classes.
 ```
 
+## Registration and Parsers
+
+DeepXube uses Python registration decorators to register domains, neural network inputs,
+neural networks, and pathfinding algorithms. This way, domains, neural networks, 
+and pathfinding algorithms can be referred to via the command line using plain text and 
+the correct neural network input can be obtained given the domain and neural network. 
+
+Furthermore, parsers can be implemented for domains, neural networks, and pathfinding 
+algorithms. This allows arguments to be given to these classes via the command line.
+The convention used is anything following a "." are arguments given to that class. For 
+example `deepxube viz --domain npuzzle.4` and `deepxube viz --domain npuzzle.5` produce 
+the 15-puzzle (4x4 sliding-tile puzzle) and 24-puzzle (5x5 sliding-tile puzzle) respectively.
+
 ## Domains
 
 The {class}`deepxube.base.domain.Domain` class defines the relationship between states, actions, and goals. DeepXube makes use
@@ -31,7 +44,7 @@ While problem instances can be generated using arbitrary code, DeepXube provides
 instances with random walks:
 
 ```{figure} ../_static/images/probinstgen.png
-:alt: DeepXube Pathfinding
+:alt: DeepXube problem instance generation
 :width: 100%
 :align: center
 
@@ -39,6 +52,15 @@ A visualization of the problem instance generation function along with two mixin
 either 1) sampling a start state, taking a random walk, and sampling a goal from the terminal state of that random walk; 
 or 2) sampling a goal and a corresponding goal state, taking a random walk in reverse, and using the terminal state of that 
 random walk as the start state.
+```
+
+
+```{tip}
+To see all registered domains use `deepxube domain_info`.
+
+To see the parser help, mixins, neural network inputs, and 
+compatible pathfinding algorithms for a particular domain use 
+`deepxube domain_info --name <name>` (i.e. `deepxube domain_info --name cube3`)
 ```
 
 
@@ -72,6 +94,12 @@ The interaction between domains, states, goals, actions, neural network inputs, 
 DeepXube integration with policy neural networks is preliminary and may significantly change in the future.
 ```
 
+```{tip}
+To see all registered heuristic neural networks use `deepxube heuristic_info`.
+
+To see the parser help and required neural network input type, use  
+`deepxube heuristic_info --name <name>` (i.e. `deepxube heuristic_info --name resnet_fc`)
+```
 
 ## Pathfinding
 DeepXube has pathfinding algorithms that search over both nodes and edges, that operate on enumerable and infinite action spaces, 
@@ -92,6 +120,14 @@ If both a heuristic and policy function are used, then the pathfinding algorithm
 While the methods for training policy functions may change, the pathfinding algorithms that expect policy functions only assume 
 the ability to sample actions from the policy function and, therefore, are agnostic to how the policy function is trained.
 ```
+
+```{tip}
+To see all registered pathfinding algorithms use `deepxube pathfinding_info`.
+
+To see the parser help, mixins, the required domain type, and required functions type, use  
+`deepxube pathfinding_info --name <name>` (i.e. `deepxube pathfinding_info --name graph_v`)
+```
+
 
 ## Training
 Given a domain, neural network, and pathfinding algorithm, DeepXube uses the domain to generate problem instances, the pathfinding

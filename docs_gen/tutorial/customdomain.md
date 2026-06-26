@@ -17,8 +17,10 @@ This file will be explained part-by-part.
 ```
 
 ```{tip}
-Since the domain is registered, we should be able to see "grid_tut" with:
-`deepxube domain_info` after it is put in your `domains/` folder.
+Since the domain is registered, we should be able to see "grid_tut" with
+`deepxube domain_info` after it is put in your `domains/` folder. 
+More specific information can be obtained about a domain with 
+`deepxube domain_info --name grid_tut`
 ```
 
 
@@ -152,13 +154,15 @@ Now, grid domains of different dimensions can be created using the command-line:
 
 `deepxube viz --domain grid_tut.20d --steps 100`
 
-```{note}
-Everything after the "." in the domain name is given to the parser to be parsed.
-```
-
 ### Neural Network Inputs
 
 #### Flat Input
+
+This input gives the x, y coordinates of the agent and goal locations
+to a one-dimensional representation. It is then converted to a one-hot
+representation on the GPU with depth equal to the dimensionality of the
+domain.
+
 ```{literalinclude} ../../domains/grid_tutorial.py
 :language: python
 :class: scroll-code
@@ -166,8 +170,39 @@ Everything after the "." in the domain name is given to the parser to be parsed.
 :end-before: end gridflatin definition
 ```
 
+```{tip}
+The domain is passed to the neural network input and is accessible 
+via `self.domain`.
+```
+
+```{tip}
+Converting data to a one-hot representation on the GPU instead of the CPU
+can speed up CPU to GPU transfer.
+```
+
+```{important}
+Each element in the list of numpy arrays that the `to_np` method returns
+must have its first dimension be equal to the number of inputs.
+```
+
+We can now train a heuristic function that takes a flat input for the 
+grid domain. It should learn to solve over 95% of problem instances with 
+20 iterations of A* search during training.
+
+`deepxube train --domain grid_tut.7d --heur resnet_fc.100H_1B_bn --heur_type V --pathfind graph_v --step_max 100 --up_itrs 100 --search_itrs 20 --backup -1 --procs 2 --batch_size 200 --max_itrs 1000 --dir tutorial/grid_tut/flatin_v/`
+
+```{literalinclude} ../../tutorial/grid_tut/flatin_v/output.txt
+:language: none
+:class: scroll-code
+```
 
 #### Flat Input for a Q-Network with a Fixed Action Output
+
+This neural network input assumes a fixed and enumerable action space 
+and outputs a vector that corresponds to the transition cost plus 
+cost-to-go of the resulting state for every possible 
+action {cite}`mnih2015human`.
+
 ```{literalinclude} ../../domains/grid_tutorial.py
 :language: python
 :class: scroll-code
@@ -175,8 +210,40 @@ Everything after the "." in the domain name is given to the parser to be parsed.
 :end-before: end gridflatinqfix definition
 ```
 
+```{important}
+It is assumed that every element in `actions_l` is of the same length. 
+```
+
+```{important}
+The last element in the list of numpy arrays returned by `to_np` must
+be the index of the output that corresponds to each action in `actions_l`. 
+```
+
+We can now train a deep Q-network that takes a flat input for the
+grid domain.
+
+`deepxube train --domain grid_tut.7d --heur resnet_fc.100H_1B_bn --heur_type QFix --pathfind graph_q --step_max 100 --up_itrs 100 --search_itrs 20 --backup -1 --procs 2 --batch_size 200 --max_itrs 1000 --dir tutorial/grid_tut/flatin_qfix/`
+
+```{literalinclude} ../../tutorial/grid_tut/flatin_qfix/output.txt
+:language: none
+:class: scroll-code
+```
+
+```{tip}
+We can verify in the output that the final layer of the deep Q-network 
+matches the number of actions (4)
+`(2): Linear(in_features=100, out_features=4, bias=True)`
+```
 
 #### Flat Input for a Q-Network with the Action as an Input
+
+Ths neural network input assumes the action will be given to the neural 
+network along with the state and goal. This can be useful for domains with
+dynamic action spaces that have transition functions that are expensive to
+compute since, when used with Q* search {cite}`agostinelli2024q`, the 
+number of calls to the transition function is constant with respect to the
+number of applicable actions.
+
 ```{literalinclude} ../../domains/grid_tutorial.py
 :language: python
 :class: scroll-code
@@ -184,12 +251,55 @@ Everything after the "." in the domain name is given to the parser to be parsed.
 :end-before: end gridflatinactin definition
 ```
 
+We can now train a deep Q-network that takes the action as in input and a 
+flat input for the grid domain.
+
+`deepxube train --domain grid_tut.7d --heur resnet_fc.100H_1B_bn --heur_type QIn --pathfind graph_q --step_max 100 --up_itrs 100 --search_itrs 20 --backup -1 --procs 2 --batch_size 200 --max_itrs 1000 --dir tutorial/grid_tut/flatin_qin/ `
+
+```{literalinclude} ../../tutorial/grid_tut/flatin_qin/output.txt
+:language: none
+:class: scroll-code
+```
 
 ### Custom Neural Network
+Instead of using a neural network that comes with DeepXube a custom neural
+network, along with its own parser and custom neural network input, 
+can be implemented.
+
+We will implement a neural network that passes the two-dimensional grid 
+to convolutional layers, flattens it, passes it to a fully-connected layer,
+and then to the output layer.
+
+
+#### Neural Network Input
+```{literalinclude} ../../domains/grid_tutorial.py
+:language: python
+:class: scroll-code
+:start-after: start grid nnet input definition
+:end-before: end grid nnet input definition
+```
+
+#### Neural Network
+
 ```{literalinclude} ../../domains/grid_tutorial.py
 :language: python
 :class: scroll-code
 :start-after: start grid nnet definition
+:end-before: end grid nnet definition
+```
+
+```{important}
+DeepXube expects the first three arguments, `nnet_input: FlatIn, out_dim: int, q_fix: bool` to have these exact names so the 
+neural network can be properly initialized.
+```
+
+
+#### Parser
+```{literalinclude} ../../domains/grid_tutorial.py
+:language: python
+:class: scroll-code
+:start-after: start grid nnet parser definition
+:end-before: end grid nnet parser definition
 ```
 
 ## Timing and Debugging
