@@ -1,0 +1,10 @@
+Grid(dim=7)
+GraphSearchHeurNodeActsEnum(batch_size=1, weight=1.0, eps=0.0)
+State: 0, SolnCost: 12.00, # Nodes Gen: 148, Itrs: 37, Itrs/sec: 1531.64, Solved: True, Time: 0.02
+Times - root: 0.00, heur: 0.02, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.00, nodes: 0.00, up_inst: 0.00, filt: 0.00, cost: 0.00, pushpop: 0.00, edges_next: 0.00, set_next: 0.00, Tot: 0.02, num_itrs: 37
+Means - SolnCost: 12.00, # Nodes Gen: 148.00, Itrs: 37.00, Itrs/sec: 1531.64, Solved: 100.00%, Time: 0.02
+
+State: 1, SolnCost: 8.00, # Nodes Gen: 68, Itrs: 17, Itrs/sec: 3402.84, Solved: True, Time: 0.00
+Times - root: 0.00, heur: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.00, nodes: 0.00, up_inst: 0.00, filt: 0.00, cost: 0.00, pushpop: 0.00, edges_next: 0.00, set_next: 0.00, Tot: 0.00, num_itrs: 17
+Means - SolnCost: 10.00, # Nodes Gen: 108.00, Itrs: 27.00, Itrs/sec: 2467.24, Solved: 100.00%, Time: 0.01
+

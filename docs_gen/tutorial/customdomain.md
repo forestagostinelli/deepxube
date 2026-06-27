@@ -320,6 +320,9 @@ The custom neural network can be seen with `deepxube heuristic_info` and more sp
 
 
 ### Parser
+
+A parser for the custom neural network can be implemented to allow for setting hyperparameters via the command-line.
+
 ```{literalinclude} ../../domains/grid_tutorial.py
 :language: python
 :class: scroll-code
@@ -327,4 +330,59 @@ The custom neural network can be seen with `deepxube heuristic_info` and more sp
 :end-before: end grid nnet parser definition
 ```
 
+We can now train a network with 16 channels and a fully connected layer of size 100:
+
+`deepxube train --domain grid_tut.7d --heur gridnet_tut.16ch_100fc --heur_type V --pathfind graph_v --step_max 100 --up_itrs 100 --search_itrs 20 --backup -1 --procs 2 --batch_size 200 --max_itrs 1000 --dir tutorial/grid_tut/gridnet_v/`
+
+```{literalinclude} ../../tutorial/grid_tut/gridnet_v/output.txt
+:language: none
+:class: scroll-code
+```
+
+## Custom Problem Instances
+
+To specify certain problem instances to solve with DeepXube, save a dictionary with a key for the states and a key for the goals.
+
+```{literalinclude} ../../make_gridtut_prob_insts.py
+:language: python
+:class: scroll-code
+```
+
+```{tip}
+The two problem instances can be visualized:
+
+`deepxube viz --domain grid_tut.7d --file tutorial/grid_tut/custom_insts.pkl --idx 0`
+
+`deepxube viz --domain grid_tut.7d --file tutorial/grid_tut/custom_insts.pkl --idx 1`
+```
+
+<div style="display: flex; justify-content: center; gap: 24px; text-align: center;">
+  <figure style="width: 45%; margin: 0;">
+    <img src="../../tutorial/grid_tut/inst0.png" alt="Instance 0" style="width: 100%;">
+    <figcaption>Instance 0</figcaption>
+  </figure>
+
+  <figure style="width: 45%; margin: 0;">
+    <img src="../../tutorial/grid_tut/inst1.png" alt="Instance 1" style="width: 100%;">
+    <figcaption>Instance 1</figcaption>
+  </figure>
+</div>
+
+
+The problem instances can then be solved with the trained custom neural
+network:
+
+`deepxube solve --domain grid_tut.7d --heur gridnet_tut.16ch_100fc --heur_file tutorial/grid_tut/gridnet_v/heur.pt --heur_type V --pathfind graph_v.1B_1.0W --file tutorial/grid_tut/custom_insts.pkl --results tutorial/grid_tut/results_custom_insts/ --redo`
+
+```{literalinclude} ../../tutorial/grid_tut/results_custom_insts/output.txt
+:language: none
+:class: scroll-code
+```
+
 ## Timing and Debugging
+
+The functionality of the domain and of a given neural network can be timed with `deepxube time`.
+Breakpoints can be set anywhere in any of the tested methods, including in the `__init__` and 
+{mod}`deepxube.base.heuristic.HeurNNet._forward` portions of the neural network.
+
+`deepxube time --domain grid_tut.7d --heur gridnet_tut.16ch_100fc --heur_type V --step_min 0 --step_max 10 --num_insts 100`
