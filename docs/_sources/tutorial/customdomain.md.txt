@@ -356,18 +356,9 @@ The two problem instances can be visualized:
 `deepxube viz --domain grid_tut.7d --file tutorial/grid_tut/custom_insts.pkl --idx 1`
 ```
 
-<div style="display: flex; justify-content: center; gap: 24px; text-align: center;">
-  <figure style="width: 45%; margin: 0;">
-    <img src="../../tutorial/grid_tut/inst0.png" alt="Instance 0" style="width: 100%;">
-    <figcaption>Instance 0</figcaption>
-  </figure>
-
-  <figure style="width: 45%; margin: 0;">
-    <img src="../../tutorial/grid_tut/inst1.png" alt="Instance 1" style="width: 100%;">
-    <figcaption>Instance 1</figcaption>
-  </figure>
-</div>
-
+| ![Instance 0](../../tutorial/grid_tut/inst0.png) | ![Instance 1](../../tutorial/grid_tut/inst1.png) |
+|--------------------------------------------------|--------------------------------------------------|
+| Instance 0                                       | Instance 1                                       |
 
 The problem instances can then be solved with the trained custom neural
 network:
