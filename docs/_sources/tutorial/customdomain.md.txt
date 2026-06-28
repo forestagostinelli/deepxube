@@ -5,11 +5,9 @@ We will create a simple grid domain where the agent can move up, down, left, or 
 square. We will create neural network inputs for a neural network that DeepXube provides as well as a neural network input for 
 our own custom neural network.
 
-In the directory in which you run deepxube, create a `domains/grid_tutorial.py` file. 
-DeepXube automatically looks in the `domains/` folder to see what is registered.
+In the directory in which you run deepxube, copy the code below to the `domains/grid_tutorial.py` file. 
+DeepXube automatically looks in the `domains/` folder to see what is registered. This file will be explained part-by-part.
 
-The entire domain file is here. This includes the states, actions, goals, domain, neural network inputs, custom neural network, and parsers. 
-This file will be explained part-by-part.
 ```{literalinclude} ../../domains/grid_tutorial.py
 :language: python
 :class: scroll-code
@@ -18,7 +16,7 @@ This file will be explained part-by-part.
 ```{tip}
 Since the domain is registered, we should be able to see "grid_tut" with
 `deepxube domain_info` after it is put in your `domains/` folder. 
-More specific information can be obtained about a domain with 
+More specific information can be obtained about the domain with 
 `deepxube domain_info --name grid_tut`
 ```
 

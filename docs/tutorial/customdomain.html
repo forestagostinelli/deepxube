@@ -206,6 +206,7 @@
 <li class="toctree-l2"><a class="reference internal" href="example.html">Rubik’s Cube Example</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Creating a Custom Domain and Heuristic Function</a></li>
 <li class="toctree-l2"><a class="reference internal" href="customnnopt.html">Creating a Custom Heuristic Function Optimizer and Loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="balance.html">Balancing Training Data Difficulty</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../apidocs/index.html">API Reference</a><input aria-label="Toggle navigation of API Reference" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -353,10 +354,8 @@
 <p>We will create a simple grid domain where the agent can move up, down, left, or right along a two-dimensional grid to reach a goal
 square. We will create neural network inputs for a neural network that DeepXube provides as well as a neural network input for
 our own custom neural network.</p>
-<p>In the directory in which you run deepxube, create a <code class="docutils literal notranslate"><span class="pre">domains/grid_tutorial.py</span></code> file.
-DeepXube automatically looks in the <code class="docutils literal notranslate"><span class="pre">domains/</span></code> folder to see what is registered.</p>
-<p>The entire domain file is here. This includes the states, actions, goals, domain, neural network inputs, custom neural network, and parsers.
-This file will be explained part-by-part.</p>
+<p>In the directory in which you run deepxube, copy the code below to the <code class="docutils literal notranslate"><span class="pre">domains/grid_tutorial.py</span></code> file.
+DeepXube automatically looks in the <code class="docutils literal notranslate"><span class="pre">domains/</span></code> folder to see what is registered. This file will be explained part-by-part.</p>
 <div class="scroll-code highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Type</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span><span class="p">,</span> <span class="n">Tensor</span>
@@ -593,7 +592,7 @@ This file will be explained part-by-part.</p>
 <p class="admonition-title">Tip</p>
 <p>Since the domain is registered, we should be able to see “grid_tut” with
 <code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">domain_info</span></code> after it is put in your <code class="docutils literal notranslate"><span class="pre">domains/</span></code> folder.
-More specific information can be obtained about a domain with
+More specific information can be obtained about the domain with
 <code class="docutils literal notranslate"><span class="pre">deepxube</span> <span class="pre">domain_info</span> <span class="pre">--name</span> <span class="pre">grid_tut</span></code></p>
 </div>
 <section id="state-action-goal">

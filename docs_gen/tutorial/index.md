@@ -9,4 +9,5 @@ basics
 example
 customdomain
 customnnopt
+balance
 ```
