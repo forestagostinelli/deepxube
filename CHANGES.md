@@ -1,7 +1,7 @@
 # Changes
 
 ## 0.3.1
-* Save .gif file of traing_summary
+* Save .gif file of train_summary option
 
 ## 0.3.0
 * Optimizer creation and update during training now part of DeepXubeNNet class. Methods can be overridden for different behavior.
