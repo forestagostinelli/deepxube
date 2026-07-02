@@ -1,12 +1,4 @@
-from typing import Tuple, Optional, List, Dict, Any
-
-from deepxube.base.domain import Domain
-from deepxube.base.heuristic import HeurNNetPar, PolicyNNetPar
-from deepxube.base.pathfinding import PathFind
-
-from deepxube.factories.domain_factory import domain_factory
-from deepxube.factories.heuristic_factory import heuristic_factory, policy_factory, build_heur_nnet_par, build_policy_nnet_par
-from deepxube.factories.pathfinding_factory import pathfinding_factory
+from typing import Tuple, Optional, List
 
 
 def get_name_args(name_args: str) -> Tuple[str, Optional[str]]:
@@ -19,39 +11,3 @@ def get_name_args(name_args: str) -> Tuple[str, Optional[str]]:
         assert len(name_args_split) == 2
         args = name_args_split[1]
     return name, args
-
-
-def get_domain_from_arg(domain: str) -> Tuple[Domain, str]:
-    domain_name, domain_args = get_name_args(domain)
-    domain_kwargs: Dict[str, Any] = domain_factory.get_kwargs(domain_name, domain_args)
-    return domain_factory.build_class(domain_name, domain_kwargs), domain_name
-
-
-def get_heur_nnet_par_from_arg(domain: Domain, domain_name: str, heur: str, heur_type: str) -> Tuple[HeurNNetPar, str]:
-    nnet_name, nnet_args = get_name_args(heur)
-    heuristic_factory.get_type(nnet_name)  # to ensure existence
-    nnet_kwargs: Dict[str, Any] = heuristic_factory.get_kwargs(nnet_name, nnet_args)
-    nnet_par: HeurNNetPar = build_heur_nnet_par(domain, domain_name, nnet_name, nnet_kwargs, heur_type)
-    return nnet_par, nnet_name
-
-
-def get_policy_nnet_par_from_arg(domain: Domain, domain_name: str, policy: str, num_samp: int) -> Tuple[PolicyNNetPar, str]:
-    nnet_name, nnet_args = get_name_args(policy)
-    policy_factory.get_type(nnet_name)  # to ensure existence
-    nnet_kwargs: Dict[str, Any] = policy_factory.get_kwargs(nnet_name, nnet_args)
-    nnet_par: PolicyNNetPar = build_policy_nnet_par(domain, domain_name, nnet_name, nnet_kwargs, num_samp)
-    return nnet_par, nnet_name
-
-
-def get_pathfind_name_kwargs(pathfind: str) -> Tuple[str, Dict[str, Any]]:
-    name, args_str = get_name_args(pathfind)
-    pathfind_kwargs: Dict[str, Any] = pathfinding_factory.get_kwargs(name, args_str)
-    return name, pathfind_kwargs
-
-
-def get_pathfind_from_arg(domain: Domain, functions: Any, pathfind: str) -> Tuple[PathFind, str]:
-    pathfind_name, args_str = get_name_args(pathfind)
-    pathfind_kwargs: Dict[str, Any] = pathfinding_factory.get_kwargs(pathfind_name, args_str)
-    pathfind_kwargs["domain"] = domain
-    pathfind_kwargs["functions"] = functions
-    return pathfinding_factory.build_class(pathfind_name, pathfind_kwargs), pathfind_name
