@@ -1,0 +1,9 @@
+{% if current_version and latest_version and current_version.name != latest_version.name %}
+<div class="admonition warning">
+  <p class="admonition-title">Not Stable Version</p>
+  <p>
+    You're viewing documentation for version {{ current_version.name }}.
+    <a href="{{ latest_version.url }}">View stable version ({{ latest_version.name }})</a>
+  </p>
+</div>
+{% endif %}

@@ -1,0 +1,10 @@
+<div class="version-selector">
+  <select onchange="window.location.href = this.value">
+    {% for version in versions %}
+    <option value="{{ version.url }}"
+            {% if current_version and version.name == current_version.name %}selected{% endif %}>
+      {{ version.name }}
+    </option>
+    {% endfor %}
+  </select>
+</div>

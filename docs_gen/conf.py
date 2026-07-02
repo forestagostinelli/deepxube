@@ -12,6 +12,7 @@ extensions = [
     "sphinx.ext.githubpages",
     "sphinxcontrib.bibtex",
     "autodoc2",
+    'sphinx_multiversion',
 ]
 
 
@@ -36,6 +37,17 @@ autodoc_default_options = {
 }
 
 html_theme = "furo"
+html_sidebars = {
+    '**': [
+        "sidebar/brand.html",
+        'versioning.html',
+        'versioning_warning.html',
+        "sidebar/search.html",
+        "sidebar/scroll-start.html",
+        "sidebar/navigation.html",
+        "sidebar/scroll-end.html",
+    ]
+}
 # html_theme = "pydata_sphinx_theme"
 
 html_theme_options = {
@@ -104,3 +116,17 @@ myst_enable_extensions = [
 ]
 
 bibtex_bibfiles = ["references.bib"]
+
+
+# Templates path for version selector
+templates_path = ['_templates']
+
+# Define which branches/tags to build
+smv_tag_whitelist = r'^v\d+\.\d+\.\d+$'  # matches v1.0.0, v2.1.3, etc.
+smv_branch_whitelist = r'^(main)$'  # include specific branches
+smv_remote_whitelist = r'^origin$'  # only use origin remote
+
+# Don't build tags/branches older than this (optional)
+smv_released_pattern = r'^refs/tags/v.*$'  # only released versions
+
+smv_latest_version = "v0.3.2"
