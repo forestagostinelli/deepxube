@@ -1,9 +1,9 @@
-from typing import List, Type, Optional, Any
+from typing import List, Type, Optional, Any, Tuple, Dict
 from deepxube.base.factory import Factory
 from deepxube.base.domain import Domain
 from deepxube.base.heuristic import HeurFn, HeurFnV, HeurFnQ, PolicyFn
 from deepxube.base.pathfinding import PathFind, FNsHeurV, FNsHeurQ, FNsPolicy, FNsHeurVPolicy, FNsHeurQPolicy
-
+from deepxube.utils.command_line_utils import get_name_args
 
 pathfinding_factory: Factory[PathFind] = Factory[PathFind]("PathFind")
 
@@ -42,3 +42,17 @@ def get_domain_compat_pathfind_names(domain_t: Type[Domain]) -> List[str]:
             pathfind_names.append(pathfind_name)
 
     return pathfind_names
+
+
+def get_pathfind_name_kwargs(pathfind: str) -> Tuple[str, Dict[str, Any]]:
+    name, args_str = get_name_args(pathfind)
+    pathfind_kwargs: Dict[str, Any] = pathfinding_factory.get_kwargs(name, args_str)
+    return name, pathfind_kwargs
+
+
+def get_pathfind_from_arg(domain: Domain, functions: Any, pathfind_arg: str) -> Tuple[PathFind, str]:
+    pathfind_name, args_str = get_name_args(pathfind_arg)
+    pathfind_kwargs: Dict[str, Any] = pathfinding_factory.get_kwargs(pathfind_name, args_str)
+    pathfind_kwargs["domain"] = domain
+    pathfind_kwargs["functions"] = functions
+    return pathfinding_factory.build_class(pathfind_name, pathfind_kwargs), pathfind_name
