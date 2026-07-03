@@ -4,7 +4,7 @@ from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, State, Action, Goal
 from deepxube.base.pathfinding import Node, EdgeQ, InstanceEdge, InstanceNode
-from deepxube.base.updater import UpdatePolicy, UpdateHeurV, UpdateHeurQ, UpdateSup
+from deepxube.base.updater import UpdatePolicy, UpdateHeurV, UpdateHeurQ, UpdateSup, UpdateParser
 from deepxube.factories.updater_factory import updater_factory
 from deepxube.utils.timing_utils import Times
 from deepxube.pathfinding.supervised import PathFindNodeSup, PathFindEdgeSup, PathFindEdgeSamp
@@ -80,3 +80,18 @@ class UpdatePolicySup(UpdatePolicy[Domain, Any, PathFindEdgeSamp, InstanceEdge],
 
         inputs_np: List[NDArray] = self.get_policy_nnet_par().to_np_train(states, goals, actions)
         return inputs_np
+
+
+@updater_factory.register_parser("up_sup_v")
+class UpdateVSup(UpdateParser):
+    pass
+
+
+@updater_factory.register_parser("up_sup_q")
+class UpdateQSup(UpdateParser):
+    pass
+
+
+@updater_factory.register_parser("up_sup_p")
+class UpdatePSup(UpdateParser):
+    pass
