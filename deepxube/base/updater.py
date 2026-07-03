@@ -11,13 +11,13 @@ import torch
 from numpy.typing import NDArray
 
 from deepxube.nnet.nnet_utils import NNetParInfo, NNetCallable, NNetPar, get_nnet_par_infos, start_nnet_fn_runners, stop_nnet_runners
+from deepxube.base.factory import DelimParser
 from deepxube.base.domain import Domain, State, Action, Goal, GoalSampleableFromState
 from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ, HeurFn, HeurFnV, HeurFnQ, PolicyNNetPar, PolicyFn
 from deepxube.base.pathfinding import FNs, FNsP, FNsHV, FNsHQ, FNsHeur, PathFind, PathFindSup, Instance, InstanceNode, InstanceEdge, get_path, Node
-from deepxube.factories.pathfinding_factory import pathfinding_factory
+from deepxube.factories.pathfinding_factory import pathfinding_factory, get_pathfind_name_kwargs
 from deepxube.heuristics.utils.heur_utils import get_rand_policy
 from deepxube.pathfinding.utils.performance import PathFindPerf, print_pathfindperf
-from deepxube.utils.command_line_utils import get_pathfind_name_kwargs
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd, get_nowait_noerr
 from deepxube.utils.misc_utils import split_evenly, split_evenly_w_max
 from deepxube.utils.timing_utils import Times
@@ -33,40 +33,26 @@ FNsH = TypeVar('FNsH', bound=FNsHeur)
 # TODO par nnets per GPU?
 @dataclass
 class UpArgs:
-    """ Each time an instance is solved, a new one is created with the same number of steps to maintain training data
-    balance.
+    """ Each time an instance is solved, a new one is created with the same number of steps to maintain training data balance.
 
     :param procs: Number of parallel workers used to compute update
-    :param up_itrs: How many iterations worth of training instances to obtain for each update
     :param step_max: Maximum number of steps to take when generating problem instances.
     :param search_itrs: Maximum number of pathfinding iterationos to take for each generated problem instances
     States and corresponding goals seen during search will be added to training instances.
-    :param ub_heur_solns: if True, the target cost-to-go will be min(backup, path_cost_from_state)
-    :param backup: 1 is Bellman and -1 is tree backup (i.e. Limited Horizon Bellman-based Learning)
-    :param policy_rand_prob: Probability of sampling random actions for training policy (to prevent mode collapse)
-    :param up_gen_itrs: How many iterations worth of data to generate per udpate. If None, set to up_itrs
     :param up_batch_size: Maximum number of searches to do at a time. Helps manage memory.
     Decrease if memory is running out during updater. None if as large as possible
     :param nnet_batch_size: Batch size of each nnet used for each process updater. Make smaller if running out
     of memory. None if as large as possible.
-    :param v: True if update is verbose.
     :param sync_main: if True, number of processes can affect order in which data is seen
+    :param v: True if update is verbose.
     """
-    procs: int
-    up_itrs: int
-    step_max: int
-    search_itrs: int
-    ub_heur_solns: bool = False
-    backup: int = 1
-    policy_rand_prob: float = 0.0
-    up_gen_itrs: Optional[int] = None
+    procs: int = 1
+    step_max: int = 100
+    search_itrs: int = 1
     up_batch_size: Optional[int] = None
     nnet_batch_size: Optional[int] = None
     sync_main: bool = False
     v: bool = False
-
-    def get_up_gen_itrs(self) -> int:
-        return self.up_itrs if (self.up_gen_itrs is None) else self.up_gen_itrs
 
 
 def _put_from_q(data_l: List[List[NDArray]], from_q: Queue, times: Times) -> None:
@@ -114,13 +100,19 @@ class Update(Generic[D, FNs, P, Inst], ABC):
                 step_to_pathperf[step_num_inst] = PathFindPerf()
             step_to_pathperf[step_num_inst].update_perf(inst)
 
-    def __init__(self, domain: D, pathfind_arg: str, up_args: UpArgs):
+    def __init__(self, domain: D, pathfind_arg: str, procs: int = 1, step_max: int = 100, search_itrs: int = 1,
+                 up_batch_size: Optional[int] = None, nnet_batch_size: Optional[int] = None, sync_main: bool = False, v: bool = False):
         self.domain: D = domain
         self.pathfind_arg: str = pathfind_arg
         pathfind_name, pathfind_kwargs = get_pathfind_name_kwargs(pathfind_arg)
         self.pathfind_name: str = pathfind_name
         self.pathfind_kwargs: Dict[str, Any] = pathfind_kwargs
-        self.up_args: UpArgs = up_args
+
+        # kwargs
+        self.up_args: UpArgs = UpArgs(procs=procs, step_max=step_max, search_itrs=search_itrs, up_batch_size=up_batch_size,
+                                      nnet_batch_size=nnet_batch_size, sync_main=sync_main, v=v)
+
+        # nnet objects
         self.targ_update_nums: Dict[str, int] = dict()
         self.nnet_par_dict: Dict[str, NNetPar] = dict()
         self.nnet_file_dict: Dict[str, str] = dict()
@@ -130,7 +122,7 @@ class Update(Generic[D, FNs, P, Inst], ABC):
         self.nnet_par_info_dict: Dict[str, NNetParInfo] = dict()
         self.nnet_fn_dict: Dict[str, NNetCallable] = dict()
 
-        # update info
+        # update objects
         self.nnet_par_info_l_dict: Dict[str, List[NNetParInfo]] = dict()
         self.nnet_runner_proc_l_dict: Dict[str, List[BaseProcess]] = dict()
         self.procs: List[BaseProcess] = []
@@ -314,10 +306,10 @@ class Update(Generic[D, FNs, P, Inst], ABC):
 
     def initialize_fns(self) -> None:
         for nnet_name in self.nnet_par_dict.keys():
-            nnet: NNetPar = self.nnet_par_dict[nnet_name]
+            nnet_par: NNetPar = self.nnet_par_dict[nnet_name]
             nnet_par_info: NNetParInfo = self.nnet_par_info_dict[nnet_name]
             targ_update_num: Optional[int] = self.targ_update_nums.get(nnet_name)
-            self.nnet_fn_dict[nnet_name] = nnet.get_nnet_par_fn(nnet_par_info, targ_update_num)
+            self.nnet_fn_dict[nnet_name] = nnet_par.get_nnet_par_fn(nnet_par_info, targ_update_num)
         self.domain.set_nnet_fns(self.nnet_fn_dict)
 
     def get_pathfind(self) -> P:
@@ -458,7 +450,7 @@ class Update(Generic[D, FNs, P, Inst], ABC):
         pass
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}({self.up_args.__repr__()})"
+        return f"{type(self).__name__}, {self.up_args.__repr__()}"
 
 
 class UpdateHER(Update[GoalSampleableFromState, FNs, P, Inst], ABC):
@@ -473,7 +465,7 @@ class UpdateHER(Update[GoalSampleableFromState, FNs, P, Inst], ABC):
         """ If instance is not finisheed and solved, get deepest states out all nodes that have children + root node for relabeled goal.
             :return: Instances and their corresponding goals (order of instances changes)
         """
-        # get states/goals or mark for goal relabelling
+        # get states/goals or mark for goal relabeling
         instances_goalkeep: List[Inst] = []
         instances_relabel: List[Inst] = []
 
@@ -547,16 +539,13 @@ class UpdateHasHeur(Update[D, FNsH, P, Inst], Generic[D, FNsH, P, Inst, HNet, H]
 
 
 class UpdateHasPolicy(Update[D, FNsP, P, Inst], ABC):
-    def __init__(self, domain: D, pathfind_arg: str, up_args: UpArgs):
-        super().__init__(domain, pathfind_arg, up_args)
-        self.policy_samp: int = 0
+    def __init__(self, *args: Any, policy_samp: int = 0, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self.policy_samp: int = policy_samp  # TODO set parser for arg or make cleaner
 
     @staticmethod
     def policy_name() -> str:
         return 'policy'
-
-    def set_policy_samp(self, policy_samp: int) -> None:
-        self.policy_samp = policy_samp
 
     def set_policy_nnet(self, policy_nnet: PolicyNNetPar) -> None:
         self.add_nnet_par(self.policy_name(), policy_nnet)
@@ -605,7 +594,17 @@ class UpdateSup(Update[D, Any, PS, Inst], ABC):
         pass
 
 
+@dataclass
+class UpRLArgs:
+    ub_heur_solns: bool = False
+    lhbl: bool = False
+
+
 class UpdateRL(Update[D, FNs, P, Inst], ABC):
+    def __init__(self, *args: Any, ub_heur_solns: bool = False, lhbl: bool = False, **kwargs: Any):
+        self.up_rl_args: UpRLArgs = UpRLArgs(ub_heur_solns=ub_heur_solns, lhbl=lhbl)
+        super().__init__(*args, **kwargs)
+
     def _make_instances(self, pathfind: P, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[Inst]:
         # get states/goals
         times_states: Times = Times()
@@ -675,3 +674,29 @@ class UpdateHeurQ(UpdateHeur[D, FNsHQ, P, InstanceEdge, HeurNNetParQ, HeurFnQ], 
         shapes_dtypes.append((tuple(), np.dtype(np.float64)))
 
         return shapes_dtypes
+
+
+class UpdateParser(DelimParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.add_argument("p", "procs", int, "Number of parallel workers used to compute update", default=1)
+        self.add_argument("sm", "step_max", int, "Maximum num of steps to generate problem instances", default=100)
+        self.add_argument("sitrs", "search_itrs", int, "Number of search iterations", default=1)
+        self.add_argument("upbs", "up_batch_size", int, "Maximum number of searches to do at a time. Helps manage memory. Decrease if memory is "
+                                                        "running out during updater. If not set, then it is as large as possible", default=100)
+        self.add_argument("nnbs", "nnet_batch_size", int, "Batch size of each nnet used for each process updater. Make smaller if running out "
+                                                          "of memory. If not set, then it is as large as possible.", default=20000)
+        self.add_argument("sync", "sync_main", None, "Synchronize functions used to search with training process. "
+                                                     "If True, number of processes can affect order in which data is seen")
+        self.add_argument("v", "v", None, "Verbose")
+
+    @property
+    def delim(self) -> str:
+        return "_"
+
+
+class UpdateRLParser(UpdateParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.add_argument("ubsoln", "ub_heur_solns", None, "If True, the target cost-to-go will be min(backup, path_cost_from_state)")
+        self.add_argument("lhbl", "lhbl", None, "If True, compute targets by backing up search tree with Limited Horizon Bellman-based Learning")

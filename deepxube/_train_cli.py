@@ -1,22 +1,31 @@
-from typing import Optional, List
+from typing import Optional
 import argparse
 from argparse import ArgumentParser
 
-from deepxube.factories.updater_factory import get_updater
+import torch
 
-from deepxube.base.domain import State, Goal
 from deepxube.base.heuristic import HeurNNetPar, PolicyNNetPar
-from deepxube.base.updater import UpArgs, Update, UpdateHeur, UpdatePolicy
-from deepxube.base.trainer import TrainArgs
-from deepxube.trainers.utils.train_loop import TestArgs, train
-from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_policy_nnet_par_from_arg
+from deepxube.base.updater import Update, UpdateHasHeur, UpdateHasPolicy
+from deepxube.base.trainer import Train, TrainArgs
+from deepxube.factories.domain_factory import get_domain_from_arg
+from deepxube.factories.heuristic_factory import get_heur_nnet_par_from_arg, get_policy_nnet_par_from_arg
+from deepxube.factories.updater_factory import get_updater_from_args
+from deepxube.nnet import nnet_utils
+from deepxube.utils.data_utils import Logger
+from deepxube.trainers.train_heur import TrainHeur
+from torch.utils.tensorboard import SummaryWriter
+
 import numpy as np
-import pickle
+
+import os
+import sys
 
 
 def parser_train(parser: ArgumentParser) -> None:
+    # domain
     parser.add_argument('--domain', type=str, required=True, help="Domain name and arguments.")
 
+    # nnets and corresponding functions
     parser.add_argument('--heur', type=str, default=None, help="Heuristic neural network and arguments.")
     parser.add_argument('--heur_type', type=str, default=None, help="V, QFix, QIn. V maps state/goal tuples to cost-to-go. "
                                                                     "QFix maps state/goal tuples to q_values for a fixed action space. "
@@ -25,16 +34,21 @@ def parser_train(parser: ArgumentParser) -> None:
     parser.add_argument('--policy', type=str, default=None, help="Policy neural network and arguments.")
     parser.add_argument('--policy_samp', type=int, default=10, help="Number to actions to sample from policy")
 
+    # pathfinding
     parser.add_argument('--pathfind', type=str, required=True, help="Pathfinding algorithm and arguments. Batch size of any pathfinding algorithm should be 1 "
                                                                     "since updater assumes 1 instance is generated per iteration.")
 
-    parser.add_argument('--dir', type=str, required=True, help="Directory to save neural networks.")
-    parser.add_argument('--skip_heur', action='store_true', default=False, help="Set to skip training of heuristic function.")
-    parser.add_argument('--skip_policy', action='store_true', default=False, help="Set to skip training of policy.")
+    # updater
+    parser.add_argument('--up', type=str, required=True, help="Updater algorithm and arguments.")
 
     # train args
+    parser.add_argument('--dir', type=str, required=True, help="Directory to save neural networks.")
+
     train_group = parser.add_argument_group('train')
     train_group.add_argument('--batch_size', type=int, default=1000, help="Batch size.")
+    train_group.add_argument('--up_itrs', type=int, default=100, help="Number of iterations to check for update.")
+    train_group.add_argument('--up_gen_itrs', type=int, default=None, help="Number of iterations for which to generate training data per update check. "
+                                                                           "If None then defaults to up_itrs.")
     train_group.add_argument('--max_itrs', type=int, default=100000, help="Maximum training iterations.")
     train_group.add_argument('--accum', type=int, default=1, help="Number of gradient accumulation steps to use to split batch. This argument does not change "
                                                                   "the given batch size, only the number of accumulation steps used to do the forward pass.")
@@ -51,31 +65,6 @@ def parser_train(parser: ArgumentParser) -> None:
                                                                "of states seen during search.")
     train_group.add_argument('--up_lt', type=float, default=np.inf, help="Loss must be below this threshold for update.")
 
-    # updater args
-    update_group = parser.add_argument_group('update')
-    update_group.add_argument('--procs', type=int, default=1, help="Number of processes to generate update data.")
-    update_group.add_argument('--step_max', type=int, required=True, help="Maximum number of steps to take when generating problem instnaces.")
-    update_group.add_argument('--up_itrs', type=int, default=100, help="Number of iterations to check for update.")
-    update_group.add_argument('--up_gen_itrs', type=int, default=None, help="Number of iterations for which to generate training data per update check. "
-                                                                            "If None then defaults to up_itrs.")
-    update_group.add_argument('--search_itrs', type=int, default=1, help="Number of search iterations to take when generating data.")
-    update_group.add_argument('--up_batch_size', type=int, default=100, help="Maximum number of problem instances to generate at a time. Lower if running out "
-                                                                             "of memory.")
-    update_group.add_argument('--up_nnet_batch_size', type=int, default=20000, help="Maximum number of inputs to give to any nnet at a time during update. "
-                                                                                    "Lower if running out of memory.")
-    update_group.add_argument('--her', action='store_true', default=False, help="If problem instance not solved during search, do hindsight experience replay "
-                                                                                "(HER) by relabeling deepest node in search tree as a goal state and "
-                                                                                "sampling a goal from it.")
-    update_group.add_argument('--sync_main', action='store_true', default=False, help="Use main nnet to search during update.")
-    update_group.add_argument('--up_v', action='store_true', default=False, help="Verbose update.")
-
-    # update heur args
-    update_group.add_argument('--backup', type=int, default=1, help="1 for Bellman backup, -1 for limited horizon bellman lookahead (LHBL)")
-
-    # update policy args
-    update_group.add_argument('--policy_rand_p', type=float, default=0.0, help="Probability of sampling random actions for training policy "
-                                                                               "(to prevent mode collapse)")
-
     # test args
     test_group = parser.add_argument_group('test')
     test_group.add_argument('--t_file', type=str, default=None, help="File to use when testing.")
@@ -90,34 +79,55 @@ def parser_train(parser: ArgumentParser) -> None:
 
 
 def train_cli(args: argparse.Namespace) -> None:
+    # logging
+    if not os.path.exists(args.dir):
+        os.makedirs(args.dir)
+
+    if not args.debug:
+        output_save_loc = f"{args.dir}/output.txt"
+        sys.stdout = Logger(output_save_loc, "a")
+
+    if 'SLURM_JOB_ID' in os.environ:
+        print("SLURM JOB ID: %s" % os.environ['SLURM_JOB_ID'])
+
+    # get device
+    on_gpu: bool
+    device: torch.device
+    device, devices, on_gpu = nnet_utils.get_device()
+    print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
+
     # parse domain and heur_nnet
     domain, domain_name = get_domain_from_arg(args.domain)
 
-    # update args
-    up_args: UpArgs = UpArgs(args.procs, args.up_itrs, args.step_max, args.search_itrs, ub_heur_solns=False, backup=args.backup,
-                             policy_rand_prob=args.policy_rand_p, up_gen_itrs=args.up_gen_itrs, up_batch_size=args.up_batch_size,
-                             nnet_batch_size=args.up_nnet_batch_size, sync_main=args.sync_main, v=args.up_v)
+    # updater
+    updater: Update = get_updater_from_args(domain, args.pathfind, args.up)[0]
 
     # parse nnets
     heur_nnet_par: Optional[HeurNNetPar] = None
-    update_heur: Optional[UpdateHeur] = None
     policy_nnet_par: Optional[PolicyNNetPar] = None
-    update_policy: Optional[UpdatePolicy] = None
     if args.heur is not None:
         heur_nnet_par = get_heur_nnet_par_from_arg(domain, domain_name, args.heur, args.heur_type)[0]
-        update_ret: Update = get_updater(domain, args.pathfind, up_args, args.her, "heur")
-        assert isinstance(update_ret, UpdateHeur)
-        update_heur = update_ret
+        assert isinstance(updater, UpdateHasHeur)
+        updater.set_heur_nnet(heur_nnet_par)
+        print(heur_nnet_par)
     if args.policy is not None:
         policy_nnet_par = get_policy_nnet_par_from_arg(domain, domain_name, args.policy, args.policy_samp)[0]
-        update_ret = get_updater(domain, args.pathfind, up_args, args.her, "policy")
-        assert isinstance(update_ret, UpdatePolicy)
-        update_policy = update_ret
+        assert isinstance(updater, UpdateHasPolicy)
+        updater.set_policy_nnet(policy_nnet_par)
+        print(policy_nnet_par)
+
+    print(f"{updater}")
 
     # train args
-    train_args: TrainArgs = TrainArgs(args.batch_size, args.max_itrs, args.bal, rb=args.rb, loss_thresh=args.up_lt, skip_heur=args.skip_heur,
-                                      skip_policy=args.skip_policy, checkpoint=args.chkpt, grad_accum=args.accum, display=args.display)
+    train_args: TrainArgs = TrainArgs(args.batch_size, args.max_itrs, args.bal, up_itrs=args.up_itrs, up_gen_itrs=args.up_gen_itrs, rb=args.rb,
+                                      loss_thresh=args.up_lt, checkpoint=args.chkpt, grad_accum=args.accum, display=args.display)
 
+    print(f"{train_args}")
+    print(domain)
+
+    # TODO print pathfind
+
+    """
     # test args
     test_args: Optional[TestArgs] = None
     if args.t_file is not None:
@@ -125,5 +135,11 @@ def train_cli(args: argparse.Namespace) -> None:
         states: List[State] = data['states']
         goals: List[Goal] = data['goals']
         test_args = TestArgs(states, goals, args.t_search_itrs, args.t_pathfinds.split(","), args.up_nnet_batch_size, args.t_up_freq, args.t_init)
+        print(f"{test_args}")
+    """
 
-    train(domain, heur_nnet_par, update_heur, policy_nnet_par, update_policy, args.policy_samp, args.dir, train_args, test_args=test_args, debug=args.debug)
+    assert heur_nnet_par is not None
+    writer: SummaryWriter = SummaryWriter(args.dir)
+    trainer: Train = TrainHeur(heur_nnet_par.get_nnet(), args.dir, updater, device, on_gpu, writer, train_args)
+
+    trainer.train_loop()

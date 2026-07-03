@@ -4,18 +4,19 @@ from argparse import ArgumentParser
 
 from deepxube._train_cli import parser_train
 from deepxube._solve import parse_solve
-from deepxube.base.factory import Parser
+from deepxube.base.factory import Factory, Parser
 from deepxube.base.domain import Domain, StateGoalVizable, StringToAct, State, Action, Goal
 from deepxube.base.nnet_input import NNetInput
 from deepxube.base.heuristic import HeurNNet, HeurNNetPar, PolicyNNetPar
 from deepxube.base.pathfinding import PathFind
-from deepxube.factories.domain_factory import domain_factory
+from deepxube.base.updater import Update
+from deepxube.factories.domain_factory import domain_factory, get_domain_from_arg
 from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys, get_nnet_input_t
-from deepxube.factories.heuristic_factory import heuristic_factory
+from deepxube.factories.heuristic_factory import heuristic_factory, get_heur_nnet_par_from_arg, get_policy_nnet_par_from_arg
 from deepxube.factories.pathfinding_factory import pathfinding_factory, get_domain_compat_pathfind_names
+from deepxube.factories.updater_factory import updater_factory, get_domain_compat_updater_names, get_pathfind_compat_updater_names
 from deepxube.base.trainer import TrainSummary
 from deepxube.tests.time_tests import time_test
-from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_policy_nnet_par_from_arg
 
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
@@ -45,6 +46,16 @@ def get_immediate_mixins(cls: Type[object], mixin_base: Type) -> List[Type]:
     return [base for base in cls.__bases__ if issubclass(base, mixin_base) and base is not mixin_base]
 
 
+def get_names_match_type(req_type: Type, factory: Factory) -> List[str]:
+    names: List[str] = []
+    for class_name in factory.get_all_class_names():
+        class_t: Type = factory.get_type(class_name)
+        if issubclass(class_t, req_type):
+            names.append(class_name)
+
+    return names
+
+
 def domain_info(args: argparse.Namespace) -> None:
     domain_name: str
     domain_t: Type[Domain]
@@ -68,18 +79,20 @@ def domain_info(args: argparse.Namespace) -> None:
 
         # nnet inputs
         nnet_input_t_keys: List[Tuple[str, str]] = get_domain_nnet_input_keys(domain_name)
-        print("NNet Inputs (Name, Module, Class):")
+        print("Compatible NNet Inputs (Name, Module, Class):")
         for nnet_input_t_key in nnet_input_t_keys:
             nnet_input_t: Type[NNetInput] = get_nnet_input_t(nnet_input_t_key)
             print(textwrap.indent(f"{nnet_input_t_key[1]}, {nnet_input_t.__module__}, {nnet_input_t.__qualname__}", '\t'))
 
         # pathfinding
         pathfind_names: List[str] = get_domain_compat_pathfind_names(domain_t)
-        print("Pathfinding (Name, Module, Class):")
-        for pathfind_name in pathfind_names:
-            pathfind_t: Type[PathFind] = pathfinding_factory.get_type(pathfind_name)
-            print(textwrap.indent(f"{pathfind_name}, {pathfind_t.__module__}, {pathfind_t.__qualname__}", '\t'))
-        print("")
+        print("Compatible PathFind names:")
+        print(textwrap.indent(', '.join(pathfind_name for pathfind_name in pathfind_names), '\t'))
+
+        # updaters
+        updater_names: List[str] = get_domain_compat_updater_names(domain_t)
+        print("Compatible Updater names:")
+        print(textwrap.indent(', '.join(pathfind_name for pathfind_name in updater_names), '\t'))
 
 
 def heur_info(args: argparse.Namespace) -> None:
@@ -95,7 +108,7 @@ def heur_info(args: argparse.Namespace) -> None:
         heur_nnet_t = heuristic_factory.get_type(heur_nnet_name)
         print(f"Heur NNet (Name, Module, Class): {heur_nnet_name}, {heur_nnet_t.__module__}, {heur_nnet_t.__qualname__}")
         nnet_input_t: Type[NNetInput] = heur_nnet_t.nnet_input_type()
-        print(f"NNet_Input type expected (Module, Class): {nnet_input_t.__module__}, {nnet_input_t.__qualname__}")
+        print(f"Expected NNet_Input (Module, Class): {nnet_input_t.__module__}, {nnet_input_t.__qualname__}")
         parser: Optional[Parser] = heuristic_factory.get_parser(heur_nnet_name)
         if parser is not None:
             print("Parser help:\n" + textwrap.indent(parser.help(), '\t'))
@@ -113,19 +126,52 @@ def pathfinding_info(args: argparse.Namespace) -> None:
         name = args.name
         pathfind_t = pathfinding_factory.get_type(name)
         print(f"PathFind (Name, Module, Class): {name}, {pathfind_t.__module__}, {pathfind_t.__qualname__}")
+        print(f"Description: {pathfind_t.description()}")
         mixin_str: str = ', '.join([f"{x.__qualname__}" for x in get_immediate_mixins(pathfind_t, PathFind)])
         print(f"Mixins: {mixin_str}", '\t')
-        print(f"Domain type expected: {pathfind_t.domain_type().__qualname__}", '\t')
-        print(f"Functions type expected: {pathfind_t.functions_type().__qualname__}", '\t')
+        print(f"Expected Domain type: {pathfind_t.domain_type().__qualname__}", '\t')
+        print(textwrap.indent(', '.join(name for name in get_names_match_type(pathfind_t.domain_type(), domain_factory)), '\t'))
+        print(f"Expected Functions type: {pathfind_t.functions_type().__qualname__}", '\t')
+
+        # updaters
+        updater_names: List[str] = get_pathfind_compat_updater_names(pathfind_t)
+        print("Compatible Updater names:")
+        print(textwrap.indent(', '.join(pathfind_name for pathfind_name in updater_names), '\t'))
 
         parser: Optional[Parser] = pathfinding_factory.get_parser(name)
         if parser is not None:
             print("Parser help:\n" + textwrap.indent(parser.help(), '\t'))
 
 
+def updater_info(args: argparse.Namespace) -> None:
+    name: str
+    up_t: Type[Update]
+    if args.name is None:
+        names: List[str] = updater_factory.get_all_class_names()
+        for name in names:
+            up_t = updater_factory.get_type(name)
+            print(f"Updater (Name, Module, Class): {name}, {up_t.__module__}, {up_t.__qualname__}")
+    else:
+        name = args.name
+        up_t = updater_factory.get_type(name)
+        print(f"Updater (Name, Module, Class): {name}, {up_t.__module__}, {up_t.__qualname__}")
+        mixin_str: str = ', '.join([f"{x.__qualname__}" for x in get_immediate_mixins(up_t, Update)])
+        print(f"Mixins: {mixin_str}", '\t')
+        print(f"Expected Domain type: {up_t.domain_type().__qualname__}", '\t')
+        print(textwrap.indent(', '.join(name for name in get_names_match_type(up_t.domain_type(), domain_factory)), '\t'))
+        print(f"Expected Functions type: {up_t.functions_type().__qualname__}", '\t')
+        print(f"Expected PathFind type: {up_t.pathfind_type().__qualname__} with functions {up_t.functions_type().__qualname__}", '\t')
+        print(textwrap.indent(', '.join(name for name in get_names_match_type(up_t.pathfind_type(), pathfinding_factory)
+                                        if pathfinding_factory.get_type(name).functions_type() is up_t.functions_type()), '\t'))
+
+        parser: Optional[Parser] = updater_factory.get_parser(name)
+        if parser is not None:
+            print("Parser help:\n" + textwrap.indent(parser.help(), '\t'))
+
+
 def fig_to_rgba(fig: Figure) -> NDArray:
     fig.canvas.draw()
-    rgba: NDArray = np.asarray(fig.canvas.buffer_rgba())
+    rgba: NDArray = np.asarray(fig.canvas.buffer_rgba())  # type: ignore[attr-defined]
     return rgba
 
 
@@ -393,6 +439,11 @@ def main() -> None:
                                                                                           "registered.")
     _parser_pathfind_info(parser_pathfind_info)
 
+    # updater info
+    parser_up_info: ArgumentParser = subparsers.add_parser('updater_info', help="Print information on update algorithms that deepxube has "
+                                                                                "registered.")
+    _parser_up_info(parser_up_info)
+
     # time functionality
     parser_time: ArgumentParser = subparsers.add_parser('time', help="Time basic functionality.",
                                                         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -435,6 +486,11 @@ def _parser_heur_info(parser: ArgumentParser) -> None:
 def _parser_pathfind_info(parser: ArgumentParser) -> None:
     parser.add_argument('--name', type=str, default=None, help="Name of pathfinding method.")
     parser.set_defaults(func=pathfinding_info)
+
+
+def _parser_up_info(parser: ArgumentParser) -> None:
+    parser.add_argument('--name', type=str, default=None, help="Name of update method.")
+    parser.set_defaults(func=updater_info)
 
 
 def _parse_viz_info(parser: ArgumentParser) -> None:

@@ -34,13 +34,11 @@ class TrainArgs:
     :param batch_size: Batch size
     :param max_itrs: Maximum number of iterations
     :param balance_steps: If true, steps are balanced based on solve percentage
+    :param up_itrs: How many iterations worth of training instances to obtain for each update
+    :param up_gen_itrs: How many iterations worth of data to generate per udpate. If None, set to up_itrs
     :param rb: amount of data generated from previous updates to keep in replay buffer. Total replay buffer size will
     then be train_args.batch_size * up_args.up_gen_itrs * rb.
     :param loss_thresh: Loss threshold for updating.
-    :param targ_up_searches: If > 0, do a greedy search with updater for minimum given number of searches to test
-    if target network should be updated. Otherwise, it will be updated automatically.
-    :param skip_heur: Skip training of heuristic function
-    :param skip_policy: Skip training of policy
     :param checkpoint: Save checkpoint file of network being trained at initialization and at every given number of update checks.
     Checkpoint number given is training iteration, not update number. If 0 then checkpointing is not done.
     :param grad_accum: Number of times to split batch into sub-batches for gradient accumulation
@@ -49,14 +47,16 @@ class TrainArgs:
     batch_size: int
     max_itrs: int
     balance_steps: bool
+    up_itrs: int = 100
+    up_gen_itrs: Optional[int] = None
     rb: int = 0
     loss_thresh: float = np.inf
-    targ_up_searches: int = 0
-    skip_heur: bool = False
-    skip_policy: bool = False
     checkpoint: int = 0
     grad_accum: int = 1
     display: int = 100
+
+    def get_up_gen_itrs(self) -> int:
+        return self.up_itrs if (self.up_gen_itrs is None) else self.up_gen_itrs
 
 
 class DataBuffer:
@@ -171,21 +171,28 @@ class Train(Generic[NNet, Up], ABC):
     def data_parallel() -> bool:
         pass
 
-    def __init__(self, nnet: NNet, updater: Up, to_main_q: Queue, from_main_qs: List[Queue], nnet_file: str, nnet_targ_file: str, status_file: str,
-                 train_summary_file: str, device: torch.device, on_gpu: bool, writer: SummaryWriter, train_args: TrainArgs) -> None:
+    @staticmethod
+    @abstractmethod
+    def nnet_name() -> str:
+        pass
+
+    def __init__(self, nnet: NNet, nnet_dir: str, updater: Up, device: torch.device, on_gpu: bool, writer: SummaryWriter,
+                 train_args: TrainArgs) -> None:
+        self.nnet_dir: str = nnet_dir
+        if not os.path.exists(self.nnet_dir):
+            os.makedirs(self.nnet_dir)
+
         self.updater: Up = updater
-        self.to_main_q: Queue = to_main_q
-        self.from_main_qs: List[Queue] = from_main_qs
         self.nnet: NNet = nnet
-        self.nnet_file = nnet_file
-        self.nnet_targ_file: str = nnet_targ_file
+        self.nnet_file: str = f"{self.nnet_dir}/{self.nnet_name()}.pt"
+        self.nnet_targ_file: str = f"{self.nnet_dir}/{self.nnet_name()}_targ.pt"
         self.writer: SummaryWriter = writer
         self.train_args: TrainArgs = train_args
         self.device: torch.device = device
         self.on_gpu: bool = on_gpu
 
         # load status
-        self.status_file: str = status_file
+        self.status_file: str = f"{self.nnet_dir}/{self.nnet_name()}_status.pkl"
         self.status: Status
         if os.path.isfile(self.status_file):
             self.status = pickle.load(open(self.status_file, "rb"))
@@ -195,7 +202,7 @@ class Train(Generic[NNet, Up], ABC):
             # noinspection PyTypeChecker
             pickle.dump(self.status, open(self.status_file, "wb"), protocol=-1)
 
-        self.train_summary_file: str = train_summary_file
+        self.train_summary_file: str = f"{self.nnet_dir}/{self.nnet_name()}_train_summary.pkl"
         self.train_summary: TrainSummary
         if os.path.isfile(self.train_summary_file):
             self.train_summary = pickle.load(open(self.train_summary_file, "rb"))
@@ -224,19 +231,46 @@ class Train(Generic[NNet, Up], ABC):
         shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = self._get_shapes_dtypes()
         db_shapes: List[Tuple[int, ...]] = [x[0] for x in shapes_dtypes]
         db_dtypes: List[np.dtype] = [x[1] for x in shapes_dtypes]
-        self.db: DataBuffer = DataBuffer(self.train_args.batch_size * self.updater.up_args.get_up_gen_itrs(), db_shapes, db_dtypes)
+        self.db: DataBuffer = DataBuffer(self.train_args.batch_size * self.train_args.get_up_gen_itrs(), db_shapes, db_dtypes)
 
         # optimizer and criterion
         self.train_start_time = time.time()
 
-    def update_step(self) -> None:
+    def train_loop(self) -> None:
+        # set updater nnet files
+        self._set_updater_nnet_files()
+
+        # start procs
+        to_main_q, from_main_qs = self.updater.start_procs(self.train_args.rb * self.train_args.batch_size * self.train_args.up_itrs)
+
+        # train loop
+        while self.status.itr < self.train_args.max_itrs:
+            # update
+            self._set_targ_update_num()
+
+            self._update_step(to_main_q, from_main_qs)
+            torch.cuda.empty_cache()
+
+        # stop procs
+        self.updater.stop_procs()
+        print("Done")
+
+    @abstractmethod
+    def _set_updater_nnet_files(self) -> None:
+        pass
+
+    @abstractmethod
+    def _set_targ_update_num(self) -> None:
+        pass
+
+    def _update_step(self, to_main_q: Queue, from_main_qs: List[Queue]) -> None:
         self.db.clear()
         itr_init: int = self.status.itr
 
         # print info
         start_info_l: List[str] = [f"itr: {self.status.itr}", f"update_num: {self.status.update_num}", f"targ_update: {self.status.targ_update_num}"]
 
-        num_gen: int = self.train_args.batch_size * self.updater.up_args.get_up_gen_itrs()
+        num_gen: int = self.train_args.batch_size * self.train_args.get_up_gen_itrs()
         start_info_l.append(f"num_gen: {format(num_gen, ',')}")
         if self.train_args.balance_steps:
             start_info_l.append(f"step max (curr): {self.status.step_max_curr}")
@@ -256,7 +290,7 @@ class Train(Generic[NNet, Up], ABC):
             self._end_update(itr_init, times)
             loss = self._train(times)
         else:
-            loss = self._train_sync_main(num_gen, times)
+            loss = self._train_sync_main(num_gen, times, to_main_q, from_main_qs)
             self._end_update(itr_init, times)
 
         # save nnet
@@ -282,7 +316,7 @@ class Train(Generic[NNet, Up], ABC):
         # noinspection PyTypeChecker
         pickle.dump(self.train_summary, open(self.train_summary_file, "wb"), protocol=-1)
         times.record_time("save_status", time.time() - start_time)
-        print(f"Train - itrs: {self.updater.up_args.up_itrs}, loss: {loss:.2E}, targ_updated: {update_targ}")
+        print(f"Train - itrs: {self.train_args.up_itrs}, loss: {loss:.2E}, targ_updated: {update_targ}")
         print(f"Times - {times.get_time_str()}")
 
     def _get_update_data(self, num_gen: int, times: Times) -> None:
@@ -298,7 +332,7 @@ class Train(Generic[NNet, Up], ABC):
         first_itr_in_update: bool = True
         sel_idx_start: int = 0
         sel_idxs_rand_order: NDArray = np.random.choice(self.db.size(), size=self.db.size(), replace=False)
-        for _ in range(self.updater.up_args.up_itrs):
+        for _ in range(self.train_args.up_itrs):
             # sample data
             start_time = time.time()
             sel_idxs: NDArray = np.arange(sel_idx_start, sel_idx_start + self.train_args.batch_size) % self.db.size()
@@ -320,11 +354,11 @@ class Train(Generic[NNet, Up], ABC):
 
         return loss
 
-    def _train_sync_main(self, num_gen: int, times: Times) -> float:
+    def _train_sync_main(self, num_gen: int, times: Times, to_main_q: Queue, from_main_qs: List[Queue]) -> float:
         loss: float = np.inf
         update_train_itr: int = 0
         first_itr_in_update: bool = True
-        while update_train_itr < self.updater.up_args.up_itrs:
+        while update_train_itr < self.train_args.up_itrs:
             # data from updater should not be more that train_args.batch_size
             start_time = time.time()
             sel_idxs: NDArray
@@ -335,11 +369,11 @@ class Train(Generic[NNet, Up], ABC):
                 self.nnet.eval()
                 while self.db.size() < ((update_train_itr + 1) * self.train_args.batch_size):
                     # compute heuristic values
-                    q_res: Optional[Tuple[int, List[SharedNDArray]]] = get_nowait_noerr(self.to_main_q)
+                    q_res: Optional[Tuple[int, List[SharedNDArray]]] = get_nowait_noerr(to_main_q)
                     if q_res is not None:
                         proc_id, inputs_np_shm = q_res
                         nnet_in_out_shared_q(self.nnet, inputs_np_shm, self.updater.up_args.nnet_batch_size,
-                                             self.device, self.from_main_qs[proc_id])
+                                             self.device, from_main_qs[proc_id])
 
                     # get update data
                     data_l_i: List[List[NDArray]] = self.updater.get_update_data(nowait=True)

@@ -16,6 +16,16 @@ class TrainHeur(Train[HeurNNet, UpdateHeur]):
     def data_parallel() -> bool:
         return True
 
+    @staticmethod
+    def nnet_name() -> str:
+        return "heur"
+
+    def _set_updater_nnet_files(self) -> None:
+        self.updater.set_heur_file(self.nnet_targ_file)
+
+    def _set_targ_update_num(self) -> None:
+        self.updater.set_targ_update_num(self.updater.heur_name(), self.status.targ_update_num)
+
     def _train_itr(self, batch: List[NDArray], first_itr_in_update: bool, times: Times) -> float:
         start_time = time.time()
         ctgs_batch_np: NDArray = batch[-1]
