@@ -539,4 +539,4 @@ class PolicyNNetPar(NNetPar[PolicyFn]):
 
     def __repr__(self) -> str:
         nnet: PolicyNNet = self.get_nnet()
-        return f"{nnet}\n#Samp: {nnet.num_samp}"
+        return f"{super().__repr__()}\n#Samp: {nnet.num_samp}"

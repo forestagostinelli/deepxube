@@ -247,7 +247,9 @@ class NNetPar(ABC, Generic[NNetFn]):
         pass
 
     def __repr__(self) -> str:
-        return f"{self.get_nnet()}"
+        nnet: nn.Module = self.get_nnet()
+        num_trainable = sum(p.numel() for p in nnet.parameters() if p.requires_grad)
+        return f"{nnet}\nNumber of trainable parameters: {format(num_trainable, ',')}"
 
 
 def get_nnet_par_out(inputs_nnet: List[NDArray], nnet_par_info: NNetParInfo) -> List[NDArray]:
