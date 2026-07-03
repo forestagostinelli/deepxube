@@ -1,12 +1,12 @@
 from abc import ABC
-from typing import List, Tuple, Type
+from typing import Any, List, Tuple, Type
 
 from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, GoalSampleableFromState, Action, State, Goal
 from deepxube.base.heuristic import HeurNNetParV, HeurNNetParQ, HeurFnV, HeurFnQ
 from deepxube.base.pathfinding import FNsP, FNsPolicy, FNsHeurVPolicy, FNsHeurQPolicy, PathFind, PathFindActsPolicy, EdgeQ, Node, Instance
-from deepxube.base.updater import UpdateHER, UpdatePolicy, UpdateHasHeur, UpdateRL, D, UpArgs
+from deepxube.base.updater import UpdateHER, UpdatePolicy, UpdateHasHeur, UpdateRL, D
 from deepxube.factories.updater_factory import updater_factory
 from deepxube.updaters.utils.replay_buffer_utils import ReplayBufferP
 from deepxube.utils.timing_utils import Times
@@ -39,8 +39,8 @@ class UpdatePolicyRL(UpdatePolicy[D, FNsP, PathFindActsPolicy, Instance], Update
     def pathfind_type() -> Type[PathFindActsPolicy]:
         return PathFindActsPolicy
 
-    def __init__(self, domain: D, pathfind_arg: str, up_args: UpArgs):
-        super().__init__(domain, pathfind_arg, up_args)
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
         self.rb: ReplayBufferP = ReplayBufferP(0)
 
     def _step(self, pathfind: PathFindActsPolicy, times: Times) -> None:
@@ -167,7 +167,7 @@ class UpdatePolicyRLHERABC(UpdatePolicyRL[GoalSampleableFromState, FNsP], Update
         return self._inputs_ctgs_to_np(states, goals, actions, times)
 
 
-@updater_factory.register_class("update_p_rl")
+@updater_factory.register_class("up_rl_p")
 class UpdatePolicyRLKeepGoal(UpdatePolicyRLKeepGoalABC[FNsPolicy]):
     @staticmethod
     def functions_type() -> Type[FNsPolicy]:
@@ -177,7 +177,7 @@ class UpdatePolicyRLKeepGoal(UpdatePolicyRLKeepGoalABC[FNsPolicy]):
         return FNsPolicy(self.get_policy_fn())
 
 
-@updater_factory.register_class("update_p_rl_her")
+@updater_factory.register_class("up_her_p")
 class UpdatePolicyRLHER(UpdatePolicyRLHERABC[FNsPolicy]):
     @staticmethod
     def functions_type() -> Type[FNsPolicy]:
@@ -187,7 +187,7 @@ class UpdatePolicyRLHER(UpdatePolicyRLHERABC[FNsPolicy]):
         return FNsPolicy(self.get_policy_fn())
 
 
-@updater_factory.register_class("update_p_v_rl")
+@updater_factory.register_class("up_rl_p_v")
 class UpdatePolicyRLKeepGoalHeurV(UpdatePolicyRLKeepGoalABC[FNsHeurVPolicy],
                                   UpdateHasHeur[Domain, FNsHeurVPolicy, PathFindActsPolicy, Instance, HeurNNetParV, HeurFnV]):
     @staticmethod
@@ -198,7 +198,7 @@ class UpdatePolicyRLKeepGoalHeurV(UpdatePolicyRLKeepGoalABC[FNsHeurVPolicy],
         return FNsHeurVPolicy(self.get_heur_fn(), self.get_policy_fn())
 
 
-@updater_factory.register_class("update_p_v_rl_her")
+@updater_factory.register_class("up_her_p_v")
 class UpdatePolicyRLHERHeurV(UpdatePolicyRLHERABC[FNsHeurVPolicy], UpdateHasHeur[Domain, FNsHeurVPolicy, PathFindActsPolicy, Instance, HeurNNetParV, HeurFnV]):
     @staticmethod
     def functions_type() -> Type[FNsHeurVPolicy]:
@@ -208,7 +208,7 @@ class UpdatePolicyRLHERHeurV(UpdatePolicyRLHERABC[FNsHeurVPolicy], UpdateHasHeur
         return FNsHeurVPolicy(self.get_heur_fn(), self.get_policy_fn())
 
 
-@updater_factory.register_class("update_p_q_rl")
+@updater_factory.register_class("up_rl_p_q")
 class UpdatePolicyRLKeepGoalHeurQ(UpdatePolicyRLKeepGoalABC[FNsHeurQPolicy],
                                   UpdateHasHeur[Domain, FNsHeurQPolicy, PathFindActsPolicy, Instance, HeurNNetParQ, HeurFnQ]):
     @staticmethod
@@ -219,7 +219,7 @@ class UpdatePolicyRLKeepGoalHeurQ(UpdatePolicyRLKeepGoalABC[FNsHeurQPolicy],
         return FNsHeurQPolicy(self.get_heur_fn(), self.get_policy_fn())
 
 
-@updater_factory.register_class("update_p_q_rl_her")
+@updater_factory.register_class("up_her_p_q")
 class UpdatePolicyRLHERHeurQ(UpdatePolicyRLHERABC[FNsHeurQPolicy], UpdateHasHeur[Domain, FNsHeurQPolicy, PathFindActsPolicy, Instance, HeurNNetParQ, HeurFnQ]):
     @staticmethod
     def functions_type() -> Type[FNsHeurQPolicy]:

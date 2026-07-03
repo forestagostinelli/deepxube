@@ -1,12 +1,12 @@
 from abc import ABC
-from typing import List, Tuple, cast, Type
+from typing import Any, List, Tuple, cast, Type
 
 import numpy as np
 from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, GoalSampleableFromState, Action, State, Goal
 from deepxube.base.pathfinding import FNsHQ, FNsHeurQ, FNsHeurQPolicy, PathFindSetHeurQ, EdgeQ, InstanceEdge, Node
-from deepxube.base.updater import UpdateHER, UpdateHasPolicy, UpdateHeurQ, UpdateRL, D, UpArgs
+from deepxube.base.updater import UpdateHER, UpdateHasPolicy, UpdateHeurQ, UpdateRL, D, UpdateRLParser
 from deepxube.factories.updater_factory import updater_factory
 from deepxube.updaters.utils.replay_buffer_utils import ReplayBufferQ
 from deepxube.utils.timing_utils import Times
@@ -49,8 +49,8 @@ class UpdateHeurQRL(UpdateHeurQ[D, FNsHQ, PathFindSetHeurQ], UpdateRL[D, FNsHQ, 
     def pathfind_type() -> Type[PathFindSetHeurQ]:
         return PathFindSetHeurQ
 
-    def __init__(self, domain: D, pathfind_arg: str, up_args: UpArgs):
-        super().__init__(domain, pathfind_arg, up_args)
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
         self.rb: ReplayBufferQ = ReplayBufferQ(0)
 
     def _step(self, pathfind: PathFindSetHeurQ, times: Times) -> None:
@@ -97,6 +97,9 @@ class UpdateHeurQRL(UpdateHeurQ[D, FNsHQ, PathFindSetHeurQ], UpdateRL[D, FNsHQ, 
 
         return states, goals, actions, ctgs_backup
 
+    def __repr__(self) -> str:
+        return f"{super().__repr__()}, {self.up_rl_args.__repr__()}"
+
 
 class UpdateHeurQRLKeepGoalABC(UpdateHeurQRL[Domain, FNsHQ], ABC):
     @staticmethod
@@ -126,17 +129,16 @@ class UpdateHeurQRLKeepGoalABC(UpdateHeurQRL[Domain, FNsHQ], ABC):
 
         # backup
         start_time = time.time()
-        if self.up_args.backup == 1:
-            if self.up_args.ub_heur_solns:
+        if not self.up_rl_args.lhbl:
+            if self.up_rl_args.ub_heur_solns:
                 for edge in edges_popped:
                     assert edge.node.is_solved is not None
                     if edge.node.is_solved:
                         edge.node.upper_bound_parent_path(0.0)
-        elif self.up_args.backup == -1:
+        else:
             for instance in instances:
                 instance.root_node.tree_backup()
-        else:
-            raise ValueError(f"Unknown backup {self.up_args.backup}")
+
         times.record_time("backup", time.time() - start_time)
 
         start_time = time.time()
@@ -217,7 +219,7 @@ class UpdateHeurQRLHERABC(UpdateHeurQRL[GoalSampleableFromState, FNsHQ], UpdateH
         return self._inputs_ctgs_to_np(states, goals, actions, ctgs_backup, times)
 
 
-@updater_factory.register_class("update_q_rl")
+@updater_factory.register_class("up_rl_q")
 class UpdateHeurQRLKeepGoal(UpdateHeurQRLKeepGoalABC[FNsHeurQ]):
     @staticmethod
     def functions_type() -> Type[FNsHeurQ]:
@@ -227,7 +229,7 @@ class UpdateHeurQRLKeepGoal(UpdateHeurQRLKeepGoalABC[FNsHeurQ]):
         return FNsHeurQ(self.get_heur_fn())
 
 
-@updater_factory.register_class("update_q_rl_her")
+@updater_factory.register_class("up_her_q")
 class UpdateHeurQRLHER(UpdateHeurQRLHERABC[FNsHeurQ]):
     @staticmethod
     def functions_type() -> Type[FNsHeurQ]:
@@ -237,7 +239,7 @@ class UpdateHeurQRLHER(UpdateHeurQRLHERABC[FNsHeurQ]):
         return FNsHeurQ(self.get_heur_fn())
 
 
-@updater_factory.register_class("update_q_p_rl")
+@updater_factory.register_class("up_rl_q_p")
 class UpdateHeurQRLKeepGoalPolicy(UpdateHeurQRLKeepGoalABC[FNsHeurQPolicy], UpdateHasPolicy[Domain, FNsHeurQPolicy, PathFindSetHeurQ, InstanceEdge]):
     @staticmethod
     def functions_type() -> Type[FNsHeurQPolicy]:
@@ -247,7 +249,7 @@ class UpdateHeurQRLKeepGoalPolicy(UpdateHeurQRLKeepGoalABC[FNsHeurQPolicy], Upda
         return FNsHeurQPolicy(self.get_heur_fn(), self.get_policy_fn())
 
 
-@updater_factory.register_class("update_q_p_rl_her")
+@updater_factory.register_class("up_her_q_p")
 class UpdateHeurQRLHERPolicy(UpdateHeurQRLHERABC[FNsHeurQPolicy], UpdateHasPolicy[Domain, FNsHeurQPolicy, PathFindSetHeurQ, InstanceEdge]):
     @staticmethod
     def functions_type() -> Type[FNsHeurQPolicy]:
@@ -255,3 +257,23 @@ class UpdateHeurQRLHERPolicy(UpdateHeurQRLHERABC[FNsHeurQPolicy], UpdateHasPolic
 
     def _get_pathfind_functions(self) -> FNsHeurQPolicy:
         return FNsHeurQPolicy(self.get_heur_fn(), self.get_policy_fn())
+
+
+@updater_factory.register_parser("up_rl_q")
+class UpdateVRL(UpdateRLParser):
+    pass
+
+
+@updater_factory.register_parser("up_her_q")
+class UpdateVRLHER(UpdateRLParser):
+    pass
+
+
+@updater_factory.register_parser("up_rl_q_p")
+class UpdateVPRL(UpdateRLParser):
+    pass
+
+
+@updater_factory.register_parser("up_her_q_p")
+class UpdateVPRLHER(UpdateRLParser):
+    pass

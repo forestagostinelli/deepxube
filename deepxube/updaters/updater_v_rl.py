@@ -1,12 +1,12 @@
 from abc import ABC
-from typing import List, cast, Tuple, Type
+from typing import Any, List, cast, Tuple, Type
 
 import numpy as np
 from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, GoalSampleableFromState, State, Goal
 from deepxube.base.pathfinding import FNsHV, FNsHeurV, FNsHeurVPolicy, PathFindSetHeurV, Node, InstanceNode
-from deepxube.base.updater import UpdateHER, UpdateHasPolicy, UpdateHeurV, UpdateRL, UpArgs, D
+from deepxube.base.updater import UpdateHER, UpdateHasPolicy, UpdateHeurV, UpdateRL, D, UpdateRLParser
 from deepxube.factories.updater_factory import updater_factory
 from deepxube.updaters.utils.replay_buffer_utils import ReplayBufferV
 from deepxube.utils import misc_utils
@@ -38,13 +38,14 @@ def _get_nodes_popped_data(nodes_popped: List[Node], times: Times) -> Tuple[List
     return states, goals, is_solved_l
 
 
+# TODO update __repr__
 class UpdateHeurVRL(UpdateHeurV[D, FNsHV, PathFindSetHeurV], UpdateRL[D, FNsHV, PathFindSetHeurV, InstanceNode], ABC):
     @staticmethod
     def pathfind_type() -> Type[PathFindSetHeurV]:
         return PathFindSetHeurV
 
-    def __init__(self, domain: D, pathfind_arg: str, up_args: UpArgs):
-        super().__init__(domain, pathfind_arg, up_args)
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
         self.rb: ReplayBufferV = ReplayBufferV(0)
 
     def _step(self, pathfind: PathFindSetHeurV, times: Times) -> None:
@@ -101,6 +102,9 @@ class UpdateHeurVRL(UpdateHeurV[D, FNsHV, PathFindSetHeurV], UpdateRL[D, FNsHV, 
 
         return states, goals, ctgs_backup
 
+    def __repr__(self) -> str:
+        return f"{super().__repr__()}, {self.up_rl_args.__repr__()}"
+
 
 class UpdateHeurVRLKeepGoalABC(UpdateHeurVRL[Domain, FNsHV], ABC):
     @staticmethod
@@ -130,19 +134,17 @@ class UpdateHeurVRLKeepGoalABC(UpdateHeurVRL[Domain, FNsHV], ABC):
 
         # get backup
         start_time = time.time()
-        if self.up_args.backup == 1:
+        if not self.up_rl_args.lhbl:
             for node in nodes_popped:
                 node.bellman_backup()
-            if self.up_args.ub_heur_solns:
+            if self.up_rl_args.ub_heur_solns:
                 for node in nodes_popped:
                     assert node.is_solved is not None
                     if node.is_solved:
                         node.upper_bound_parent_path(0.0)
-        elif self.up_args.backup == -1:
+        else:
             for instance in instances:
                 instance.root_node.tree_backup()
-        else:
-            raise ValueError(f"Unknown backup {self.up_args.backup}")
 
         times.record_time("backup", time.time() - start_time)
 
@@ -205,7 +207,7 @@ class UpdateHeurVRLHERABC(UpdateHeurVRL[GoalSampleableFromState, FNsHV], UpdateH
         return self._inputs_ctgs_to_np(states, goals, ctgs_backup, times)
 
 
-@updater_factory.register_class("update_v_rl")
+@updater_factory.register_class("up_rl_v")
 class UpdateHeurVRLKeepGoal(UpdateHeurVRLKeepGoalABC[FNsHeurV]):
     @staticmethod
     def functions_type() -> Type[FNsHeurV]:
@@ -215,7 +217,7 @@ class UpdateHeurVRLKeepGoal(UpdateHeurVRLKeepGoalABC[FNsHeurV]):
         return FNsHeurV(self.get_heur_fn())
 
 
-@updater_factory.register_class("update_v_rl_her")
+@updater_factory.register_class("up_her_v")
 class UpdateHeurVRLHER(UpdateHeurVRLHERABC[FNsHeurV]):
     @staticmethod
     def functions_type() -> Type[FNsHeurV]:
@@ -225,7 +227,7 @@ class UpdateHeurVRLHER(UpdateHeurVRLHERABC[FNsHeurV]):
         return FNsHeurV(self.get_heur_fn())
 
 
-@updater_factory.register_class("update_v_p_rl")
+@updater_factory.register_class("up_rl_v_p")
 class UpdateHeurVRLKeepGoalPolicy(UpdateHeurVRLKeepGoalABC[FNsHeurVPolicy], UpdateHasPolicy[Domain, FNsHeurVPolicy, PathFindSetHeurV, InstanceNode]):
     @staticmethod
     def functions_type() -> Type[FNsHeurVPolicy]:
@@ -235,7 +237,7 @@ class UpdateHeurVRLKeepGoalPolicy(UpdateHeurVRLKeepGoalABC[FNsHeurVPolicy], Upda
         return FNsHeurVPolicy(self.get_heur_fn(), self.get_policy_fn())
 
 
-@updater_factory.register_class("update_v_p_rl_her")
+@updater_factory.register_class("up_her_v_p")
 class UpdateHeurVRLHERPolicy(UpdateHeurVRLHERABC[FNsHeurVPolicy], UpdateHasPolicy[Domain, FNsHeurVPolicy, PathFindSetHeurV, InstanceNode]):
     @staticmethod
     def functions_type() -> Type[FNsHeurVPolicy]:
@@ -243,3 +245,23 @@ class UpdateHeurVRLHERPolicy(UpdateHeurVRLHERABC[FNsHeurVPolicy], UpdateHasPolic
 
     def _get_pathfind_functions(self) -> FNsHeurVPolicy:
         return FNsHeurVPolicy(self.get_heur_fn(), self.get_policy_fn())
+
+
+@updater_factory.register_parser("up_rl_v")
+class UpdateVRL(UpdateRLParser):
+    pass
+
+
+@updater_factory.register_parser("up_her_v")
+class UpdateVRLHER(UpdateRLParser):
+    pass
+
+
+@updater_factory.register_parser("up_rl_v_p")
+class UpdateVPRL(UpdateRLParser):
+    pass
+
+
+@updater_factory.register_parser("up_her_v_p")
+class UpdateVPRLHER(UpdateRLParser):
+    pass

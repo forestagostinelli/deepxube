@@ -12,7 +12,7 @@ from deepxube.pathfinding.supervised import PathFindNodeSup, PathFindEdgeSup, Pa
 import numpy as np
 
 
-@updater_factory.register_class("update_heurv_sup")
+@updater_factory.register_class("up_sup_v")
 class UpdateHeurVSup(UpdateHeurV[Domain, Any, PathFindNodeSup], UpdateSup[Domain, PathFindNodeSup, InstanceNode]):
     @staticmethod
     def domain_type() -> Type[Domain]:
@@ -35,7 +35,7 @@ class UpdateHeurVSup(UpdateHeurV[Domain, Any, PathFindNodeSup], UpdateSup[Domain
         return inputs_np + [np.array(ctgs_backup)]
 
 
-@updater_factory.register_class("update_heurq_sup")
+@updater_factory.register_class("up_sup_q")
 class UpdateHeurQSup(UpdateHeurQ[Domain, Any, PathFindEdgeSup], UpdateSup[Domain, PathFindEdgeSup, InstanceEdge]):
     @staticmethod
     def domain_type() -> Type[Domain]:
@@ -59,7 +59,7 @@ class UpdateHeurQSup(UpdateHeurQ[Domain, Any, PathFindEdgeSup], UpdateSup[Domain
         return inputs_np + [np.array(ctgs_backup)]
 
 
-@updater_factory.register_class("update_policy_sup")
+@updater_factory.register_class("up_sup_p")
 class UpdatePolicySup(UpdatePolicy[Domain, Any, PathFindEdgeSamp, InstanceEdge], UpdateSup[Domain, PathFindEdgeSamp, InstanceEdge]):
     @staticmethod
     def domain_type() -> Type[Domain]:
