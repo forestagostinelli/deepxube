@@ -47,6 +47,10 @@ class PathFindNodeSup(PathFindNode[NodesSupervisable, Any, InstanceNodeSup], Pat
     def domain_type() -> Type[NodesSupervisable]:
         return NodesSupervisable
 
+    @staticmethod
+    def description() -> str:
+        return "Labels nodes"
+
     def step(self, verbose: bool = False) -> Tuple[List[Node], List[EdgeQ]]:
         nodes: List[Node] = []
         for instance in self.instances:
@@ -91,6 +95,10 @@ class PathFindEdgeSup(PathFindEdge[EdgesSupervisable, Any, InstanceEdgeSup], Pat
     @staticmethod
     def domain_type() -> Type[EdgesSupervisable]:
         return EdgesSupervisable
+
+    @staticmethod
+    def description() -> str:
+        return "Labels edges"
 
     def step(self, verbose: bool = False) -> Tuple[List[Node], List[EdgeQ]]:
         edges: List[EdgeQ] = []
@@ -137,6 +145,10 @@ class PathFindEdgeSamp(PathFindEdge[EdgesSampleable, Any, InstanceEdgeSup], Path
     @staticmethod
     def domain_type() -> Type[EdgesSampleable]:
         return EdgesSampleable
+
+    @staticmethod
+    def description() -> str:
+        return "Gets problem instances and first edge to take from start state"
 
     def step(self, verbose: bool = False) -> Tuple[List[Node], List[EdgeQ]]:
         edges: List[EdgeQ] = []

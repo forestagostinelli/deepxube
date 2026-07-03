@@ -232,6 +232,11 @@ class PathFind(Generic[D, FNs, I], ABC):
     def functions_type() -> Type[FNs]:
         pass
 
+    @staticmethod
+    @abstractmethod
+    def description() -> str:
+        pass
+
     def __init__(self, domain: D, functions: FNs):
         assert isinstance(domain, self.domain_type()), f"Domain {domain} must be an instance of {self.domain_type()}."
         if self.functions_type() is not Any:
@@ -726,10 +731,9 @@ class PathFindActsEnum(PathFind[DActsEnum, FNs, I], ABC):
 
 
 class PathFindActsPolicy(PathFind[D, FNsP, I], ABC):
-    @property
-    @abstractmethod
-    def num_rand_edges(self) -> int:
-        pass
+    def __init__(self, *args: Any, num_rand_edges: int = 0, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self.num_rand_edges: int = num_rand_edges
 
     def expand_states(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
         actions_l: List[List[Action]] = self._get_actions(states, goals)

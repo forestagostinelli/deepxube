@@ -86,8 +86,8 @@ IBeam = TypeVar('IBeam', bound=InstanceBeam)
 
 
 class BeamSearch(PathFind[D, FNs, IBeam], ABC):
-    def __init__(self, domain: D, functions: FNs, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False):
-        super().__init__(domain, functions)
+    def __init__(self, *args: Any, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False, **kwargs: Any):
+        super().__init__(*args, **kwargs)
         self.beam_size_default: int = beam_size
         self.temp_default: float = temp
         self.eps_default: float = eps
@@ -148,9 +148,9 @@ class BeamSearchPolicy(BeamSearch[Domain, FNsPolicy, InstanceEdgeBeam], PathFind
     def functions_type() -> Type[FNsPolicy]:
         return FNsPolicy
 
-    @property
-    def num_rand_edges(self) -> int:
-        return 0
+    @staticmethod
+    def description() -> str:
+        return "Beam search with policy that samples edges with corresponding probabilities"
 
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True,
                        beam_size: Optional[int] = None, temp: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceEdgeBeam]:
@@ -221,6 +221,9 @@ class BeamSearchHeurNodeActsEnum(BeamSearchHeurNode[ActsEnum, FNsHeurV], PathFin
     def functions_type() -> Type[FNsHeurV]:
         return FNsHeurV
 
+    @staticmethod
+    def description() -> str:
+        return "Beam search with heuristic that prioritizes nodes"
 
 @pathfinding_factory.register_class("beam_q")
 class BeamSearchHeurEdgeActsEnum(BeamSearchHeurEdge[ActsEnum, FNsHeurQ], PathFindActsEnum[ActsEnum, FNsHeurQ, InstanceEdgeBeam]):
@@ -232,18 +235,13 @@ class BeamSearchHeurEdgeActsEnum(BeamSearchHeurEdge[ActsEnum, FNsHeurQ], PathFin
     def functions_type() -> Type[FNsHeurQ]:
         return FNsHeurQ
 
+    @staticmethod
+    def description() -> str:
+        return "Beam search with heuristic that prioritizes edges"
+
 
 @pathfinding_factory.register_class("beam_v_p")
 class BeamSearchHeurNodeActsPolicy(BeamSearchHeurNode[Domain, FNsHeurVPolicy], PathFindActsPolicy[Domain, FNsHeurVPolicy, InstanceNodeBeam]):
-    def __init__(self, domain: Domain, functions: FNsHeurVPolicy, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False,
-                 num_rand_edges: int = 0):
-        super().__init__(domain, functions, beam_size=beam_size, temp=temp, eps=eps, rollout=rollout)
-        self._num_rand_edges = num_rand_edges
-
-    @property
-    def num_rand_edges(self) -> int:
-        return self._num_rand_edges
-
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -252,6 +250,10 @@ class BeamSearchHeurNodeActsPolicy(BeamSearchHeurNode[Domain, FNsHeurVPolicy], P
     def functions_type() -> Type[FNsHeurVPolicy]:
         return FNsHeurVPolicy
 
+    @staticmethod
+    def description() -> str:
+        return "Beam search with heuristic that prioritizes nodes and policy that samples edges"
+
     def __repr__(self) -> str:
         return (f"{type(self).__name__}(beam_size={self.beam_size_default}, temp={self.temp_default}, eps={self.eps_default}, rollout={self.rollout}, "
                 f"num_rand_edges={self.num_rand_edges})")
@@ -259,15 +261,6 @@ class BeamSearchHeurNodeActsPolicy(BeamSearchHeurNode[Domain, FNsHeurVPolicy], P
 
 @pathfinding_factory.register_class("beam_q_p")
 class BeamSearchHeurEdgeActsPolicy(BeamSearchHeurEdge[Domain, FNsHeurQPolicy], PathFindActsPolicy[Domain, FNsHeurQPolicy, InstanceEdgeBeam]):
-    def __init__(self, domain: Domain, functions: FNsHeurQPolicy, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False,
-                 num_rand_edges: int = 0):
-        super().__init__(domain, functions, beam_size=beam_size, temp=temp, eps=eps, rollout=rollout)
-        self._num_rand_edges = num_rand_edges
-
-    @property
-    def num_rand_edges(self) -> int:
-        return self._num_rand_edges
-
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -275,6 +268,10 @@ class BeamSearchHeurEdgeActsPolicy(BeamSearchHeurEdge[Domain, FNsHeurQPolicy], P
     @staticmethod
     def functions_type() -> Type[FNsHeurQPolicy]:
         return FNsHeurQPolicy
+
+    @staticmethod
+    def description() -> str:
+        return "Beam search with heuristic that prioritizes edges and policy that samples edges"
 
     def __repr__(self) -> str:
         return (f"{type(self).__name__}(beam_size={self.beam_size_default}, temp={self.temp_default}, eps={self.eps_default}, rollout={self.rollout}, "

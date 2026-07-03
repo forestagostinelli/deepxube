@@ -97,8 +97,8 @@ IGraph = TypeVar('IGraph', bound=InstanceGraph)
 
 
 class GraphSearch(PathFind[D, FNs, IGraph], ABC):
-    def __init__(self, domain: D, functions: FNs, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0):
-        super().__init__(domain, functions)
+    def __init__(self, *args: Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, **kwargs: Any):
+        super().__init__(*args, **kwargs)
         self.batch_size_default: int = batch_size
         self.weight_default: float = weight
         self.eps_default: float = eps
@@ -198,6 +198,10 @@ class GraphSearchHeurNodeActsEnum(GraphSearchHeurNode[ActsEnum, FNsHeurV], PathF
     def functions_type() -> Type[FNsHeurV]:
         return FNsHeurV
 
+    @staticmethod
+    def description() -> str:
+        return "Graph search with heuristic that prioritizes nodes"
+
 
 @pathfinding_factory.register_class("graph_q")
 class GraphSearchHeurEdgeActsEnum(GraphSearchHeurEdge[ActsEnum, FNsHeurQ], PathFindActsEnum[ActsEnum, FNsHeurQ, InstanceEdgeGraph]):
@@ -209,17 +213,13 @@ class GraphSearchHeurEdgeActsEnum(GraphSearchHeurEdge[ActsEnum, FNsHeurQ], PathF
     def functions_type() -> Type[FNsHeurQ]:
         return FNsHeurQ
 
+    @staticmethod
+    def description() -> str:
+        return "Graph search with heuristic that prioritizes edges"
+
 
 @pathfinding_factory.register_class("graph_v_p")
 class GraphSearchHeurNodeActsPolicy(GraphSearchHeurNode[Domain, FNsHeurVPolicy], PathFindActsPolicy[Domain, FNsHeurVPolicy, InstanceNodeGraph]):
-    def __init__(self, domain: Domain, functions: FNsHeurVPolicy, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, num_rand_edges: int = 0):
-        super().__init__(domain, functions, batch_size=batch_size, weight=weight, eps=eps)
-        self._num_rand_edges: int = num_rand_edges
-
-    @property
-    def num_rand_edges(self) -> int:
-        return self._num_rand_edges
-
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -228,6 +228,10 @@ class GraphSearchHeurNodeActsPolicy(GraphSearchHeurNode[Domain, FNsHeurVPolicy],
     def functions_type() -> Type[FNsHeurVPolicy]:
         return FNsHeurVPolicy
 
+    @staticmethod
+    def description() -> str:
+        return "Graph search with heuristic that prioritizes nodes and policy that samples edges"
+
     def __repr__(self) -> str:
         return (f"{type(self).__name__}(batch_size={self.batch_size_default}, weight={self.weight_default}, eps={self.eps_default}, "
                 f"num_rand_edges={self.num_rand_edges})")
@@ -235,14 +239,6 @@ class GraphSearchHeurNodeActsPolicy(GraphSearchHeurNode[Domain, FNsHeurVPolicy],
 
 @pathfinding_factory.register_class("graph_q_p")
 class GraphSearchHeurEdgeActsPolicy(GraphSearchHeurEdge[Domain, FNsHeurQPolicy], PathFindActsPolicy[Domain, FNsHeurQPolicy, InstanceEdgeGraph]):
-    def __init__(self, domain: Domain, functions: FNsHeurQPolicy, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, num_rand_edges: int = 0):
-        super().__init__(domain, functions, batch_size=batch_size, weight=weight, eps=eps)
-        self._num_rand_edges: int = num_rand_edges
-
-    @property
-    def num_rand_edges(self) -> int:
-        return self._num_rand_edges
-
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -250,6 +246,10 @@ class GraphSearchHeurEdgeActsPolicy(GraphSearchHeurEdge[Domain, FNsHeurQPolicy],
     @staticmethod
     def functions_type() -> Type[FNsHeurQPolicy]:
         return FNsHeurQPolicy
+
+    @staticmethod
+    def description() -> str:
+        return "Graph search with heuristic that prioritizes edges and policy that samples edges"
 
     def __repr__(self) -> str:
         return (f"{type(self).__name__}(batch_size={self.batch_size_default}, weight={self.weight_default}, eps={self.eps_default}, "
