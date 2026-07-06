@@ -225,6 +225,7 @@ class BeamSearchHeurNodeActsEnum(BeamSearchHeurNode[ActsEnum, FNsHeurV], PathFin
     def description() -> str:
         return "Beam search with heuristic that prioritizes nodes"
 
+
 @pathfinding_factory.register_class("beam_q")
 class BeamSearchHeurEdgeActsEnum(BeamSearchHeurEdge[ActsEnum, FNsHeurQ], PathFindActsEnum[ActsEnum, FNsHeurQ, InstanceEdgeBeam]):
     @staticmethod
@@ -372,7 +373,9 @@ class BeamSearchEdgeHasPolicyParser(BeamSearchHasPolicyParser):
 
 @pathfinding_factory.register_class("rollout_p")
 class RolloutPolicy(BeamSearchPolicy):
-    pass
+    @staticmethod
+    def description() -> str:
+        return "Rollout policy put do not terminate if a goal is seen"
 
 
 class RolloutParser(Parser, ABC):
