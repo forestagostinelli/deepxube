@@ -98,10 +98,10 @@ IGraph = TypeVar('IGraph', bound=InstanceGraph)
 
 class GraphSearch(PathFind[D, FNs, IGraph], ABC):
     def __init__(self, *args: Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, **kwargs: Any):
-        super().__init__(*args, **kwargs)
         self.batch_size_default: int = batch_size
         self.weight_default: float = weight
         self.eps_default: float = eps
+        super().__init__(*args, **kwargs)
 
     def _construct_instances(self, inst_cls: type[IGraph], nodes_root: List[Node], inst_infos: Optional[List[Any]], batch_size: Optional[int],
                              weight: Optional[float], eps: Optional[float]) -> List[IGraph]:

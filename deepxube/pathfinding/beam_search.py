@@ -87,11 +87,11 @@ IBeam = TypeVar('IBeam', bound=InstanceBeam)
 
 class BeamSearch(PathFind[D, FNs, IBeam], ABC):
     def __init__(self, *args: Any, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False, **kwargs: Any):
-        super().__init__(*args, **kwargs)
         self.beam_size_default: int = beam_size
         self.temp_default: float = temp
         self.eps_default: float = eps
         self.rollout: bool = rollout
+        super().__init__(*args, **kwargs)
 
     def _construct_instances(self, inst_cls: type[IBeam], nodes_root: List[Node], inst_infos: Optional[List[Any]], beam_size: Optional[int],
                              temp: Optional[float], eps: Optional[float]) -> List[IBeam]:
