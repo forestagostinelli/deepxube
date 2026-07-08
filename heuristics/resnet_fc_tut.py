@@ -9,11 +9,11 @@ from deepxube.base.nnet_input import FlatIn
 from deepxube.base.heuristic import HeurNNet
 from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel, OneHot
 
-from deepxube.factories.heuristic_factory import heuristic_factory
+from deepxube.factories.heuristic_factory import deepxube_nnet_factory
 
 
 # start registration
-@heuristic_factory.register_class("resnet_fc_asym")
+@deepxube_nnet_factory.register_class("resnet_fc_asym")
 class ResnetFCHeur(HeurNNet[FlatIn]):
     @staticmethod
     def nnet_input_type() -> Type[FlatIn]:
@@ -93,7 +93,7 @@ class ResnetFCHeur(HeurNNet[FlatIn]):
 
 
 # start parser
-@heuristic_factory.register_parser("resnet_fc_asym")
+@deepxube_nnet_factory.register_parser("resnet_fc_asym")
 class ResnetFCParser(DelimParser):
     def __init__(self) -> None:
         super().__init__()

@@ -7,11 +7,10 @@ from deepxube.base.nnet_input import FlatIn, FlatInPolicy
 from deepxube.base.heuristic import HeurNNet, PolicyVAE
 from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel, OneHot, make_onehots
 
-from deepxube.factories.heuristic_factory import heuristic_factory
-from deepxube.factories.heuristic_factory import policy_factory
+from deepxube.factories.heuristic_factory import deepxube_nnet_factory
 
 
-@heuristic_factory.register_class("resnet_fc")
+@deepxube_nnet_factory.register_class("resnet_fc")
 class ResnetFCHeur(HeurNNet[FlatIn]):
     @staticmethod
     def nnet_input_type() -> Type[FlatIn]:
@@ -129,12 +128,12 @@ class ResnetFCParser(DelimParser):
         return "_"
 
 
-@heuristic_factory.register_parser("resnet_fc")
+@deepxube_nnet_factory.register_parser("resnet_fc")
 class ResnetFCParserHeur(ResnetFCParser):
     pass
 
 
-@policy_factory.register_parser("resnet_fc")
+@deepxube_nnet_factory.register_parser("resnet_fc_p")
 class ResnetFCParserPolicy(ResnetFCParser):
     def __init__(self) -> None:
         super().__init__()

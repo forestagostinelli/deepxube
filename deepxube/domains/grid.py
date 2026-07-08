@@ -7,7 +7,7 @@ from deepxube.base.domain import State, Action, Goal, ActsEnumFixed, StartGoalWa
 from deepxube.base.nnet_input import StateGoalIn, StateGoalActFixIn, StateGoalActIn, FlatIn
 from deepxube.base.heuristic import HeurNNet
 
-from deepxube.factories.heuristic_factory import heuristic_factory
+from deepxube.factories.heuristic_factory import deepxube_nnet_factory
 from deepxube.factories.domain_factory import domain_factory
 from deepxube.factories.nnet_input_factory import register_nnet_input
 
@@ -169,7 +169,7 @@ class GridNNetInput(StateGoalIn[Grid, GridState, GridGoal]):
         return [np_rep]
 
 
-@heuristic_factory.register_class("gridnet")
+@deepxube_nnet_factory.register_class("gridnet")
 class GridNet(HeurNNet[GridNNetInput]):
     @staticmethod
     def nnet_input_type() -> Type[GridNNetInput]:
@@ -193,7 +193,7 @@ class GridNet(HeurNNet[GridNNetInput]):
         return x
 
 
-@heuristic_factory.register_parser("gridnet")
+@deepxube_nnet_factory.register_parser("gridnet")
 class GridNetParser(DelimParser):
     def __init__(self) -> None:
         super().__init__()

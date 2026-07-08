@@ -8,10 +8,10 @@ from deepxube.base.nnet_input import TwoDIn
 from deepxube.base.heuristic import HeurNNet
 from deepxube.nnet.pytorch_models import Conv2dModel, ResnetModel, OneHot
 
-from deepxube.factories.heuristic_factory import heuristic_factory
+from deepxube.factories.heuristic_factory import deepxube_nnet_factory
 
 
-@heuristic_factory.register_class("resnet_2d")
+@deepxube_nnet_factory.register_class("resnet_2d")
 class Resnet2D(HeurNNet[TwoDIn]):
     @staticmethod
     def nnet_input_type() -> Type[TwoDIn]:
@@ -68,7 +68,7 @@ class Resnet2D(HeurNNet[TwoDIn]):
         return x
 
 
-@heuristic_factory.register_parser("resnet_2d")
+@deepxube_nnet_factory.register_parser("resnet_2d")
 class ResnetFCParser(Parser):
     def parse(self, args_str: str) -> Dict[str, Any]:
         args_str_l: List[str] = args_str.split("_")

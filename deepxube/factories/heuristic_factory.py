@@ -6,19 +6,18 @@ import numpy as np
 from deepxube.base.factory import Factory
 from deepxube.base.domain import Domain, State, Action, Goal, ActsEnumFixed
 from deepxube.base.nnet_input import NNetInput, StateGoalIn, StateGoalActFixIn, StateGoalActIn, PolicyNNetIn
-from deepxube.base.heuristic import HeurNNet, PolicyNNet, HeurNNetPar, PolicyNNetPar, HeurNNetParV, HeurNNetParQIn, HeurNNetParQFixOut
+from deepxube.base.heuristic import DeepXubeNNet, HeurNNet, PolicyNNet, HeurNNetPar, PolicyNNetPar, HeurNNetParV, HeurNNetParQIn, HeurNNetParQFixOut
 
 from numpy.typing import NDArray
 
 from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys, get_nnet_input_t
 from deepxube.utils.command_line_utils import get_name_args
 
-heuristic_factory: Factory[HeurNNet] = Factory[HeurNNet]("HeurNNet")
-policy_factory: Factory[PolicyNNet] = Factory[PolicyNNet]("PolicyNNet")
+deepxube_nnet_factory: Factory[DeepXubeNNet] = Factory[DeepXubeNNet]("DeepXubeNNet")
 
 
 def build_heur_nnet_par(domain: Domain, domain_name: str, nnet_name: str, nnet_kwargs: Dict[str, Any], heur_type: str) -> HeurNNetPar:
-    nnet_input_t: Type[NNetInput] = heuristic_factory.get_type(nnet_name).nnet_input_type()
+    nnet_input_t: Type[NNetInput] = deepxube_nnet_factory.get_type(nnet_name).nnet_input_type()
     nnet_input_domain_keys: List[Tuple[str, str]] = get_domain_nnet_input_keys(domain_name)
 
     for nnet_input_domain_key in nnet_input_domain_keys:
@@ -66,7 +65,7 @@ class HeurNNetParFacClass(HeurNNetPar, ABC):
         nnet_params['nnet_input'] = self._get_nnet_input()
         nnet_params['q_fix'] = self.q_fix
         nnet_params['out_dim'] = self.out_dim
-        return heuristic_factory.build_class(self.nnet_name, nnet_params)
+        return deepxube_nnet_factory.build_class(self.nnet_name, nnet_params)
 
     def _get_nnet_input(self) -> NNetInput:
         if self.nnet_input is None:
@@ -160,8 +159,8 @@ class PolicyNNetParConcrete(PolicyNNetParFacClass):
 
 def get_heur_nnet_par_from_arg(domain: Domain, domain_name: str, heur: str, heur_type: str) -> Tuple[HeurNNetPar, str]:
     nnet_name, nnet_args = get_name_args(heur)
-    heuristic_factory.get_type(nnet_name)  # to ensure existence
-    nnet_kwargs: Dict[str, Any] = heuristic_factory.get_kwargs(nnet_name, nnet_args)
+    deepxube_nnet_factory.get_type(nnet_name)  # to ensure existence
+    nnet_kwargs: Dict[str, Any] = deepxube_nnet_factory.get_kwargs(nnet_name, nnet_args)
     nnet_par: HeurNNetPar = build_heur_nnet_par(domain, domain_name, nnet_name, nnet_kwargs, heur_type)
     return nnet_par, nnet_name
 
