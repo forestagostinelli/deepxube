@@ -228,7 +228,7 @@ class Train(Generic[NNet, Up], ABC):
             self.nnet = cast(NNet, nn.DataParallel(self.nnet))
 
         # init data buffer
-        shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = self._get_shapes_dtypes()
+        shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = self.updater.get_train_shapes_dtypes()
         db_shapes: List[Tuple[int, ...]] = [x[0] for x in shapes_dtypes]
         db_dtypes: List[np.dtype] = [x[1] for x in shapes_dtypes]
         self.db: DataBuffer = DataBuffer(self.train_args.batch_size * self.train_args.get_up_gen_itrs(), db_shapes, db_dtypes)
@@ -426,8 +426,4 @@ class Train(Generic[NNet, Up], ABC):
 
     @abstractmethod
     def _add_post_up_info(self) -> List[str]:
-        pass
-
-    @abstractmethod
-    def _get_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         pass

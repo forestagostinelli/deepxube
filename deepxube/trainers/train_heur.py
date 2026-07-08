@@ -48,6 +48,3 @@ class TrainHeur(Train[HeurNNet, UpdateHeur]):
         self.writer.add_scalar("train/ctgs/min", ctgs_min, self.status.itr)
         self.writer.add_scalar("train/ctgs/max", ctgs_max, self.status.itr)
         return [f"cost-to-go (mean/min/max): {ctgs_mean:.2f}/{ctgs_min:.2f}/{ctgs_max:.2f}"]
-
-    def _get_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
-        return self.updater.get_heur_train_shapes_dtypes()

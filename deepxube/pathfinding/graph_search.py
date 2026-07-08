@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Any, Type, Optional, TypeVar, Generic, Tuple, Dict
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, ActsEnum, State, Goal
-from deepxube.base.pathfinding import (Instance, InstanceNode, InstanceEdge, Node, EdgeQ, FNs, FNsHV, FNsHQ, PathFind, PathFindNode, PathFindEdge, PathFindActsPolicy, PathFindSetHeurV, PathFindSetHeurQ,
+from deepxube.base.pathfinding import (Instance, InstanceNode, InstanceEdge, Node, EdgeQ, FNsT, FNsHV, FNsHQ, PathFind, PathFindNode, PathFindEdge, PathFindActsPolicy, PathFindSetHeurV, PathFindSetHeurQ,
                                        PathFindActsEnum)
 from deepxube.base.nnet_fns import FNsHeurV, FNsHeurQ, FNsHeurVPolicy, FNsHeurQPolicy
 from deepxube.factories.pathfinding_factory import pathfinding_factory
@@ -96,7 +96,7 @@ D = TypeVar('D', bound=Domain)
 IGraph = TypeVar('IGraph', bound=InstanceGraph)
 
 
-class GraphSearch(PathFind[D, FNs, IGraph], ABC):
+class GraphSearch(PathFind[D, FNsT, IGraph], ABC):
     def __init__(self, *args: Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, **kwargs: Any):
         self.batch_size_default: int = batch_size
         self.weight_default: float = weight

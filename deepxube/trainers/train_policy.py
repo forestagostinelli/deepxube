@@ -29,6 +29,3 @@ class TrainPolicy(Train[PolicyNNet, UpdatePolicy]):
 
     def _add_post_up_info(self) -> List[str]:
         return []
-
-    def _get_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
-        return self.updater.get_policy_train_shapes_dtypes()
