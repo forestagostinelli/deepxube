@@ -5,7 +5,8 @@ import numpy as np
 from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, GoalSampleableFromState, State, Goal
-from deepxube.base.pathfinding import FNsHV, FNsHeurV, FNsHeurVPolicy, PathFindSetHeurV, Node, InstanceNode
+from deepxube.base.pathfinding import FNsHV, PathFindSetHeurV, Node, InstanceNode
+from deepxube.base.nnet_fns import FNsHeurV, FNsHeurVPolicy
 from deepxube.base.updater import UpdateHER, UpdateHasPolicy, UpdateHeurV, UpdateRL, D, UpdateRLParser
 from deepxube.factories.updater_factory import updater_factory
 from deepxube.updaters.utils.replay_buffer_utils import ReplayBufferV

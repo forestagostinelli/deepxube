@@ -1,8 +1,8 @@
 from typing import List, Type, Optional, Any, Tuple, Dict
 from deepxube.base.factory import Factory
 from deepxube.base.domain import Domain
-from deepxube.base.heuristic import HeurFn, HeurFnV, HeurFnQ, PolicyFn
-from deepxube.base.pathfinding import PathFind, FNsHeurV, FNsHeurQ, FNsPolicy, FNsHeurVPolicy, FNsHeurQPolicy
+from deepxube.base.pathfinding import PathFind
+from deepxube.base.nnet_fns import HeurFn, HeurFnV, HeurFnQ, PolicyFn, FNsHeurV, FNsHeurQ, FNsPolicy, FNsHeurVPolicy, FNsHeurQPolicy
 from deepxube.utils.command_line_utils import get_name_args
 
 pathfinding_factory: Factory[PathFind] = Factory[PathFind]("PathFind")

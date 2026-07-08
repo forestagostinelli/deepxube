@@ -2,9 +2,9 @@ from abc import ABC, abstractmethod
 from typing import List, Any, Type, Optional, TypeVar, Dict
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, ActsEnum, State, Goal
-from deepxube.base.pathfinding import (Instance, InstanceNode, InstanceEdge, Node, EdgeQ, FNs, FNsHV, FNsHQ, FNsPolicy, FNsHeurQ, FNsHeurV, FNsHeurQPolicy,
-                                       FNsHeurVPolicy, PathFind, PathFindNode, PathFindEdge, PathFindActsPolicy, PathFindSetPolicy, PathFindSetHeurV,
-                                       PathFindSetHeurQ, PathFindActsEnum)
+from deepxube.base.pathfinding import (Instance, InstanceNode, InstanceEdge, Node, EdgeQ, FNs, FNsHV, FNsHQ, PathFind, PathFindNode, PathFindEdge,
+                                       PathFindActsPolicy, PathFindSetPolicy, PathFindSetHeurV, PathFindSetHeurQ, PathFindActsEnum)
+from deepxube.base.nnet_fns import FNsHeurV, FNsHeurQ, FNsPolicy, FNsHeurVPolicy, FNsHeurQPolicy
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.utils.misc_utils import boltzmann
 import numpy as np
