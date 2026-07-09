@@ -1,6 +1,6 @@
-from typing import Dict, Any, Generic, TypeVar, Type, Callable, Optional, List, Tuple
+from typing import Dict, Any, Generic, TypeVar, Type, Callable, Optional, List, Tuple, Iterator, cast
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 import logging
 
 
@@ -176,3 +176,31 @@ class Factory(Generic[T]):
 
     def get_all_class_names(self) -> List[str]:
         return list(self._class_registry.keys())
+
+
+O = TypeVar("O")
+
+
+@dataclass(frozen=True, slots=True)
+class NamedObjects(Generic[O], ABC):
+    @staticmethod
+    @abstractmethod
+    def object_type() -> Type[O]:
+        pass
+
+    def items(self) -> Iterator[tuple[str, O]]:
+        for field in fields(self):
+            yield field.name, cast(O, getattr(self, field.name))
+
+    def values(self) -> Iterator[O]:
+        for _, value in self.items():
+            yield value
+
+    def names(self) -> Iterator[str]:
+        for name, _ in self.items():
+            yield name
+
+    def __post_init__(self) -> None:
+        for name, value in self.items():
+            if not isinstance(value, self.object_type()):
+                raise TypeError(f"{name} must be a {self.object_type().__name__}, got {type(value).__name__}")

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Optional, Any, Callable, TypeVar, Generic
+from typing import List, Tuple, Optional, Any, Callable, TypeVar, Generic, cast
 from dataclasses import dataclass
 
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd, combine_l_l
@@ -7,10 +7,9 @@ import numpy as np
 from numpy.typing import NDArray
 import os
 import torch
-from torch import nn
+from torch import nn, Tensor
 from collections import OrderedDict
 import re
-from torch import Tensor
 from torch.multiprocessing import Queue, get_context
 from multiprocessing.process import BaseProcess
 
@@ -201,55 +200,12 @@ def start_nnet_fn_runners(get_nnet: Callable[[], nn.Module], nnet_par_infos: Lis
     return nnet_procs
 
 
-def stop_nnet_runners(nnet_fn_procs: List[BaseProcess], nnet_par_infos: List[NNetParInfo]) -> None:
+def stop_nnet_fn_runners(nnet_fn_procs: List[BaseProcess], nnet_par_infos: List[NNetParInfo]) -> None:
     for _ in nnet_fn_procs:
         nnet_par_infos[0].nnet_i_q.put((None, None))
 
     for heur_fn_proc in nnet_fn_procs:
         heur_fn_proc.join()
-
-
-NNetCallable = Callable[..., Any]
-NNetFn = TypeVar('NNetFn', bound=NNetCallable)
-
-
-class NNetPar(ABC, Generic[NNetFn]):
-    """ A neural network that can be called from other processes """
-    @abstractmethod
-    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device, update_num: Optional[int]) -> NNetFn:
-        """
-
-        :param nnet: Neural network module
-        :param batch_size: Maximum number of inputs to pass to neural network at a time. Loops until all inputs are given. If None, all inputs are given
-        at once, no matter how large.
-        :param device: Device that the neural network is on
-        :param update_num: Update number (only relevant for training)
-        :return: Neural network function
-        """
-        pass
-
-    @abstractmethod
-    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> NNetFn:
-        """
-
-        :param nnet_par_info: Information of neural network which may exist on a different process
-        :param update_num: Update number (only relevant for training)
-        :return: Neural network function
-        """
-        pass
-
-    @abstractmethod
-    def get_nnet(self) -> nn.Module:
-        """
-
-        :return: Neural network module
-        """
-        pass
-
-    def __repr__(self) -> str:
-        nnet: nn.Module = self.get_nnet()
-        num_trainable = sum(p.numel() for p in nnet.parameters() if p.requires_grad)
-        return f"{nnet}\nNumber of trainable parameters: {format(num_trainable, ',')}"
 
 
 def get_nnet_par_out(inputs_nnet: List[NDArray], nnet_par_info: NNetParInfo) -> List[NDArray]:
@@ -266,3 +222,129 @@ def get_nnet_par_out(inputs_nnet: List[NDArray], nnet_par_info: NNetParInfo) -> 
         arr_shm.unlink()
 
     return out_l
+
+
+NNetCallable = Callable[..., Any]
+NNetFn = TypeVar('NNetFn', bound=NNetCallable)
+Ctx = TypeVar("Ctx")
+
+
+@dataclass(frozen=True)
+class ProcessedInput(Generic[Ctx]):
+    inputs_nnet: List[NDArray]
+    ctx: Ctx
+
+
+class NNetPar(ABC, Generic[NNetFn, Ctx]):
+    """ A neural network that can be called from other processes """
+    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device, update_num: Optional[int]) -> NNetFn:
+        """
+
+        :param nnet: Neural network module, assumed to take a List of NDArrays as input
+        :param batch_size: Maximum number of inputs to pass to neural network at a time. Loops until all inputs are given. If None, all inputs are given
+        at once, no matter how large.
+        :param device: Device that the neural network is on
+        :param update_num: Update number (only relevant for training)
+        :return: Neural network function
+        """
+        nnet.eval()
+
+        def nnet_fn(*args: Any) -> Any:
+            processed_input: ProcessedInput[Ctx] = self.process_inputs(*args)
+            outs: List[NDArray[np.float64]] = nnet_batched(nnet, processed_input.inputs_nnet, batch_size, device)
+
+            return self.process_outputs(outs, update_num, processed_input.ctx)
+
+        return cast(NNetFn, nnet_fn)
+
+    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> NNetFn:
+        """
+
+        :param nnet_par_info: Information of neural network which may exist on a different process
+        :param update_num: Update number (only relevant for training)
+        :return: Neural network function
+        """
+        def nnet_fn(*args: Any) -> Any:
+            processed_input: ProcessedInput[Ctx] = self.process_inputs(*args)
+            outs: List[NDArray[np.float64]] = get_nnet_par_out(processed_input.inputs_nnet, nnet_par_info)
+
+            return self.process_outputs(outs, update_num, processed_input.ctx)
+
+        return cast(NNetFn, nnet_fn)
+
+    @abstractmethod
+    def get_nnet(self) -> nn.Module:
+        """
+
+        :return: Neural network module, assumed to take a List of NDArrays as input
+        """
+        pass
+
+    @abstractmethod
+    def process_inputs(self, *args: Any) -> ProcessedInput[Ctx]:
+        pass
+
+    @abstractmethod
+    def process_outputs(self, outs: List[NDArray], update_num: Optional[int], ctx: Ctx) -> Any:
+        pass
+
+    def __repr__(self) -> str:
+        nnet: nn.Module = self.get_nnet()
+        num_trainable = sum(p.numel() for p in nnet.parameters() if p.requires_grad)
+        return f"{nnet}\nNumber of trainable parameters: {format(num_trainable, ',')}"
+
+
+NNF = TypeVar('NNF', bound=NNetCallable)
+NNP = TypeVar('NNP', bound=NNetPar)
+
+
+class NNetParRunner(Generic[NNF, NNP]):
+    def __init__(self, nnet_par: NNP, nnet_file: str):
+        self.nnet_par: NNP = nnet_par
+        self.nnet_file: str = nnet_file
+        self.nnet_fn: Optional[NNF] = None
+        self.nnet_par_info: Optional[NNetParInfo] = None
+        self.nnet_par_info_l: Optional[List[NNetParInfo]] = None
+        self.nnet_runner_proc_l: Optional[List[BaseProcess]] = None
+        self.targ_update_num: int = 0
+
+    def get_nnet_par_infos(self, proc_idx: int) -> NNetParInfo:
+        assert self.nnet_par_info_l is not None
+        return self.nnet_par_info_l[proc_idx]
+
+    def get_nnet_fn(self) -> NNF:
+        assert self.nnet_fn is not None
+        return self.nnet_fn
+
+    def set_targ_update_num(self, targ_update_num: int) -> None:
+        self.targ_update_num = targ_update_num
+
+    def set_nnet_par_info_l(self, num_procs: int) -> None:
+        assert self.nnet_runner_proc_l is None
+        self.nnet_par_info_l = get_nnet_par_infos(num_procs)
+
+    def set_nnet_par_info(self, nnet_par_info: NNetParInfo) -> None:
+        assert self.nnet_par_info is None
+        self.nnet_par_info = nnet_par_info
+
+    def start_nnet_runners(self, device: torch.device, on_gpu: bool, nnet_batch_size: Optional[int]) -> None:
+        assert self.nnet_par_info_l is not None
+        assert self.nnet_runner_proc_l is None
+        self.nnet_runner_proc_l = start_nnet_fn_runners(self.nnet_par.get_nnet, self.nnet_par_info_l, self.nnet_file, device, on_gpu,
+                                                        batch_size=nnet_batch_size)
+
+    def init_nnet_fn(self) -> None:
+        assert self.nnet_fn is None
+        assert self.nnet_par_info is not None
+        self.nnet_fn = self.nnet_par.get_nnet_par_fn(self.nnet_par_info, self.targ_update_num)
+
+    def clear_nnet_fn(self) -> None:
+        assert self.nnet_fn is not None
+        self.nnet_fn = None
+
+    def stop_nnet_runners(self) -> None:
+        assert self.nnet_runner_proc_l is not None
+        assert self.nnet_par_info_l is not None
+        stop_nnet_fn_runners(self.nnet_runner_proc_l, self.nnet_par_info_l)
+
+        self.nnet_runner_proc_l = None

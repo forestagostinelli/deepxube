@@ -1,8 +1,9 @@
-from typing import List, Tuple
+from typing import List, Type
+from abc import ABC
 
 from deepxube.base.heuristic import HeurNNet
-from deepxube.base.updater import UpdateHeur
-from deepxube.base.trainer import Train, update_optimizer
+from deepxube.base.updater import UpdateHeurV, UpdateHeurQ
+from deepxube.base.trainer import Train, Up, update_optimizer
 from deepxube.utils.timing_utils import Times
 from deepxube.trainers.utils.train_utils import train_nnet_step, ctgs_summary
 
@@ -11,7 +12,7 @@ from numpy.typing import NDArray
 import time
 
 
-class TrainHeur(Train[HeurNNet, UpdateHeur]):
+class TrainHeur(Train[HeurNNet, Up], ABC):
     @staticmethod
     def data_parallel() -> bool:
         return True
@@ -20,11 +21,9 @@ class TrainHeur(Train[HeurNNet, UpdateHeur]):
     def nnet_name() -> str:
         return "heur"
 
-    def _set_updater_nnet_files(self) -> None:
-        self.updater.set_heur_file(self.nnet_targ_file)
-
-    def _set_targ_update_num(self) -> None:
-        self.updater.set_targ_update_num(self.updater.heur_name(), self.status.targ_update_num)
+    @staticmethod
+    def nnet_type() -> Type[HeurNNet]:
+        return HeurNNet
 
     def _train_itr(self, batch: List[NDArray], first_itr_in_update: bool, times: Times) -> float:
         start_time = time.time()
@@ -48,3 +47,12 @@ class TrainHeur(Train[HeurNNet, UpdateHeur]):
         self.writer.add_scalar("train/ctgs/min", ctgs_min, self.status.itr)
         self.writer.add_scalar("train/ctgs/max", ctgs_max, self.status.itr)
         return [f"cost-to-go (mean/min/max): {ctgs_mean:.2f}/{ctgs_min:.2f}/{ctgs_max:.2f}"]
+
+
+class TrainHeurV(TrainHeur[UpdateHeurV]):
+    @staticmethod
+    def updater_type() -> Type[UpdateHeurV]:
+        return UpdateHeurV
+
+    def _set_targ_update_num(self) -> None:
+        self.updater.set_targ_update_num("heurv", self.status.targ_update_num)

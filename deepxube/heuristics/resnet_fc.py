@@ -52,7 +52,7 @@ class ResnetFCHeur(HeurNNet[FlatIn]):
         return x
 
 
-@policy_factory.register_class("resnet_fc")
+@deepxube_nnet_factory.register_class("resnet_fc_p")
 class ResnetFCPolicy(PolicyVAE[FlatInPolicy]):
     @staticmethod
     def nnet_input_type() -> Type[FlatInPolicy]:

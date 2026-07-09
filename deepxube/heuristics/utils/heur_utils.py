@@ -1,26 +1,26 @@
 from typing import List, Tuple
 from deepxube.base.domain import Domain, State, Action, Goal
-from deepxube.base.heuristic import HeurFn, HeurFnV, HeurFnQ, PolicyFn
+from deepxube.base.nnet_fn import HeurFn, HeurVFn, HeurQFn, PolicyFn
 from deepxube.utils import misc_utils
 
 
 def get_zero_heur(heur_type: str) -> HeurFn:
     heur_fn: HeurFn
     if heur_type.upper() == "V":
-        class HeurFnZerosV(HeurFnV):
+        class HeurZerosVFn(HeurVFn):
             def __call__(self, states_in: List[State], goals_in: List[Goal]) -> List[float]:
                 return [0.0] * len(states_in)
 
-        heur_fn = HeurFnZerosV()
+        heur_fn = HeurZerosVFn()
     elif heur_type.upper() in {"QFIX", "QIN"}:
-        class HeurFnZerosQ(HeurFnQ):
+        class HeurZerosQFn(HeurQFn):
             def __call__(self, states_in: List[State], goals_in: List[Goal], actions_l_in: List[List[Action]]) -> List[List[float]]:
                 heur_vals_l: List[List[float]] = []
                 for actions_in in actions_l_in:
                     heur_vals_l.append([0.0] * len(actions_in))
                 return heur_vals_l
 
-        heur_fn = HeurFnZerosQ()
+        heur_fn = HeurZerosQFn()
     else:
         raise ValueError(f"Unknown heur type {heur_type}")
 

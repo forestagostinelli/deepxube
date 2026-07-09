@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple, Any, Generic, TypeVar, Optional, cast, Type
+from typing import List, Dict, Tuple, Any, Generic, TypeVar, Optional, cast, Type, ClassVar
 from abc import ABC, abstractmethod
 import time
 from dataclasses import dataclass
@@ -10,24 +10,23 @@ import numpy as np
 import torch
 from numpy.typing import NDArray
 
-from deepxube.nnet.nnet_utils import NNetParInfo, NNetCallable, NNetPar, get_nnet_par_infos, start_nnet_fn_runners, stop_nnet_runners
+from deepxube.nnet.nnet_utils import NNetParInfo, NNetParRunner
 from deepxube.base.factory import DelimParser
 from deepxube.base.domain import Domain, State, Action, Goal, GoalSampleableFromState
-from deepxube.base.heuristic import HeurNNetPar, HeurNNetParV, HeurNNetParQ, HeurFn, HeurFnV, HeurFnQ, PolicyNNetPar, PolicyFn
-from deepxube.base.pathfinding import FNs, FNsP, FNsHV, FNsHQ, FNsHeur, PathFind, PathFindSup, Instance, InstanceNode, InstanceEdge, get_path, Node
+from deepxube.base.heuristic import DeepXubeNNet, HeurNNet, PolicyNNet
+from deepxube.base.nnet_fn import HeurVFn, HeurQFn, PolicyFn, FNsHeur
+from deepxube.base.nnet_par_fn import HeurVNNetPar, HeurQNNetPar, PolicyNNetPar, PolicyNNetParRunner, HeurVNNetParRunner, HeurQNNetParRunner
+from deepxube.base.pathfinding import FNsT, FNsP, PathFind, PathFindSup, Instance, InstanceNode, InstanceEdge, get_path, Node
 from deepxube.factories.pathfinding_factory import pathfinding_factory, get_pathfind_name_kwargs
 from deepxube.heuristics.utils.heur_utils import get_rand_policy
 from deepxube.pathfinding.utils.performance import PathFindPerf, print_pathfindperf
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd, get_nowait_noerr
 from deepxube.utils.misc_utils import split_evenly, split_evenly_w_max
 from deepxube.utils.timing_utils import Times
-import gc
 
+import gc
 import copy
 from torch.multiprocessing import get_context
-
-
-FNsH = TypeVar('FNsH', bound=FNsHeur)
 
 
 # TODO par nnets per GPU?
@@ -71,12 +70,15 @@ def _put_from_q(data_l: List[List[NDArray]], from_q: Queue, times: Times) -> Non
     times.record_time("put", time.time() - start_time)
 
 
-Inst = TypeVar('Inst', bound=Instance)
+InstT = TypeVar('InstT', bound=Instance)
 D = TypeVar('D', bound=Domain)
 P = TypeVar('P', bound=PathFind)
 
 
-class Update(Generic[D, FNs, P, Inst], ABC):
+class Update(Generic[D, FNsT, P, InstT], ABC):
+    declared_nnparrun_types: ClassVar[Dict[str, Type[NNetParRunner]]] = {}
+    nnparrun_types: ClassVar[Dict[str, Type[NNetParRunner]]] = {}
+
     @staticmethod
     @abstractmethod
     def domain_type() -> Type[D]:
@@ -84,7 +86,7 @@ class Update(Generic[D, FNs, P, Inst], ABC):
 
     @staticmethod
     @abstractmethod
-    def functions_type() -> Type[FNs]:
+    def functions_type() -> Type[FNsT]:
         pass
 
     @staticmethod
@@ -92,39 +94,58 @@ class Update(Generic[D, FNs, P, Inst], ABC):
     def pathfind_type() -> Type[P]:
         pass
 
+    @classmethod
+    def nnet_par_runs_type_okay(cls, nnet_par_run_dict: Dict[str, NNetParRunner]) -> bool:
+        if len(nnet_par_run_dict) != len(cls.nnparrun_types):
+            return False
+
+        for key, value_t in cls.nnparrun_types.items():
+            if key not in nnet_par_run_dict.keys():
+                return False
+            if not isinstance(nnet_par_run_dict[key], value_t):
+                return False
+
+        return True
+
     @staticmethod
-    def _update_perf(insts: List[Inst], step_to_pathperf: Dict[int, PathFindPerf]) -> None:
+    def _update_perf(insts: List[InstT], step_to_pathperf: Dict[int, PathFindPerf]) -> None:
         for inst in insts:
             step_num_inst: int = int(inst.inst_info[0])
             if step_num_inst not in step_to_pathperf.keys():
                 step_to_pathperf[step_num_inst] = PathFindPerf()
             step_to_pathperf[step_num_inst].update_perf(inst)
 
-    def __init__(self, domain: D, pathfind_arg: str, procs: int = 1, step_max: int = 100, search_itrs: int = 1,
-                 up_batch_size: Optional[int] = None, nnet_batch_size: Optional[int] = None, sync_main: bool = False, v: bool = False):
+    def __init__(self, domain: D, pathfind_arg: str, nnet_par_run_dict: Dict[str, NNetParRunner], procs: int = 1, step_max: int = 100, search_itrs: int = 1,
+                 up_batch_size: Optional[int] = None, nnet_batch_size: Optional[int] = None, sync_main: bool = False, v: bool = False, **kwargs: Any):
         self.domain: D = domain
+        assert isinstance(domain, self.domain_type()), f"Domain {domain} must be an instance of {self.domain_type()}."
+
         self.pathfind_arg: str = pathfind_arg
         pathfind_name, pathfind_kwargs = get_pathfind_name_kwargs(pathfind_arg)
+        pathfind_t: Type[PathFind] = pathfinding_factory.get_type(pathfind_name)
+        assert issubclass(pathfind_t, self.pathfind_type()), f"PathFind {pathfind_t} (name: {pathfind_name}) must be an subclass of {self.pathfind_type()}."
+
         self.pathfind_name: str = pathfind_name
         self.pathfind_kwargs: Dict[str, Any] = pathfind_kwargs
+
+        assert self.nnet_par_runs_type_okay(nnet_par_run_dict), f"{nnet_par_run_dict} not key/value typed appropriately as expected: {self.nnparrun_types}"
+        self.nnet_par_run_dict: Dict[str, NNetParRunner] = nnet_par_run_dict
 
         # kwargs
         self.up_args: UpArgs = UpArgs(procs=procs, step_max=step_max, search_itrs=search_itrs, up_batch_size=up_batch_size,
                                       nnet_batch_size=nnet_batch_size, sync_main=sync_main, v=v)
 
         # nnet objects
-        self.targ_update_nums: Dict[str, int] = dict()
-        self.nnet_par_dict: Dict[str, NNetPar] = dict()
-        self.nnet_file_dict: Dict[str, str] = dict()
+        # TODO redo domain nnet_pars
+        """
         for nnet_name, (nnet_file, nnet_par) in domain.get_nnet_par_dict().items():
             self.add_nnet_par(nnet_name, nnet_par)
             self.set_nnet_file(nnet_name, nnet_file)
-        self.nnet_par_info_dict: Dict[str, NNetParInfo] = dict()
         self.nnet_fn_dict: Dict[str, NNetCallable] = dict()
+        """
 
         # update objects
-        self.nnet_par_info_l_dict: Dict[str, List[NNetParInfo]] = dict()
-        self.nnet_runner_proc_l_dict: Dict[str, List[BaseProcess]] = dict()
+        self.targ_update_nums: Dict[str, int] = dict()
         self.procs: List[BaseProcess] = []
         self.to_q: Optional[Queue] = None
         self.from_q: Optional[Queue] = None
@@ -135,34 +156,50 @@ class Update(Generic[D, FNs, P, Inst], ABC):
         self.q_id: int = 0
         self.nnet_par_info_main: Optional[NNetParInfo] = None
 
-    def set_nnet_par_info_l_dict(self) -> None:
-        for nnet_name in self.nnet_par_dict.keys():
-            self.nnet_par_info_l_dict[nnet_name] = get_nnet_par_infos(self.up_args.procs)
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        # TODO check for collisions
+        super().__init_subclass__(**kwargs)
 
-    def start_nnet_runners(self, device: torch.device, on_gpu: bool) -> None:
-        for nnet_name, nnet_par in self.nnet_par_dict.items():
-            nnet_file: str = self.nnet_file_dict[nnet_name]
-            nnet_par_infos: List[NNetParInfo] = self.nnet_par_info_l_dict[nnet_name]
-            self.nnet_runner_proc_l_dict[nnet_name] = start_nnet_fn_runners(nnet_par.get_nnet, nnet_par_infos,
-                                                                            nnet_file, device, on_gpu,
-                                                                            batch_size=self.up_args.nnet_batch_size)
+        for key, value in cls.declared_nnparrun_types.items():
+            assert issubclass(value, NNetParRunner), f"All declared types must be subclasses of {NNetParRunner.__name__}"
+
+        merged: dict[str, type[NNetParRunner]] = {}
+
+        for base in reversed(cls.mro()[1:]):
+            merged.update(getattr(base, "nnparrun_types", {}))
+
+        merged.update(getattr(cls, "declared_nnparrun_types", {}))
+
+        cls.nnparrun_types = merged
+
+    @abstractmethod
+    def get_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
+        pass
+
+    @abstractmethod
+    def get_train_nnet(self) -> DeepXubeNNet:
+        pass
+
+    def set_nnet_par_info_l(self) -> None:
+        for nnet_name in self.nnet_par_run_dict.keys():
+            self.nnet_par_run_dict[nnet_name].set_nnet_par_info_l(self.up_args.procs)
 
     def set_nnet_par_info(self, nnet_name: str, nnet_par_info: NNetParInfo) -> None:
-        assert nnet_name in self.nnet_par_dict.keys(), f"{nnet_name} not in dict"
-        assert nnet_name in self.nnet_file_dict.keys(), f"{nnet_name} not in dict"
-        assert nnet_name not in self.nnet_par_info_dict.keys(), f"{nnet_name} already in dict"
-        self.nnet_par_info_dict[nnet_name] = nnet_par_info
+        self.nnet_par_run_dict[nnet_name].set_nnet_par_info(nnet_par_info)
 
-    def clear_nnet_fn_dict(self) -> None:
-        self.nnet_fn_dict = dict()
+    def start_nnet_runners(self, device: torch.device, on_gpu: bool) -> None:
+        for nnet_name, nnet_par_run in self.nnet_par_run_dict.items():
+            nnet_par_run.start_nnet_runners(device, on_gpu, self.up_args.nnet_batch_size)
 
-    def add_nnet_par(self, nnet_name: str, nnet_par: NNetPar) -> None:
-        assert nnet_name not in self.nnet_par_dict.keys(), f"{nnet_name} already in dict"
-        self.nnet_par_dict[nnet_name] = nnet_par
+    def init_nnet_fns(self) -> None:
+        for nnet_par_run in self.nnet_par_run_dict.values():
+            nnet_par_run.init_nnet_fn()
 
-    def set_nnet_file(self, nnet_name: str, nnet_file: str) -> None:
-        assert nnet_name in self.nnet_par_dict.keys(), f"{nnet_name} should already be in dict, but it is not"
-        self.nnet_file_dict[nnet_name] = nnet_file
+        # self.domain.set_nnet_fns(self.nnet_fn_dict)  # TODO set domain fns
+
+    def clear_nnet_fns(self) -> None:
+        for nnet_par_run in self.nnet_par_run_dict.values():
+            nnet_par_run.clear_nnet_fn()
 
     def set_main_qs(self, to_main_q: Queue, from_main_q: Queue, q_id: int) -> None:
         self.to_main_q = to_main_q
@@ -179,13 +216,13 @@ class Update(Generic[D, FNs, P, Inst], ABC):
         ctx = get_context("spawn")
         to_main_q: Queue = ctx.Queue()
         self.from_main_qs = []
-        self.set_nnet_par_info_l_dict()
+        self.set_nnet_par_info_l()
         for proc_idx, updater in enumerate(updaters):
             from_main_q: Queue = ctx.Queue(1)
             self.from_main_qs.append(from_main_q)
             updater.set_main_qs(to_main_q, from_main_q, proc_idx)
-            for nnet_name in self.nnet_par_info_l_dict.keys():
-                updater.set_nnet_par_info(nnet_name, self.nnet_par_info_l_dict[nnet_name][proc_idx])
+            for nnet_name in self.nnet_par_run_dict.keys():
+                updater.set_nnet_par_info(nnet_name, self.nnet_par_run_dict[nnet_name].get_nnet_par_infos(proc_idx))
 
         # get rb sizes
         rb_sizes_q: List[int] = [0] * len(updaters)
@@ -282,12 +319,10 @@ class Update(Generic[D, FNs, P, Inst], ABC):
             print_pathfindperf(step_to_pathperf)
 
         # clean up clean up everybody do your share
-        for nnet_name, nnet_par_infos in self.nnet_par_info_l_dict.items():
-            nnet_procs: List[BaseProcess] = self.nnet_runner_proc_l_dict[nnet_name]
-            stop_nnet_runners(nnet_procs, nnet_par_infos)
+        for nnet_par_run in self.nnet_par_run_dict.values():
+            nnet_par_run.stop_nnet_runners()
 
         self.num_generated = 0
-        self.nnet_runner_proc_l_dict = dict()
 
         return step_to_pathperf
 
@@ -303,14 +338,6 @@ class Update(Generic[D, FNs, P, Inst], ABC):
         self.procs = []
         self.to_q = None
         self.from_q = None
-
-    def initialize_fns(self) -> None:
-        for nnet_name in self.nnet_par_dict.keys():
-            nnet_par: NNetPar = self.nnet_par_dict[nnet_name]
-            nnet_par_info: NNetParInfo = self.nnet_par_info_dict[nnet_name]
-            targ_update_num: Optional[int] = self.targ_update_nums.get(nnet_name)
-            self.nnet_fn_dict[nnet_name] = nnet_par.get_nnet_par_fn(nnet_par_info, targ_update_num)
-        self.domain.set_nnet_fns(self.nnet_fn_dict)
 
     def get_pathfind(self) -> P:
         pathfind_kwargs: Dict[str, Any] = self.pathfind_kwargs.copy()
@@ -335,8 +362,8 @@ class Update(Generic[D, FNs, P, Inst], ABC):
 
             step_probs, targ_update_nums = data_q
             for nnet_name, targ_update_num in targ_update_nums.items():
-                self.set_targ_update_num(nnet_name, targ_update_num)
-            self.initialize_fns()
+                self.nnet_par_run_dict[nnet_name].set_targ_update_num(targ_update_num)
+            self.init_nnet_fns()
 
             step_to_pathperf: Dict[int, PathFindPerf] = dict()
             while True:
@@ -347,7 +374,7 @@ class Update(Generic[D, FNs, P, Inst], ABC):
                 pathfind: P = self.get_pathfind()
                 # self._set_pathfind_nnet_fns(pathfind)
 
-                insts_rem_last_itr: List[Inst] = []
+                insts_rem_last_itr: List[InstT] = []
                 put_from_q: List[List[NDArray]] = []
                 for _ in range(self.up_args.search_itrs):
                     # add instances
@@ -378,6 +405,7 @@ class Update(Generic[D, FNs, P, Inst], ABC):
 
                 times.add_times(pathfind.times, path=["pathfinding"])
 
+                # garbage collection
                 start_time = time.time()
                 del insts_rem_last_itr
                 del put_from_q
@@ -386,12 +414,12 @@ class Update(Generic[D, FNs, P, Inst], ABC):
                 times.record_time("gc", time.time() - start_time)
 
             from_q.put((times, step_to_pathperf))
-            self.clear_nnet_fn_dict()
+            self.clear_nnet_fns()
         self.to_main_q = None
         self.from_main_q = None
         self.nnet_par_info_main = None
 
-    def _add_instances(self, pathfind: P, insts_rem: List[Inst], batch_size: int, step_probs: List[int],
+    def _add_instances(self, pathfind: P, insts_rem: List[InstT], batch_size: int, step_probs: List[int],
                        times: Times) -> None:
         if (len(pathfind.instances) == 0) or (len(insts_rem) > 0):
             # get steps generate
@@ -408,7 +436,7 @@ class Update(Generic[D, FNs, P, Inst], ABC):
             inst_infos: List[Tuple[int]] = [(step_gen,) for step_gen in steps_gen]
             times.record_time("inst_info", time.time() - start_time)
 
-            instances: List[Inst] = self._make_instances(pathfind, steps_gen, inst_infos, times)
+            instances: List[InstT] = self._make_instances(pathfind, steps_gen, inst_infos, times)
 
             # add instances
             start_time = time.time()
@@ -424,25 +452,25 @@ class Update(Generic[D, FNs, P, Inst], ABC):
         pass
 
     @abstractmethod
-    def _get_pathfind_functions(self) -> FNs:
+    def _get_pathfind_functions(self) -> FNsT:
         pass
 
-    def _get_instance_data(self, instances: List[Inst], rb_size: int, times: Times) -> List[NDArray]:
+    def _get_instance_data(self, instances: List[InstT], rb_size: int, times: Times) -> List[NDArray]:
         if rb_size == 0:
             return self._get_instance_data_norb(instances, times)
         else:
             return self._get_instance_data_rb(instances, times)
 
     @abstractmethod
-    def _get_instance_data_norb(self, instances: List[Inst], times: Times) -> List[NDArray]:
+    def _get_instance_data_norb(self, instances: List[InstT], times: Times) -> List[NDArray]:
         pass
 
     @abstractmethod
-    def _get_instance_data_rb(self, instances: List[Inst], times: Times) -> List[NDArray]:
+    def _get_instance_data_rb(self, instances: List[InstT], times: Times) -> List[NDArray]:
         pass
 
     @abstractmethod
-    def _make_instances(self, pathfind: P, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[Inst]:
+    def _make_instances(self, pathfind: P, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[InstT]:
         pass
 
     @abstractmethod
@@ -453,21 +481,21 @@ class Update(Generic[D, FNs, P, Inst], ABC):
         return f"{type(self).__name__}, {self.up_args.__repr__()}"
 
 
-class UpdateHER(Update[GoalSampleableFromState, FNs, P, Inst], ABC):
+class UpdateHER(Update[GoalSampleableFromState, FNsT, P, InstT], ABC):
     def _step_sync_main(self, pathfind: P, times: Times) -> List[NDArray]:
         raise NotImplementedError("Cannot train with sync_main if also doing hindsight experience replay (HER) since goal relabeling is done after search is "
                                   "complete.")
 
-    def _get_instance_data_norb(self, instances: List[Inst], times: Times) -> List[NDArray]:
+    def _get_instance_data_norb(self, instances: List[InstT], times: Times) -> List[NDArray]:
         raise NotImplementedError("Must use replay buffer if doing HER.")
 
-    def _get_her_goals(self, instances: List[Inst], times: Times) -> Tuple[List[Inst], List[Goal]]:
+    def _get_her_goals(self, instances: List[InstT], times: Times) -> Tuple[List[InstT], List[Goal]]:
         """ If instance is not finisheed and solved, get deepest states out all nodes that have children + root node for relabeled goal.
             :return: Instances and their corresponding goals (order of instances changes)
         """
         # get states/goals or mark for goal relabeling
-        instances_goalkeep: List[Inst] = []
-        instances_relabel: List[Inst] = []
+        instances_goalkeep: List[InstT] = []
+        instances_relabel: List[InstT] = []
 
         rand_keeps: List[float] = cast(List[float], np.random.uniform(0, 1, size=len(instances)).tolist())
         for instance, rand_keep in zip(instances, rand_keeps):
@@ -513,64 +541,69 @@ class UpdateHER(Update[GoalSampleableFromState, FNs, P, Inst], ABC):
         return instances_goalkeep + instances_relabel, goals_goalkeep + goals_relabel
 
 
-HNet = TypeVar('HNet', bound=HeurNNetPar)
-H = TypeVar('H', bound=HeurFn)
+FNsH_T = TypeVar('FNsH_T', bound=FNsHeur)
 
 
-class UpdateHasHeur(Update[D, FNsH, P, Inst], Generic[D, FNsH, P, Inst, HNet, H], ABC):
-    @staticmethod
-    def heur_name() -> str:
-        return 'heur'
+class UpdateHasHeurV(Update[D, FNsT, P, InstT], ABC):
+    declared_nnparrun_types = {"heurv": HeurVNNetParRunner}
 
-    def set_heur_nnet(self, heur_nnet: HNet) -> None:
-        self.add_nnet_par(self.heur_name(), heur_nnet)
+    def get_heurv_nnet_par_runner(self) -> HeurVNNetParRunner:
+        return cast(HeurVNNetParRunner, self.nnet_par_run_dict["heurv"])
 
-    def set_heur_file(self, heur_file: str) -> None:
-        self.set_nnet_file(self.heur_name(), heur_file)
+    def get_heurv_nnet_par(self) -> HeurVNNetPar:
+        return self.get_heurv_nnet_par_runner().nnet_par
 
-    def get_heur_nnet_par(self) -> HNet:
-        return cast(HNet, self.nnet_par_dict[self.heur_name()])
+    def get_heurv_fn(self) -> HeurVFn:
+        return self._get_targ_heurv_fn()
 
-    def get_heur_fn(self) -> H:
-        return self._get_heur_fn_from_dict()
-
-    def _get_heur_fn_from_dict(self) -> H:
-        return cast(H, self.nnet_fn_dict[self.heur_name()])
+    def _get_targ_heurv_fn(self) -> HeurVFn:
+        return self.get_heurv_nnet_par_runner().get_nnet_fn()
 
 
-class UpdateHasPolicy(Update[D, FNsP, P, Inst], ABC):
+class UpdateHasHeurQ(Update[D, FNsT, P, InstT], ABC):
+    declared_nnparrun_types = {"heurq": HeurQNNetParRunner}
+
+    def get_heurq_nnet_par_runner(self) -> HeurQNNetParRunner:
+        return cast(HeurQNNetParRunner, self.nnet_par_run_dict["heurq"])
+
+    def get_heurq_nnet_par(self) -> HeurQNNetPar:
+        return self.get_heurq_nnet_par_runner().nnet_par
+
+    def get_heurq_fn(self) -> HeurQFn:
+        return self._get_targ_heurq_fn()
+
+    def _get_targ_heurq_fn(self) -> HeurQFn:
+        return self.get_heurq_nnet_par_runner().get_nnet_fn()
+
+
+class UpdateHasPolicy(Update[D, FNsP, P, InstT], ABC):
+    declared_nnparrun_types = {"policy": PolicyNNetParRunner}
+
     def __init__(self, *args: Any, policy_samp: int = 0, **kwargs: Any):
-        super().__init__(*args, **kwargs)
         self.policy_samp: int = policy_samp  # TODO set parser for arg or make cleaner
+        super().__init__(*args, **kwargs)
 
-    @staticmethod
-    def policy_name() -> str:
-        return 'policy'
-
-    def set_policy_nnet(self, policy_nnet: PolicyNNetPar) -> None:
-        self.add_nnet_par(self.policy_name(), policy_nnet)
-
-    def set_policy_file(self, policy_file: str) -> None:
-        self.set_nnet_file(self.policy_name(), policy_file)
+    def get_policy_nnet_par_runner(self) -> PolicyNNetParRunner:
+        return cast(PolicyNNetParRunner, self.nnet_par_run_dict["policy"])
 
     def get_policy_nnet_par(self) -> PolicyNNetPar:
-        return cast(PolicyNNetPar, self.nnet_par_dict[self.policy_name()])
+        return self.get_policy_nnet_par_runner().nnet_par
 
     def get_policy_fn(self) -> PolicyFn:
-        update_num: Optional[int] = self.targ_update_nums.get(self.policy_name())
+        update_num: Optional[int] = self.get_policy_nnet_par_runner().targ_update_num
         update_num_is_0: bool = (update_num is not None) and (update_num == 0)
 
-        if (self.policy_name() not in self.nnet_fn_dict) or update_num_is_0:
+        if update_num_is_0:
             assert self.policy_samp > 0
             return get_rand_policy(self.domain, self.policy_samp)
         else:
-            return cast(PolicyFn, self.nnet_fn_dict[self.policy_name()])
+            return self.get_policy_nnet_par_runner().get_nnet_fn()
 
 
 PS = TypeVar('PS', bound=PathFindSup)
 
 
-class UpdateSup(Update[D, Any, PS, Inst], ABC):
+class UpdateSup(Update[D, Any, PS, InstT], ABC):
     @staticmethod
     def functions_type() -> Type[Any]:
         return Any
@@ -581,13 +614,13 @@ class UpdateSup(Update[D, Any, PS, Inst], ABC):
     def _get_pathfind_functions(self) -> Any:
         return None
 
-    def _make_instances(self, pathfind: PS, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[Inst]:
+    def _make_instances(self, pathfind: PS, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[InstT]:
         return pathfind.make_instances_sup(steps_gen, inst_infos)
 
     def _step_sync_main(self, pathfind: PS, times: Times) -> List[NDArray]:
         raise NotImplementedError("No sync_main option for supervised update")
 
-    def _get_instance_data_rb(self, instances: List[Inst], times: Times) -> List[NDArray]:
+    def _get_instance_data_rb(self, instances: List[InstT], times: Times) -> List[NDArray]:
         raise NotImplementedError("No replay buffer used with supervised update")
 
     def _init_replay_buffer(self, max_size: int) -> None:
@@ -600,12 +633,12 @@ class UpRLArgs:
     lhbl: bool = False
 
 
-class UpdateRL(Update[D, FNs, P, Inst], ABC):
+class UpdateRL(Update[D, FNsT, P, InstT], ABC):
     def __init__(self, *args: Any, ub_heur_solns: bool = False, lhbl: bool = False, **kwargs: Any):
         self.up_rl_args: UpRLArgs = UpRLArgs(ub_heur_solns=ub_heur_solns, lhbl=lhbl)
         super().__init__(*args, **kwargs)
 
-    def _make_instances(self, pathfind: P, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[Inst]:
+    def _make_instances(self, pathfind: P, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[InstT]:
         # get states/goals
         times_states: Times = Times()
         states_gen, goals_gen = self.domain.sample_problem_instances(steps_gen, times=times_states)
@@ -614,24 +647,58 @@ class UpdateRL(Update[D, FNs, P, Inst], ABC):
         return pathfind.make_instances(states_gen, goals_gen, inst_infos=inst_infos, compute_root_vals=False)
 
 
-class UpdateHeur(UpdateHasHeur[D, FNsH, P, Inst, HNet, H]):
-    @abstractmethod
-    def get_heur_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
-        pass
+class UpdateHeurV(UpdateHasHeurV[D, FNsH_T, P, InstanceNode], ABC):
+    def get_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
+        states, goals = self.domain.sample_problem_instances([0])
+        inputs_nnet: List[NDArray[Any]] = self.get_heurv_nnet_par().process_inputs(states, goals).inputs_nnet
 
-    def get_heur_fn(self) -> H:
+        shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = []
+        for inputs_nnet_i in inputs_nnet:
+            shapes_dtypes.append((inputs_nnet_i[0].shape, inputs_nnet_i.dtype))
+        shapes_dtypes.append((tuple(), np.dtype(np.float64)))
+
+        return shapes_dtypes
+
+    def get_train_nnet(self) -> HeurNNet:
+        return self.get_heurv_nnet_par().get_nnet()
+
+    def get_heurv_fn(self) -> HeurVFn:
         if not self.up_args.sync_main:
-            return super().get_heur_fn()
+            return super().get_heurv_fn()
         else:
             assert self.nnet_par_info_main is not None
-            return cast(H, self.get_heur_nnet_par().get_nnet_par_fn(self.nnet_par_info_main, None))
-
-    def _get_targ_heur_fn(self) -> H:
-        return self._get_heur_fn_from_dict()
+            return cast(HeurVFn, self.get_heurv_nnet_par().get_nnet_par_fn(self.nnet_par_info_main, None))
 
 
-class UpdatePolicy(UpdateHasPolicy[D, FNsP, P, Inst], ABC):
-    def get_policy_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
+class UpdateHeurQ(UpdateHasHeurQ[D, FNsH_T, P, InstanceEdge], ABC):
+    def get_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
+        states, goals = self.domain.sample_problem_instances([0])
+        actions: List[Action] = self.domain.sample_state_action(states)
+        inputs_nnet: List[NDArray[Any]] = self.get_heurq_nnet_par().process_inputs(states, goals, [[action] for action in actions]).inputs_nnet
+
+        shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = []
+        for inputs_nnet_i in inputs_nnet:
+            shapes_dtypes.append((inputs_nnet_i[0].shape, inputs_nnet_i.dtype))
+        shapes_dtypes.append((tuple(), np.dtype(np.float64)))
+
+        return shapes_dtypes
+
+    def get_train_nnet(self) -> HeurNNet:
+        return self.get_heurq_nnet_par().get_nnet()
+
+    def get_heurq_fn(self) -> HeurQFn:
+        if not self.up_args.sync_main:
+            return super().get_heurq_fn()
+        else:
+            assert self.nnet_par_info_main is not None
+            return cast(HeurQFn, self.get_heurq_nnet_par().get_nnet_par_fn(self.nnet_par_info_main, None))
+
+
+class UpdatePolicy(UpdateHasPolicy[D, FNsP, P, InstT], ABC):
+    def get_train_nnet(self) -> PolicyNNet:
+        return self.get_policy_nnet_par().get_nnet()
+
+    def get_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.domain.sample_problem_instances([0])
         actions: List[Action] = self.domain.sample_state_action(states)
         inputs_nnet: List[NDArray[Any]] = self.get_policy_nnet_par().to_np_train(states, goals, actions)
@@ -647,33 +714,6 @@ class UpdatePolicy(UpdateHasPolicy[D, FNsP, P, Inst], ABC):
             return super().get_policy_fn()
         else:
             raise NotImplementedError("sync_main not yet implemented for policy_fn")
-
-
-class UpdateHeurV(UpdateHeur[D, FNsHV, P, InstanceNode, HeurNNetParV, HeurFnV], ABC):
-    def get_heur_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
-        states, goals = self.domain.sample_problem_instances([0])
-        inputs_nnet: List[NDArray[Any]] = self.get_heur_nnet_par().to_np(states, goals)
-
-        shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = []
-        for inputs_nnet_i in inputs_nnet:
-            shapes_dtypes.append((inputs_nnet_i[0].shape, inputs_nnet_i.dtype))
-        shapes_dtypes.append((tuple(), np.dtype(np.float64)))
-
-        return shapes_dtypes
-
-
-class UpdateHeurQ(UpdateHeur[D, FNsHQ, P, InstanceEdge, HeurNNetParQ, HeurFnQ], ABC):
-    def get_heur_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
-        states, goals = self.domain.sample_problem_instances([0])
-        actions: List[Action] = self.domain.sample_state_action(states)
-        inputs_nnet: List[NDArray[Any]] = self.get_heur_nnet_par().to_np(states, goals, [[action] for action in actions])
-
-        shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = []
-        for inputs_nnet_i in inputs_nnet:
-            shapes_dtypes.append((inputs_nnet_i[0].shape, inputs_nnet_i.dtype))
-        shapes_dtypes.append((tuple(), np.dtype(np.float64)))
-
-        return shapes_dtypes
 
 
 class UpdateParser(DelimParser):

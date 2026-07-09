@@ -1,19 +1,13 @@
 """ Definition of heuristic and policy neural networks and parallel functions """
 from abc import abstractmethod, ABC
-from typing import List, Any, TypeVar, Generic, cast, Tuple, Optional, Type, Protocol, runtime_checkable, Union
+from typing import List, Any, TypeVar, Tuple, Optional, Generic, Type
 
-import numpy as np
-from numpy.typing import NDArray
-
-from deepxube.base.domain import State, Goal, Action
 from deepxube.base.nnet_input import NNetInput, PolicyNNetIn
-from deepxube.nnet.nnet_utils import NNetParInfo, nnet_batched, NNetPar, get_nnet_par_out
-from deepxube.utils import misc_utils
 
 import torch
 from torch import nn, Tensor
-import torch.optim as optim
-from torch.optim.optimizer import Optimizer
+from torch import optim
+from torch.optim import Optimizer
 
 
 In = TypeVar('In', bound=NNetInput)
@@ -154,8 +148,8 @@ class PolicyNNet(DeepXubeNNet[PNNetIn], ABC):
     _forward_eval: Condition on states and goals to sample self.num_samp actions
     """
     def __init__(self, nnet_input: PNNetIn, num_samp: int, **kwargs: Any):
-        super().__init__(nnet_input)
         self.num_samp: int = num_samp
+        super().__init__(nnet_input)
 
 
 def _flatten_list(data_l: List[Tensor]) -> Tensor:
@@ -163,6 +157,16 @@ def _flatten_list(data_l: List[Tensor]) -> Tensor:
 
 
 class PolicyVAE(PolicyNNet[PNNetIn]):
+    @staticmethod
+    def _compute_recon_loss(action_proc: List[Tensor], actions_recon: List[Tensor]) -> Tensor:
+        loss_recons: List[Tensor] = []
+        for actions_proc_i, actions_recon_i in zip(action_proc, actions_recon):
+            mean_dims: Tuple[int, ...] = tuple(range(1, len(actions_proc_i.shape)))
+            loss_recon_i: Tensor = torch.mean((actions_recon_i - actions_proc_i) ** 2, dim=mean_dims)
+            loss_recons.append(loss_recon_i)
+
+        return torch.stack(loss_recons, dim=0).mean(dim=0)
+
     def __init__(self, nnet_input: PNNetIn, num_samp: int, kl_weight: float, **kwargs: Any):
         super().__init__(nnet_input, num_samp)
         self.norm_dist = torch.distributions.Normal(0, 1)
@@ -240,303 +244,5 @@ class PolicyVAE(PolicyNNet[PNNetIn]):
         :return:
         """
 
-    def _compute_recon_loss(self, action_proc: List[Tensor], actions_recon: List[Tensor]) -> Tensor:
-        loss_recons: List[Tensor] = []
-        for actions_proc_i, actions_recon_i in zip(action_proc, actions_recon):
-            mean_dims: Tuple[int, ...] = tuple(range(1, len(actions_proc_i.shape)))
-            loss_recon_i: Tensor = torch.mean((actions_recon_i - actions_proc_i) ** 2, dim=mean_dims)
-            loss_recons.append(loss_recon_i)
-
-        return torch.stack(loss_recons, dim=0).mean(dim=0)
-
     def __repr__(self) -> str:
         return f"{super().__repr__()}\nKL Weight: {self.kl_weight}"
-
-
-# functions
-
-@runtime_checkable
-class HeurFnV(Protocol):
-    """ Maps states and goals to cost-to-go """
-    def __call__(self, states: List[State], goals: List[Goal]) -> List[float]:
-        ...
-
-
-@runtime_checkable
-class HeurFnQ(Protocol):
-    """ Maps states, goals, and actions to transitions cost plus cost-to-go of resulting state """
-    def __call__(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[List[float]]:
-        ...
-
-
-HeurFn = Union[HeurFnV, HeurFnQ]
-
-
-@runtime_checkable
-class PolicyFn(Protocol):
-    """ Samples actions and their corresponding log probabilities given states and goals """
-    def __call__(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[Action]], List[List[float]]]:
-        """ Map states and goals to sampled actions along with their probability (or log probability) densities
-
-        """
-        ...
-
-
-# parallelizable functions
-
-H = TypeVar('H', bound=HeurFn)
-
-
-class HeurNNetPar(NNetPar[H]):
-    @abstractmethod
-    def get_nnet(self) -> HeurNNet:
-        pass
-
-    @abstractmethod
-    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device, update_num: Optional[int]) -> H:
-        pass
-
-    @abstractmethod
-    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> H:
-        pass
-
-
-class HeurNNetParV(HeurNNetPar[HeurFnV]):
-    @staticmethod
-    def _get_output(heurs: NDArray[np.float64], update_num: Optional[int]) -> List[float]:
-        heurs = np.maximum(heurs[:, 0], 0)
-        if (update_num is not None) and (update_num == 0):
-            heurs = heurs * 0
-        return cast(List[float], heurs.astype(np.float64).tolist())
-
-    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device,
-                    update_num: Optional[int]) -> HeurFnV:
-        nnet.eval()
-
-        def heuristic_fn(states: List[State], goals: List[Goal]) -> List[float]:
-            inputs_nnet: List[NDArray] = self.to_np(states, goals)
-            heurs: NDArray[np.float64] = nnet_batched(nnet, inputs_nnet, batch_size, device)[0]
-
-            return self._get_output(heurs, update_num)
-        return heuristic_fn
-
-    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> HeurFnV:
-        def heuristic_fn(states: List[State], goals: List[Goal]) -> List[float]:
-            inputs_nnet: List[NDArray] = self.to_np(states, goals)
-            heurs: NDArray[np.float64] = get_nnet_par_out(inputs_nnet, nnet_par_info)[0]
-
-            return self._get_output(heurs, update_num)
-
-        return heuristic_fn
-
-    @abstractmethod
-    def to_np(self, states: List[State], goals: List[Goal]) -> List[NDArray[Any]]:
-        """
-
-        :param states: States
-        :param goals: Goals
-        :return: Neural network representation
-        """
-        pass
-
-
-class HeurNNetParQ(HeurNNetPar[HeurFnQ]):
-    @abstractmethod
-    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device, update_num: Optional[int]) -> HeurFnQ:
-        pass
-
-    @abstractmethod
-    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> HeurFnQ:
-        pass
-
-    @abstractmethod
-    def to_np(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[NDArray[Any]]:
-        """
-
-        :param states: States
-        :param goals: Goals
-        :param actions_l: Actions
-        :return: Neural network representation
-        """
-        pass
-
-
-class HeurNNetParQFixOut(HeurNNetParQ, ABC):
-    """ DQN with a fixed output shape
-
-    """
-    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device, update_num: Optional[int]) -> HeurFnQ:
-        nnet.eval()
-
-        def heuristic_fn(states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[List[float]]:
-            inputs_nnet: List[NDArray] = self._get_input(states, goals, actions_l)
-            q_vals_np: NDArray[np.float64] = nnet_batched(nnet, inputs_nnet, batch_size, device)[0]
-            return self._get_output(states, q_vals_np, update_num)
-
-        return heuristic_fn
-
-    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> HeurFnQ:
-        def heuristic_fn(states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[List[float]]:
-            inputs_nnet: List[NDArray] = self._get_input(states, goals, actions_l)
-            q_vals_np: NDArray[np.float64] = get_nnet_par_out(inputs_nnet, nnet_par_info)[0]
-            return self._get_output(states, q_vals_np, update_num)
-
-        return heuristic_fn
-
-    def to_np(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[NDArray[Any]]:
-        self._check_same_num_acts(actions_l)
-        return self._to_np_fixed_acts(states, goals, actions_l)
-
-    @abstractmethod
-    def _to_np_fixed_acts(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[NDArray[Any]]:
-        pass
-
-    def _get_input(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[NDArray]:
-        inputs_nnet: List[NDArray] = self.to_np(states, goals, actions_l)
-        return inputs_nnet
-
-    @staticmethod
-    def _get_output(states: List[State], q_vals_np: NDArray[np.float64], update_num: Optional[int]) -> List[List[float]]:
-        assert q_vals_np.shape[0] == len(states)
-        q_vals_np = np.maximum(q_vals_np, 0)
-        if (update_num is not None) and (update_num == 0):
-            q_vals_np = q_vals_np * 0
-        q_vals_l: List[List[float]] = [q_vals_np[state_idx].astype(np.float64).tolist() for state_idx in
-                                       range(len(states))]
-        return q_vals_l
-
-    @staticmethod
-    def _check_same_num_acts(actions_l: List[List[Action]]) -> None:
-        assert len(set(len(actions) for actions in actions_l)) == 1, "num actions should be the same for all instances"
-
-
-class HeurNNetParQIn(HeurNNetParQ, ABC):
-    """ DQN that takes a single action as input
-
-    """
-    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device,
-                    update_num: Optional[int]) -> HeurFnQ:
-        nnet.eval()
-
-        def heuristic_fn(states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[List[float]]:
-            inputs_nnet, states_rep, split_idxs = self._get_input(states, goals, actions_l)
-            q_vals_np: NDArray = nnet_batched(nnet, inputs_nnet, batch_size, device)[0]
-            return self._get_output(states_rep, q_vals_np, split_idxs, update_num)
-
-        return heuristic_fn
-
-    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> HeurFnQ:
-        def heuristic_fn(states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[List[float]]:
-            inputs_nnet, states_rep, split_idxs = self._get_input(states, goals, actions_l)
-            q_vals_np: NDArray = get_nnet_par_out(inputs_nnet, nnet_par_info)[0]
-            return self._get_output(states_rep, q_vals_np, split_idxs, update_num)
-
-        return heuristic_fn
-
-    def to_np(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[NDArray[Any]]:
-        assert all((len(actions) == 1) for actions in actions_l), "there should only be one action per state/goal pair"
-        actions_one: List[Action] = [actions[0] for actions in actions_l]
-        return self._to_np_one_act(states, goals, actions_one)
-
-    @abstractmethod
-    def _to_np_one_act(self, states: List[State], goals: List[Goal], actions: List[Action]) -> List[NDArray[Any]]:
-        pass
-
-    def _get_input(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> Tuple[List[NDArray], List[State], List[int]]:
-        actions_flat, split_idxs = misc_utils.flatten(actions_l)
-        states_rep: List[State] = []
-        goals_rep: List[Goal] = []
-        for state, goal, actions in zip(states, goals, actions_l, strict=True):
-            states_rep.extend([state] * len(actions))
-            goals_rep.extend([goal] * len(actions))
-        inputs_nnet: List[NDArray] = self._to_np_one_act(states_rep, goals_rep, actions_flat)
-
-        return inputs_nnet, states_rep, split_idxs
-
-    @staticmethod
-    def _get_output(states_rep: List[State], q_vals_np: NDArray[np.float64], split_idxs: List[int], update_num: Optional[int]) -> List[List[float]]:
-        assert q_vals_np.shape[0] == len(states_rep)
-        q_vals_np = np.maximum(q_vals_np[:, 0], 0)
-        if (update_num is not None) and (update_num == 0):
-            q_vals_np = q_vals_np * 0
-
-        q_vals_flat: List[float] = q_vals_np.astype(np.float64).tolist()
-        q_vals_l: List[List[float]] = misc_utils.unflatten(q_vals_flat, split_idxs)
-        return q_vals_l
-
-
-class PolicyNNetPar(NNetPar[PolicyFn]):
-    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device, update_num: Optional[int]) -> PolicyFn:
-        nnet.eval()
-
-        def policy_fn(states: List[State], goals: List[Goal]) -> Tuple[List[List[Action]], List[List[float]]]:
-            inputs_nnet: List[NDArray] = self.to_np_fn(states, goals)
-            nnet_out_np: List[NDArray[np.float64]] = nnet_batched(nnet, inputs_nnet, batch_size, device)
-
-            return self._np_to_acts_and_pdfs(nnet_out_np[0:-1], nnet_out_np[-1], len(states))
-
-        return policy_fn
-
-    def get_nnet_par_fn(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> PolicyFn:
-        def policy_fn(states: List[State], goals: List[Goal]) -> Tuple[List[List[Action]], List[List[float]]]:
-            inputs_nnet: List[NDArray] = self.to_np_fn(states, goals)
-            nnet_out_np: List[NDArray[np.float64]] = get_nnet_par_out(inputs_nnet, nnet_par_info)
-
-            return self._np_to_acts_and_pdfs(nnet_out_np[0:-1], nnet_out_np[-1], len(states))
-
-        return policy_fn
-
-    @abstractmethod
-    def get_nnet(self) -> PolicyNNet:
-        pass
-
-    @abstractmethod
-    def to_np_fn(self, states: List[State], goals: List[Goal]) -> List[NDArray[Any]]:
-        """ When sampling actions
-
-        :param states: States
-        :param goals: Goals
-        :return: Neural network output representing sampled actions
-        """
-        pass
-
-    @abstractmethod
-    def to_np_train(self, states: List[State], goals: List[Goal], actions: List[Action]) -> List[NDArray[Any]]:
-        """ When training
-
-        :param states: States
-        :param goals: Goals
-        :param actions: Actions
-        :return: Output of policy network when training
-        """
-        pass
-
-    @abstractmethod
-    def _nnet_out_to_actions(self, nnet_out: List[NDArray[np.float64]]) -> List[Action]:
-        pass
-
-    def _np_to_acts_and_pdfs(self, actions_np: List[NDArray[np.float64]], pdfs_np: NDArray[np.float64],
-                             num_states: int) -> Tuple[List[List[Action]], List[List[float]]]:
-        # assert dimensions match
-        assert len(pdfs_np.shape) == 2
-        assert pdfs_np.shape[0] == num_states
-        for actions_np_i in actions_np:
-            assert actions_np_i.shape[0] == num_states
-            assert actions_np_i.shape[0] == pdfs_np.shape[0]
-            assert actions_np_i.shape[1] == pdfs_np.shape[1]
-
-        # convert to action object rep
-        actions_l: List[List[Action]] = []
-        pdfs_l: List[List[float]] = []
-        for state_idx in range(num_states):
-            actions_np_state: List[NDArray[np.float64]] = [actions_np_i[state_idx] for actions_np_i in actions_np]
-            pdfs_state: List[float] = pdfs_np[state_idx, :].tolist()
-
-            actions_l.append(self._nnet_out_to_actions(actions_np_state))
-            pdfs_l.append(pdfs_state)
-
-        return actions_l, pdfs_l
-
-    def __repr__(self) -> str:
-        nnet: PolicyNNet = self.get_nnet()
-        return f"{super().__repr__()}\n#Samp: {nnet.num_samp}"

@@ -4,7 +4,7 @@ from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, ActsEnum, State, Goal
 from deepxube.base.pathfinding import (Instance, InstanceNode, InstanceEdge, Node, EdgeQ, FNsT, FNsHV, FNsHQ, PathFind, PathFindNode, PathFindEdge,
                                        PathFindActsPolicy, PathFindSetPolicy, PathFindSetHeurV, PathFindSetHeurQ, PathFindActsEnum)
-from deepxube.base.nnet_fns import FNsHeurV, FNsHeurQ, FNsPolicy, FNsHeurVPolicy, FNsHeurQPolicy
+from deepxube.base.nnet_fn import FNsHeurV, FNsHeurQ, FNsPolicy, FNsHeurVPolicy, FNsHeurQPolicy
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.utils.misc_utils import boltzmann
 import numpy as np

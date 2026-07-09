@@ -1,13 +1,16 @@
 from typing import List, Optional, Any
 import pytest  # type: ignore
 
-from deepxube.factories.updater_factory import get_updater
+from deepxube.factories.updater_factory import updater_factory
 
 from deepxube.base.heuristic import HeurNNetPar, HeurFnV, HeurFnQ
 from deepxube.base.pathfinding import Node, Instance, get_path
 from deepxube.pathfinding.utils.performance import is_valid_soln, PathFindPerf
-from deepxube.base.pathfinding import PathFind, FNsHeurV, FNsHeurQ
-from deepxube.utils.command_line_utils import get_domain_from_arg, get_heur_nnet_par_from_arg, get_pathfind_from_arg
+from deepxube.base.pathfinding import PathFind
+from deepxube.base.nnet_fn import FNsHeurV, FNsHeurQ
+from deepxube.factories.pathfinding_factory import get_pathfind_from_arg
+from deepxube.factories.nnet_par_fn_factory import get_heur_nnet_par_from_arg
+from deepxube.factories.domain_factory import get_domain_from_arg
 from deepxube.base.updater import UpArgs, Update, UpdateHeur
 from deepxube.base.trainer import TrainArgs
 from deepxube.trainers.utils.train_loop import train

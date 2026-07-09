@@ -1,5 +1,6 @@
 from typing import Type, List, Tuple, Dict, Any
 
+from deepxube.nnet.nnet_utils import NNetParRunner
 from deepxube.utils.command_line_utils import get_name_args
 from deepxube.base.domain import Domain
 from deepxube.base.pathfinding import PathFind
@@ -29,9 +30,10 @@ def get_pathfind_compat_updater_names(pathfind_t: Type[PathFind]) -> List[str]:
     return names
 
 
-def get_updater_from_args(domain: Domain, pathfind_arg: str, updater_arg: str) -> Tuple[Update, str]:
+def get_updater_from_args(domain: Domain, pathfind_arg: str, nnet_par_run_dict: Dict[str, NNetParRunner], updater_arg: str) -> Tuple[Update, str]:
     updater_name, args_str = get_name_args(updater_arg)
     updater_kwargs: Dict[str, Any] = updater_factory.get_kwargs(updater_name, args_str)
     updater_kwargs["domain"] = domain
     updater_kwargs["pathfind_arg"] = pathfind_arg
+    updater_kwargs["nnet_par_run_dict"] = nnet_par_run_dict
     return updater_factory.build_class(updater_name, updater_kwargs), updater_name

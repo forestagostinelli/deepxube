@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, GoalSampleableFromState, State, Goal
 from deepxube.base.pathfinding import FNsHV, PathFindSetHeurV, Node, InstanceNode
-from deepxube.base.nnet_fns import FNsHeurV, FNsHeurVPolicy
+from deepxube.base.nnet_fn import FNsHeurV, FNsHeurVPolicy
 from deepxube.base.updater import UpdateHER, UpdateHasPolicy, UpdateHeurV, UpdateRL, D, UpdateRLParser
 from deepxube.factories.updater_factory import updater_factory
 from deepxube.updaters.utils.replay_buffer_utils import ReplayBufferV
@@ -58,7 +58,7 @@ class UpdateHeurVRL(UpdateHeurV[D, FNsHV, PathFindSetHeurV], UpdateRL[D, FNsHV, 
         goals_flat: List[Goal] = []
         for goal, state_exp in zip(goals, states_exp, strict=True):
             goals_flat.extend([goal] * len(state_exp))
-        ctg_next: List[float] = self._get_targ_heur_fn()(states_exp_flat, goals_flat)
+        ctg_next: List[float] = self._get_targ_heurv_fn()(states_exp_flat, goals_flat)
 
         # backup cost-to-go
         ctg_next_p_tc = np.concatenate(tcs_l, axis=0) + np.array(ctg_next)
@@ -71,7 +71,7 @@ class UpdateHeurVRL(UpdateHeurV[D, FNsHV, PathFindSetHeurV], UpdateRL[D, FNsHV, 
 
     def _inputs_ctgs_to_np(self, states: List[State], goals: List[Goal], ctgs_backup: List[float], times: Times) -> List[NDArray]:
         start_time = time.time()
-        inputs_np: List[NDArray] = self.get_heur_nnet_par().to_np(states, goals)
+        inputs_np: List[NDArray] = self.get_heurv_nnet_par().process_inputs(states, goals).inputs_nnet
         data_np: List[NDArray] = inputs_np + [np.array(ctgs_backup)]
         times.record_time("to_np", time.time() - start_time)
 
@@ -215,7 +215,7 @@ class UpdateHeurVRLKeepGoal(UpdateHeurVRLKeepGoalABC[FNsHeurV]):
         return FNsHeurV
 
     def _get_pathfind_functions(self) -> FNsHeurV:
-        return FNsHeurV(self.get_heur_fn())
+        return FNsHeurV(self.get_heurv_fn())
 
 
 @updater_factory.register_class("up_her_v")
@@ -225,7 +225,7 @@ class UpdateHeurVRLHER(UpdateHeurVRLHERABC[FNsHeurV]):
         return FNsHeurV
 
     def _get_pathfind_functions(self) -> FNsHeurV:
-        return FNsHeurV(self.get_heur_fn())
+        return FNsHeurV(self.get_heurv_fn())
 
 
 @updater_factory.register_class("up_rl_v_p")
@@ -235,7 +235,7 @@ class UpdateHeurVRLKeepGoalPolicy(UpdateHeurVRLKeepGoalABC[FNsHeurVPolicy], Upda
         return FNsHeurVPolicy
 
     def _get_pathfind_functions(self) -> FNsHeurVPolicy:
-        return FNsHeurVPolicy(self.get_heur_fn(), self.get_policy_fn())
+        return FNsHeurVPolicy(self.get_heurv_fn(), self.get_policy_fn())
 
 
 @updater_factory.register_class("up_her_v_p")
@@ -245,7 +245,7 @@ class UpdateHeurVRLHERPolicy(UpdateHeurVRLHERABC[FNsHeurVPolicy], UpdateHasPolic
         return FNsHeurVPolicy
 
     def _get_pathfind_functions(self) -> FNsHeurVPolicy:
-        return FNsHeurVPolicy(self.get_heur_fn(), self.get_policy_fn())
+        return FNsHeurVPolicy(self.get_heurv_fn(), self.get_policy_fn())
 
 
 @updater_factory.register_parser("up_rl_v")

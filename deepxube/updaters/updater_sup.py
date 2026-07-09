@@ -31,7 +31,7 @@ class UpdateHeurVSup(UpdateHeurV[Domain, Any, PathFindNodeSup], UpdateSup[Domain
         goals: List[Goal] = [node.goal for node in nodes_popped]
 
         ctgs_backup: List[float] = [node.heuristic for node in nodes_popped]
-        inputs_np: List[NDArray] = self.get_heur_nnet_par().to_np(states, goals)
+        inputs_np: List[NDArray] = self.get_heurv_nnet_par().process_inputs(states, goals).inputs_nnet
         return inputs_np + [np.array(ctgs_backup)]
 
 
@@ -55,7 +55,7 @@ class UpdateHeurQSup(UpdateHeurQ[Domain, Any, PathFindEdgeSup], UpdateSup[Domain
         actions: List[Action] = [edge.action for edge in edges_popped]
 
         ctgs_backup: List[float] = [edge.q_val for edge in edges_popped]
-        inputs_np: List[NDArray] = self.get_heur_nnet_par().to_np(states, goals, [[action] for action in actions])
+        inputs_np: List[NDArray] = self.get_heurq_nnet_par().process_inputs(states, goals, [[action] for action in actions]).inputs_nnet
         return inputs_np + [np.array(ctgs_backup)]
 
 

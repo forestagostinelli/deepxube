@@ -1,18 +1,19 @@
-from typing import Optional
+from typing import Dict
 import argparse
 from argparse import ArgumentParser
 
 import torch
 
-from deepxube.base.heuristic import HeurNNetPar, PolicyNNetPar
-from deepxube.base.updater import Update, UpdateHasHeur, UpdateHasPolicy
+from deepxube.nnet.nnet_utils import NNetParRunner
+from deepxube.base.nnet_par_fn import HeurNNetPar, HeurVNNetPar, HeurQNNetPar, PolicyNNetPar, HeurVNNetParRunner, HeurQNNetParRunner, PolicyNNetParRunner
+from deepxube.base.updater import Update
 from deepxube.base.trainer import Train, TrainArgs
 from deepxube.factories.domain_factory import get_domain_from_arg
-from deepxube.factories.heuristic_factory import get_heur_nnet_par_from_arg, get_policy_nnet_par_from_arg
 from deepxube.factories.updater_factory import get_updater_from_args
 from deepxube.nnet import nnet_utils
+from deepxube.factories.nnet_par_fn_factory import get_heur_nnet_par_from_arg, get_policy_nnet_par_from_arg
 from deepxube.utils.data_utils import Logger
-from deepxube.trainers.train_heur import TrainHeur
+from deepxube.trainers.train_heur import TrainHeurV
 from torch.utils.tensorboard import SummaryWriter
 
 import numpy as np
@@ -99,23 +100,28 @@ def train_cli(args: argparse.Namespace) -> None:
     # parse domain and heur_nnet
     domain, domain_name = get_domain_from_arg(args.domain)
 
-    # updater
-    updater: Update = get_updater_from_args(domain, args.pathfind, args.up)[0]
-
-    # parse nnets
-    heur_nnet_par: Optional[HeurNNetPar] = None
-    policy_nnet_par: Optional[PolicyNNetPar] = None
+    # parse nnet par runners
+    # TODO set nnet files outside
+    nnet_par_run_dict: Dict[str, NNetParRunner] = dict()
     if args.heur is not None:
-        heur_nnet_par = get_heur_nnet_par_from_arg(domain, domain_name, args.heur, args.heur_type)[0]
-        assert isinstance(updater, UpdateHasHeur)
-        updater.set_heur_nnet(heur_nnet_par)
+        heur_nnet_par: HeurNNetPar = get_heur_nnet_par_from_arg(domain, domain_name, args.heur, args.heur_type)[0]
+        heur_targ_name: str = f"{args.dir}/heur_targ.pt"
+        if args.heur_type == "V":
+            assert isinstance(heur_nnet_par, HeurVNNetPar)
+            nnet_par_run_dict["heurv"] = HeurVNNetParRunner(heur_nnet_par, heur_targ_name)
+        else:
+            assert isinstance(heur_nnet_par, HeurQNNetPar)
+            nnet_par_run_dict["heurq"] = HeurQNNetParRunner(heur_nnet_par, heur_targ_name)
         print(heur_nnet_par)
+
     if args.policy is not None:
-        policy_nnet_par = get_policy_nnet_par_from_arg(domain, domain_name, args.policy, args.policy_samp)[0]
-        assert isinstance(updater, UpdateHasPolicy)
-        updater.set_policy_nnet(policy_nnet_par)
+        policy_nnet_par: PolicyNNetPar = get_policy_nnet_par_from_arg(domain, domain_name, args.policy, args.policy_samp)[0]
+        policy_targ_name: str = f"{args.dir}/policy_targ.pt"
+        nnet_par_run_dict["policy"] = PolicyNNetParRunner(policy_nnet_par, policy_targ_name)
         print(policy_nnet_par)
 
+    # updater
+    updater: Update = get_updater_from_args(domain, args.pathfind, nnet_par_run_dict, args.up)[0]
     print(f"{updater}")
 
     # train args
@@ -138,8 +144,7 @@ def train_cli(args: argparse.Namespace) -> None:
         print(f"{test_args}")
     """
 
-    assert heur_nnet_par is not None
     writer: SummaryWriter = SummaryWriter(args.dir)
-    trainer: Train = TrainHeur(heur_nnet_par.get_nnet(), args.dir, updater, device, on_gpu, writer, train_args)
+    trainer: Train = TrainHeurV(args.dir, updater, device, on_gpu, writer, train_args)
 
     trainer.train_loop()

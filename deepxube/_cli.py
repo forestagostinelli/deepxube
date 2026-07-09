@@ -7,12 +7,13 @@ from deepxube._solve import parse_solve
 from deepxube.base.factory import Factory, Parser
 from deepxube.base.domain import Domain, StateGoalVizable, StringToAct, State, Action, Goal
 from deepxube.base.nnet_input import NNetInput
-from deepxube.base.heuristic import HeurNNet, HeurNNetPar, PolicyNNetPar
+from deepxube.base.heuristic import HeurNNet
+from deepxube.base.nnet_par_fn import HeurNNetPar, PolicyNNetPar
 from deepxube.base.pathfinding import PathFind
 from deepxube.base.updater import Update
 from deepxube.factories.domain_factory import domain_factory, get_domain_from_arg
 from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys, get_nnet_input_t
-from deepxube.factories.heuristic_factory import heuristic_factory, get_heur_nnet_par_from_arg, get_policy_nnet_par_from_arg
+from deepxube.factories.heuristic_factory import deepxube_nnet_factory
 from deepxube.factories.pathfinding_factory import pathfinding_factory, get_domain_compat_pathfind_names
 from deepxube.factories.updater_factory import updater_factory, get_domain_compat_updater_names, get_pathfind_compat_updater_names
 from deepxube.base.trainer import TrainSummary
@@ -99,17 +100,17 @@ def heur_info(args: argparse.Namespace) -> None:
     heur_nnet_name: str
     heur_nnet_t: Type[HeurNNet]
     if args.name is None:
-        heur_nnet_names: List[str] = heuristic_factory.get_all_class_names()
+        heur_nnet_names: List[str] = deepxube_nnet_factory.get_all_class_names()
         for heur_nnet_name in heur_nnet_names:
-            heur_nnet_t = heuristic_factory.get_type(heur_nnet_name)
+            heur_nnet_t = deepxube_nnet_factory.get_type(heur_nnet_name)
             print(f"Heur NNet (Name, Module, Class): {heur_nnet_name}, {heur_nnet_t.__module__}, {heur_nnet_t.__qualname__}")
     else:
         heur_nnet_name = args.name
-        heur_nnet_t = heuristic_factory.get_type(heur_nnet_name)
+        heur_nnet_t = deepxube_nnet_factory.get_type(heur_nnet_name)
         print(f"Heur NNet (Name, Module, Class): {heur_nnet_name}, {heur_nnet_t.__module__}, {heur_nnet_t.__qualname__}")
         nnet_input_t: Type[NNetInput] = heur_nnet_t.nnet_input_type()
         print(f"Expected NNet_Input (Module, Class): {nnet_input_t.__module__}, {nnet_input_t.__qualname__}")
-        parser: Optional[Parser] = heuristic_factory.get_parser(heur_nnet_name)
+        parser: Optional[Parser] = deepxube_nnet_factory.get_parser(heur_nnet_name)
         if parser is not None:
             print("Parser help:\n" + textwrap.indent(parser.help(), '\t'))
 
@@ -160,6 +161,7 @@ def updater_info(args: argparse.Namespace) -> None:
         print(f"Expected Domain type: {up_t.domain_type().__qualname__}", '\t')
         print(textwrap.indent(', '.join(name for name in get_names_match_type(up_t.domain_type(), domain_factory)), '\t'))
         print(f"Expected Functions type: {up_t.functions_type().__qualname__}", '\t')
+        print(f"Expected NNetParRunner type: {{{','.join(f'{key}: {val.__name__}' for key, val in up_t.nnparrun_types.items())}}}", '\t')
         print(f"Expected PathFind type: {up_t.pathfind_type().__qualname__} with functions {up_t.functions_type().__qualname__}", '\t')
         print(textwrap.indent(', '.join(name for name in get_names_match_type(up_t.pathfind_type(), pathfinding_factory)
                                         if pathfinding_factory.get_type(name).functions_type() is up_t.functions_type()), '\t'))

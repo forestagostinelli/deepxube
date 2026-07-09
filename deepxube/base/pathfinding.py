@@ -1,12 +1,11 @@
-from typing import Generic, List, Optional, Any, Tuple, Callable, TypeVar, Dict, Type, Union
+from typing import Generic, List, Optional, Any, Tuple, Callable, TypeVar, Dict, Type
 
 from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, State, Goal, Action, ActsEnum
-from deepxube.base.heuristic import HeurFnV, HeurFnQ, PolicyFn
+from deepxube.base.nnet_fn import FNsHeurV, FNsHeurQ, FNsPolicy
 from deepxube.utils import misc_utils
 from deepxube.utils.timing_utils import Times
-from dataclasses import dataclass
 
 from abc import ABC, abstractmethod
 import numpy as np
@@ -186,42 +185,14 @@ class Instance(ABC):
         pass
 
 
-@dataclass(frozen=True)
-class FNsHeurV:
-    heur_fn_v: HeurFnV
-
-
-@dataclass(frozen=True)
-class FNsHeurQ:
-    heur_fn_q: HeurFnQ
-
-
-FNsHeur = Union[FNsHeurV, FNsHeurQ]
-
-
-@dataclass(frozen=True)
-class FNsPolicy:
-    policy_fn: PolicyFn
-
-
-@dataclass(frozen=True)
-class FNsHeurVPolicy(FNsPolicy, FNsHeurV):
-    pass
-
-
-@dataclass(frozen=True)
-class FNsHeurQPolicy(FNsPolicy, FNsHeurQ):
-    pass
-
-
 I = TypeVar('I', bound=Instance)  # noqa: E741
 D = TypeVar('D', bound=Domain)
-FNs = TypeVar('FNs')
+FNsT = TypeVar('FNsT')
 
 
 # pathfinding
 
-class PathFind(Generic[D, FNs, I], ABC):
+class PathFind(Generic[D, FNsT, I], ABC):
     @staticmethod
     @abstractmethod
     def domain_type() -> Type[D]:
@@ -229,7 +200,7 @@ class PathFind(Generic[D, FNs, I], ABC):
 
     @staticmethod
     @abstractmethod
-    def functions_type() -> Type[FNs]:
+    def functions_type() -> Type[FNsT]:
         pass
 
     @staticmethod
@@ -237,12 +208,12 @@ class PathFind(Generic[D, FNs, I], ABC):
     def description() -> str:
         pass
 
-    def __init__(self, domain: D, functions: FNs):
+    def __init__(self, domain: D, functions: FNsT):
         assert isinstance(domain, self.domain_type()), f"Domain {domain} must be an instance of {self.domain_type()}."
         if self.functions_type() is not Any:
             assert isinstance(functions, self.functions_type()), f"Functions {functions} must be an instance of {self.functions_type()}."
         self.domain: D = domain
-        self.functions: FNs = functions
+        self.functions: FNsT = functions
         self.instances: List[I] = []
         self.times: Times = Times()
         self.itr: int = 0
@@ -379,7 +350,7 @@ class InstanceEdge(Instance, ABC):
 IEdge = TypeVar('IEdge', bound=InstanceEdge)
 
 
-class PathFindNode(PathFind[D, FNs, INode]):
+class PathFindNode(PathFind[D, FNsT, INode]):
     def step(self, verbose: bool = False) -> Tuple[List[Node], List[EdgeQ]]:
         instances: List[INode] = [instance for instance in self.instances if not instance.finished()]
         if len(instances) == 0:
@@ -521,7 +492,7 @@ class PathFindNode(PathFind[D, FNs, INode]):
         pass
 
 
-class PathFindEdge(PathFind[D, FNs, IEdge]):  # TODO add nodes popped
+class PathFindEdge(PathFind[D, FNsT, IEdge]):  # TODO add nodes popped
     def step(self, verbose: bool = False) -> Tuple[List[Node], List[EdgeQ]]:
         instances: List[IEdge] = [instance for instance in self.instances if not instance.finished()]
         if len(instances) == 0:
@@ -722,7 +693,7 @@ class PathFindSetHeurQ(PathFind[D, FNsHQ, I], ABC):
 DActsEnum = TypeVar('DActsEnum', bound=ActsEnum)
 
 
-class PathFindActsEnum(PathFind[DActsEnum, FNs, I], ABC):
+class PathFindActsEnum(PathFind[DActsEnum, FNsT, I], ABC):
     def expand_states(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
         return self.domain.expand(states)
 

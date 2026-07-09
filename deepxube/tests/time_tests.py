@@ -7,7 +7,9 @@ from torch.multiprocessing import Queue, get_context
 
 from deepxube.base.domain import Domain, ActsEnum, StartGoalWalkable, State, Goal, Action
 from deepxube.nnet.nnet_utils import NNetPar
-from deepxube.base.heuristic import HeurNNetPar, PolicyNNet, PolicyNNetPar, PolicyFn, HeurNNetParV, HeurNNetParQ
+from deepxube.base.heuristic import PolicyNNet
+from deepxube.base.nnet_fn import PolicyFn
+from deepxube.base.nnet_par_fn import HeurNNetPar, PolicyNNetPar, HeurVNNetPar, HeurQNNetPar
 from deepxube.nnet.nnet_utils import NNetCallable
 from deepxube.nnet import nnet_utils
 from deepxube.utils.misc_utils import flatten
@@ -145,9 +147,9 @@ def init_nnet(nnet_par: NNetPar) -> Tuple[nn.Module, torch.device]:
 
 def heur_fn_out(heur_nnet: HeurNNetPar, heur_fn: NNetCallable, states: List[State], goals: List[Goal],
                 actions: List[Action]) -> None:
-    if isinstance(heur_nnet, HeurNNetParV):
+    if isinstance(heur_nnet, HeurVNNetPar):
         heur_fn(states, goals)
-    elif isinstance(heur_nnet, HeurNNetParQ):
+    elif isinstance(heur_nnet, HeurQNNetPar):
         heur_fn(states, goals, [[action] for action in actions])
     else:
         raise ValueError(f"Unknown heur fn class {heur_fn}")
@@ -156,9 +158,9 @@ def heur_fn_out(heur_nnet: HeurNNetPar, heur_fn: NNetCallable, states: List[Stat
 def test_heur_nnet_par(heur_nnet_par: HeurNNetPar, states: List[State], goals: List[Goal], actions: List[Action]) -> None:
     # nnet format
     start_time = time.time()
-    if isinstance(heur_nnet_par, HeurNNetParV):
+    if isinstance(heur_nnet_par, HeurVNNetPar):
         heur_nnet_par.to_np(states, goals)
-    elif isinstance(heur_nnet_par, HeurNNetParQ):
+    elif isinstance(heur_nnet_par, HeurQNNetPar):
         heur_nnet_par.to_np(states, goals, [[action] for action in actions])
     else:
         raise ValueError(f"Unknown heur nnet class {heur_nnet_par}")

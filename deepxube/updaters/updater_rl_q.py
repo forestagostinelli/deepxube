@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, GoalSampleableFromState, Action, State, Goal
 from deepxube.base.pathfinding import FNsHQ, PathFindSetHeurQ, EdgeQ, InstanceEdge, Node
-from deepxube.base.nnet_fns import FNsHeurQ, FNsHeurQPolicy
+from deepxube.base.nnet_fn import FNsHeurQ, FNsHeurQPolicy
 from deepxube.base.updater import UpdateHER, UpdateHasPolicy, UpdateHeurQ, UpdateRL, D, UpdateRLParser
 from deepxube.factories.updater_factory import updater_factory
 from deepxube.updaters.utils.replay_buffer_utils import ReplayBufferQ
@@ -60,7 +60,7 @@ class UpdateHeurQRL(UpdateHeurQ[D, FNsHQ, PathFindSetHeurQ], UpdateRL[D, FNsHQ, 
     def _q_learning_target(self, goals: List[Goal], is_solved_l: List[bool], tcs: List[float], states_next: List[State]) -> List[float]:
         # min cost-to-go for next state
         actions_next: List[List[Action]] = self.get_pathfind().get_state_actions(states_next, goals)
-        qvals_next_l: List[List[float]] = self._get_targ_heur_fn()(states_next, goals, actions_next)
+        qvals_next_l: List[List[float]] = self._get_targ_heurq_fn()(states_next, goals, actions_next)
         qvals_next_min: List[float] = [min(qvals_next) for qvals_next in qvals_next_l]
 
         # backup cost-to-go
@@ -71,7 +71,7 @@ class UpdateHeurQRL(UpdateHeurQ[D, FNsHQ, PathFindSetHeurQ], UpdateRL[D, FNsHQ, 
 
     def _inputs_ctgs_to_np(self, states: List[State], goals: List[Goal], actions: List[Action], ctgs_backup: List[float], times: Times) -> List[NDArray]:
         start_time = time.time()
-        inputs_np: List[NDArray] = self.get_heur_nnet_par().to_np(states, goals, [[action] for action in actions])
+        inputs_np: List[NDArray] = self.get_heurq_nnet_par().process_inputs(states, goals, [[action] for action in actions]).inputs_nnet
         times.record_time("to_np", time.time() - start_time)
 
         return inputs_np + [np.array(ctgs_backup)]
@@ -227,7 +227,7 @@ class UpdateHeurQRLKeepGoal(UpdateHeurQRLKeepGoalABC[FNsHeurQ]):
         return FNsHeurQ
 
     def _get_pathfind_functions(self) -> FNsHeurQ:
-        return FNsHeurQ(self.get_heur_fn())
+        return FNsHeurQ(self.get_heurq_fn())
 
 
 @updater_factory.register_class("up_her_q")
@@ -237,7 +237,7 @@ class UpdateHeurQRLHER(UpdateHeurQRLHERABC[FNsHeurQ]):
         return FNsHeurQ
 
     def _get_pathfind_functions(self) -> FNsHeurQ:
-        return FNsHeurQ(self.get_heur_fn())
+        return FNsHeurQ(self.get_heurq_fn())
 
 
 @updater_factory.register_class("up_rl_q_p")
@@ -247,7 +247,7 @@ class UpdateHeurQRLKeepGoalPolicy(UpdateHeurQRLKeepGoalABC[FNsHeurQPolicy], Upda
         return FNsHeurQPolicy
 
     def _get_pathfind_functions(self) -> FNsHeurQPolicy:
-        return FNsHeurQPolicy(self.get_heur_fn(), self.get_policy_fn())
+        return FNsHeurQPolicy(self.get_heurq_fn(), self.get_policy_fn())
 
 
 @updater_factory.register_class("up_her_q_p")
@@ -257,7 +257,7 @@ class UpdateHeurQRLHERPolicy(UpdateHeurQRLHERABC[FNsHeurQPolicy], UpdateHasPolic
         return FNsHeurQPolicy
 
     def _get_pathfind_functions(self) -> FNsHeurQPolicy:
-        return FNsHeurQPolicy(self.get_heur_fn(), self.get_policy_fn())
+        return FNsHeurQPolicy(self.get_heurq_fn(), self.get_policy_fn())
 
 
 @updater_factory.register_parser("up_rl_q")

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Generic, TypeVar, List, Dict, Tuple, cast, Optional, Union
+from typing import Generic, TypeVar, List, Dict, Tuple, cast, Optional, Union, Type
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
@@ -176,13 +176,24 @@ class Train(Generic[NNet, Up], ABC):
     def nnet_name() -> str:
         pass
 
-    def __init__(self, nnet: NNet, nnet_dir: str, updater: Up, device: torch.device, on_gpu: bool, writer: SummaryWriter,
-                 train_args: TrainArgs) -> None:
+    @staticmethod
+    @abstractmethod
+    def nnet_type() -> Type[NNet]:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def updater_type() -> Type[Up]:
+        pass
+
+    def __init__(self, nnet_dir: str, updater: Up, device: torch.device, on_gpu: bool, writer: SummaryWriter, train_args: TrainArgs) -> None:
         self.nnet_dir: str = nnet_dir
         if not os.path.exists(self.nnet_dir):
             os.makedirs(self.nnet_dir)
 
         self.updater: Up = updater
+        nnet: DeepXubeNNet = updater.get_train_nnet()
+        assert isinstance(nnet, self.nnet_type())
         self.nnet: NNet = nnet
         self.nnet_file: str = f"{self.nnet_dir}/{self.nnet_name()}.pt"
         self.nnet_targ_file: str = f"{self.nnet_dir}/{self.nnet_name()}_targ.pt"
@@ -237,9 +248,6 @@ class Train(Generic[NNet, Up], ABC):
         self.train_start_time = time.time()
 
     def train_loop(self) -> None:
-        # set updater nnet files
-        self._set_updater_nnet_files()
-
         # start procs
         to_main_q, from_main_qs = self.updater.start_procs(self.train_args.rb * self.train_args.batch_size * self.train_args.up_itrs)
 
@@ -254,10 +262,6 @@ class Train(Generic[NNet, Up], ABC):
         # stop procs
         self.updater.stop_procs()
         print("Done")
-
-    @abstractmethod
-    def _set_updater_nnet_files(self) -> None:
-        pass
 
     @abstractmethod
     def _set_targ_update_num(self) -> None:
