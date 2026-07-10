@@ -132,7 +132,7 @@ def pathfinding_info(args: argparse.Namespace) -> None:
         print(f"Mixins: {mixin_str}", '\t')
         print(f"Expected Domain type: {pathfind_t.domain_type().__qualname__}", '\t')
         print(textwrap.indent(', '.join(name for name in get_names_match_type(pathfind_t.domain_type(), domain_factory)), '\t'))
-        print(f"Expected Functions type: {pathfind_t.functions_type().__qualname__}", '\t')
+        print(f"Expected Functions type: {pathfind_t.fns_dict_req_pretty()}", '\t')
 
         # updaters
         updater_names: List[str] = get_pathfind_compat_updater_names(pathfind_t)
@@ -160,11 +160,10 @@ def updater_info(args: argparse.Namespace) -> None:
         print(f"Mixins: {mixin_str}", '\t')
         print(f"Expected Domain type: {up_t.domain_type().__qualname__}", '\t')
         print(textwrap.indent(', '.join(name for name in get_names_match_type(up_t.domain_type(), domain_factory)), '\t'))
-        print(f"Expected Functions type: {up_t.functions_type().__qualname__}", '\t')
-        print(f"Expected NNetParRunner type: {{{','.join(f'{key}: {val.__name__}' for key, val in up_t.nnparrun_types.items())}}}", '\t')
-        print(f"Expected PathFind type: {up_t.pathfind_type().__qualname__} with functions {up_t.functions_type().__qualname__}", '\t')
+        print(f"Expected NNetParRunner type: {up_t.nnparrun_dict_req_pretty()}", '\t')
+        print(f"Expected PathFind type: {up_t.pathfind_type().__qualname__}", '\t')
         print(textwrap.indent(', '.join(name for name in get_names_match_type(up_t.pathfind_type(), pathfinding_factory)
-                                        if pathfinding_factory.get_type(name).functions_type() is up_t.functions_type()), '\t'))
+                                        if up_t.pathfind_fn_compat(pathfinding_factory.get_type(name))), '\t'))
 
         parser: Optional[Parser] = updater_factory.get_parser(name)
         if parser is not None:

@@ -1,4 +1,4 @@
-from typing import List, Type, Any
+from typing import List, Type
 
 from numpy.typing import NDArray
 
@@ -13,7 +13,7 @@ import numpy as np
 
 
 @updater_factory.register_class("up_sup_v")
-class UpdateHeurVSup(UpdateHeurV[Domain, Any, PathFindNodeSup], UpdateSup[Domain, PathFindNodeSup, InstanceNode]):
+class UpdateHeurVSup(UpdateHeurV[Domain, PathFindNodeSup], UpdateSup[Domain, PathFindNodeSup, InstanceNode]):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -36,7 +36,7 @@ class UpdateHeurVSup(UpdateHeurV[Domain, Any, PathFindNodeSup], UpdateSup[Domain
 
 
 @updater_factory.register_class("up_sup_q")
-class UpdateHeurQSup(UpdateHeurQ[Domain, Any, PathFindEdgeSup], UpdateSup[Domain, PathFindEdgeSup, InstanceEdge]):
+class UpdateHeurQSup(UpdateHeurQ[Domain, PathFindEdgeSup], UpdateSup[Domain, PathFindEdgeSup, InstanceEdge]):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -60,7 +60,7 @@ class UpdateHeurQSup(UpdateHeurQ[Domain, Any, PathFindEdgeSup], UpdateSup[Domain
 
 
 @updater_factory.register_class("up_sup_p")
-class UpdatePolicySup(UpdatePolicy[Domain, Any, PathFindEdgeSamp, InstanceEdge], UpdateSup[Domain, PathFindEdgeSamp, InstanceEdge]):
+class UpdatePolicySup(UpdatePolicy[Domain, PathFindEdgeSamp, InstanceEdge], UpdateSup[Domain, PathFindEdgeSamp, InstanceEdge]):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain

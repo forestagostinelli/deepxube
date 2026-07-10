@@ -42,7 +42,7 @@ class InstanceEdgeSup(InstanceEdge, InstanceSup):
 
 
 @pathfinding_factory.register_class("sup_v")
-class PathFindNodeSup(PathFindNode[NodesSupervisable, Any, InstanceNodeSup], PathFindSup[NodesSupervisable, InstanceNodeSup]):
+class PathFindNodeSup(PathFindNode[NodesSupervisable, InstanceNodeSup], PathFindSup[NodesSupervisable, InstanceNodeSup]):
     @staticmethod
     def domain_type() -> Type[NodesSupervisable]:
         return NodesSupervisable
@@ -91,7 +91,7 @@ class PathFindNodeSup(PathFindNode[NodesSupervisable, Any, InstanceNodeSup], Pat
 
 
 @pathfinding_factory.register_class("sup_q")
-class PathFindEdgeSup(PathFindEdge[EdgesSupervisable, Any, InstanceEdgeSup], PathFindSup[EdgesSupervisable, InstanceEdgeSup]):
+class PathFindEdgeSup(PathFindEdge[EdgesSupervisable, InstanceEdgeSup], PathFindSup[EdgesSupervisable, InstanceEdgeSup]):
     @staticmethod
     def domain_type() -> Type[EdgesSupervisable]:
         return EdgesSupervisable
@@ -141,7 +141,7 @@ class PathFindEdgeSup(PathFindEdge[EdgesSupervisable, Any, InstanceEdgeSup], Pat
 
 
 @pathfinding_factory.register_class("sup_p")
-class PathFindEdgeSamp(PathFindEdge[EdgesSampleable, Any, InstanceEdgeSup], PathFindSup[EdgesSampleable, InstanceEdgeSup]):
+class PathFindEdgeSamp(PathFindEdge[EdgesSampleable, InstanceEdgeSup], PathFindSup[EdgesSampleable, InstanceEdgeSup]):
     @staticmethod
     def domain_type() -> Type[EdgesSampleable]:
         return EdgesSampleable

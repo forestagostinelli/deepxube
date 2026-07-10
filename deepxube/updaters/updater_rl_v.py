@@ -1,12 +1,12 @@
 from abc import ABC
-from typing import Any, List, cast, Tuple, Type
+from typing import Any, List, cast, Tuple, Type, Dict
 
 import numpy as np
 from numpy.typing import NDArray
 
+from deepxube.nnet.nnet_utils import NNetCallable
 from deepxube.base.domain import Domain, GoalSampleableFromState, State, Goal
-from deepxube.base.pathfinding import FNsHV, PathFindSetHeurV, Node, InstanceNode
-from deepxube.base.nnet_fn import FNsHeurV, FNsHeurVPolicy
+from deepxube.base.pathfinding import PathFindSetHeurV, Node, InstanceNode
 from deepxube.base.updater import UpdateHER, UpdateHasPolicy, UpdateHeurV, UpdateRL, D, UpdateRLParser
 from deepxube.factories.updater_factory import updater_factory
 from deepxube.updaters.utils.replay_buffer_utils import ReplayBufferV
@@ -40,7 +40,7 @@ def _get_nodes_popped_data(nodes_popped: List[Node], times: Times) -> Tuple[List
 
 
 # TODO update __repr__
-class UpdateHeurVRL(UpdateHeurV[D, FNsHV, PathFindSetHeurV], UpdateRL[D, FNsHV, PathFindSetHeurV, InstanceNode], ABC):
+class UpdateHeurVRL(UpdateHeurV[D, PathFindSetHeurV], UpdateRL[D, PathFindSetHeurV, InstanceNode], ABC):
     @staticmethod
     def pathfind_type() -> Type[PathFindSetHeurV]:
         return PathFindSetHeurV
@@ -107,7 +107,7 @@ class UpdateHeurVRL(UpdateHeurV[D, FNsHV, PathFindSetHeurV], UpdateRL[D, FNsHV, 
         return f"{super().__repr__()}, {self.up_rl_args.__repr__()}"
 
 
-class UpdateHeurVRLKeepGoalABC(UpdateHeurVRL[Domain, FNsHV], ABC):
+class UpdateHeurVRLKeepGoalABC(UpdateHeurVRL[Domain], ABC):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -174,7 +174,7 @@ class UpdateHeurVRLKeepGoalABC(UpdateHeurVRL[Domain, FNsHV], ABC):
         return self._inputs_ctgs_to_np(states, goals, ctgs_backup, times)
 
 
-class UpdateHeurVRLHERABC(UpdateHeurVRL[GoalSampleableFromState, FNsHV], UpdateHER[FNsHV, PathFindSetHeurV, InstanceNode], ABC):
+class UpdateHeurVRLHERABC(UpdateHeurVRL[GoalSampleableFromState], UpdateHER[PathFindSetHeurV, InstanceNode], ABC):
     @staticmethod
     def domain_type() -> Type[GoalSampleableFromState]:
         return GoalSampleableFromState
@@ -209,43 +209,27 @@ class UpdateHeurVRLHERABC(UpdateHeurVRL[GoalSampleableFromState, FNsHV], UpdateH
 
 
 @updater_factory.register_class("up_rl_v")
-class UpdateHeurVRLKeepGoal(UpdateHeurVRLKeepGoalABC[FNsHeurV]):
-    @staticmethod
-    def functions_type() -> Type[FNsHeurV]:
-        return FNsHeurV
-
-    def _get_pathfind_functions(self) -> FNsHeurV:
-        return FNsHeurV(self.get_heurv_fn())
+class UpdateHeurVRLKeepGoal(UpdateHeurVRLKeepGoalABC):
+    def _get_pathfind_functions(self) -> Dict[str, NNetCallable]:
+        return {"heurv": self.get_heurv_fn()}
 
 
 @updater_factory.register_class("up_her_v")
-class UpdateHeurVRLHER(UpdateHeurVRLHERABC[FNsHeurV]):
-    @staticmethod
-    def functions_type() -> Type[FNsHeurV]:
-        return FNsHeurV
-
-    def _get_pathfind_functions(self) -> FNsHeurV:
-        return FNsHeurV(self.get_heurv_fn())
+class UpdateHeurVRLHER(UpdateHeurVRLHERABC):
+    def _get_pathfind_functions(self) -> Dict[str, NNetCallable]:
+        return {"heurv": self.get_heurv_fn()}
 
 
 @updater_factory.register_class("up_rl_v_p")
-class UpdateHeurVRLKeepGoalPolicy(UpdateHeurVRLKeepGoalABC[FNsHeurVPolicy], UpdateHasPolicy[Domain, FNsHeurVPolicy, PathFindSetHeurV, InstanceNode]):
-    @staticmethod
-    def functions_type() -> Type[FNsHeurVPolicy]:
-        return FNsHeurVPolicy
-
-    def _get_pathfind_functions(self) -> FNsHeurVPolicy:
-        return FNsHeurVPolicy(self.get_heurv_fn(), self.get_policy_fn())
+class UpdateHeurVRLKeepGoalPolicy(UpdateHeurVRLKeepGoalABC, UpdateHasPolicy[Domain, PathFindSetHeurV, InstanceNode]):
+    def _get_pathfind_functions(self) -> Dict[str, NNetCallable]:
+        return {"policy": self.get_policy_fn(), "heurv": self.get_heurv_fn()}
 
 
 @updater_factory.register_class("up_her_v_p")
-class UpdateHeurVRLHERPolicy(UpdateHeurVRLHERABC[FNsHeurVPolicy], UpdateHasPolicy[Domain, FNsHeurVPolicy, PathFindSetHeurV, InstanceNode]):
-    @staticmethod
-    def functions_type() -> Type[FNsHeurVPolicy]:
-        return FNsHeurVPolicy
-
-    def _get_pathfind_functions(self) -> FNsHeurVPolicy:
-        return FNsHeurVPolicy(self.get_heurv_fn(), self.get_policy_fn())
+class UpdateHeurVRLHERPolicy(UpdateHeurVRLHERABC, UpdateHasPolicy[Domain, PathFindSetHeurV, InstanceNode]):
+    def _get_pathfind_functions(self) -> Dict[str, NNetCallable]:
+        return {"policy": self.get_policy_fn(), "heurv": self.get_heurv_fn()}
 
 
 @updater_factory.register_parser("up_rl_v")

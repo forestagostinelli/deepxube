@@ -23,8 +23,8 @@ def get_domain_compat_updater_names(domain_t: Type[Domain]) -> List[str]:
 def get_pathfind_compat_updater_names(pathfind_t: Type[PathFind]) -> List[str]:
     names: List[str] = []
     for name in updater_factory.get_all_class_names():
-        class_t: Type[Update] = updater_factory.get_type(name)
-        if issubclass(pathfind_t, class_t.pathfind_type()) and (pathfind_t.functions_type() is class_t.functions_type()):
+        up_t: Type[Update] = updater_factory.get_type(name)
+        if issubclass(pathfind_t, up_t.pathfind_type()) and up_t.pathfind_fn_compat(pathfind_t):
             names.append(name)
 
     return names

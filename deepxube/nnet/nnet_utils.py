@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Optional, Any, Callable, TypeVar, Generic, cast
+from typing import List, Tuple, Optional, Any, Callable, TypeVar, Generic, cast, Type
 from dataclasses import dataclass
 
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd, combine_l_l
@@ -298,7 +298,12 @@ NNF = TypeVar('NNF', bound=NNetCallable)
 NNP = TypeVar('NNP', bound=NNetPar)
 
 
-class NNetParRunner(Generic[NNF, NNP]):
+class NNetParRunner(Generic[NNF, NNP], ABC):
+    @staticmethod
+    @abstractmethod
+    def nnet_fn_type() -> Type[NNF]:
+        pass
+
     def __init__(self, nnet_par: NNP, nnet_file: str):
         self.nnet_par: NNP = nnet_par
         self.nnet_file: str = nnet_file

@@ -28,31 +28,3 @@ class PolicyFn(Protocol):
 
         """
         ...
-
-
-@dataclass(frozen=True)
-class FNsHeurV:
-    heur_fn_v: HeurVFn
-
-
-@dataclass(frozen=True)
-class FNsHeurQ:
-    heur_fn_q: HeurQFn
-
-
-FNsHeur = Union[FNsHeurV, FNsHeurQ]
-
-
-@dataclass(frozen=True)
-class FNsPolicy:
-    policy_fn: PolicyFn
-
-
-@dataclass(frozen=True)
-class FNsHeurVPolicy(FNsPolicy, FNsHeurV):
-    pass
-
-
-@dataclass(frozen=True)
-class FNsHeurQPolicy(FNsPolicy, FNsHeurQ):
-    pass

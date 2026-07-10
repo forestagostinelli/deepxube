@@ -2,7 +2,7 @@ from typing import Any, Tuple, Dict, TypeVar, Generic, Optional, cast, Type, Lis
 from dataclasses import dataclass
 from abc import abstractmethod, ABC
 
-from deepxube.nnet.nnet_utils import NNetPar, NNetFn, ProcessedInput, Ctx, NNetParRunner
+from deepxube.nnet.nnet_utils import NNetPar, NNetFn, ProcessedInput, Ctx, NNetParRunner, NNF
 from deepxube.utils import misc_utils
 from deepxube.base.domain import Domain, State, Action, Goal, ActsEnumFixed
 from deepxube.base.nnet_input import NNetInput, StateGoalIn, StateGoalActFixIn, StateGoalActIn, PolicyNNetIn
@@ -275,12 +275,19 @@ class PolicyNNetPar(DeepXubeNNetPar[PolicyFn, PolicyCtx, Domain, PolicyNNetIn, P
 
 
 class HeurVNNetParRunner(NNetParRunner[HeurVFn, HeurVNNetPar]):
-    pass
+    @staticmethod
+    def nnet_fn_type() -> Type[HeurVFn]:
+        return HeurVFn
 
 
 class HeurQNNetParRunner(NNetParRunner[HeurQFn, HeurQNNetPar]):
-    pass
+    @staticmethod
+    def nnet_fn_type() -> Type[HeurQFn]:
+        return HeurQFn
 
 
 class PolicyNNetParRunner(NNetParRunner[PolicyFn, PolicyNNetPar]):
-    pass
+    @staticmethod
+    def nnet_fn_type() -> Type[PolicyFn]:
+        return PolicyFn
+
