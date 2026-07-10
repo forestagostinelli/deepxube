@@ -7,9 +7,9 @@ from deepxube.base.heuristic import HeurNNetPar, HeurFnV, HeurFnQ
 from deepxube.base.pathfinding import Node, Instance, get_path
 from deepxube.pathfinding.utils.performance import is_valid_soln, PathFindPerf
 from deepxube.base.pathfinding import PathFind
-from deepxube.base.nnet_fn import FNsHeurV, FNsHeurQ
+from deepxube.base.pathfind_fns import PFNsHeurV, PFNsHeurQ
 from deepxube.factories.pathfinding_factory import get_pathfind_from_arg
-from deepxube.factories.nnet_par_fn_factory import get_heur_nnet_par_from_arg
+from deepxube.factories.pathfind_nn_fns_par_factory import get_heur_nnet_par_from_arg
 from deepxube.factories.domain_factory import get_domain_from_arg
 from deepxube.base.updater import UpArgs, Update, UpdateHeur
 from deepxube.base.trainer import TrainArgs
@@ -86,10 +86,10 @@ def test_train_solve_heur(pathfind_tr_str: str, pathfind_solve_str: str, heur_ty
     functions: Any
     if heur_type == "V":
         assert isinstance(heur_fn, HeurFnV)
-        functions = FNsHeurV(heur_fn)
+        functions = PFNsHeurV(heur_fn)
     else:
         assert isinstance(heur_fn, HeurFnQ)
-        functions = FNsHeurQ(heur_fn)
+        functions = PFNsHeurQ(heur_fn)
 
     pathfind: PathFind = get_pathfind_from_arg(domain, functions, pathfind_solve_str)[0]
     states, goals = domain.sample_problem_instances(list(range(0, 100)))

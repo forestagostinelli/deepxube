@@ -8,8 +8,7 @@ from torch.multiprocessing import Queue, get_context
 from deepxube.base.domain import Domain, ActsEnum, StartGoalWalkable, State, Goal, Action
 from deepxube.nnet.nnet_utils import NNetPar
 from deepxube.base.heuristic import PolicyNNet
-from deepxube.base.nnet_fn import PolicyFn
-from deepxube.base.nnet_par_fn import HeurNNetPar, PolicyNNetPar, HeurVNNetPar, HeurQNNetPar
+from deepxube.base.pathfind_fns import PolicyFn, HeurNNetPar, HeurVNNetPar, HeurQNNetPar, PolicyNNetPar
 from deepxube.nnet.nnet_utils import NNetCallable
 from deepxube.nnet import nnet_utils
 from deepxube.utils.misc_utils import flatten

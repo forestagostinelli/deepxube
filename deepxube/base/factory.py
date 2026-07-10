@@ -1,4 +1,4 @@
-from typing import Dict, Any, Generic, TypeVar, Type, Callable, Optional, List, Tuple, Iterator, cast
+from typing import Dict, Any, Generic, TypeVar, Type, Callable, Optional, List, Tuple, Iterator, cast, get_type_hints
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, fields
 import logging
@@ -175,6 +175,58 @@ class Factory(Generic[T]):
         return cls(**kwargs)
 
     def get_all_class_names(self) -> List[str]:
+        return list(self._class_registry.keys())
+
+
+class FactoryAutoBuild(Generic[T]):
+    @staticmethod
+    def _schema_key(field_specs: Dict[str, Type]) -> Tuple[Tuple[str, Type], ...]:
+        field_specs_l: List[Tuple[str, Type]] = [(k, v) for k, v in field_specs.items()]
+        return tuple(sorted(field_specs_l, key=lambda item: item[0]))  # sort tuple by field name
+
+    def __init__(self, class_type_str: str):
+        self._class_registry: Dict[Tuple[Tuple[str, Type], ...], Type[T]] = {}
+        self._class_type_str: str = class_type_str
+
+    def register(self, cls: Type[T]) -> Type[T]:
+        type_hints: Dict[str, Type] = get_type_hints(cls)
+        type_hints_dataclass: Dict[str, Type] = {field.name: type_hints[field.name] for field in fields(cls)}
+
+        key: Tuple[Tuple[str, Type], ...] = self._schema_key(type_hints_dataclass)
+
+        if key in self._class_registry:
+            raise ValueError(f"{self._class_type_str.capitalize()} {key} already registered")
+
+        self._class_registry[key] = cls
+        return cls
+
+    def get_type(self, key: Tuple[Tuple[str, Type], ...]) -> Type[T]:
+        try:
+            return self._class_registry[key]
+        except KeyError:
+            raise ValueError(f"Unknown {self._class_type_str} {key}. Available: {sorted(self._class_registry)}")
+
+    def build_class(self, field_data: Dict[str, Any]) -> T:
+        names: List[Tuple[Tuple[str, Type], ...]] = self.get_all_class_names()
+        for name in names:
+            if len(name) != len(field_data):
+                continue
+            is_match: bool = True
+            name_l: List[Tuple[str, Type]] = list(name)
+            while is_match and (len(name_l) > 0):
+                field_name, field_type = name_l.pop(0)
+                if field_name not in field_data.keys():
+                    is_match = False
+                elif not isinstance(field_data[field_name], field_type):
+                    is_match = False
+
+            if is_match:
+                cls = self.get_type(name)
+                return cls(**field_data)
+
+        raise ValueError(f"Could not construct {self._class_type_str} class for {field_data}. Tried {names}")
+
+    def get_all_class_names(self) -> List[Tuple[Tuple[str, Type], ...]]:
         return list(self._class_registry.keys())
 
 

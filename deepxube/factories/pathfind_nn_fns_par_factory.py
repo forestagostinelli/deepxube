@@ -1,8 +1,12 @@
-from typing import Dict, Any, Type, List, Tuple
+from typing import Dict, Any, Type, List, Tuple, Optional
 
+import torch
+
+from deepxube.nnet.nnet_utils import NNetCallable, NNetParRunner
 from deepxube.base.domain import Domain, ActsEnumFixed
 from deepxube.base.nnet_input import NNetInput, StateGoalIn, StateGoalActFixIn, StateGoalActIn, PolicyNNetIn
-from deepxube.base.nnet_par_fn import HeurNNetPar, HeurVNNetPar, HeurQNNetParFixOut, HeurQNNetParIn, PolicyNNetPar
+from deepxube.base.pathfind_fns import (HeurNNetPar, HeurVNNetPar, HeurQNNetPar, HeurQNNetParFixOut, HeurQNNetParIn, PolicyNNetPar, HeurVNNetParRunner,
+                                        HeurQNNetParRunner, PolicyNNetParRunner)
 from deepxube.factories.heuristic_factory import deepxube_nnet_factory
 from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys, get_nnet_input_t
 from deepxube.utils.command_line_utils import get_name_args
@@ -56,3 +60,33 @@ def get_policy_nnet_par_from_arg(domain: Domain, domain_name: str, policy: str, 
     nnet_kwargs: Dict[str, Any] = deepxube_nnet_factory.get_kwargs(nnet_name, nnet_args)
     nnet_par: PolicyNNetPar = build_policy_nnet_par(domain, domain_name, nnet_name, nnet_kwargs, num_samp)
     return nnet_par, nnet_name
+
+
+def get_nn_fn_dicts(domain: Domain, domain_name: str, heur_arg: Optional[str], heur_type: Optional[str], heur_file: Optional[str], policy_arg: Optional[str],
+                    policy_samp: Optional[int], policy_file: Optional[str], device: torch.device) -> Tuple[Dict[str, NNetCallable], Dict[str, NNetParRunner]]:
+    # parse nnet par runners
+    nnet_fn_dict: Dict[str, NNetCallable] = dict()
+    nnet_par_run_l: Dict[str, NNetParRunner] = dict()
+    if heur_arg is not None:
+        assert heur_type is not None
+        assert heur_file is not None
+        heur_nnet_par: HeurNNetPar = get_heur_nnet_par_from_arg(domain, domain_name, heur_arg, heur_type)[0]
+        if heur_type.upper() == "V":
+            assert isinstance(heur_nnet_par, HeurVNNetPar)
+            nnet_fn_dict["heurv"] = heur_nnet_par.get_nnet_fn(heur_nnet_par.get_nnet(), None, device, None)
+            nnet_par_run_l["heurv"] = HeurVNNetParRunner(heur_nnet_par, heur_file)
+        elif heur_type.upper() in {"QIN", "QFIX"}:
+            assert isinstance(heur_nnet_par, HeurQNNetPar)
+            nnet_fn_dict["heurq"] = heur_nnet_par.get_nnet_fn(heur_nnet_par.get_nnet(), None, device, None)
+            nnet_par_run_l["heurq"] = HeurQNNetParRunner(heur_nnet_par, heur_file)
+        print(heur_nnet_par)
+
+    if policy_arg is not None:
+        assert policy_samp is not None
+        assert policy_file is not None
+        policy_nnet_par: PolicyNNetPar = get_policy_nnet_par_from_arg(domain, domain_name, policy_arg, policy_samp)[0]
+        nnet_fn_dict["policy"] = policy_nnet_par.get_nnet_fn(policy_nnet_par.get_nnet(), None, device, None)
+        nnet_par_run_l["policy"] = PolicyNNetParRunner(policy_nnet_par, policy_file)
+        print(policy_nnet_par)
+
+    return nnet_fn_dict, nnet_par_run_l

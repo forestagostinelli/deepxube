@@ -1,19 +1,81 @@
-from typing import Any, Tuple, Dict, TypeVar, Generic, Optional, cast, Type, List
-from dataclasses import dataclass
 from abc import abstractmethod, ABC
-
-from deepxube.nnet.nnet_utils import NNetPar, NNetFn, ProcessedInput, Ctx, NNetParRunner, NNF
-from deepxube.utils import misc_utils
-from deepxube.base.domain import Domain, State, Action, Goal, ActsEnumFixed
-from deepxube.base.nnet_input import NNetInput, StateGoalIn, StateGoalActFixIn, StateGoalActIn, PolicyNNetIn
-from deepxube.base.heuristic import DeepXubeNNet, HeurNNet, PolicyNNet
-from deepxube.base.nnet_fn import HeurFn, HeurVFn, HeurQFn, PolicyFn
-from deepxube.factories.nnet_input_factory import get_nnet_input_t
-from deepxube.factories.heuristic_factory import deepxube_nnet_factory
+from dataclasses import dataclass
+from typing import List, Union, runtime_checkable, Protocol, Tuple, TypeVar, Generic, Type, Dict, Any, Optional, cast
 
 import numpy as np
-from numpy.typing import NDArray
+from numpy._typing import NDArray
 
+from deepxube.base.domain import State, Action, Goal, Domain, ActsEnumFixed
+from deepxube.base.heuristic import DeepXubeNNet, HeurNNet, PolicyNNet
+from deepxube.base.nnet_input import NNetInput, StateGoalIn, StateGoalActFixIn, StateGoalActIn, PolicyNNetIn
+from deepxube.factories.heuristic_factory import deepxube_nnet_factory
+from deepxube.factories.nnet_input_factory import get_nnet_input_t
+from deepxube.nnet.nnet_utils import NNetPar, NNetFn, Ctx, ProcessedInput, NNetParRunner
+from deepxube.utils import misc_utils
+
+
+# Individual functions
+
+@runtime_checkable
+class HeurVFn(Protocol):
+    """ Maps states and goals to cost-to-go """
+    def __call__(self, states: List[State], goals: List[Goal]) -> List[float]:
+        ...
+
+
+@runtime_checkable
+class HeurQFn(Protocol):
+    """ Maps states, goals, and actions to transitions cost plus cost-to-go of resulting state """
+    def __call__(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[List[float]]:
+        ...
+
+
+HeurFn = Union[HeurVFn, HeurQFn]
+
+
+@runtime_checkable
+class PolicyFn(Protocol):
+    """ Samples actions and their corresponding log probabilities given states and goals """
+    def __call__(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[Action]], List[List[float]]]:
+        """ Map states and goals to sampled actions along with their probability (or log probability) densities
+
+        """
+        ...
+
+
+# Pathfind functions
+
+@dataclass(frozen=True)
+class PFNs:
+    pass
+
+
+@dataclass(frozen=True)
+class PFNsHeurV(PFNs):
+    heurv: HeurVFn
+
+
+@dataclass(frozen=True)
+class PFNsHeurQ(PFNs):
+    heurq: HeurQFn
+
+
+@dataclass(frozen=True)
+class PFNsPolicy(PFNs):
+    policy: PolicyFn
+
+
+@dataclass(frozen=True)
+class PFNsHeurVPolicy(PFNsPolicy, PFNsHeurV):
+    pass
+
+
+@dataclass(frozen=True)
+class PFNsHeurQPolicy(PFNsPolicy, PFNsHeurQ):
+    pass
+
+
+# Parallel neural network functions
 
 D = TypeVar('D', bound=Domain)
 NNInP = TypeVar('NNInP', bound=NNetInput)
@@ -274,20 +336,16 @@ class PolicyNNetPar(DeepXubeNNetPar[PolicyFn, PolicyCtx, Domain, PolicyNNetIn, P
         return f"{super().__repr__()}\n#Samp: {nnet.num_samp}"
 
 
+# Parallel function runners
+
+
 class HeurVNNetParRunner(NNetParRunner[HeurVFn, HeurVNNetPar]):
-    @staticmethod
-    def nnet_fn_type() -> Type[HeurVFn]:
-        return HeurVFn
+    pass
 
 
 class HeurQNNetParRunner(NNetParRunner[HeurQFn, HeurQNNetPar]):
-    @staticmethod
-    def nnet_fn_type() -> Type[HeurQFn]:
-        return HeurQFn
+    pass
 
 
 class PolicyNNetParRunner(NNetParRunner[PolicyFn, PolicyNNetPar]):
-    @staticmethod
-    def nnet_fn_type() -> Type[PolicyFn]:
-        return PolicyFn
-
+    pass

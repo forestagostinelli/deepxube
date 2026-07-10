@@ -4,14 +4,16 @@ from argparse import ArgumentParser
 
 import torch
 
-from deepxube.nnet.nnet_utils import NNetParRunner
-from deepxube.base.nnet_par_fn import HeurNNetPar, HeurVNNetPar, HeurQNNetPar, PolicyNNetPar, HeurVNNetParRunner, HeurQNNetParRunner, PolicyNNetParRunner
+from deepxube.utils.command_line_utils import get_name_args
+from deepxube.base.pathfind_fns import PFNs
 from deepxube.base.updater import Update
 from deepxube.base.trainer import Train, TrainArgs
 from deepxube.factories.domain_factory import get_domain_from_arg
+from deepxube.factories.pathfind_fns_factory import pathfind_fns_factory
+from deepxube.factories.pathfind_nn_fns_par_factory import get_nn_fn_dicts
+from deepxube.factories.pathfinding_factory import get_pathfind_from_arg
 from deepxube.factories.updater_factory import get_updater_from_args
 from deepxube.nnet import nnet_utils
-from deepxube.factories.nnet_par_fn_factory import get_heur_nnet_par_from_arg, get_policy_nnet_par_from_arg
 from deepxube.utils.data_utils import Logger
 from deepxube.trainers.train_heur import TrainHeurV
 from torch.utils.tensorboard import SummaryWriter
@@ -100,36 +102,37 @@ def train_cli(args: argparse.Namespace) -> None:
     # parse domain and heur_nnet
     domain, domain_name = get_domain_from_arg(args.domain)
 
-    # parse nnet par runners
-    # TODO set nnet files outside
-    nnet_par_run_dict: Dict[str, NNetParRunner] = dict()
-    if args.heur is not None:
-        heur_nnet_par: HeurNNetPar = get_heur_nnet_par_from_arg(domain, domain_name, args.heur, args.heur_type)[0]
-        heur_targ_name: str = f"{args.dir}/heur_targ.pt"
-        if args.heur_type == "V":
-            assert isinstance(heur_nnet_par, HeurVNNetPar)
-            nnet_par_run_dict["heurv"] = HeurVNNetParRunner(heur_nnet_par, heur_targ_name)
-        else:
-            assert isinstance(heur_nnet_par, HeurQNNetPar)
-            nnet_par_run_dict["heurq"] = HeurQNNetParRunner(heur_nnet_par, heur_targ_name)
-        print(heur_nnet_par)
+    heur_targ_file: str = f"{args.dir}/heur_targ.pt"
+    policy_targ_file: str = f"{args.dir}/policy_targ.pt"
 
-    if args.policy is not None:
-        policy_nnet_par: PolicyNNetPar = get_policy_nnet_par_from_arg(domain, domain_name, args.policy, args.policy_samp)[0]
-        policy_targ_name: str = f"{args.dir}/policy_targ.pt"
-        nnet_par_run_dict["policy"] = PolicyNNetParRunner(policy_nnet_par, policy_targ_name)
-        print(policy_nnet_par)
+    # parse nnet par runners
+    nnet_fn_dict, nnet_par_run_l = get_nn_fn_dicts(domain, domain_name, args.heur, args.heur_type, heur_targ_file, args.policy, args.policy_samp,
+                                                   policy_targ_file, device)
+
+    print(domain, f"(name: {domain_name})")
+
+    # pathfind functions
+    pathfind_fns: PFNs = pathfind_fns_factory.build_class(nnet_fn_dict)
+    print(pathfind_fns)
+
+    # pathfinding
+    pathfind, pathfind_name = get_pathfind_from_arg(domain, pathfind_fns, args.pathfind)
+    print(pathfind, f"(name: {pathfind_name})")
+
+    _, pathfind_args_str = get_name_args(args.pathfind)
+    pathfind_name_args: str = f"{pathfind_name}"
+    if pathfind_args_str is not None:
+        pathfind_name_args = f"{pathfind_name_args}.{pathfind_args_str}"
 
     # updater
-    updater: Update = get_updater_from_args(domain, args.pathfind, nnet_par_run_dict, args.up)[0]
-    print(f"{updater}")
+    updater, updater_name = get_updater_from_args(domain, pathfind_fns, pathfind, pathfind_name_args, nnet_par_run_l, args.up)
+    print(updater, f"(name: {updater_name})")
 
     # train args
     train_args: TrainArgs = TrainArgs(args.batch_size, args.max_itrs, args.bal, up_itrs=args.up_itrs, up_gen_itrs=args.up_gen_itrs, rb=args.rb,
                                       loss_thresh=args.up_lt, checkpoint=args.chkpt, grad_accum=args.accum, display=args.display)
 
     print(f"{train_args}")
-    print(domain)
 
     # TODO print pathfind
 

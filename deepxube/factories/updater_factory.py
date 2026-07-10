@@ -3,6 +3,7 @@ from typing import Type, List, Tuple, Dict, Any
 from deepxube.nnet.nnet_utils import NNetParRunner
 from deepxube.utils.command_line_utils import get_name_args
 from deepxube.base.domain import Domain
+from deepxube.base.pathfind_fns import PFNs
 from deepxube.base.pathfinding import PathFind
 from deepxube.base.updater import Update
 from deepxube.base.factory import Factory
@@ -23,15 +24,39 @@ def get_domain_compat_updater_names(domain_t: Type[Domain]) -> List[str]:
 def get_pathfind_compat_updater_names(pathfind_t: Type[PathFind]) -> List[str]:
     names: List[str] = []
     for name in updater_factory.get_all_class_names():
-        up_t: Type[Update] = updater_factory.get_type(name)
-        if issubclass(pathfind_t, up_t.pathfind_type()) and up_t.pathfind_fn_compat(pathfind_t):
+        class_t: Type[Update] = updater_factory.get_type(name)
+        if issubclass(pathfind_t, class_t.pathfind_type()) and (pathfind_t.functions_type() is class_t.functions_type()):
             names.append(name)
 
     return names
 
 
-def get_updater_from_args(domain: Domain, pathfind_arg: str, nnet_par_run_dict: Dict[str, NNetParRunner], updater_arg: str) -> Tuple[Update, str]:
-    updater_name, args_str = get_name_args(updater_arg)
+def get_updater_from_args(domain: Domain, pathfind_fns: PFNs, pathfind: PathFind, pathfind_arg: str, nnet_par_run_dict: Dict[str, NNetParRunner],
+                          updater_arg: str) -> Tuple[Update, str]:
+    updater_name_pre, args_str = get_name_args(updater_arg)
+
+    names: List[str] = updater_factory.get_all_class_names()
+    compat_names: List[str] = []
+    for name in names:
+        if not name.startswith(updater_name_pre):
+            continue
+
+        if updater_factory.get_type(name).is_compat(domain, type(pathfind_fns), type(pathfind)):
+            compat_names.append(name)
+
+    if len(compat_names) == 0:
+        raise ValueError(f"Could not find any compatable Updater for Domain {domain}, Functions {PFNs}, PathFind {PathFind} for Updater "
+                         f"name: {updater_name_pre}.")
+
+    # TODO if > 1 find more specific one in terms of function and pathfind
+
+    if len(compat_names) > 1:
+        raise ValueError(f"More then 1 compatable Updater for Domain {domain}, Functions {PFNs}, PathFind {PathFind} for Updater "
+                         f"name: {updater_name_pre}: {compat_names}.")
+
+    assert len(compat_names) == 1
+    updater_name: str = compat_names[0]
+
     updater_kwargs: Dict[str, Any] = updater_factory.get_kwargs(updater_name, args_str)
     updater_kwargs["domain"] = domain
     updater_kwargs["pathfind_arg"] = pathfind_arg

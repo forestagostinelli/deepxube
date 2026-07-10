@@ -1,10 +1,9 @@
-from typing import Generic, List, Optional, Any, Tuple, Callable, TypeVar, Dict, Type, ClassVar
+from typing import Generic, List, Optional, Any, Tuple, Callable, TypeVar, Dict, Type
 
 from numpy.typing import NDArray
 
-from deepxube.nnet.nnet_utils import NNetCallable
 from deepxube.base.domain import Domain, State, Goal, Action, ActsEnum
-from deepxube.base.nnet_fn import PolicyFn, HeurVFn, HeurQFn
+from deepxube.base.pathfind_fns import PFNs, PFNsHeurV, PFNsHeurQ, PFNsPolicy
 from deepxube.utils import misc_utils
 from deepxube.utils.timing_utils import Times
 
@@ -188,17 +187,20 @@ class Instance(ABC):
 
 I = TypeVar('I', bound=Instance)  # noqa: E741
 D = TypeVar('D', bound=Domain)
+PFNsT = TypeVar('PFNsT', bound=PFNs)
 
 
 # pathfinding
 
-class PathFind(Generic[D, I], ABC):
-    declared_fns_types: ClassVar[Dict[str, Type[NNetCallable]]] = {}
-    fns_types: ClassVar[Dict[str, Type[NNetCallable]]] = {}
-
+class PathFind(Generic[D, PFNsT, I], ABC):
     @staticmethod
     @abstractmethod
     def domain_type() -> Type[D]:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def functions_type() -> Type[PFNsT]:
         pass
 
     @staticmethod
@@ -207,47 +209,22 @@ class PathFind(Generic[D, I], ABC):
         pass
 
     @classmethod
-    def fns_dict_okay(cls, fns_dict: Dict[str, NNetCallable]) -> bool:
-        if len(fns_dict) != len(cls.fns_types):
+    def is_compat(cls, domain: Domain, functions_t: Type[PFNs]) -> bool:
+        if not isinstance(domain, cls.domain_type()):
             return False
-
-        for key, value_t in cls.fns_types.items():
-            if key not in fns_dict.keys():
-                return False
-            if not isinstance(fns_dict[key], value_t):
-                return False
+        if not issubclass(functions_t, cls.functions_type()):
+            return False
 
         return True
 
-    @classmethod
-    def fns_dict_req_pretty(cls) -> str:
-        return f"{{{', '.join(f'{key}: {val.__name__}' for key, val in cls.fns_types.items())}}}"
-
-    def __init__(self, domain: D, fns_dict: Dict[str, NNetCallable]):
-        assert isinstance(domain, self.domain_type()), f"Domain {domain} must be an instance of {self.domain_type()}."
-        assert self.fns_dict_okay(fns_dict), f"{fns_dict} not key/value typed appropriately as expected: {self.fns_types}"
-
+    def __init__(self, domain: D, functions: PFNsT):
+        assert self.is_compat(domain, type(functions)), (f"Domain {domain} and functions {functions} not compatable with {self.domain_type()} and "
+                                                         f"{self.functions_type()}")
         self.domain: D = domain
-        self.fns_dict: Dict[str, NNetCallable] = fns_dict
+        self.functions: PFNsT = functions
         self.instances: List[I] = []
         self.times: Times = Times()
         self.itr: int = 0
-
-    def __init_subclass__(cls, **kwargs: Any) -> None:
-        # TODO check for collisions
-        super().__init_subclass__(**kwargs)
-
-        # for key, value in cls.declared_fns_types.items():
-        #    assert issubclass(value, NNetCallable), f"All declared types must be subclasses of {NNetCallable.__name__}"
-
-        merged: dict[str, type[NNetCallable]] = {}
-
-        for base in reversed(cls.mro()[1:]):
-            merged.update(getattr(base, "fns_types", {}))
-
-        merged.update(getattr(cls, "declared_fns_types", {}))
-
-        cls.fns_types = merged
 
     @abstractmethod
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True) -> List[I]:
@@ -381,7 +358,7 @@ class InstanceEdge(Instance, ABC):
 IEdge = TypeVar('IEdge', bound=InstanceEdge)
 
 
-class PathFindNode(PathFind[D, INode]):
+class PathFindNode(PathFind[D, PFNsT, INode]):
     def step(self, verbose: bool = False) -> Tuple[List[Node], List[EdgeQ]]:
         instances: List[INode] = [instance for instance in self.instances if not instance.finished()]
         if len(instances) == 0:
@@ -523,7 +500,7 @@ class PathFindNode(PathFind[D, INode]):
         pass
 
 
-class PathFindEdge(PathFind[D, IEdge]):  # TODO add nodes popped
+class PathFindEdge(PathFind[D, PFNsT, IEdge]):  # TODO add nodes popped
     def step(self, verbose: bool = False) -> Tuple[List[Node], List[EdgeQ]]:
         instances: List[IEdge] = [instance for instance in self.instances if not instance.finished()]
         if len(instances) == 0:
@@ -657,34 +634,35 @@ class PathFindEdge(PathFind[D, IEdge]):  # TODO add nodes popped
 
 # pathfinding with functions
 
-class PathFindHasHeurV(PathFind[D, I], ABC):
-    declared_fns_types = {"heurv": HeurVFn}
-
-    def get_heurv_fn(self) -> HeurVFn:
-        return self.fns_dict["heurv"]
+PFNsP_T = TypeVar('PFNsP_T', bound=PFNsPolicy)
+PFNsHV_T = TypeVar('PFNsHV_T', bound=PFNsHeurV)
+PFNsHQ_T = TypeVar('PFNsHQ_T', bound=PFNsHeurQ)
 
 
-class PathFindHasHeurQ(PathFind[D, I], ABC):
-    declared_fns_types = {"heurq": HeurQFn}
+class PathFindSetPolicy(PathFind[D, PFNsP_T, I], ABC):
+    def _set_node_vals(self, nodes: List[Node]) -> None:
+        start_time = time.time()
+        states: List[State] = [node.state for node in nodes]
+        goals: List[Goal] = [node.goal for node in nodes]
+        actions_l, probs_l = self.functions.policy(states, goals)
 
-    def get_heurq_fn(self) -> HeurQFn:
-        return self.fns_dict["heurq"]
+        assert len(actions_l) == len(probs_l) == len(states) == len(goals), \
+            f"{len(actions_l)}, {len(probs_l)}, {len(states)}, {len(goals)}"
+
+        for node, actions, probs in zip(nodes, actions_l, probs_l, strict=True):
+            assert len(actions) == len(probs), f"{len(actions)}, {len(probs)}"
+            node.act_probs = (actions, probs)
+
+        self.times.record_time("policy", time.time() - start_time)
 
 
-class PathFindHasPolicy(PathFind[D, I], ABC):
-    declared_fns_types = {"policy": PolicyFn}
-
-    def get_policy_fn(self) -> PolicyFn:
-        return self.fns_dict["policy"]
-
-
-class PathFindSetHeurV(PathFindHasHeurV[D, I], ABC):
+class PathFindSetHeurV(PathFind[D, PFNsHV_T, I], ABC):
     def _set_node_vals(self, nodes: List[Node]) -> None:
         start_time = time.time()
         states: List[State] = [node.state for node in nodes]
         goals: List[Goal] = [node.goal for node in nodes]
 
-        heuristics: List[float] = self.get_heurv_fn()(states, goals)
+        heuristics: List[float] = self.functions.heurv(states, goals)
 
         assert len(heuristics) == len(states) == len(goals), \
             f"{len(heuristics)}, {len(states)}, {len(goals)}"
@@ -695,7 +673,7 @@ class PathFindSetHeurV(PathFindHasHeurV[D, I], ABC):
         self.times.record_time("heur", time.time() - start_time)
 
 
-class PathFindSetHeurQ(PathFindHasHeurQ[D, I], ABC):
+class PathFindSetHeurQ(PathFind[D, PFNsHQ_T, I], ABC):
     def _set_node_vals(self, nodes: List[Node]) -> None:
         start_time = time.time()
         states: List[State] = [node.state for node in nodes]
@@ -705,7 +683,7 @@ class PathFindSetHeurQ(PathFindHasHeurQ[D, I], ABC):
         self.times.record_time("actions", time.time() - start_time)
 
         start_time = time.time()
-        qvals_l: List[List[float]] = self.get_heurq_fn()(states, goals, actions_l)
+        qvals_l: List[List[float]] = self.functions.heurq(states, goals, actions_l)
         heuristics: List[float] = [min(x) for x in qvals_l]
 
         assert len(heuristics) == len(actions_l) == len(qvals_l) == len(states) == len(goals), \
@@ -718,29 +696,12 @@ class PathFindSetHeurQ(PathFindHasHeurQ[D, I], ABC):
         self.times.record_time("heur", time.time() - start_time)
 
 
-class PathFindSetPolicy(PathFindHasPolicy[D, I], ABC):
-    def _set_node_vals(self, nodes: List[Node]) -> None:
-        start_time = time.time()
-        states: List[State] = [node.state for node in nodes]
-        goals: List[Goal] = [node.goal for node in nodes]
-        actions_l, probs_l = self.get_policy_fn()(states, goals)
-
-        assert len(actions_l) == len(probs_l) == len(states) == len(goals), \
-            f"{len(actions_l)}, {len(probs_l)}, {len(states)}, {len(goals)}"
-
-        for node, actions, probs in zip(nodes, actions_l, probs_l, strict=True):
-            assert len(actions) == len(probs), f"{len(actions)}, {len(probs)}"
-            node.act_probs = (actions, probs)
-
-        self.times.record_time("policy", time.time() - start_time)
-
-
 # pathfinding with action spaces
 
 DActsEnum = TypeVar('DActsEnum', bound=ActsEnum)
 
 
-class PathFindActsEnum(PathFind[DActsEnum, I], ABC):
+class PathFindActsEnum(PathFind[DActsEnum, PFNsT, I], ABC):
     def expand_states(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
         return self.domain.expand(states)
 
@@ -748,7 +709,7 @@ class PathFindActsEnum(PathFind[DActsEnum, I], ABC):
         return self.domain.get_state_actions(states)
 
 
-class PathFindActsPolicy(PathFindHasPolicy[D, I], ABC):
+class PathFindActsPolicy(PathFind[D, PFNsP_T, I], ABC):
     def __init__(self, *args: Any, num_rand_edges: int = 0, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.num_rand_edges: int = num_rand_edges
@@ -778,7 +739,7 @@ class PathFindActsPolicy(PathFindHasPolicy[D, I], ABC):
         return self._get_actions(states, goals)
 
     def _get_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
-        actions_l: List[List[Action]] = self.get_policy_fn()(states, goals)[0]
+        actions_l: List[List[Action]] = self.functions.policy(states, goals)[0]
 
         if self.num_rand_edges > 0:
             states_rep_l: List[List[State]] = [[state] * self.num_rand_edges for state in states]
@@ -795,14 +756,14 @@ class PathFindActsPolicy(PathFindHasPolicy[D, I], ABC):
 
 # pathfinding supervised (for training)
 
-class PathFindSup(PathFind[D, I]):
+class PathFindSup(PathFind[D, PFNs, I]):
     """ Use the path cost of a random walk as the learning target.
     See Chervov, Alexander, et al. "A Machine Learning Approach That Beats Large Rubik's Cubes." NeurIPS(2025).
 
     """
     @staticmethod
-    def functions_type() -> Type[Any]:
-        return Any
+    def functions_type() -> Type[PFNs]:
+        return PFNs
 
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True) -> List[I]:
         raise NotImplementedError

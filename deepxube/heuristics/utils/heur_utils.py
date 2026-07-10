@@ -1,6 +1,6 @@
 from typing import List, Tuple
 from deepxube.base.domain import Domain, State, Action, Goal
-from deepxube.base.nnet_fn import HeurFn, HeurVFn, HeurQFn, PolicyFn
+from deepxube.base.pathfind_fns import HeurFn, HeurVFn, HeurQFn, PolicyFn
 from deepxube.utils import misc_utils
 
 

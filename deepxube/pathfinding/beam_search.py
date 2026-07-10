@@ -2,8 +2,9 @@ from abc import ABC, abstractmethod
 from typing import List, Any, Type, Optional, TypeVar, Dict
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, ActsEnum, State, Goal
-from deepxube.base.pathfinding import (Instance, InstanceNode, InstanceEdge, Node, EdgeQ, PathFind, PathFindNode, PathFindEdge,
+from deepxube.base.pathfinding import (Instance, InstanceNode, InstanceEdge, Node, EdgeQ, PFNsT, PFNsHV_T, PFNsHQ_T, PathFind, PathFindNode, PathFindEdge,
                                        PathFindActsPolicy, PathFindSetPolicy, PathFindSetHeurV, PathFindSetHeurQ, PathFindActsEnum)
+from deepxube.base.pathfind_fns import PFNsHeurV, PFNsHeurQ, PFNsPolicy, PFNsHeurVPolicy, PFNsHeurQPolicy
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.utils.misc_utils import boltzmann
 import numpy as np
@@ -84,7 +85,7 @@ D = TypeVar('D', bound=Domain)
 IBeam = TypeVar('IBeam', bound=InstanceBeam)
 
 
-class BeamSearch(PathFind[D, IBeam], ABC):
+class BeamSearch(PathFind[D, PFNsT, IBeam], ABC):
     def __init__(self, *args: Any, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False, **kwargs: Any):
         self.beam_size_default: int = beam_size
         self.temp_default: float = temp
@@ -137,11 +138,15 @@ class InstanceEdgeBeam(InstanceEdge, InstanceBeam):
 
 
 @pathfinding_factory.register_class("beam_p")
-class BeamSearchPolicy(BeamSearch[Domain, InstanceEdgeBeam], PathFindEdge[Domain, InstanceEdgeBeam],
-                       PathFindActsPolicy[Domain, InstanceEdgeBeam], PathFindSetPolicy[Domain, InstanceEdgeBeam]):
+class BeamSearchPolicy(BeamSearch[Domain, PFNsPolicy, InstanceEdgeBeam], PathFindEdge[Domain, PFNsPolicy, InstanceEdgeBeam],
+                       PathFindActsPolicy[Domain, PFNsPolicy, InstanceEdgeBeam], PathFindSetPolicy[Domain, PFNsPolicy, InstanceEdgeBeam]):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
+
+    @staticmethod
+    def functions_type() -> Type[PFNsPolicy]:
+        return PFNsPolicy
 
     @staticmethod
     def description() -> str:
@@ -164,7 +169,8 @@ class BeamSearchPolicy(BeamSearch[Domain, InstanceEdgeBeam], PathFindEdge[Domain
         return logits_by_inst
 
 
-class BeamSearchHeurNode(BeamSearch[D, InstanceNodeBeam], PathFindNode[D, InstanceNodeBeam], PathFindSetHeurV[D, InstanceNodeBeam], ABC):
+class BeamSearchHeurNode(BeamSearch[D, PFNsHV_T, InstanceNodeBeam], PathFindNode[D, PFNsHV_T, InstanceNodeBeam],
+                         PathFindSetHeurV[D, PFNsHV_T, InstanceNodeBeam], ABC):
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True,
                        beam_size: Optional[int] = None, temp: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceNodeBeam]:
         nodes_root: List[Node] = self._create_root_nodes(states, goals, compute_root_vals)
@@ -186,7 +192,8 @@ class BeamSearchHeurNode(BeamSearch[D, InstanceNodeBeam], PathFindNode[D, Instan
         return logits_by_inst
 
 
-class BeamSearchHeurEdge(BeamSearch[D, InstanceEdgeBeam], PathFindEdge[D, InstanceEdgeBeam], PathFindSetHeurQ[D, InstanceEdgeBeam], ABC):
+class BeamSearchHeurEdge(BeamSearch[D, PFNsHQ_T, InstanceEdgeBeam], PathFindEdge[D, PFNsHQ_T, InstanceEdgeBeam],
+                         PathFindSetHeurQ[D, PFNsHQ_T, InstanceEdgeBeam], ABC):
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True,
                        beam_size: Optional[int] = None, temp: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceEdgeBeam]:
         nodes_root: List[Node] = self._create_root_nodes(states, goals, True)
@@ -205,10 +212,14 @@ class BeamSearchHeurEdge(BeamSearch[D, InstanceEdgeBeam], PathFindEdge[D, Instan
 
 
 @pathfinding_factory.register_class("beam_v")
-class BeamSearchHeurNodeActsEnum(BeamSearchHeurNode[ActsEnum], PathFindActsEnum[ActsEnum, InstanceNodeBeam]):
+class BeamSearchHeurNodeActsEnum(BeamSearchHeurNode[ActsEnum, PFNsHeurV], PathFindActsEnum[ActsEnum, PFNsHeurV, InstanceNodeBeam]):
     @staticmethod
     def domain_type() -> Type[ActsEnum]:
         return ActsEnum
+
+    @staticmethod
+    def functions_type() -> Type[PFNsHeurV]:
+        return PFNsHeurV
 
     @staticmethod
     def description() -> str:
@@ -216,10 +227,14 @@ class BeamSearchHeurNodeActsEnum(BeamSearchHeurNode[ActsEnum], PathFindActsEnum[
 
 
 @pathfinding_factory.register_class("beam_q")
-class BeamSearchHeurEdgeActsEnum(BeamSearchHeurEdge[ActsEnum], PathFindActsEnum[ActsEnum, InstanceEdgeBeam]):
+class BeamSearchHeurEdgeActsEnum(BeamSearchHeurEdge[ActsEnum, PFNsHeurQ], PathFindActsEnum[ActsEnum, PFNsHeurQ, InstanceEdgeBeam]):
     @staticmethod
     def domain_type() -> Type[ActsEnum]:
         return ActsEnum
+
+    @staticmethod
+    def functions_type() -> Type[PFNsHeurQ]:
+        return PFNsHeurQ
 
     @staticmethod
     def description() -> str:
@@ -227,10 +242,14 @@ class BeamSearchHeurEdgeActsEnum(BeamSearchHeurEdge[ActsEnum], PathFindActsEnum[
 
 
 @pathfinding_factory.register_class("beam_v_p")
-class BeamSearchHeurNodeActsPolicy(BeamSearchHeurNode[Domain], PathFindActsPolicy[Domain, InstanceNodeBeam]):
+class BeamSearchHeurNodeActsPolicy(BeamSearchHeurNode[Domain, PFNsHeurVPolicy], PathFindActsPolicy[Domain, PFNsHeurVPolicy, InstanceNodeBeam]):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
+
+    @staticmethod
+    def functions_type() -> Type[PFNsHeurVPolicy]:
+        return PFNsHeurVPolicy
 
     @staticmethod
     def description() -> str:
@@ -242,10 +261,14 @@ class BeamSearchHeurNodeActsPolicy(BeamSearchHeurNode[Domain], PathFindActsPolic
 
 
 @pathfinding_factory.register_class("beam_q_p")
-class BeamSearchHeurEdgeActsPolicy(BeamSearchHeurEdge[Domain], PathFindActsPolicy[Domain, InstanceEdgeBeam]):
+class BeamSearchHeurEdgeActsPolicy(BeamSearchHeurEdge[Domain, PFNsHeurQPolicy], PathFindActsPolicy[Domain, PFNsHeurQPolicy, InstanceEdgeBeam]):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
+
+    @staticmethod
+    def functions_type() -> Type[PFNsHeurQPolicy]:
+        return PFNsHeurQPolicy
 
     @staticmethod
     def description() -> str:
