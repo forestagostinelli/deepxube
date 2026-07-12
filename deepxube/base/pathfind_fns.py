@@ -115,7 +115,7 @@ class DeepXubeNNetPar(NNetPar, Generic[NNF_T, CTX_T, D, NNInP, DXNNet]):
 
         self.nnet_input: Optional[NNInP] = None
 
-    def field_name(self) -> str:
+    def get_field_name(self) -> str:
         return self.field_name
 
     def get_nnet(self) -> DXNNet:

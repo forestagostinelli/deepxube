@@ -102,7 +102,9 @@ def train_cli(args: argparse.Namespace) -> None:
     for fn_arg in args.fn:
         nnet_par_name_args, nnet_name_args = fn_arg.split(",")
         nnet_par, nnet_par_name = get_dx_nnet_par(domain, domain_name, nnet_par_name_args, nnet_name_args)
-        nnet_par.set_nnet_file(f"{args.dir}/{nnet_par_name}_targ.pt")
+
+        field_name: str = nnet_par.get_field_name()
+        nnet_par.set_nnet_file(f"{args.dir}/{field_name}_targ.pt")
         print(nnet_par)
         print(f"(name: {nnet_par_name})")
 

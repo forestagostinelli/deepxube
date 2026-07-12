@@ -18,10 +18,6 @@ class TrainHeur(Train[HeurNNet, Up], ABC):
         return True
 
     @staticmethod
-    def nnet_name() -> str:
-        return "heur"
-
-    @staticmethod
     def nnet_type() -> Type[HeurNNet]:
         return HeurNNet
 

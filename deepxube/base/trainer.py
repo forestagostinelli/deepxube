@@ -9,6 +9,7 @@ from torch.nn import DataParallel
 from torch.optim import Optimizer
 
 from deepxube.base.heuristic import DeepXubeNNet
+from deepxube.base.pathfind_fns import DeepXubeNNetPar
 from deepxube.base.updater import Update
 from deepxube.pathfinding.utils.performance import PathFindPerf, get_eq_weighted_perf
 from deepxube.utils.data_utils import sel_l, SharedNDArray
@@ -173,11 +174,6 @@ class Train(Generic[NNet, Up], ABC):
 
     @staticmethod
     @abstractmethod
-    def nnet_name() -> str:
-        pass
-
-    @staticmethod
-    @abstractmethod
     def nnet_type() -> Type[NNet]:
         pass
 
@@ -192,18 +188,20 @@ class Train(Generic[NNet, Up], ABC):
             os.makedirs(self.nnet_dir)
 
         self.updater: Up = updater
-        nnet: DeepXubeNNet = updater.get_train_nnet()
+        nnet_par: DeepXubeNNetPar = self.updater.get_train_nnet_par()
+        nnet: DeepXubeNNet = nnet_par.get_nnet()
+        self.nnet_name: str = nnet_par.get_field_name()
         assert isinstance(nnet, self.nnet_type())
         self.nnet: NNet = nnet
-        self.nnet_file: str = f"{self.nnet_dir}/{self.nnet_name()}.pt"
-        self.nnet_targ_file: str = f"{self.nnet_dir}/{self.nnet_name()}_targ.pt"
+        self.nnet_file: str = f"{self.nnet_dir}/{self.nnet_name}.pt"
+        self.nnet_targ_file: str = f"{self.nnet_dir}/{self.nnet_name}_targ.pt"
         self.writer: SummaryWriter = writer
         self.train_args: TrainArgs = train_args
         self.device: torch.device = device
         self.on_gpu: bool = on_gpu
 
         # load status
-        self.status_file: str = f"{self.nnet_dir}/{self.nnet_name()}_status.pkl"
+        self.status_file: str = f"{self.nnet_dir}/{self.nnet_name}_status.pkl"
         self.status: Status
         if os.path.isfile(self.status_file):
             self.status = pickle.load(open(self.status_file, "rb"))
@@ -213,7 +211,7 @@ class Train(Generic[NNet, Up], ABC):
             # noinspection PyTypeChecker
             pickle.dump(self.status, open(self.status_file, "wb"), protocol=-1)
 
-        self.train_summary_file: str = f"{self.nnet_dir}/{self.nnet_name()}_train_summary.pkl"
+        self.train_summary_file: str = f"{self.nnet_dir}/{self.nnet_name}_train_summary.pkl"
         self.train_summary: TrainSummary
         if os.path.isfile(self.train_summary_file):
             self.train_summary = pickle.load(open(self.train_summary_file, "rb"))

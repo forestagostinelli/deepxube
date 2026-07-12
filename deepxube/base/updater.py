@@ -13,8 +13,8 @@ from numpy.typing import NDArray
 from deepxube.nnet.nnet_utils import NNetParInfo, NNetPar
 from deepxube.base.factory import DelimParser
 from deepxube.base.domain import Domain, State, Action, Goal, GoalSampleableFromState
-from deepxube.base.heuristic import DeepXubeNNet, HeurNNet, PolicyNNet
-from deepxube.base.pathfind_fns import (HeurVFn, HeurQFn, PolicyFn, HeurVNNetPar, HeurQNNetPar, PolicyNNetPar)
+from deepxube.base.heuristic import HeurNNet, PolicyNNet
+from deepxube.base.pathfind_fns import DeepXubeNNetPar, HeurVFn, HeurQFn, PolicyFn, HeurVNNetPar, HeurQNNetPar, PolicyNNetPar
 from deepxube.base.pathfinding import PFNs, PFNsT, PFNsHV_T, PFNsHQ_T, PFNsP_T, PathFind, PathFindSup, Instance, InstanceNode, InstanceEdge, get_path, Node
 from deepxube.factories.pathfinding_factory import pathfinding_factory, get_pathfind_name_kwargs
 from deepxube.heuristics.utils.heur_utils import get_rand_policy
@@ -187,7 +187,7 @@ class Update(Generic[D, PFNsT, P, InstT], ABC):
         pass
 
     @abstractmethod
-    def get_train_nnet(self) -> DeepXubeNNet:
+    def get_train_nnet_par(self) -> DeepXubeNNetPar:
         pass
 
     def set_nnet_par_info_l(self) -> None:
@@ -657,8 +657,8 @@ class UpdateHeurV(UpdateHasHeurV[D, PFNsHV_T, P, InstanceNode], ABC):
 
         return shapes_dtypes
 
-    def get_train_nnet(self) -> HeurNNet:
-        return self.get_heurv_nnet_par().get_nnet()
+    def get_train_nnet_par(self) -> DeepXubeNNetPar:
+        return self.get_heurv_nnet_par()
 
     def get_heurv_fn(self) -> HeurVFn:
         if not self.up_args.sync_main:
@@ -681,8 +681,8 @@ class UpdateHeurQ(UpdateHasHeurQ[D, PFNsHQ_T, P, InstanceEdge], ABC):
 
         return shapes_dtypes
 
-    def get_train_nnet(self) -> HeurNNet:
-        return self.get_heurq_nnet_par().get_nnet()
+    def get_train_nnet_par(self) -> DeepXubeNNetPar:
+        return self.get_heurq_nnet_par()
 
     def get_heurq_fn(self) -> HeurQFn:
         if not self.up_args.sync_main:
@@ -693,8 +693,8 @@ class UpdateHeurQ(UpdateHasHeurQ[D, PFNsHQ_T, P, InstanceEdge], ABC):
 
 
 class UpdatePolicy(UpdateHasPolicy[D, PFNsP_T, P, InstT], ABC):
-    def get_train_nnet(self) -> PolicyNNet:
-        return self.get_policy_nnet_par().get_nnet()
+    def get_train_nnet_par(self) -> DeepXubeNNetPar:
+        return self.get_policy_nnet_par()
 
     def get_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.domain.sample_problem_instances([0])
