@@ -10,12 +10,11 @@ import numpy as np
 import torch
 from numpy.typing import NDArray
 
-from deepxube.nnet.nnet_utils import NNetParInfo, NNetParRunner
+from deepxube.nnet.nnet_utils import NNetParInfo, NNetPar
 from deepxube.base.factory import DelimParser
 from deepxube.base.domain import Domain, State, Action, Goal, GoalSampleableFromState
 from deepxube.base.heuristic import DeepXubeNNet, HeurNNet, PolicyNNet
-from deepxube.base.pathfind_fns import (HeurVFn, HeurQFn, PolicyFn, HeurVNNetPar, HeurQNNetPar, PolicyNNetPar,
-                                        HeurVNNetParRunner, HeurQNNetParRunner, PolicyNNetParRunner)
+from deepxube.base.pathfind_fns import (HeurVFn, HeurQFn, PolicyFn, HeurVNNetPar, HeurQNNetPar, PolicyNNetPar)
 from deepxube.base.pathfinding import PFNs, PFNsT, PFNsHV_T, PFNsHQ_T, PFNsP_T, PathFind, PathFindSup, Instance, InstanceNode, InstanceEdge, get_path, Node
 from deepxube.factories.pathfinding_factory import pathfinding_factory, get_pathfind_name_kwargs
 from deepxube.heuristics.utils.heur_utils import get_rand_policy
@@ -76,8 +75,8 @@ P = TypeVar('P', bound=PathFind)
 
 
 class Update(Generic[D, PFNsT, P, InstT], ABC):
-    declared_nnparrun_types: ClassVar[Dict[str, Type[NNetParRunner]]] = {}
-    nnparrun_types: ClassVar[Dict[str, Type[NNetParRunner]]] = {}
+    declared_nnpar_types: ClassVar[Dict[str, Type[NNetPar]]] = {}
+    nnpar_types: ClassVar[Dict[str, Type[NNetPar]]] = {}
 
     @staticmethod
     @abstractmethod
@@ -106,14 +105,14 @@ class Update(Generic[D, PFNsT, P, InstT], ABC):
         return True
 
     @classmethod
-    def nnet_par_runs_type_okay(cls, nnet_par_run_dict: Dict[str, NNetParRunner]) -> bool:
-        if len(nnet_par_run_dict) != len(cls.nnparrun_types):
+    def nnet_pars_type_okay(cls, nn_par_dict: Dict[str, NNetPar]) -> bool:
+        if len(nn_par_dict) != len(cls.nnpar_types):
             return False
 
-        for key, value_t in cls.nnparrun_types.items():
-            if key not in nnet_par_run_dict.keys():
+        for key, value_t in cls.nnpar_types.items():
+            if key not in nn_par_dict.keys():
                 return False
-            if not isinstance(nnet_par_run_dict[key], value_t):
+            if not isinstance(nn_par_dict[key], value_t):
                 return False
 
         return True
@@ -126,7 +125,7 @@ class Update(Generic[D, PFNsT, P, InstT], ABC):
                 step_to_pathperf[step_num_inst] = PathFindPerf()
             step_to_pathperf[step_num_inst].update_perf(inst)
 
-    def __init__(self, domain: D, pathfind_arg: str, nnet_par_run_dict: Dict[str, NNetParRunner], procs: int = 1, step_max: int = 100, search_itrs: int = 1,
+    def __init__(self, domain: D, pathfind_arg: str, nnet_par_dict: Dict[str, NNetPar], procs: int = 1, step_max: int = 100, search_itrs: int = 1,
                  up_batch_size: Optional[int] = None, nnet_batch_size: Optional[int] = None, sync_main: bool = False, v: bool = False, **kwargs: Any):
         self.domain: D = domain
         assert isinstance(domain, self.domain_type()), f"Domain {domain} must be an instance of {self.domain_type()}."
@@ -139,8 +138,8 @@ class Update(Generic[D, PFNsT, P, InstT], ABC):
         self.pathfind_name: str = pathfind_name
         self.pathfind_kwargs: Dict[str, Any] = pathfind_kwargs
 
-        assert self.nnet_par_runs_type_okay(nnet_par_run_dict), f"{nnet_par_run_dict} not key/value typed appropriately as expected: {self.nnparrun_types}"
-        self.nnet_par_run_dict: Dict[str, NNetParRunner] = nnet_par_run_dict
+        assert self.nnet_pars_type_okay(nnet_par_dict), f"{nnet_par_dict} not key/value typed appropriately as expected: {self.nnpar_types}"
+        self.nnet_par_run_dict: Dict[str, NNetPar] = nnet_par_dict
 
         # kwargs
         self.up_args: UpArgs = UpArgs(procs=procs, step_max=step_max, search_itrs=search_itrs, up_batch_size=up_batch_size,
@@ -171,17 +170,17 @@ class Update(Generic[D, PFNsT, P, InstT], ABC):
         # TODO check for collisions
         super().__init_subclass__(**kwargs)
 
-        for key, value in cls.declared_nnparrun_types.items():
-            assert issubclass(value, NNetParRunner), f"All declared types must be subclasses of {NNetParRunner.__name__}"
+        for key, value in cls.declared_nnpar_types.items():
+            assert issubclass(value, NNetPar), f"All declared types must be subclasses of {NNetPar.__name__}"
 
-        merged: dict[str, type[NNetParRunner]] = {}
+        merged: dict[str, type[NNetPar]] = {}
 
         for base in reversed(cls.mro()[1:]):
-            merged.update(getattr(base, "nnparrun_types", {}))
+            merged.update(getattr(base, "nnpar_types", {}))
 
-        merged.update(getattr(cls, "declared_nnparrun_types", {}))
+        merged.update(getattr(cls, "declared_nnpar_types", {}))
 
-        cls.nnparrun_types = merged
+        cls.nnpar_types = merged
 
     @abstractmethod
     def get_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
@@ -204,7 +203,7 @@ class Update(Generic[D, PFNsT, P, InstT], ABC):
 
     def init_nnet_fns(self) -> None:
         for nnet_par_run in self.nnet_par_run_dict.values():
-            nnet_par_run.init_nnet_fn()
+            nnet_par_run.init_nnet_par_fn()
 
         # self.domain.set_nnet_fns(self.nnet_fn_dict)  # TODO set domain fns
 
@@ -553,59 +552,50 @@ class UpdateHER(Update[GoalSampleableFromState, PFNsT, P, InstT], ABC):
 
 
 class UpdateHasHeurV(Update[D, PFNsT, P, InstT], ABC):
-    declared_nnparrun_types = {"heurv": HeurVNNetParRunner}
-
-    def get_heurv_nnet_par_runner(self) -> HeurVNNetParRunner:
-        return cast(HeurVNNetParRunner, self.nnet_par_run_dict["heurv"])
+    declared_nnpar_types = {"heurv": HeurVNNetPar}
 
     def get_heurv_nnet_par(self) -> HeurVNNetPar:
-        return self.get_heurv_nnet_par_runner().nnet_par
+        return cast(HeurVNNetPar, self.nnet_par_run_dict["heurv"])
 
     def get_heurv_fn(self) -> HeurVFn:
         return self._get_targ_heurv_fn()
 
     def _get_targ_heurv_fn(self) -> HeurVFn:
-        return self.get_heurv_nnet_par_runner().get_nnet_fn()
+        return self.get_heurv_nnet_par().get_nnet_par_fn()
 
 
 class UpdateHasHeurQ(Update[D, PFNsT, P, InstT], ABC):
-    declared_nnparrun_types = {"heurq": HeurQNNetParRunner}
-
-    def get_heurq_nnet_par_runner(self) -> HeurQNNetParRunner:
-        return cast(HeurQNNetParRunner, self.nnet_par_run_dict["heurq"])
+    declared_nnpar_types = {"heurq": HeurQNNetPar}
 
     def get_heurq_nnet_par(self) -> HeurQNNetPar:
-        return self.get_heurq_nnet_par_runner().nnet_par
+        return cast(HeurQNNetPar, self.nnet_par_run_dict["heurq"])
 
     def get_heurq_fn(self) -> HeurQFn:
         return self._get_targ_heurq_fn()
 
     def _get_targ_heurq_fn(self) -> HeurQFn:
-        return self.get_heurq_nnet_par_runner().get_nnet_fn()
+        return self.get_heurq_nnet_par().get_nnet_par_fn()
 
 
 class UpdateHasPolicy(Update[D, PFNsP_T, P, InstT], ABC):
-    declared_nnparrun_types = {"policy": PolicyNNetParRunner}
+    declared_nnpar_types = {"policy": PolicyNNetPar}
 
     def __init__(self, *args: Any, policy_samp: int = 0, **kwargs: Any):
         self.policy_samp: int = policy_samp  # TODO set parser for arg or make cleaner
         super().__init__(*args, **kwargs)
 
-    def get_policy_nnet_par_runner(self) -> PolicyNNetParRunner:
-        return cast(PolicyNNetParRunner, self.nnet_par_run_dict["policy"])
-
     def get_policy_nnet_par(self) -> PolicyNNetPar:
-        return self.get_policy_nnet_par_runner().nnet_par
+        return cast(PolicyNNetPar, self.nnet_par_run_dict["policy"])
 
     def get_policy_fn(self) -> PolicyFn:
-        update_num: Optional[int] = self.get_policy_nnet_par_runner().targ_update_num
+        update_num: Optional[int] = self.get_policy_nnet_par().targ_update_num
         update_num_is_0: bool = (update_num is not None) and (update_num == 0)
 
         if update_num_is_0:
             assert self.policy_samp > 0
             return get_rand_policy(self.domain, self.policy_samp)
         else:
-            return self.get_policy_nnet_par_runner().get_nnet_fn()
+            return self.get_policy_nnet_par().get_nnet_par_fn()
 
 
 PS = TypeVar('PS', bound=PathFindSup)
@@ -675,7 +665,7 @@ class UpdateHeurV(UpdateHasHeurV[D, PFNsHV_T, P, InstanceNode], ABC):
             return super().get_heurv_fn()
         else:
             assert self.nnet_par_info_main is not None
-            return cast(HeurVFn, self.get_heurv_nnet_par().get_nnet_par_fn(self.nnet_par_info_main, None))
+            return cast(HeurVFn, self.get_heurv_nnet_par().get_nnet_par_fn_w_info(self.nnet_par_info_main, None))
 
 
 class UpdateHeurQ(UpdateHasHeurQ[D, PFNsHQ_T, P, InstanceEdge], ABC):
@@ -699,7 +689,7 @@ class UpdateHeurQ(UpdateHasHeurQ[D, PFNsHQ_T, P, InstanceEdge], ABC):
             return super().get_heurq_fn()
         else:
             assert self.nnet_par_info_main is not None
-            return cast(HeurQFn, self.get_heurq_nnet_par().get_nnet_par_fn(self.nnet_par_info_main, None))
+            return cast(HeurQFn, self.get_heurq_nnet_par().get_nnet_par_fn_w_info(self.nnet_par_info_main, None))
 
 
 class UpdatePolicy(UpdateHasPolicy[D, PFNsP_T, P, InstT], ABC):

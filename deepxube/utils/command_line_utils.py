@@ -1,4 +1,10 @@
 from typing import Tuple, Optional, List
+import sys
+import shlex
+
+
+def print_command():
+    print(" ".join(shlex.quote(arg) for arg in sys.argv))
 
 
 def get_name_args(name_args: str) -> Tuple[str, Optional[str]]:

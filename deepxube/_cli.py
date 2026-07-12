@@ -7,14 +7,14 @@ from deepxube._solve import parse_solve
 from deepxube.base.factory import Factory, Parser
 from deepxube.base.domain import Domain, StateGoalVizable, StringToAct, State, Action, Goal
 from deepxube.base.nnet_input import NNetInput
-from deepxube.base.heuristic import HeurNNet
-from deepxube.base.pathfind_fns import PFNs, HeurNNetPar, PolicyNNetPar
+from deepxube.base.heuristic import DeepXubeNNet
+from deepxube.base.pathfind_fns import PFNs, HeurNNetPar, PolicyNNetPar, DeepXubeNNetPar
 from deepxube.base.pathfinding import PathFind
 from deepxube.base.updater import Update
 from deepxube.factories.domain_factory import domain_factory, get_domain_from_arg
 from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys, get_nnet_input_t
 from deepxube.factories.heuristic_factory import deepxube_nnet_factory
-from deepxube.factories.pathfind_fns_factory import pathfind_fns_factory
+from deepxube.factories.pathfind_fns_factory import pathfind_fns_factory, deepxube_nnet_par_factory
 from deepxube.factories.pathfinding_factory import pathfinding_factory, get_domain_compat_pathfind_names
 from deepxube.factories.updater_factory import updater_factory, get_domain_compat_updater_names, get_pathfind_compat_updater_names
 from deepxube.base.trainer import TrainSummary
@@ -99,21 +99,50 @@ def domain_info(args: argparse.Namespace) -> None:
 
 def heur_info(args: argparse.Namespace) -> None:
     heur_nnet_name: str
-    heur_nnet_t: Type[HeurNNet]
+    heur_nnet_t: Type[DeepXubeNNet]
     if args.name is None:
         heur_nnet_names: List[str] = deepxube_nnet_factory.get_all_class_names()
         for heur_nnet_name in heur_nnet_names:
             heur_nnet_t = deepxube_nnet_factory.get_type(heur_nnet_name)
-            print(f"Heur NNet (Name, Module, Class): {heur_nnet_name}, {heur_nnet_t.__module__}, {heur_nnet_t.__qualname__}")
+            print(f"DeepXubeNNet (Name, Module, Class): {heur_nnet_name}, {heur_nnet_t.__module__}, {heur_nnet_t.__qualname__}")
     else:
         heur_nnet_name = args.name
         heur_nnet_t = deepxube_nnet_factory.get_type(heur_nnet_name)
-        print(f"Heur NNet (Name, Module, Class): {heur_nnet_name}, {heur_nnet_t.__module__}, {heur_nnet_t.__qualname__}")
+        print(f"DeepXubeNNet (Name, Module, Class): {heur_nnet_name}, {heur_nnet_t.__module__}, {heur_nnet_t.__qualname__}")
         nnet_input_t: Type[NNetInput] = heur_nnet_t.nnet_input_type()
         print(f"Expected NNet_Input (Module, Class): {nnet_input_t.__module__}, {nnet_input_t.__qualname__}")
         parser: Optional[Parser] = deepxube_nnet_factory.get_parser(heur_nnet_name)
         if parser is not None:
             print("Parser help:\n" + textwrap.indent(parser.help(), '\t'))
+
+
+def nn_par_info(args: argparse.Namespace) -> None:
+    name: str
+    nn_par_t: Type[DeepXubeNNetPar]
+    if args.name is None:
+        names: List[str] = deepxube_nnet_par_factory.get_all_class_names()
+        for name in names:
+            nn_par_t = deepxube_nnet_par_factory.get_type(name)
+            print(f"DeepXubeNNetPar (Name, Module, Class): {name}, {nn_par_t.__module__}, {nn_par_t.__qualname__}")
+    else:
+        name = args.name
+        nn_par_t = deepxube_nnet_par_factory.get_type(name)
+        print(f"DeepXubeNNetPar (Name, Module, Class): {name}, {nn_par_t.__module__}, {nn_par_t.__qualname__}")
+
+        domain_t: Type[Domain] = nn_par_t.domain_type()
+        print(f"Expected Domain (Module, Class): {domain_t.__module__}, {domain_t.__qualname__}")
+
+        nn_t: Type[DeepXubeNNet] = nn_par_t.nnet_type()
+        print(f"Expected DeepXubeNNet (Module, Class): {nn_t.__module__}, {nn_t.__qualname__}")
+
+        nnet_input_t: Type[NNetInput] = nn_par_t.nnet_input_type()
+        print(f"Expected NNet_Input (Module, Class): {nnet_input_t.__module__}, {nnet_input_t.__qualname__}")
+
+        parser: Optional[Parser] = deepxube_nnet_factory.get_parser(name)
+        if parser is not None:
+            print("Parser help:\n" + textwrap.indent(parser.help(), '\t'))
+
+
 
 
 def pathfind_fns_info(args: argparse.Namespace) -> None:
@@ -172,7 +201,7 @@ def updater_info(args: argparse.Namespace) -> None:
         print(f"Expected Domain type: {up_t.domain_type().__qualname__}", '\t')
         print(textwrap.indent(', '.join(name for name in get_names_match_type(up_t.domain_type(), domain_factory)), '\t'))
         print(f"Expected Functions type: {up_t.functions_type().__qualname__}", '\t')
-        print(f"Expected NNetParRunner type: {{{','.join(f'{key}: {val.__name__}' for key, val in up_t.nnparrun_types.items())}}}", '\t')
+        print(f"Expected NNetParRunner type: {{{','.join(f'{key}: {val.__name__}' for key, val in up_t.nnpar_types.items())}}}", '\t')
         print(f"Expected PathFind type: {up_t.pathfind_type().__qualname__} with functions {up_t.functions_type().__qualname__}", '\t')
         print(textwrap.indent(', '.join(name for name in get_names_match_type(up_t.pathfind_type(), pathfinding_factory)
                                         if pathfinding_factory.get_type(name).functions_type() is up_t.functions_type()), '\t'))
@@ -448,6 +477,9 @@ def main() -> None:
     _parser_heur_info(parser_heur_info)
 
     # pathfinding functions
+    parser_nn_pars_info: ArgumentParser = subparsers.add_parser('nn_par_info', help="Print information on parallel nnet functions")
+    _parser_nn_par_info(parser_nn_pars_info)
+
     parser_pathfind_fns_info: ArgumentParser = subparsers.add_parser('pathfind_fns_info', help="Print information on pathfinding functions")
     _parser_pathfind_fns_info(parser_pathfind_fns_info)
 
@@ -503,6 +535,11 @@ def _parser_heur_info(parser: ArgumentParser) -> None:
 def _parser_pathfind_fns_info(parser: ArgumentParser) -> None:
     parser.add_argument('--name', type=str, default=None, help="Name of pathfinding functions object.")
     parser.set_defaults(func=pathfind_fns_info)
+
+
+def _parser_nn_par_info(parser: ArgumentParser) -> None:
+    parser.add_argument('--name', type=str, default=None, help="Name of nnet par function.")
+    parser.set_defaults(func=nn_par_info)
 
 
 def _parser_pathfind_info(parser: ArgumentParser) -> None:

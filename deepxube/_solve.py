@@ -10,6 +10,7 @@ from deepxube.factories.pathfinding_factory import get_pathfind_functions, get_p
 from deepxube.pathfinding.beam_search import BeamSearch
 from deepxube.factories.domain_factory import get_domain_from_arg
 from deepxube.utils import data_utils, misc_utils
+from deepxube.utils.command_line_utils import print_command
 from deepxube.nnet import nnet_utils
 from deepxube.pathfinding.utils.performance import is_valid_soln
 import numpy as np
@@ -147,6 +148,8 @@ def solve_cli(args: argparse.Namespace) -> None:
                    "num_nodes_generated": [], "solved": []}
         if not args.debug:
             sys.stdout = data_utils.Logger(output_file, "w")
+
+    print_command()
 
     # print info
     print(domain)

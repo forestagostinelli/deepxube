@@ -4,16 +4,14 @@ from argparse import ArgumentParser
 
 import torch
 
-from deepxube.utils.command_line_utils import get_name_args
+from deepxube.utils.command_line_utils import get_name_args, print_command
+from deepxube.nnet.nnet_utils import NNetCallable, NNetPar, get_device
 from deepxube.base.pathfind_fns import PFNs
-from deepxube.base.updater import Update
 from deepxube.base.trainer import Train, TrainArgs
 from deepxube.factories.domain_factory import get_domain_from_arg
-from deepxube.factories.pathfind_fns_factory import pathfind_fns_factory
-from deepxube.factories.pathfind_nn_fns_par_factory import get_nn_fn_dicts
+from deepxube.factories.pathfind_fns_factory import get_dx_nnet_par, pathfind_fns_factory
 from deepxube.factories.pathfinding_factory import get_pathfind_from_arg
 from deepxube.factories.updater_factory import get_updater_from_args
-from deepxube.nnet import nnet_utils
 from deepxube.utils.data_utils import Logger
 from deepxube.trainers.train_heur import TrainHeurV
 from torch.utils.tensorboard import SummaryWriter
@@ -28,14 +26,8 @@ def parser_train(parser: ArgumentParser) -> None:
     # domain
     parser.add_argument('--domain', type=str, required=True, help="Domain name and arguments.")
 
-    # nnets and corresponding functions
-    parser.add_argument('--heur', type=str, default=None, help="Heuristic neural network and arguments.")
-    parser.add_argument('--heur_type', type=str, default=None, help="V, QFix, QIn. V maps state/goal tuples to cost-to-go. "
-                                                                    "QFix maps state/goal tuples to q_values for a fixed action space. "
-                                                                    "QIn maps state/goal/action tuples to q_value (can be used in arbitrary action spaces).")
-
-    parser.add_argument('--policy', type=str, default=None, help="Policy neural network and arguments.")
-    parser.add_argument('--policy_samp', type=int, default=10, help="Number to actions to sample from policy")
+    # functions and corresponding nnets
+    parser.add_argument('--fn', type=str, nargs='*', help="Function and neural network arguments.")
 
     # pathfinding
     parser.add_argument('--pathfind', type=str, required=True, help="Pathfinding algorithm and arguments. Batch size of any pathfinding algorithm should be 1 "
@@ -90,24 +82,32 @@ def train_cli(args: argparse.Namespace) -> None:
         output_save_loc = f"{args.dir}/output.txt"
         sys.stdout = Logger(output_save_loc, "a")
 
+    print_command()
+
     if 'SLURM_JOB_ID' in os.environ:
         print("SLURM JOB ID: %s" % os.environ['SLURM_JOB_ID'])
 
     # get device
     on_gpu: bool
     device: torch.device
-    device, devices, on_gpu = nnet_utils.get_device()
+    device, devices, on_gpu = get_device()
     print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
 
     # parse domain and heur_nnet
     domain, domain_name = get_domain_from_arg(args.domain)
 
-    heur_targ_file: str = f"{args.dir}/heur_targ.pt"
-    policy_targ_file: str = f"{args.dir}/policy_targ.pt"
+    # parse nnet fn args
+    nnet_fn_dict: Dict[str, NNetCallable] = dict()
+    nnet_par_dict: Dict[str, NNetPar] = dict()
+    for fn_arg in args.fn:
+        nnet_par_name_args, nnet_name_args = fn_arg.split(",")
+        nnet_par, nnet_par_name = get_dx_nnet_par(domain, domain_name, nnet_par_name_args, nnet_name_args)
+        nnet_par.set_nnet_file(f"{args.dir}/{nnet_par_name}_targ.pt")
+        print(nnet_par)
+        print(f"(name: {nnet_par_name})")
 
-    # parse nnet par runners
-    nnet_fn_dict, nnet_par_run_l = get_nn_fn_dicts(domain, domain_name, args.heur, args.heur_type, heur_targ_file, args.policy, args.policy_samp,
-                                                   policy_targ_file, device)
+        nnet_fn_dict[nnet_par_name] = nnet_par.get_nnet_fn(nnet_par.get_nnet(), None, device, None)
+        nnet_par_dict[nnet_par_name] = nnet_par
 
     print(domain, f"(name: {domain_name})")
 
@@ -125,7 +125,7 @@ def train_cli(args: argparse.Namespace) -> None:
         pathfind_name_args = f"{pathfind_name_args}.{pathfind_args_str}"
 
     # updater
-    updater, updater_name = get_updater_from_args(domain, pathfind_fns, pathfind, pathfind_name_args, nnet_par_run_l, args.up)
+    updater, updater_name = get_updater_from_args(domain, pathfind_fns, pathfind, pathfind_name_args, nnet_par_dict, args.up)
     print(updater, f"(name: {updater_name})")
 
     # train args

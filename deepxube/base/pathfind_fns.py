@@ -3,15 +3,14 @@ from dataclasses import dataclass
 from typing import List, Union, runtime_checkable, Protocol, Tuple, TypeVar, Generic, Type, Dict, Any, Optional, cast
 
 import numpy as np
-from numpy._typing import NDArray
+from numpy.typing import NDArray
 
-from deepxube.base.domain import State, Action, Goal, Domain, ActsEnumFixed
+from deepxube.base.domain import State, Action, Goal, Domain
 from deepxube.base.heuristic import DeepXubeNNet, HeurNNet, PolicyNNet
-from deepxube.base.nnet_input import NNetInput, StateGoalIn, StateGoalActFixIn, StateGoalActIn, PolicyNNetIn
+from deepxube.base.nnet_input import NNetInput, StateGoalIn, PolicyNNetIn
 from deepxube.factories.heuristic_factory import deepxube_nnet_factory
 from deepxube.factories.nnet_input_factory import get_nnet_input_t
-from deepxube.nnet.nnet_utils import NNetPar, NNetFn, Ctx, ProcessedInput, NNetParRunner
-from deepxube.utils import misc_utils
+from deepxube.nnet.nnet_utils import NNetPar, NNF_T, CTX_T, ProcessedInput
 
 
 # Individual functions
@@ -82,7 +81,7 @@ NNInP = TypeVar('NNInP', bound=NNetInput)
 DXNNet = TypeVar('DXNNet', bound=DeepXubeNNet)
 
 
-class DeepXubeNNetPar(NNetPar, Generic[NNetFn, Ctx, D, NNInP, DXNNet]):
+class DeepXubeNNetPar(NNetPar, Generic[NNF_T, CTX_T, D, NNInP, DXNNet]):
     @staticmethod
     @abstractmethod
     def domain_type() -> Type[D]:
@@ -98,7 +97,7 @@ class DeepXubeNNetPar(NNetPar, Generic[NNetFn, Ctx, D, NNInP, DXNNet]):
     def nnet_type() -> Type[DXNNet]:
         pass
 
-    def __init__(self, domain: D, nnet_input_name: Tuple[str, str], nnet_name: str, nnet_kwargs: Dict[str, Any], **kwargs: Any):
+    def __init__(self, field_name: str, domain: D, nnet_input_name: Tuple[str, str], nnet_name: str, nnet_kwargs: Dict[str, Any], **kwargs: Any):
         assert isinstance(domain, self.domain_type()), f"Domain {domain} must be an instance of {self.domain_type()}."
         nnet_input_t: Type[NNetInput] = get_nnet_input_t(nnet_input_name)
         assert issubclass(nnet_input_t, self.nnet_input_type()), (f"NNetInput {nnet_input_t} (name {nnet_input_name}) must be a subclass of "
@@ -106,6 +105,7 @@ class DeepXubeNNetPar(NNetPar, Generic[NNetFn, Ctx, D, NNInP, DXNNet]):
         nnet_t: Type[DeepXubeNNet] = deepxube_nnet_factory.get_type(nnet_name)
         assert issubclass(nnet_t, self.nnet_type()), f"DeepXubeNNet {nnet_t} (name {nnet_name}) must be a subclass of {self.nnet_type()}."
 
+        self.field_name: str = field_name
         self.domain: D = domain
         self.nnet_input_name: Tuple[str, str] = nnet_input_name
         self.nnet_name: str = nnet_name
@@ -114,6 +114,9 @@ class DeepXubeNNetPar(NNetPar, Generic[NNetFn, Ctx, D, NNInP, DXNNet]):
         super().__init__(**kwargs)
 
         self.nnet_input: Optional[NNInP] = None
+
+    def field_name(self) -> str:
+        return self.field_name
 
     def get_nnet(self) -> DXNNet:
         nnet_params: Dict = self.nnet_kwargs.copy()
@@ -138,11 +141,14 @@ class DeepXubeNNetPar(NNetPar, Generic[NNetFn, Ctx, D, NNInP, DXNNet]):
         self.nnet_input = None
         return self.__dict__
 
+    def __repr__(self) -> str:
+        return f"NNetInputType: {get_nnet_input_t(self.nnet_input_name)} (name: {self.nnet_input_name})\n{super().__repr__()}"
+
 
 H = TypeVar('H', bound=HeurFn)
 
 
-class HeurNNetPar(DeepXubeNNetPar[H, Ctx, D, NNInP, HeurNNet], ABC):
+class HeurNNetPar(DeepXubeNNetPar[H, CTX_T, D, NNInP, HeurNNet], ABC):
     @staticmethod
     def nnet_type() -> Type[HeurNNet]:
         return HeurNNet
@@ -160,7 +166,7 @@ class HeurNNetPar(DeepXubeNNetPar[H, Ctx, D, NNInP, HeurNNet], ABC):
         nnet_params["out_dim"] = self._out_dim()
 
 
-class HeurVNNetPar(HeurNNetPar[HeurVFn, None, Domain, StateGoalIn]):
+class HeurVNNetPar(HeurNNetPar[HeurVFn, None, Domain, StateGoalIn], ABC):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -186,93 +192,10 @@ class HeurVNNetPar(HeurNNetPar[HeurVFn, None, Domain, StateGoalIn]):
         return 1
 
 
-class HeurQNNetPar(HeurNNetPar[HeurQFn, Ctx, D, NNInP], ABC):
+class HeurQNNetPar(HeurNNetPar[HeurQFn, CTX_T, D, NNInP], ABC):
     @abstractmethod
-    def process_inputs(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> ProcessedInput[Ctx]:
+    def process_inputs(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> ProcessedInput[CTX_T]:
         pass
-
-
-@dataclass(frozen=True)
-class QOutFixCtx:
-    states: List[State]
-
-
-class HeurQNNetParFixOut(HeurQNNetPar[QOutFixCtx, ActsEnumFixed, StateGoalActFixIn]):
-    @staticmethod
-    def domain_type() -> Type[ActsEnumFixed]:
-        return ActsEnumFixed
-
-    @staticmethod
-    def nnet_input_type() -> Type[StateGoalActFixIn]:
-        return StateGoalActFixIn
-
-    @staticmethod
-    def _check_same_num_acts(actions_l: List[List[Action]]) -> None:
-        assert len(set(len(actions) for actions in actions_l)) == 1, "num actions should be the same for all instances"
-
-    def process_inputs(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> ProcessedInput[QOutFixCtx]:
-        self._check_same_num_acts(actions_l)
-        return ProcessedInput(self._get_nnet_input().to_np(states, goals, actions_l), QOutFixCtx(states))
-
-    def process_outputs(self, outs: List[NDArray], update_num: Optional[int], ctx: QOutFixCtx) -> List[List[float]]:
-        q_vals_np: NDArray = outs[0]
-        assert q_vals_np.shape[0] == len(ctx.states)
-
-        q_vals_np = np.maximum(q_vals_np, 0)
-        if (update_num is not None) and (update_num == 0):
-            q_vals_np = q_vals_np * 0
-        q_vals_l: List[List[float]] = [q_vals_np[state_idx].astype(np.float64).tolist() for state_idx in range(q_vals_np.shape[0])]
-        return q_vals_l
-
-    def _qfix(self) -> bool:
-        return True
-
-    def _out_dim(self) -> int:
-        return self.domain.get_num_acts()
-
-
-@dataclass(frozen=True)
-class QInCtx:
-    states_rep: List[State]
-    split_idxs: List[int]
-
-
-class HeurQNNetParIn(HeurQNNetPar[QInCtx, Domain, StateGoalActIn]):
-    @staticmethod
-    def domain_type() -> Type[Domain]:
-        return Domain
-
-    @staticmethod
-    def nnet_input_type() -> Type[StateGoalActIn]:
-        return StateGoalActIn
-
-    def process_inputs(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> ProcessedInput[QInCtx]:
-        actions_flat, split_idxs = misc_utils.flatten(actions_l)
-        states_rep: List[State] = []
-        goals_rep: List[Goal] = []
-        for state, goal, actions in zip(states, goals, actions_l, strict=True):
-            states_rep.extend([state] * len(actions))
-            goals_rep.extend([goal] * len(actions))
-
-        return ProcessedInput(self._get_nnet_input().to_np(states_rep, goals_rep, actions_flat), QInCtx(states_rep, split_idxs))
-
-    def process_outputs(self, outs: List[NDArray], update_num: Optional[int], ctx: QInCtx) -> List[List[float]]:
-        q_vals_np: NDArray = outs[0]
-
-        assert q_vals_np.shape[0] == len(ctx.states_rep)
-        q_vals_np = np.maximum(q_vals_np[:, 0], 0)
-        if (update_num is not None) and (update_num == 0):
-            q_vals_np = q_vals_np * 0
-
-        q_vals_flat: List[float] = q_vals_np.astype(np.float64).tolist()
-        q_vals_l: List[List[float]] = misc_utils.unflatten(q_vals_flat, ctx.split_idxs)
-        return q_vals_l
-
-    def _qfix(self) -> bool:
-        return False
-
-    def _out_dim(self) -> int:
-        return 1
 
 
 @dataclass(frozen=True)
@@ -334,18 +257,3 @@ class PolicyNNetPar(DeepXubeNNetPar[PolicyFn, PolicyCtx, Domain, PolicyNNetIn, P
     def __repr__(self) -> str:
         nnet: PolicyNNet = self.get_nnet()
         return f"{super().__repr__()}\n#Samp: {nnet.num_samp}"
-
-
-# Parallel function runners
-
-
-class HeurVNNetParRunner(NNetParRunner[HeurVFn, HeurVNNetPar]):
-    pass
-
-
-class HeurQNNetParRunner(NNetParRunner[HeurQFn, HeurQNNetPar]):
-    pass
-
-
-class PolicyNNetParRunner(NNetParRunner[PolicyFn, PolicyNNetPar]):
-    pass
