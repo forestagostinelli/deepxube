@@ -654,6 +654,9 @@ class UpdateRL(Update[D, PFNsT, P, InstT], ABC):
 
         return pathfind.make_instances(states_gen, goals_gen, inst_infos=inst_infos, compute_root_vals=False)
 
+    def __repr__(self) -> str:
+        return f"{super().__repr__()}, {self.up_rl_args.__repr__()}"
+
 
 class UpdateHeur(Update[D, PFNsT, P, InstT], ABC):
     pass

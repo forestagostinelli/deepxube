@@ -98,9 +98,6 @@ class UpdateHeurQRL(UpdateHeurQ[D, PFNsHQ_T, PathFindSetHeurQ], UpdateRL[D, PFNs
 
         return states, goals, actions, ctgs_backup
 
-    def __repr__(self) -> str:
-        return f"{super().__repr__()}, {self.up_rl_args.__repr__()}"
-
 
 class UpdateHeurQRLKeepGoalABC(UpdateHeurQRL[Domain, PFNsHQ_T], ABC):
     @staticmethod

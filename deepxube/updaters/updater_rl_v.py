@@ -103,9 +103,6 @@ class UpdateHeurVRL(UpdateHeurV[D, PFNsHV_T, PathFindSetHeurV], UpdateRL[D, PFNs
 
         return states, goals, ctgs_backup
 
-    def __repr__(self) -> str:
-        return f"{super().__repr__()}, {self.up_rl_args.__repr__()}"
-
 
 class UpdateHeurVRLKeepGoalABC(UpdateHeurVRL[Domain, PFNsHV_T], ABC):
     @staticmethod
