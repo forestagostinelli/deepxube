@@ -1,10 +1,14 @@
 from typing import Any, Dict, Tuple, Type, List, Optional
+
+import torch
+
 from deepxube.utils.command_line_utils import get_name_args
+from deepxube.pytorch.nnet_utils import NNetCallable
 from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys, get_nnet_input_t
-from deepxube.factories.heuristic_factory import deepxube_nnet_factory
+from deepxube.factories.nnet_factory import deepxube_nnet_factory
 from deepxube.base.domain import Domain
 from deepxube.base.nnet_input import NNetInput
-from deepxube.base.heuristic import DeepXubeNNet
+from deepxube.base.nnet import DeepXubeNNet
 from deepxube.base.pathfind_fns import PFNs, DeepXubeNNetPar
 from deepxube.base.factory import FactoryAutoBuild, Factory
 
@@ -40,3 +44,20 @@ def get_dx_nnet_par(domain: Domain, domain_name: str, nnet_par_name_args: str, n
     incompat_reasons_str: str = '\n'.join(incompat_reasons)
     raise ValueError(f"Cannot build fn for domain: {domain_name}, nnet_args: {nnet_name_args}, nnet_par_args: {nnet_par_name_args}."
                      f"\nIncompatibility reasons:\n{incompat_reasons_str}")
+
+
+def get_fn_dicts(domain: Domain, domain_name: str, fn_name_args_l: List[str],
+                 device: torch.device) -> Tuple[Dict[str, NNetCallable], Dict[str, DeepXubeNNetPar]]:
+    nnet_fn_dict: Dict[str, NNetCallable] = dict()
+    nnet_par_dict: Dict[str, DeepXubeNNetPar] = dict()
+    for fn_arg in fn_name_args_l:
+        fn_arg_split: List[str] = fn_arg.split(",")
+        assert len(fn_arg_split) == 2
+        nnet_par_name_args, nnet_name_args = fn_arg_split[0], fn_arg_split[1]
+        nnet_par, nnet_par_name = get_dx_nnet_par(domain, domain_name, nnet_par_name_args, nnet_name_args)
+
+        field_name: str = nnet_par.get_field_name()
+        nnet_fn_dict[field_name] = nnet_par.get_nnet_fn(nnet_par.get_nnet(), None, device, None)
+        nnet_par_dict[field_name] = nnet_par
+
+    return nnet_fn_dict, nnet_par_dict

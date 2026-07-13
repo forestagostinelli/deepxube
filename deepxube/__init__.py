@@ -3,7 +3,7 @@ __author__ = 'Forest Agostinelli'
 
 # run registers
 from . import domains  # noqa: F401
-from . import heuristics  # noqa: F401
+from . import nnets  # noqa: F401
 from . import pathfind_fns  # noqa: F401
 from . import pathfinding  # noqa: F401
 from . import updaters  # noqa: F401
@@ -16,7 +16,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path.cwd()))
 import_local_modules("domains/")
-import_local_modules("heuristics/")
+import_local_modules("nnets/")
 import_local_modules("pathfind_fns/")
 import_local_modules("pathfinding/")
+import_local_modules("updaters/")
+import_local_modules("trainers/")
 register_nnet_input_dynamic()

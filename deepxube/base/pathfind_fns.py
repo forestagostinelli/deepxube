@@ -6,11 +6,11 @@ import numpy as np
 from numpy.typing import NDArray
 
 from deepxube.base.domain import State, Action, Goal, Domain
-from deepxube.base.heuristic import DeepXubeNNet, HeurNNet, PolicyNNet
+from deepxube.base.nnet import DeepXubeNNet, HeurNNet, PolicyNNet
 from deepxube.base.nnet_input import NNetInput, StateGoalIn, PolicyNNetIn
-from deepxube.factories.heuristic_factory import deepxube_nnet_factory
+from deepxube.factories.nnet_factory import deepxube_nnet_factory
 from deepxube.factories.nnet_input_factory import get_nnet_input_t
-from deepxube.nnet.nnet_utils import NNetPar, NNF_T, CTX_T, ProcessedInput
+from deepxube.pytorch.nnet_utils import NNetPar, NNF_T, CTX_T, ProcessedInput
 
 
 # Individual functions

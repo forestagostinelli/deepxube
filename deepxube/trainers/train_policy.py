@@ -1,6 +1,6 @@
 from typing import List
 
-from deepxube.base.heuristic import PolicyNNet
+from deepxube.base.nnet import PolicyNNet
 from deepxube.base.updater import UpdatePolicy
 from deepxube.base.trainer import Train, update_optimizer
 from deepxube.trainers.utils.train_utils import train_nnet_step

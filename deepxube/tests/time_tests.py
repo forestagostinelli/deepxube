@@ -6,11 +6,11 @@ import torch.nn as nn
 from torch.multiprocessing import Queue, get_context
 
 from deepxube.base.domain import Domain, ActsEnum, StartGoalWalkable, State, Goal, Action
-from deepxube.nnet.nnet_utils import NNetPar
-from deepxube.base.heuristic import PolicyNNet
+from deepxube.pytorch.nnet_utils import NNetPar
+from deepxube.base.nnet import PolicyNNet
 from deepxube.base.pathfind_fns import PolicyFn, HeurNNetPar, HeurVNNetPar, HeurQNNetPar, PolicyNNetPar
-from deepxube.nnet.nnet_utils import NNetCallable
-from deepxube.nnet import nnet_utils
+from deepxube.pytorch.nnet_utils import NNetCallable
+from deepxube.pytorch import nnet_utils
 from deepxube.utils.misc_utils import flatten
 from deepxube.utils.timing_utils import Times
 import numpy as np

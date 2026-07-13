@@ -9,14 +9,14 @@ from torch.nn import DataParallel
 from torch.optim import Optimizer
 
 from deepxube.base.factory import DelimParser
-from deepxube.base.heuristic import DeepXubeNNet
+from deepxube.base.nnet import DeepXubeNNet
 from deepxube.base.pathfind_fns import DeepXubeNNetPar
 from deepxube.base.updater import Update
 from deepxube.pathfinding.utils.performance import PathFindPerf, get_eq_weighted_perf
 from deepxube.utils.data_utils import sel_l, SharedNDArray
-from deepxube.nnet.nnet_utils import nnet_in_out_shared_q
+from deepxube.pytorch.nnet_utils import nnet_in_out_shared_q
 from deepxube.utils.data_utils import get_nowait_noerr
-from deepxube.nnet import nnet_utils
+from deepxube.pytorch import nnet_utils
 from deepxube.utils.timing_utils import Times
 
 from multiprocessing import Queue

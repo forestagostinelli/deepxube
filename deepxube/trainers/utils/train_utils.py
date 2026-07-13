@@ -4,9 +4,9 @@ from typing import List, Tuple, Union, Optional
 import numpy as np
 from numpy.typing import NDArray
 
-from deepxube.base.heuristic import DeepXubeNNet
+from deepxube.base.nnet import DeepXubeNNet
 from deepxube.base.trainer import TrainArgs
-from deepxube.nnet import nnet_utils
+from deepxube.pytorch import nnet_utils
 from deepxube.utils.data_utils import combine_l_l
 from deepxube.utils.misc_utils import split_evenly
 

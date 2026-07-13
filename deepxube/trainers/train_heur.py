@@ -1,7 +1,7 @@
 from typing import List, Type
 from abc import ABC
 
-from deepxube.base.heuristic import HeurNNet
+from deepxube.base.nnet import HeurNNet
 from deepxube.base.updater import UpdateHeur
 from deepxube.base.trainer import Train, update_optimizer, TrainParser
 from deepxube.utils.timing_utils import Times

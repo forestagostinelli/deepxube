@@ -6,10 +6,10 @@ from torch.optim import Optimizer
 
 from deepxube.base.factory import DelimParser
 from deepxube.base.nnet_input import FlatIn
-from deepxube.base.heuristic import HeurNNet
-from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel, OneHot
+from deepxube.base.nnet import HeurNNet
+from deepxube.pytorch.pytorch_models import FullyConnectedModel, ResnetModel, OneHot
 
-from deepxube.factories.heuristic_factory import deepxube_nnet_factory
+from deepxube.factories.nnet_factory import deepxube_nnet_factory
 
 
 # start registration

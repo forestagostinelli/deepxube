@@ -7,14 +7,14 @@ from deepxube._solve import parse_solve
 from deepxube.base.factory import Factory, Parser
 from deepxube.base.domain import Domain, StateGoalVizable, StringToAct, State, Action, Goal
 from deepxube.base.nnet_input import NNetInput
-from deepxube.base.heuristic import DeepXubeNNet
+from deepxube.base.nnet import DeepXubeNNet
 from deepxube.base.pathfind_fns import PFNs, HeurNNetPar, PolicyNNetPar, DeepXubeNNetPar
 from deepxube.base.pathfinding import PathFind
 from deepxube.base.updater import Update
 from deepxube.base.trainer import Train
 from deepxube.factories.domain_factory import domain_factory, get_domain_from_arg
 from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys, get_nnet_input_t
-from deepxube.factories.heuristic_factory import deepxube_nnet_factory
+from deepxube.factories.nnet_factory import deepxube_nnet_factory
 from deepxube.factories.pathfind_fns_factory import pathfind_fns_factory, deepxube_nnet_par_factory
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.factories.updater_factory import updater_factory
@@ -90,23 +90,23 @@ def domain_info(args: argparse.Namespace) -> None:
             print("Parser help:\n" + textwrap.indent(parser.help(), '\t'), '\t')
 
 
-def heur_info(args: argparse.Namespace) -> None:
-    heur_nnet_name: str
-    heur_nnet_t: Type[DeepXubeNNet]
+def nnet_info(args: argparse.Namespace) -> None:
+    nnet_name: str
+    nnet_t: Type[DeepXubeNNet]
     if args.name is None:
-        heur_nnet_names: List[str] = deepxube_nnet_factory.get_all_class_names()
-        for heur_nnet_name in heur_nnet_names:
-            heur_nnet_t = deepxube_nnet_factory.get_type(heur_nnet_name)
-            print(f"DeepXubeNNet (Name, Module, Class): {heur_nnet_name}, {heur_nnet_t.__module__}, {heur_nnet_t.__qualname__}")
+        nnet_names: List[str] = deepxube_nnet_factory.get_all_class_names()
+        for nnet_name in nnet_names:
+            nnet_t = deepxube_nnet_factory.get_type(nnet_name)
+            print(f"DeepXubeNNet (Name, Module, Class): {nnet_name}, {nnet_t.__module__}, {nnet_t.__qualname__}")
     else:
-        heur_nnet_name = args.name
-        heur_nnet_t = deepxube_nnet_factory.get_type(heur_nnet_name)
-        print(f"DeepXubeNNet (Name, Module, Class): {heur_nnet_name}, {heur_nnet_t.__module__}, {heur_nnet_t.__qualname__}")
+        nnet_name = args.name
+        nnet_t = deepxube_nnet_factory.get_type(nnet_name)
+        print(f"DeepXubeNNet (Name, Module, Class): {nnet_name}, {nnet_t.__module__}, {nnet_t.__qualname__}")
 
-        nnet_input_t: Type[NNetInput] = heur_nnet_t.nnet_input_type()
+        nnet_input_t: Type[NNetInput] = nnet_t.nnet_input_type()
         print(f"Expected NNet_Input (Module, Class): {nnet_input_t.__module__}, {nnet_input_t.__qualname__}")
 
-        parser: Optional[Parser] = deepxube_nnet_factory.get_parser(heur_nnet_name)
+        parser: Optional[Parser] = deepxube_nnet_factory.get_parser(nnet_name)
         if parser is not None:
             print("Parser help:\n" + textwrap.indent(parser.help(), '\t'))
 
@@ -467,15 +467,11 @@ def main() -> None:
     parser_domain_info.add_argument('--domain', '--name', type=str, default=None, help="Name of domain.")
     parser_domain_info.set_defaults(func=domain_info)
 
-    # heuristic info
-    parser_heur_info: ArgumentParser = subparsers.add_parser('heuristic_info', help="Print information on neural network "
-                                                                                    "representations of heuristic functions "
-                                                                                    "that deepxube has registered. "
-                                                                                    "Put user-defined definitions of "
-                                                                                    "heuristic neural networks in "
-                                                                                    "'./heuristics/'")
-    parser_heur_info.add_argument('--name', type=str, default=None, help="Name of heuristic.")
-    parser_heur_info.set_defaults(func=heur_info)
+    # nnet info
+    parser_nnet_info: ArgumentParser = subparsers.add_parser('nnet_info', help="Print information on neural network architectures that deepxube has "
+                                                                               "registered. Put user-defined definitions of neural networks in './nnets/'")
+    parser_nnet_info.add_argument('--name', type=str, default=None, help="Name of nnet.")
+    parser_nnet_info.set_defaults(func=nnet_info)
 
     # pathfinding functions
     parser_fn_info: ArgumentParser = subparsers.add_parser('fn_info', help="Print information on parallel nnet functions")

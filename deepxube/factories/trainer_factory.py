@@ -4,7 +4,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from deepxube.utils.command_line_utils import get_name_args
-from deepxube.base.heuristic import DeepXubeNNet
+from deepxube.base.nnet import DeepXubeNNet
 from deepxube.base.pathfind_fns import DeepXubeNNetPar
 from deepxube.base.updater import Update
 from deepxube.base.trainer import Train

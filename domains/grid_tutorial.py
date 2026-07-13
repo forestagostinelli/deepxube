@@ -5,13 +5,13 @@ from torch import nn, Tensor
 from deepxube.base.factory import DelimParser
 from deepxube.base.domain import State, Action, Goal, ActsEnumFixed, StartGoalWalkable, StateGoalVizable, StringToAct
 from deepxube.base.nnet_input import StateGoalIn, StateGoalActFixIn, StateGoalActIn, FlatIn
-from deepxube.base.heuristic import HeurNNet
+from deepxube.base.nnet import HeurNNet
 
-from deepxube.factories.heuristic_factory import deepxube_nnet_factory
+from deepxube.factories.nnet_factory import deepxube_nnet_factory
 from deepxube.factories.domain_factory import domain_factory
 from deepxube.factories.nnet_input_factory import register_nnet_input
 
-from deepxube.nnet.pytorch_models import Conv2dModel, FullyConnectedModel
+from deepxube.pytorch.pytorch_models import Conv2dModel, FullyConnectedModel
 
 from numpy.typing import NDArray
 import random

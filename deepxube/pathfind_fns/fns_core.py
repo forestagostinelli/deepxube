@@ -1,7 +1,7 @@
 from typing import List, Type, Optional
 
 from deepxube.utils import misc_utils
-from deepxube.nnet.nnet_utils import ProcessedInput
+from deepxube.pytorch.nnet_utils import ProcessedInput
 from deepxube.base.domain import Domain, State, Action, Goal, ActsEnumFixed
 from deepxube.base.nnet_input import StateGoalActFixIn, StateGoalActIn
 from dataclasses import dataclass

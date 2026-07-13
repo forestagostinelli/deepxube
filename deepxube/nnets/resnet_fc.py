@@ -4,10 +4,10 @@ from torch import nn, Tensor
 
 from deepxube.base.factory import DelimParser
 from deepxube.base.nnet_input import FlatIn, FlatInPolicy
-from deepxube.base.heuristic import HeurNNet, PolicyVAE
-from deepxube.nnet.pytorch_models import FullyConnectedModel, ResnetModel, OneHot, make_onehots
+from deepxube.base.nnet import HeurNNet, PolicyVAE
+from deepxube.pytorch.pytorch_models import FullyConnectedModel, ResnetModel, OneHot, make_onehots
 
-from deepxube.factories.heuristic_factory import deepxube_nnet_factory
+from deepxube.factories.nnet_factory import deepxube_nnet_factory
 
 
 @deepxube_nnet_factory.register_class("resnet_fc")

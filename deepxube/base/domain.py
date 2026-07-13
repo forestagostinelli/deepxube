@@ -9,7 +9,7 @@ from clingo.solving import Model as ModelCl
 
 from deepxube.logic.logic_objects import Atom, Model
 from deepxube.utils import misc_utils
-from deepxube.nnet.nnet_utils import NNetPar, NNetCallable, load_nnet
+from deepxube.pytorch.nnet_utils import NNetPar, NNetCallable, load_nnet
 from deepxube.utils.timing_utils import Times
 
 from matplotlib.figure import Figure

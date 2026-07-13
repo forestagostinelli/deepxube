@@ -1,14 +1,13 @@
-from typing import Dict, List
 import argparse
 from argparse import ArgumentParser
 
 import torch
 
 from deepxube.utils.command_line_utils import get_name_args, print_command
-from deepxube.nnet.nnet_utils import NNetCallable, NNetPar, get_device
+from deepxube.pytorch.nnet_utils import get_device
 from deepxube.base.pathfind_fns import PFNs, DeepXubeNNetPar
 from deepxube.factories.domain_factory import get_domain_from_arg
-from deepxube.factories.pathfind_fns_factory import get_dx_nnet_par, pathfind_fns_factory
+from deepxube.factories.pathfind_fns_factory import get_fn_dicts, pathfind_fns_factory
 from deepxube.factories.pathfinding_factory import get_pathfind_from_arg
 from deepxube.factories.updater_factory import get_updater_from_args
 from deepxube.factories.trainer_factory import get_trainer_from_args
@@ -74,20 +73,10 @@ def train_cli(args: argparse.Namespace) -> None:
     domain, domain_name = get_domain_from_arg(args.domain)
 
     # parse nnet fn args
-    nnet_fn_dict: Dict[str, NNetCallable] = dict()
-    nnet_par_dict: Dict[str, NNetPar] = dict()
-    for fn_arg in args.fn:
-        fn_arg_split: List[str] = fn_arg.split(",")
-        assert len(fn_arg_split) == 2
-        nnet_par_name_args, nnet_name_args = fn_arg_split[0], fn_arg_split[1]
-        nnet_par, nnet_par_name = get_dx_nnet_par(domain, domain_name, nnet_par_name_args, nnet_name_args)
-
+    nnet_fn_dict, nnet_par_dict = get_fn_dicts(domain, domain_name, args.fn, device)
+    for nnet_par_name, nnet_par in nnet_par_dict.items():
         print(nnet_par)
         print(f"(name: {nnet_par_name}, nnet_input_name: {nnet_par.nnet_input_name})")
-
-        field_name: str = nnet_par.get_field_name()
-        nnet_fn_dict[field_name] = nnet_par.get_nnet_fn(nnet_par.get_nnet(), None, device, None)
-        nnet_par_dict[field_name] = nnet_par
 
     print(domain, f"(name: {domain_name})")
 
@@ -96,16 +85,11 @@ def train_cli(args: argparse.Namespace) -> None:
     print(pathfind_fns)
 
     # pathfinding
-    pathfind, pathfind_name = get_pathfind_from_arg(domain, pathfind_fns, args.pathfind)
+    pathfind, pathfind_name, pathfind_name_args_full = get_pathfind_from_arg(domain, pathfind_fns, args.pathfind)
     print(pathfind, f"(name: {pathfind_name})")
 
-    _, pathfind_args_str = get_name_args(args.pathfind)
-    pathfind_name_args: str = f"{pathfind_name}"
-    if pathfind_args_str is not None:
-        pathfind_name_args = f"{pathfind_name_args}.{pathfind_args_str}"
-
     # updater
-    updater, updater_name = get_updater_from_args(domain, pathfind, pathfind_name_args, nnet_par_dict, args.up)
+    updater, updater_name = get_updater_from_args(domain, pathfind, pathfind_name_args_full, nnet_par_dict, args.up)
     print(updater, f"(name: {updater_name})")
 
     """
@@ -119,9 +103,10 @@ def train_cli(args: argparse.Namespace) -> None:
         print(f"{test_args}")
     """
 
+    # trainer
     writer: SummaryWriter = SummaryWriter(args.dir)
-
     nnet_par_train: DeepXubeNNetPar = updater.get_train_nnet_par()
+
     trainer, trainer_name = get_trainer_from_args(args.dir, nnet_par_train, updater, device, on_gpu, writer, args.tr)
     print(trainer, f"(name: {trainer_name})")
 

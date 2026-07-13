@@ -1,6 +1,6 @@
 from typing import Type, List, Tuple, Dict, Any, Optional
 
-from deepxube.nnet.nnet_utils import NNetPar
+from deepxube.pytorch.nnet_utils import NNetPar
 from deepxube.utils.command_line_utils import get_name_args
 from deepxube.base.domain import Domain
 from deepxube.base.pathfind_fns import PFNs
