@@ -206,8 +206,7 @@ class Train(Generic[NNet, Up], ABC):
 
         self.writer: SummaryWriter = writer
 
-
-        #kwargs
+        # kwargs
         self.train_args: TrainArgs = TrainArgs(batch_size=batch_size, max_itrs=max_itrs, balance_steps=balance_steps, loss_thresh=loss_thresh,
                                                checkpoint=checkpoint, grad_accum=grad_accum, display=display)
         self.device: torch.device = device

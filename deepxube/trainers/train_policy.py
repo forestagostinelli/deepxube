@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List
 
 from deepxube.base.heuristic import PolicyNNet
 from deepxube.base.updater import UpdatePolicy
@@ -6,7 +6,6 @@ from deepxube.base.trainer import Train, update_optimizer
 from deepxube.trainers.utils.train_utils import train_nnet_step
 from deepxube.utils.timing_utils import Times
 
-import numpy as np
 from numpy.typing import NDArray
 import time
 

@@ -1,13 +1,9 @@
-from typing import Type, List, Tuple, Dict, Any
+from typing import Tuple, Dict, Any
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from deepxube.nnet.nnet_utils import NNetPar
 from deepxube.utils.command_line_utils import get_name_args
-from deepxube.base.domain import Domain
-from deepxube.base.pathfind_fns import PFNs
-from deepxube.base.pathfinding import PathFind
 from deepxube.base.updater import Update
 from deepxube.base.trainer import Train
 from deepxube.base.factory import Factory
