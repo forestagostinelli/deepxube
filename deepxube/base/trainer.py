@@ -174,21 +174,22 @@ class Train(Generic[NNet, Up], ABC):
         pass
 
     @classmethod
-    def is_compat(cls, nnet: DeepXubeNNet, updater: Update) -> bool:
+    def get_incompat_reason(cls, nnet: DeepXubeNNet, updater: Update) -> Optional[str]:
         if not isinstance(nnet, cls.nnet_type()):
-            return False
-        if not isinstance(updater, cls.updater_type()):
-            return False
+            return f"DeepXubeNNet {nnet} is not an instance of {cls.nnet_type()}"
+        elif not isinstance(updater, cls.updater_type()):
+            return f"Updater {updater} is not an instance of {cls.updater_type()}"
 
-        return True
+        return None
 
     @staticmethod
     @abstractmethod
     def get_nnet_name() -> str:
         pass
 
-    def __init__(self, nnet_dir: str, updater: Up, device: torch.device, on_gpu: bool, writer: SummaryWriter, batch_size: int = 100, max_itrs: int = 100000,
-                 balance_steps: bool = False, loss_thresh: float = np.inf, checkpoint: int = 0, grad_accum: int = 1, display: int = 100) -> None:
+    def __init__(self, nnet_dir: str, nnet: NNet, nnet_par: DeepXubeNNetPar, updater: Up, device: torch.device, on_gpu: bool, writer: SummaryWriter,
+                 batch_size: int = 100, max_itrs: int = 100000, balance_steps: bool = False, loss_thresh: float = np.inf, checkpoint: int = 0,
+                 grad_accum: int = 1, display: int = 100) -> None:
         self.nnet_dir: str = nnet_dir
         if not os.path.exists(self.nnet_dir):
             os.makedirs(self.nnet_dir)
@@ -198,11 +199,13 @@ class Train(Generic[NNet, Up], ABC):
         self.nnet_targ_file: str = f"{self.nnet_dir}/{self.nnet_name}_targ.pt"
 
         self.updater: Up = updater
-        nnet_par: DeepXubeNNetPar = self.updater.get_train_nnet_par()
         self.nnet_field_name: str = nnet_par.get_field_name()
         nnet_par.set_nnet_file(self.nnet_targ_file)
-        self.nnet: NNet = nnet_par.get_nnet()
-        assert self.is_compat(self.nnet, self.updater)
+        self.nnet: NNet = nnet
+
+        incompat_reason: Optional[str] = self.get_incompat_reason(self.nnet, self.updater)
+        if incompat_reason is not None:
+            raise TypeError(incompat_reason)
 
         self.writer: SummaryWriter = writer
 

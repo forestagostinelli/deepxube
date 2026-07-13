@@ -103,15 +103,15 @@ class Update(Generic[D, PFNsT, P, InstT], ABC):
         pass
 
     @classmethod
-    def is_compat(cls, domain: Domain, functions_t: Type[PFNs], pathfind_t: Type[PathFind]) -> bool:
+    def get_incompat_reason(cls, domain: Domain, pathfind_fns_t: Type[PFNs], pathfind_t: Type[PathFind]) -> Optional[str]:
         if not isinstance(domain, cls.domain_type()):
-            return False
-        if not issubclass(functions_t, cls.functions_type()):
-            return False
-        if not issubclass(pathfind_t, cls.pathfind_type()):
-            return False
+            return f"Domain {domain} is not an instance of {cls.domain_type()}"
+        elif not issubclass(pathfind_fns_t, cls.functions_type()):
+            return f"Functions type {pathfind_fns_t} is not a subclass of {cls.functions_type()}"
+        elif not issubclass(pathfind_t, cls.pathfind_type()):
+            return f"PathFind type {pathfind_t} is not a subclass of {cls.pathfind_type()}"
 
-        return True
+        return None
 
     @classmethod
     def nnet_pars_type_okay(cls, nn_par_dict: Dict[str, NNetPar]) -> bool:
@@ -138,15 +138,17 @@ class Update(Generic[D, PFNsT, P, InstT], ABC):
                  up_itrs: int = 100, up_gen_itrs: Optional[int] = None, rb: int = 0, up_batch_size: Optional[int] = None,
                  nnet_batch_size: Optional[int] = None, sync_main: bool = False, v: bool = False, **kwargs: Any):
         self.domain: D = domain
-        assert isinstance(domain, self.domain_type()), f"Domain {domain} must be an instance of {self.domain_type()}."
 
         self.pathfind_arg: str = pathfind_arg
         pathfind_name, pathfind_kwargs = get_pathfind_name_kwargs(pathfind_arg)
         pathfind_t: Type[PathFind] = pathfinding_factory.get_type(pathfind_name)
-        assert issubclass(pathfind_t, self.pathfind_type()), f"PathFind {pathfind_t} (name: {pathfind_name}) must be an subclass of {self.pathfind_type()}."
 
         self.pathfind_name: str = pathfind_name
         self.pathfind_kwargs: Dict[str, Any] = pathfind_kwargs
+
+        incompat_reason: Optional[str] = self.get_incompat_reason(domain, pathfind_t.functions_type(), pathfind_t)
+        if incompat_reason is not None:
+            raise TypeError(incompat_reason)
 
         assert self.nnet_pars_type_okay(nnet_par_dict), f"{nnet_par_dict} not key/value typed appropriately as expected: {self.nnpar_types}"
         self.nnet_par_run_dict: Dict[str, NNetPar] = nnet_par_dict
@@ -611,16 +613,16 @@ class UpdateHasPolicy(Update[D, PFNsP_T, P, InstT], ABC):
 PS = TypeVar('PS', bound=PathFindSup)
 
 
-class UpdateSup(Update[D, Any, PS, InstT], ABC):
+class UpdateSup(Update[D, PFNs, PS, InstT], ABC):
     @staticmethod
-    def functions_type() -> Type[Any]:
-        return Any
+    def functions_type() -> Type[PFNs]:
+        return PFNs
 
     def _step(self, pathfind: PS, times: Times) -> None:
         pathfind.step()
 
-    def _get_pathfind_functions(self) -> Any:
-        return None
+    def _get_pathfind_functions(self) -> PFNs:
+        return PFNs()
 
     def _make_instances(self, pathfind: PS, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[InstT]:
         return pathfind.make_instances_sup(steps_gen, inst_infos)

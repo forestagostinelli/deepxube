@@ -97,13 +97,26 @@ class DeepXubeNNetPar(NNetPar[NNF_T, CTX_T], Generic[NNF_T, CTX_T, D, NNInP, DXN
     def nnet_type() -> Type[DXNNet]:
         pass
 
+    @classmethod
+    def get_incompat_reason(cls, domain: Domain, nnet_input_t: Type[NNetInput], nnet_t: Type[DeepXubeNNet]) -> Optional[str]:
+        if not isinstance(domain, cls.domain_type()):
+            return f"Domain {domain} is not an instance of {cls.domain_type()}"
+        elif not issubclass(nnet_input_t, cls.nnet_input_type()):
+            return f"NNetInput type {nnet_input_t} is not a subclass of {cls.nnet_input_type()}"
+        elif not issubclass(nnet_t, cls.nnet_type()):
+            return f"DeepXubeNNet type {nnet_t} is not a subclass of {cls.nnet_type()}"
+        elif not issubclass(nnet_input_t, nnet_t.nnet_input_type()):
+            return f"NNetInput type {nnet_input_t} is not a subclass of type nnet expects: {nnet_t.nnet_input_type()}"
+
+        return None
+
     def __init__(self, domain: D, nnet_input_name: Tuple[str, str], nnet_name: str, nnet_kwargs: Dict[str, Any], **kwargs: Any):
-        assert isinstance(domain, self.domain_type()), f"Domain {domain} must be an instance of {self.domain_type()}."
         nnet_input_t: Type[NNetInput] = get_nnet_input_t(nnet_input_name)
-        assert issubclass(nnet_input_t, self.nnet_input_type()), (f"NNetInput {nnet_input_t} (name {nnet_input_name}) must be a subclass of "
-                                                                  f"{self.nnet_input_type()}.")
         nnet_t: Type[DeepXubeNNet] = deepxube_nnet_factory.get_type(nnet_name)
-        assert issubclass(nnet_t, self.nnet_type()), f"DeepXubeNNet {nnet_t} (name {nnet_name}) must be a subclass of {self.nnet_type()}."
+
+        incompat_reason: Optional[str] = self.get_incompat_reason(domain, nnet_input_t, nnet_t)
+        if incompat_reason is not None:
+            raise TypeError(incompat_reason)
 
         self.domain: D = domain
         self.nnet_input_name: Tuple[str, str] = nnet_input_name

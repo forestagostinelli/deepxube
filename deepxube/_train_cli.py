@@ -6,7 +6,7 @@ import torch
 
 from deepxube.utils.command_line_utils import get_name_args, print_command
 from deepxube.nnet.nnet_utils import NNetCallable, NNetPar, get_device
-from deepxube.base.pathfind_fns import PFNs
+from deepxube.base.pathfind_fns import PFNs, DeepXubeNNetPar
 from deepxube.factories.domain_factory import get_domain_from_arg
 from deepxube.factories.pathfind_fns_factory import get_dx_nnet_par, pathfind_fns_factory
 from deepxube.factories.pathfinding_factory import get_pathfind_from_arg
@@ -83,7 +83,7 @@ def train_cli(args: argparse.Namespace) -> None:
         nnet_par, nnet_par_name = get_dx_nnet_par(domain, domain_name, nnet_par_name_args, nnet_name_args)
 
         print(nnet_par)
-        print(f"(name: {nnet_par_name})")
+        print(f"(name: {nnet_par_name}, nnet_input_name: {nnet_par.nnet_input_name})")
 
         field_name: str = nnet_par.get_field_name()
         nnet_fn_dict[field_name] = nnet_par.get_nnet_fn(nnet_par.get_nnet(), None, device, None)
@@ -105,7 +105,7 @@ def train_cli(args: argparse.Namespace) -> None:
         pathfind_name_args = f"{pathfind_name_args}.{pathfind_args_str}"
 
     # updater
-    updater, updater_name = get_updater_from_args(domain, pathfind_fns, pathfind, pathfind_name_args, nnet_par_dict, args.up)
+    updater, updater_name = get_updater_from_args(domain, pathfind, pathfind_name_args, nnet_par_dict, args.up)
     print(updater, f"(name: {updater_name})")
 
     """
@@ -121,7 +121,8 @@ def train_cli(args: argparse.Namespace) -> None:
 
     writer: SummaryWriter = SummaryWriter(args.dir)
 
-    trainer, trainer_name = get_trainer_from_args(args.dir, updater, device, on_gpu, writer, args.tr)
+    nnet_par_train: DeepXubeNNetPar = updater.get_train_nnet_par()
+    trainer, trainer_name = get_trainer_from_args(args.dir, nnet_par_train, updater, device, on_gpu, writer, args.tr)
     print(trainer, f"(name: {trainer_name})")
 
     trainer.train_loop()

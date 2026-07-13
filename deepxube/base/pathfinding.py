@@ -209,17 +209,19 @@ class PathFind(Generic[D, PFNsT, I], ABC):
         pass
 
     @classmethod
-    def is_compat(cls, domain: Domain, functions_t: Type[PFNs]) -> bool:
+    def get_incompat_reason(cls, domain: Domain, functions_t: Type[PFNs]) -> Optional[str]:
         if not isinstance(domain, cls.domain_type()):
-            return False
-        if not issubclass(functions_t, cls.functions_type()):
-            return False
+            return f"Domain {domain} is not an instance of {cls.domain_type()}"
+        elif not issubclass(functions_t, cls.functions_type()):
+            return f"Functions type {functions_t} is not a subclass of {cls.functions_type()}"
 
-        return True
+        return None
 
     def __init__(self, domain: D, functions: PFNsT):
-        assert self.is_compat(domain, type(functions)), (f"Domain {domain} and functions {functions} not compatable with {self.domain_type()} and "
-                                                         f"{self.functions_type()}")
+        incompat_reason: Optional[str] = self.get_incompat_reason(domain, type(functions))
+        if incompat_reason is not None:
+            raise TypeError(incompat_reason)
+
         self.domain: D = domain
         self.functions: PFNsT = functions
         self.instances: List[I] = []

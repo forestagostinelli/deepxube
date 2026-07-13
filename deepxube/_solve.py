@@ -6,7 +6,7 @@ from deepxube.base.domain import Domain, State, Action, Goal
 from deepxube.base.pathfinding import Node, Instance, PathFind, get_path
 from deepxube.base.pathfind_fns import HeurFn, PolicyFn, HeurNNetPar, PolicyNNetPar
 from deepxube.heuristics.utils.heur_utils import get_zero_heur, get_rand_policy
-from deepxube.factories.pathfinding_factory import get_pathfind_functions, get_pathfind_name_kwargs, get_pathfind_from_arg
+from deepxube.factories.pathfinding_factory import get_pathfind_name_kwargs, get_pathfind_from_arg
 from deepxube.pathfinding.beam_search import BeamSearch
 from deepxube.factories.domain_factory import get_domain_from_arg
 from deepxube.utils import data_utils, misc_utils
