@@ -44,7 +44,7 @@ class DelimParser(Parser):
         :param arg_name: Name of argument given to class
         :param value_type: Type
         :param help_msg: Help message
-        :param default: Default value.
+        :param default: Default value. Must be the same type as the value type. (i.e. cannot set to None if expecting int)
         :return: None
         """
         arg_name_parse = arg_name_parse.lower()

@@ -13,9 +13,8 @@ from numpy.typing import NDArray
 from deepxube.nnet.nnet_utils import NNetParInfo, NNetPar
 from deepxube.base.factory import DelimParser
 from deepxube.base.domain import Domain, State, Action, Goal, GoalSampleableFromState
-from deepxube.base.heuristic import HeurNNet, PolicyNNet
-from deepxube.base.pathfind_fns import DeepXubeNNetPar, HeurVFn, HeurQFn, PolicyFn, HeurVNNetPar, HeurQNNetPar, PolicyNNetPar
-from deepxube.base.pathfinding import PFNs, PFNsT, PFNsHV_T, PFNsHQ_T, PFNsP_T, PathFind, PathFindSup, Instance, InstanceNode, InstanceEdge, get_path, Node
+from deepxube.base.pathfind_fns import PFNs, DeepXubeNNetPar, HeurVFn, HeurQFn, PolicyFn, HeurVNNetPar, HeurQNNetPar, PolicyNNetPar
+from deepxube.base.pathfinding import PFNsT, PFNsHV_T, PFNsHQ_T, PFNsP_T, PathFind, PathFindSup, Instance, InstanceNode, InstanceEdge, get_path, Node
 from deepxube.factories.pathfinding_factory import pathfinding_factory, get_pathfind_name_kwargs
 from deepxube.heuristics.utils.heur_utils import get_rand_policy
 from deepxube.pathfinding.utils.performance import PathFindPerf, print_pathfindperf
@@ -37,6 +36,10 @@ class UpArgs:
     :param step_max: Maximum number of steps to take when generating problem instances.
     :param search_itrs: Maximum number of pathfinding iterationos to take for each generated problem instances
     States and corresponding goals seen during search will be added to training instances.
+    :param up_itrs: How many iterations worth of training instances to obtain for each update
+    :param up_gen_itrs: How many iterations worth of data to generate per udpate. If None, set to up_itrs
+    :param rb: amount of data generated from previous updates to keep in replay buffer. Total replay buffer size will
+    then be batch_size * up_gen_itrs * rb.
     :param up_batch_size: Maximum number of searches to do at a time. Helps manage memory.
     Decrease if memory is running out during updater. None if as large as possible
     :param nnet_batch_size: Batch size of each nnet used for each process updater. Make smaller if running out
@@ -44,13 +47,19 @@ class UpArgs:
     :param sync_main: if True, number of processes can affect order in which data is seen
     :param v: True if update is verbose.
     """
-    procs: int = 1
-    step_max: int = 100
-    search_itrs: int = 1
-    up_batch_size: Optional[int] = None
-    nnet_batch_size: Optional[int] = None
-    sync_main: bool = False
-    v: bool = False
+    procs: int
+    step_max: int
+    search_itrs: int
+    up_itrs: int
+    up_gen_itrs: Optional[int]
+    rb: int
+    up_batch_size: Optional[int]
+    nnet_batch_size: Optional[int]
+    sync_main: bool
+    v: bool
+
+    def get_up_gen_itrs(self) -> int:
+        return self.up_itrs if (self.up_gen_itrs is None) else self.up_gen_itrs
 
 
 def _put_from_q(data_l: List[List[NDArray]], from_q: Queue, times: Times) -> None:
@@ -126,7 +135,8 @@ class Update(Generic[D, PFNsT, P, InstT], ABC):
             step_to_pathperf[step_num_inst].update_perf(inst)
 
     def __init__(self, domain: D, pathfind_arg: str, nnet_par_dict: Dict[str, NNetPar], procs: int = 1, step_max: int = 100, search_itrs: int = 1,
-                 up_batch_size: Optional[int] = None, nnet_batch_size: Optional[int] = None, sync_main: bool = False, v: bool = False, **kwargs: Any):
+                 up_itrs: int = 100, up_gen_itrs: Optional[int] = None, rb: int = 0, up_batch_size: Optional[int] = None,
+                 nnet_batch_size: Optional[int] = None, sync_main: bool = False, v: bool = False, **kwargs: Any):
         self.domain: D = domain
         assert isinstance(domain, self.domain_type()), f"Domain {domain} must be an instance of {self.domain_type()}."
 
@@ -142,8 +152,8 @@ class Update(Generic[D, PFNsT, P, InstT], ABC):
         self.nnet_par_run_dict: Dict[str, NNetPar] = nnet_par_dict
 
         # kwargs
-        self.up_args: UpArgs = UpArgs(procs=procs, step_max=step_max, search_itrs=search_itrs, up_batch_size=up_batch_size,
-                                      nnet_batch_size=nnet_batch_size, sync_main=sync_main, v=v)
+        self.up_args: UpArgs = UpArgs(procs=procs, step_max=step_max, search_itrs=search_itrs, up_itrs=up_itrs, up_gen_itrs=up_gen_itrs, rb=rb,
+                                      up_batch_size=up_batch_size, nnet_batch_size=nnet_batch_size, sync_main=sync_main, v=v)
 
         # nnet objects
         # TODO redo domain nnet_pars
@@ -270,9 +280,9 @@ class Update(Generic[D, PFNsT, P, InstT], ABC):
 
         assert num_gen % self.up_args.search_itrs == 0, (f"Number of instances to generate per for this updater {num_gen} is not divisible by the max number "
                                                          f"of pathfinding iterations to take during the updater ({self.up_args.search_itrs})")
+
         up_batch_size: int = train_batch_size if (self.up_args.up_batch_size is None) else self.up_args.up_batch_size
-        num_to_send_per: List[int] = split_evenly_w_max(num_searches, self.up_args.procs,
-                                                        min(up_batch_size, train_batch_size))
+        num_to_send_per: List[int] = split_evenly_w_max(num_searches, self.up_args.procs, min(up_batch_size, train_batch_size))
         for num_to_send_per_i in num_to_send_per:
             if num_to_send_per_i > 0:
                 self.to_q.put(num_to_send_per_i)
@@ -645,7 +655,11 @@ class UpdateRL(Update[D, PFNsT, P, InstT], ABC):
         return pathfind.make_instances(states_gen, goals_gen, inst_infos=inst_infos, compute_root_vals=False)
 
 
-class UpdateHeurV(UpdateHasHeurV[D, PFNsHV_T, P, InstanceNode], ABC):
+class UpdateHeur(Update[D, PFNsT, P, InstT], ABC):
+    pass
+
+
+class UpdateHeurV(UpdateHeur[D, PFNsHV_T, P, InstanceNode], UpdateHasHeurV[D, PFNsHV_T, P, InstanceNode], ABC):
     def get_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.domain.sample_problem_instances([0])
         inputs_nnet: List[NDArray[Any]] = self.get_heurv_nnet_par().process_inputs(states, goals).inputs_nnet
@@ -668,7 +682,7 @@ class UpdateHeurV(UpdateHasHeurV[D, PFNsHV_T, P, InstanceNode], ABC):
             return cast(HeurVFn, self.get_heurv_nnet_par().get_nnet_par_fn_w_info(self.nnet_par_info_main, None))
 
 
-class UpdateHeurQ(UpdateHasHeurQ[D, PFNsHQ_T, P, InstanceEdge], ABC):
+class UpdateHeurQ(UpdateHeur[D, PFNsHQ_T, P, InstanceEdge], UpdateHasHeurQ[D, PFNsHQ_T, P, InstanceEdge], ABC):
     def get_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.domain.sample_problem_instances([0])
         actions: List[Action] = self.domain.sample_state_action(states)
@@ -720,6 +734,13 @@ class UpdateParser(DelimParser):
         self.add_argument("p", "procs", int, "Number of parallel workers used to compute update", default=1)
         self.add_argument("sm", "step_max", int, "Maximum num of steps to generate problem instances", default=100)
         self.add_argument("sitrs", "search_itrs", int, "Number of search iterations", default=1)
+
+        self.add_argument("up", "up_itrs", int, "How many iterations worth of training instances to obtain for each update.", default=100)
+        self.add_argument("upg", "up_gen_itrs", int, "How many iterations worth of data to generate per udpate. If not given then it is set to "
+                                                     "up_itrs.")
+        self.add_argument("rb", "rb", int, "Amount of data generated from previous updates to keep in replay buffer. If 0, then no replay buffer is used. "
+                                           "Total replay buffer size will then be batch_size * up_gen_itrs * rb.", default=0)
+
         self.add_argument("upbs", "up_batch_size", int, "Maximum number of searches to do at a time. Helps manage memory. Decrease if memory is "
                                                         "running out during updater. If not set, then it is as large as possible", default=100)
         self.add_argument("nnbs", "nnet_batch_size", int, "Batch size of each nnet used for each process updater. Make smaller if running out "

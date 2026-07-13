@@ -97,7 +97,7 @@ class DeepXubeNNetPar(NNetPar, Generic[NNF_T, CTX_T, D, NNInP, DXNNet]):
     def nnet_type() -> Type[DXNNet]:
         pass
 
-    def __init__(self, field_name: str, domain: D, nnet_input_name: Tuple[str, str], nnet_name: str, nnet_kwargs: Dict[str, Any], **kwargs: Any):
+    def __init__(self, domain: D, nnet_input_name: Tuple[str, str], nnet_name: str, nnet_kwargs: Dict[str, Any], **kwargs: Any):
         assert isinstance(domain, self.domain_type()), f"Domain {domain} must be an instance of {self.domain_type()}."
         nnet_input_t: Type[NNetInput] = get_nnet_input_t(nnet_input_name)
         assert issubclass(nnet_input_t, self.nnet_input_type()), (f"NNetInput {nnet_input_t} (name {nnet_input_name}) must be a subclass of "
@@ -105,7 +105,6 @@ class DeepXubeNNetPar(NNetPar, Generic[NNF_T, CTX_T, D, NNInP, DXNNet]):
         nnet_t: Type[DeepXubeNNet] = deepxube_nnet_factory.get_type(nnet_name)
         assert issubclass(nnet_t, self.nnet_type()), f"DeepXubeNNet {nnet_t} (name {nnet_name}) must be a subclass of {self.nnet_type()}."
 
-        self.field_name: str = field_name
         self.domain: D = domain
         self.nnet_input_name: Tuple[str, str] = nnet_input_name
         self.nnet_name: str = nnet_name
@@ -115,8 +114,9 @@ class DeepXubeNNetPar(NNetPar, Generic[NNF_T, CTX_T, D, NNInP, DXNNet]):
 
         self.nnet_input: Optional[NNInP] = None
 
+    @abstractmethod
     def get_field_name(self) -> str:
-        return self.field_name
+        pass
 
     def get_nnet(self) -> DXNNet:
         nnet_params: Dict = self.nnet_kwargs.copy()
@@ -175,6 +175,9 @@ class HeurVNNetPar(HeurNNetPar[HeurVFn, None, Domain, StateGoalIn], ABC):
     def nnet_input_type() -> Type[StateGoalIn]:
         return StateGoalIn
 
+    def get_field_name(self) -> str:
+        return "heurv"
+
     def process_inputs(self, states: List[State], goals: List[Goal]) -> ProcessedInput[None]:
         return ProcessedInput(self._get_nnet_input().to_np(states, goals), None)
 
@@ -196,6 +199,9 @@ class HeurQNNetPar(HeurNNetPar[HeurQFn, CTX_T, D, NNInP], ABC):
     @abstractmethod
     def process_inputs(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> ProcessedInput[CTX_T]:
         pass
+
+    def get_field_name(self) -> str:
+        return "heurq"
 
 
 @dataclass(frozen=True)
@@ -220,6 +226,9 @@ class PolicyNNetPar(DeepXubeNNetPar[PolicyFn, PolicyCtx, Domain, PolicyNNetIn, P
     @staticmethod
     def nnet_type() -> Type[PolicyNNet]:
         return PolicyNNet
+
+    def get_field_name(self) -> str:
+        return "policy"
 
     def to_np_train(self, states: List[State], goals: List[Goal], actions: List[Action]) -> List[NDArray[Any]]:
         return self._get_nnet_input().to_np(states, goals, actions)

@@ -26,7 +26,6 @@ def get_dx_nnet_par(domain: Domain, domain_name: str, nnet_par_name_args: str, n
         nnet_input_domain_t: Type[NNetInput] = get_nnet_input_t(nnet_input_domain_name)
         if issubclass(nnet_input_domain_t, nnet_input_t) and issubclass(nnet_input_domain_t, nnet_par_input_t):
             nnet_par_kwargs: Dict[str, Any] = deepxube_nnet_par_factory.get_kwargs(nnet_par_name, nnet_par_args)
-            nnet_par_kwargs["field_name"] = nnet_par_name
             nnet_par_kwargs["domain"] = domain
             nnet_par_kwargs["nnet_input_name"] = nnet_input_domain_name
             nnet_par_kwargs["nnet_name"] = nnet_name

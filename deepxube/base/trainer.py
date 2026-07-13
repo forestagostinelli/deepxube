@@ -8,6 +8,7 @@ import torch.nn as nn
 from torch.nn import DataParallel
 from torch.optim import Optimizer
 
+from deepxube.base.factory import DelimParser
 from deepxube.base.heuristic import DeepXubeNNet
 from deepxube.base.pathfind_fns import DeepXubeNNetPar
 from deepxube.base.updater import Update
@@ -35,10 +36,6 @@ class TrainArgs:
     :param batch_size: Batch size
     :param max_itrs: Maximum number of iterations
     :param balance_steps: If true, steps are balanced based on solve percentage
-    :param up_itrs: How many iterations worth of training instances to obtain for each update
-    :param up_gen_itrs: How many iterations worth of data to generate per udpate. If None, set to up_itrs
-    :param rb: amount of data generated from previous updates to keep in replay buffer. Total replay buffer size will
-    then be train_args.batch_size * up_args.up_gen_itrs * rb.
     :param loss_thresh: Loss threshold for updating.
     :param checkpoint: Save checkpoint file of network being trained at initialization and at every given number of update checks.
     Checkpoint number given is training iteration, not update number. If 0 then checkpointing is not done.
@@ -48,16 +45,10 @@ class TrainArgs:
     batch_size: int
     max_itrs: int
     balance_steps: bool
-    up_itrs: int = 100
-    up_gen_itrs: Optional[int] = None
-    rb: int = 0
-    loss_thresh: float = np.inf
-    checkpoint: int = 0
-    grad_accum: int = 1
-    display: int = 100
-
-    def get_up_gen_itrs(self) -> int:
-        return self.up_itrs if (self.up_gen_itrs is None) else self.up_gen_itrs
+    loss_thresh: float
+    checkpoint: int
+    grad_accum: int
+    display: int
 
 
 class DataBuffer:
@@ -182,21 +173,44 @@ class Train(Generic[NNet, Up], ABC):
     def updater_type() -> Type[Up]:
         pass
 
-    def __init__(self, nnet_dir: str, updater: Up, device: torch.device, on_gpu: bool, writer: SummaryWriter, train_args: TrainArgs) -> None:
+    @classmethod
+    def is_compat(cls, nnet: DeepXubeNNet, updater: Update) -> bool:
+        if not isinstance(nnet, cls.nnet_type()):
+            return False
+        if not isinstance(updater, cls.updater_type()):
+            return False
+
+        return True
+
+    @staticmethod
+    @abstractmethod
+    def get_nnet_name() -> str:
+        pass
+
+    def __init__(self, nnet_dir: str, updater: Up, device: torch.device, on_gpu: bool, writer: SummaryWriter, batch_size: int = 100, max_itrs: int = 100000,
+                 balance_steps: bool = False, loss_thresh: float = np.inf, checkpoint: int = 0, grad_accum: int = 1, display: int = 100) -> None:
         self.nnet_dir: str = nnet_dir
         if not os.path.exists(self.nnet_dir):
             os.makedirs(self.nnet_dir)
 
-        self.updater: Up = updater
-        nnet_par: DeepXubeNNetPar = self.updater.get_train_nnet_par()
-        nnet: DeepXubeNNet = nnet_par.get_nnet()
-        self.nnet_name: str = nnet_par.get_field_name()
-        assert isinstance(nnet, self.nnet_type())
-        self.nnet: NNet = nnet
+        self.nnet_name: str = self.get_nnet_name()
         self.nnet_file: str = f"{self.nnet_dir}/{self.nnet_name}.pt"
         self.nnet_targ_file: str = f"{self.nnet_dir}/{self.nnet_name}_targ.pt"
+
+        self.updater: Up = updater
+        nnet_par: DeepXubeNNetPar = self.updater.get_train_nnet_par()
+        self.nnet_field_name: str = nnet_par.get_field_name()
+        nnet_par.set_nnet_file(self.nnet_targ_file)
+        nnet: DeepXubeNNet = nnet_par.get_nnet()
+        self.nnet: NNet = nnet
+        assert self.is_compat(nnet, updater)
+
         self.writer: SummaryWriter = writer
-        self.train_args: TrainArgs = train_args
+
+
+        #kwargs
+        self.train_args: TrainArgs = TrainArgs(batch_size=batch_size, max_itrs=max_itrs, balance_steps=balance_steps, loss_thresh=loss_thresh,
+                                               checkpoint=checkpoint, grad_accum=grad_accum, display=display)
         self.device: torch.device = device
         self.on_gpu: bool = on_gpu
 
@@ -207,7 +221,7 @@ class Train(Generic[NNet, Up], ABC):
             self.status = pickle.load(open(self.status_file, "rb"))
             print(f"Loaded with itr: {self.status.itr}, update_num: {self.status.update_num}, targ_update_num: {self.status.targ_update_num}")
         else:
-            self.status = Status(self.updater.up_args.step_max, train_args.balance_steps)
+            self.status = Status(self.updater.up_args.step_max, self.train_args.balance_steps)
             # noinspection PyTypeChecker
             pickle.dump(self.status, open(self.status_file, "wb"), protocol=-1)
 
@@ -240,19 +254,19 @@ class Train(Generic[NNet, Up], ABC):
         shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = self.updater.get_train_shapes_dtypes()
         db_shapes: List[Tuple[int, ...]] = [x[0] for x in shapes_dtypes]
         db_dtypes: List[np.dtype] = [x[1] for x in shapes_dtypes]
-        self.db: DataBuffer = DataBuffer(self.train_args.batch_size * self.train_args.get_up_gen_itrs(), db_shapes, db_dtypes)
+        self.db: DataBuffer = DataBuffer(self.train_args.batch_size * self.updater.up_args.get_up_gen_itrs(), db_shapes, db_dtypes)
 
         # optimizer and criterion
         self.train_start_time = time.time()
 
     def train_loop(self) -> None:
         # start procs
-        to_main_q, from_main_qs = self.updater.start_procs(self.train_args.rb * self.train_args.batch_size * self.train_args.up_itrs)
+        to_main_q, from_main_qs = self.updater.start_procs(self.updater.up_args.rb * self.train_args.batch_size * self.updater.up_args.get_up_gen_itrs())
 
         # train loop
         while self.status.itr < self.train_args.max_itrs:
             # update
-            self._set_targ_update_num()
+            self.updater.set_targ_update_num(self.nnet_field_name, self.status.targ_update_num)
 
             self._update_step(to_main_q, from_main_qs)
             torch.cuda.empty_cache()
@@ -261,10 +275,6 @@ class Train(Generic[NNet, Up], ABC):
         self.updater.stop_procs()
         print("Done")
 
-    @abstractmethod
-    def _set_targ_update_num(self) -> None:
-        pass
-
     def _update_step(self, to_main_q: Queue, from_main_qs: List[Queue]) -> None:
         self.db.clear()
         itr_init: int = self.status.itr
@@ -272,7 +282,7 @@ class Train(Generic[NNet, Up], ABC):
         # print info
         start_info_l: List[str] = [f"itr: {self.status.itr}", f"update_num: {self.status.update_num}", f"targ_update: {self.status.targ_update_num}"]
 
-        num_gen: int = self.train_args.batch_size * self.train_args.get_up_gen_itrs()
+        num_gen: int = self.train_args.batch_size * self.updater.up_args.get_up_gen_itrs()
         start_info_l.append(f"num_gen: {format(num_gen, ',')}")
         if self.train_args.balance_steps:
             start_info_l.append(f"step max (curr): {self.status.step_max_curr}")
@@ -318,7 +328,7 @@ class Train(Generic[NNet, Up], ABC):
         # noinspection PyTypeChecker
         pickle.dump(self.train_summary, open(self.train_summary_file, "wb"), protocol=-1)
         times.record_time("save_status", time.time() - start_time)
-        print(f"Train - itrs: {self.train_args.up_itrs}, loss: {loss:.2E}, targ_updated: {update_targ}")
+        print(f"Train - itrs: {self.updater.up_args.up_itrs}, loss: {loss:.2E}, targ_updated: {update_targ}")
         print(f"Times - {times.get_time_str()}")
 
     def _get_update_data(self, num_gen: int, times: Times) -> None:
@@ -334,7 +344,7 @@ class Train(Generic[NNet, Up], ABC):
         first_itr_in_update: bool = True
         sel_idx_start: int = 0
         sel_idxs_rand_order: NDArray = np.random.choice(self.db.size(), size=self.db.size(), replace=False)
-        for _ in range(self.train_args.up_itrs):
+        for _ in range(self.updater.up_args.up_itrs):
             # sample data
             start_time = time.time()
             sel_idxs: NDArray = np.arange(sel_idx_start, sel_idx_start + self.train_args.batch_size) % self.db.size()
@@ -360,7 +370,7 @@ class Train(Generic[NNet, Up], ABC):
         loss: float = np.inf
         update_train_itr: int = 0
         first_itr_in_update: bool = True
-        while update_train_itr < self.train_args.up_itrs:
+        while update_train_itr < self.updater.up_args.up_itrs:
             # data from updater should not be more that train_args.batch_size
             start_time = time.time()
             sel_idxs: NDArray
@@ -429,3 +439,24 @@ class Train(Generic[NNet, Up], ABC):
     @abstractmethod
     def _add_post_up_info(self) -> List[str]:
         pass
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}, {self.train_args.__repr__()}"
+
+
+class TrainParser(DelimParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.add_argument("bs", "batch_size", int, "Batch size.", default=100)
+        self.add_argument("maxit", "max_itrs", int, "Maximum number of iterations.", default=100000)
+        self.add_argument("bal", "balance_steps", None, "If true, steps are balanced based on solve percentage.")
+        self.add_argument("lt", "loss_thresh", float, "Loss threshold for updating.", default=np.inf)
+        self.add_argument("chkpt", "checkpoint", int, "Save checkpoint file of network being trained at initialization and at every given number of update "
+                                                      "checks. Checkpoint number given is training iteration, not update number. If 0 then checkpointing is "
+                                                      "not done.", default=0)
+        self.add_argument("accum", "grad_accum", int, "Number of times to split batch into sub-batches for gradient accumulation.", default=1)
+        self.add_argument("disp", "display", int, "Number of iterations to display progress when training nnet. No display if 0.", default=0)
+
+    @property
+    def delim(self) -> str:
+        return "_"

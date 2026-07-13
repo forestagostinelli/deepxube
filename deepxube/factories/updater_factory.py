@@ -32,8 +32,8 @@ def get_pathfind_compat_updater_names(pathfind_t: Type[PathFind]) -> List[str]:
 
 
 def get_updater_from_args(domain: Domain, pathfind_fns: PFNs, pathfind: PathFind, pathfind_arg: str, nnet_par_dict: Dict[str, NNetPar],
-                          updater_arg: str) -> Tuple[Update, str]:
-    updater_name_pre, args_str = get_name_args(updater_arg)
+                          updater_name_args: str) -> Tuple[Update, str]:
+    updater_name_pre, args_str = get_name_args(updater_name_args)
 
     names: List[str] = updater_factory.get_all_class_names()
     compat_names: List[str] = []
@@ -45,13 +45,13 @@ def get_updater_from_args(domain: Domain, pathfind_fns: PFNs, pathfind: PathFind
             compat_names.append(name)
 
     if len(compat_names) == 0:
-        raise ValueError(f"Could not find any compatable Updater for Domain {domain}, Functions {PFNs}, PathFind {PathFind} for Updater "
-                         f"name: {updater_name_pre}.")
+        raise ValueError(f"Could not find any compatable Updater for Domain {domain}, Functions {pathfind_fns}, PathFind {pathfind} for Updater "
+                         f"name: {updater_name_pre}. Names checked: {compat_names}.")
 
     # TODO if > 1 find more specific one in terms of function and pathfind
 
     if len(compat_names) > 1:
-        raise ValueError(f"More then 1 compatable Updater for Domain {domain}, Functions {PFNs}, PathFind {PathFind} for Updater "
+        raise ValueError(f"More then 1 compatable Updater for Domain {domain}, Functions {pathfind_fns}, PathFind {pathfind} for Updater "
                          f"name: {updater_name_pre}: {compat_names}.")
 
     assert len(compat_names) == 1

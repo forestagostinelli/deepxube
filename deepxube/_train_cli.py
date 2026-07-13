@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 import argparse
 from argparse import ArgumentParser
 
@@ -7,16 +7,13 @@ import torch
 from deepxube.utils.command_line_utils import get_name_args, print_command
 from deepxube.nnet.nnet_utils import NNetCallable, NNetPar, get_device
 from deepxube.base.pathfind_fns import PFNs
-from deepxube.base.trainer import Train, TrainArgs
 from deepxube.factories.domain_factory import get_domain_from_arg
 from deepxube.factories.pathfind_fns_factory import get_dx_nnet_par, pathfind_fns_factory
 from deepxube.factories.pathfinding_factory import get_pathfind_from_arg
 from deepxube.factories.updater_factory import get_updater_from_args
+from deepxube.factories.trainer_factory import get_trainer_from_args
 from deepxube.utils.data_utils import Logger
-from deepxube.trainers.train_heur import TrainHeurV
 from torch.utils.tensorboard import SummaryWriter
-
-import numpy as np
 
 import os
 import sys
@@ -27,7 +24,7 @@ def parser_train(parser: ArgumentParser) -> None:
     parser.add_argument('--domain', type=str, required=True, help="Domain name and arguments.")
 
     # functions and corresponding nnets
-    parser.add_argument('--fn', type=str, nargs='*', help="Function and neural network arguments.")
+    parser.add_argument('--fn', type=str, nargs='*', help="Function and neural network arguments separated by a comma.")
 
     # pathfinding
     parser.add_argument('--pathfind', type=str, required=True, help="Pathfinding algorithm and arguments. Batch size of any pathfinding algorithm should be 1 "
@@ -37,28 +34,8 @@ def parser_train(parser: ArgumentParser) -> None:
     parser.add_argument('--up', type=str, required=True, help="Updater algorithm and arguments.")
 
     # train args
+    parser.add_argument('--tr', type=str, required=True, help="Trainer algorithm and arguments.")
     parser.add_argument('--dir', type=str, required=True, help="Directory to save neural networks.")
-
-    train_group = parser.add_argument_group('train')
-    train_group.add_argument('--batch_size', type=int, default=1000, help="Batch size.")
-    train_group.add_argument('--up_itrs', type=int, default=100, help="Number of iterations to check for update.")
-    train_group.add_argument('--up_gen_itrs', type=int, default=None, help="Number of iterations for which to generate training data per update check. "
-                                                                           "If None then defaults to up_itrs.")
-    train_group.add_argument('--max_itrs', type=int, default=100000, help="Maximum training iterations.")
-    train_group.add_argument('--accum', type=int, default=1, help="Number of gradient accumulation steps to use to split batch. This argument does not change "
-                                                                  "the given batch size, only the number of accumulation steps used to do the forward pass.")
-    train_group.add_argument('--chkpt', type=int, default=0, help="Save checkpoint file of network being trained at initialization and at every given "
-                                                                  "number of update checks. Checkpoint number given is training iteration, not update number."
-                                                                  "If 0 then checkpointing is not done.")
-    train_group.add_argument('--display', type=int, default=100, help="Display frequency for nnet training info. 0 for no display.")
-    train_group.add_argument('--bal', action='store_true', default=False, help="Set to balance of number of steps to take to generate problem instances based "
-                                                                               "on percentage of states solved.")
-    train_group.add_argument('--rb', type=int, default=0, help="Number of updates worth of data to keep in replay buffer. If 0 then no replay buffer is used "
-                                                               "and training waits for update to finish to get data and randomly sample from that data. "
-                                                               "No replay buffer results in faster updates due to not having to use a separate network to "
-                                                               "compute the update, but is more susceptible to instability due to shifts in the distribution "
-                                                               "of states seen during search.")
-    train_group.add_argument('--up_lt', type=float, default=np.inf, help="Loss must be below this threshold for update.")
 
     # test args
     test_group = parser.add_argument_group('test')
@@ -93,23 +70,24 @@ def train_cli(args: argparse.Namespace) -> None:
     device, devices, on_gpu = get_device()
     print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
 
-    # parse domain and heur_nnet
+    # parse domain
     domain, domain_name = get_domain_from_arg(args.domain)
 
     # parse nnet fn args
     nnet_fn_dict: Dict[str, NNetCallable] = dict()
     nnet_par_dict: Dict[str, NNetPar] = dict()
     for fn_arg in args.fn:
-        nnet_par_name_args, nnet_name_args = fn_arg.split(",")
+        fn_arg_split: List[str] = fn_arg.split(",")
+        assert len(fn_arg_split) == 2
+        nnet_par_name_args, nnet_name_args = fn_arg_split[0], fn_arg_split[1]
         nnet_par, nnet_par_name = get_dx_nnet_par(domain, domain_name, nnet_par_name_args, nnet_name_args)
 
-        field_name: str = nnet_par.get_field_name()
-        nnet_par.set_nnet_file(f"{args.dir}/{field_name}_targ.pt")
         print(nnet_par)
         print(f"(name: {nnet_par_name})")
 
-        nnet_fn_dict[nnet_par_name] = nnet_par.get_nnet_fn(nnet_par.get_nnet(), None, device, None)
-        nnet_par_dict[nnet_par_name] = nnet_par
+        field_name: str = nnet_par.get_field_name()
+        nnet_fn_dict[field_name] = nnet_par.get_nnet_fn(nnet_par.get_nnet(), None, device, None)
+        nnet_par_dict[field_name] = nnet_par
 
     print(domain, f"(name: {domain_name})")
 
@@ -130,14 +108,6 @@ def train_cli(args: argparse.Namespace) -> None:
     updater, updater_name = get_updater_from_args(domain, pathfind_fns, pathfind, pathfind_name_args, nnet_par_dict, args.up)
     print(updater, f"(name: {updater_name})")
 
-    # train args
-    train_args: TrainArgs = TrainArgs(args.batch_size, args.max_itrs, args.bal, up_itrs=args.up_itrs, up_gen_itrs=args.up_gen_itrs, rb=args.rb,
-                                      loss_thresh=args.up_lt, checkpoint=args.chkpt, grad_accum=args.accum, display=args.display)
-
-    print(f"{train_args}")
-
-    # TODO print pathfind
-
     """
     # test args
     test_args: Optional[TestArgs] = None
@@ -150,6 +120,8 @@ def train_cli(args: argparse.Namespace) -> None:
     """
 
     writer: SummaryWriter = SummaryWriter(args.dir)
-    trainer: Train = TrainHeurV(args.dir, updater, device, on_gpu, writer, train_args)
+
+    trainer, trainer_name = get_trainer_from_args(args.dir, updater, device, on_gpu, writer, args.tr)
+    print(trainer, f"(name: {trainer_name})")
 
     trainer.train_loop()
