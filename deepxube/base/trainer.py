@@ -201,9 +201,8 @@ class Train(Generic[NNet, Up], ABC):
         nnet_par: DeepXubeNNetPar = self.updater.get_train_nnet_par()
         self.nnet_field_name: str = nnet_par.get_field_name()
         nnet_par.set_nnet_file(self.nnet_targ_file)
-        nnet: DeepXubeNNet = nnet_par.get_nnet()
-        self.nnet: NNet = nnet
-        assert self.is_compat(nnet, updater)
+        self.nnet: NNet = nnet_par.get_nnet()
+        assert self.is_compat(self.nnet, self.updater)
 
         self.writer: SummaryWriter = writer
 

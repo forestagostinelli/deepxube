@@ -1,5 +1,5 @@
 from typing import List, Dict, Tuple, Any, Generic, TypeVar, Optional, cast, Type, ClassVar
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, ABCMeta
 import time
 from dataclasses import dataclass
 from multiprocessing import Queue
@@ -84,8 +84,8 @@ P = TypeVar('P', bound=PathFind)
 
 
 class Update(Generic[D, PFNsT, P, InstT], ABC):
-    declared_nnpar_types: ClassVar[Dict[str, Type[NNetPar]]] = {}
-    nnpar_types: ClassVar[Dict[str, Type[NNetPar]]] = {}
+    declared_nnpar_types: ClassVar[Dict[str, ABCMeta]] = {}
+    nnpar_types: ClassVar[Dict[str, ABCMeta]] = {}
 
     @staticmethod
     @abstractmethod
@@ -183,7 +183,7 @@ class Update(Generic[D, PFNsT, P, InstT], ABC):
         for key, value in cls.declared_nnpar_types.items():
             assert issubclass(value, NNetPar), f"All declared types must be subclasses of {NNetPar.__name__}"
 
-        merged: dict[str, type[NNetPar]] = {}
+        merged: dict[str, ABCMeta] = {}
 
         for base in reversed(cls.mro()[1:]):
             merged.update(getattr(base, "nnpar_types", {}))
@@ -679,7 +679,7 @@ class UpdateHeurV(UpdateHeur[D, PFNsHV_T, P, InstanceNode], UpdateHasHeurV[D, PF
             return super().get_heurv_fn()
         else:
             assert self.nnet_par_info_main is not None
-            return cast(HeurVFn, self.get_heurv_nnet_par().get_nnet_par_fn_w_info(self.nnet_par_info_main, None))
+            return self.get_heurv_nnet_par().get_nnet_par_fn_w_info(self.nnet_par_info_main, None)
 
 
 class UpdateHeurQ(UpdateHeur[D, PFNsHQ_T, P, InstanceEdge], UpdateHasHeurQ[D, PFNsHQ_T, P, InstanceEdge], ABC):
@@ -703,7 +703,7 @@ class UpdateHeurQ(UpdateHeur[D, PFNsHQ_T, P, InstanceEdge], UpdateHasHeurQ[D, PF
             return super().get_heurq_fn()
         else:
             assert self.nnet_par_info_main is not None
-            return cast(HeurQFn, self.get_heurq_nnet_par().get_nnet_par_fn_w_info(self.nnet_par_info_main, None))
+            return self.get_heurq_nnet_par().get_nnet_par_fn_w_info(self.nnet_par_info_main, None)
 
 
 class UpdatePolicy(UpdateHasPolicy[D, PFNsP_T, P, InstT], ABC):

@@ -81,7 +81,7 @@ NNInP = TypeVar('NNInP', bound=NNetInput)
 DXNNet = TypeVar('DXNNet', bound=DeepXubeNNet)
 
 
-class DeepXubeNNetPar(NNetPar, Generic[NNF_T, CTX_T, D, NNInP, DXNNet]):
+class DeepXubeNNetPar(NNetPar[NNF_T, CTX_T], Generic[NNF_T, CTX_T, D, NNInP, DXNNet]):
     @staticmethod
     @abstractmethod
     def domain_type() -> Type[D]:
