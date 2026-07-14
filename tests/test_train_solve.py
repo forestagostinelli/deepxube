@@ -24,6 +24,9 @@ import os
 cases_compat = (
     [pytest.param(a, b, c, d, id="rl_her") for a, b, c, d in
      product(["heurv", "heurq_fixout", "heurq_in"], ["graph", "beam"], ["up_rl", "up_her"], ["tr_h"])]
+
+    + [pytest.param(a, b, c, d, id="rl_her") for a, b, c, d in product(["heurv"], ["sup_v"], ["up_sup"], ["tr_h"])]
+    + [pytest.param(a, b, c, d, id="rl_her") for a, b, c, d in product(["heurq_fixout", "heurq_in"], ["sup_q"], ["up_sup"], ["tr_h"])]
 )
 
 

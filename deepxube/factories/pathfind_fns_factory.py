@@ -1,9 +1,10 @@
 from typing import Any, Dict, Tuple, Type, List, Optional
 
 import torch
+from torch import nn
 
 from deepxube.utils.command_line_utils import get_name_args
-from deepxube.pytorch.nnet_utils import NNetCallable
+from deepxube.pytorch.nnet_utils import NNetCallable, load_nnet
 from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys, get_nnet_input_t
 from deepxube.factories.nnet_factory import deepxube_nnet_factory
 from deepxube.base.domain import Domain
@@ -46,18 +47,36 @@ def get_dx_nnet_par(domain: Domain, domain_name: str, nnet_par_name_args: str, n
                      f"\nIncompatibility reasons:\n{incompat_reasons_str}")
 
 
-def get_fn_dicts(domain: Domain, domain_name: str, fn_name_args_l: List[str],
-                 device: torch.device) -> Tuple[Dict[str, NNetCallable], Dict[str, DeepXubeNNetPar]]:
+def get_fn_dicts(domain: Domain, domain_name: str, fn_name_args_l: List[str], device: torch.device, nnet_files: Optional[List[Optional[str]]] = None,
+                 nnet_batch_size: Optional[int] = None) -> Tuple[Dict[str, NNetCallable], Dict[str, DeepXubeNNetPar]]:
     nnet_fn_dict: Dict[str, NNetCallable] = dict()
     nnet_par_dict: Dict[str, DeepXubeNNetPar] = dict()
-    for fn_arg in fn_name_args_l:
+    if nnet_files is not None:
+        assert len(nnet_files) == len(fn_name_args_l)
+
+    for fn_idx, fn_arg in enumerate(fn_name_args_l):
+        # get nnet par
         fn_arg_split: List[str] = fn_arg.split(",")
-        assert len(fn_arg_split) == 2
+        assert len(fn_arg_split) == 2, f"{fn_arg} split len != 2 when splitting on comma"
         nnet_par_name_args, nnet_name_args = fn_arg_split[0], fn_arg_split[1]
         nnet_par, nnet_par_name = get_dx_nnet_par(domain, domain_name, nnet_par_name_args, nnet_name_args)
 
+        # get nnet
+        nnet: nn.Module = nnet_par.get_nnet()
+        if nnet_files is not None:
+            nnet_file: Optional[str] = nnet_files[fn_idx]
+            if nnet_file is None:
+                nnet_par.set_use_default_fn(True)
+            else:
+                nnet_par.set_nnet_file(nnet_file)
+
+                nnet: nn.Module = load_nnet(nnet_file, nnet)
+                nnet.eval()
+                nnet.to(device)
+                nnet = nn.DataParallel(nnet)
+
         field_name: str = nnet_par.get_field_name()
-        nnet_fn_dict[field_name] = nnet_par.get_nnet_fn(nnet_par.get_nnet(), None, device, None)
+        nnet_fn_dict[field_name] = nnet_par.get_nnet_fn(nnet, nnet_batch_size, device, None)
         nnet_par_dict[field_name] = nnet_par
 
     return nnet_fn_dict, nnet_par_dict

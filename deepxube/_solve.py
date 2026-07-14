@@ -2,19 +2,20 @@ from typing import List, Dict, Optional, Any, Tuple
 import argparse
 from argparse import ArgumentParser
 
+import torch
+
+from deepxube.pytorch.nnet_utils import get_device
 from deepxube.base.domain import Domain, State, Action, Goal
-from deepxube.base.pathfinding import Node, Instance, PathFind, get_path
-from deepxube.base.pathfind_fns import HeurFn, PolicyFn, HeurNNetPar, PolicyNNetPar
-from deepxube.nnets.utils.heur_utils import get_zero_heur, get_rand_policy
-from deepxube.factories.pathfinding_factory import get_pathfind_name_kwargs, get_pathfind_from_arg
+from deepxube.base.pathfinding import Node, Instance, get_path
+from deepxube.base.pathfind_fns import PFNs
+from deepxube.factories.pathfind_fns_factory import get_fn_dicts, pathfind_fns_factory
+from deepxube.factories.pathfinding_factory import get_pathfind_from_arg
 from deepxube.pathfinding.beam_search import BeamSearch
 from deepxube.factories.domain_factory import get_domain_from_arg
 from deepxube.utils import data_utils, misc_utils
 from deepxube.utils.command_line_utils import print_command
-from deepxube.pytorch import nnet_utils
 from deepxube.pathfinding.utils.performance import is_valid_soln
 import numpy as np
-from torch import nn
 
 import pickle
 import os
@@ -43,21 +44,15 @@ def policy_fn_rand(domain: Domain, states: List[State], num_rand: int) -> Tuple[
 
 
 def parse_solve(parser: ArgumentParser) -> None:
+    # domain
     parser.add_argument('--domain', type=str, required=True, help="Domain name and arguments.")
 
-    parser.add_argument('--heur', type=str, default=None, help="Heuristic neural network and arguments. If None then a heuristic whose output is always zero "
-                                                               "is used.")
-    parser.add_argument('--heur_file', type=str, default=None, help="File that has heuristic nnet. Can be None if using all zeros heuristic.")
-    parser.add_argument('--heur_type', type=str, default=None, help="V, QFix, QIn. V maps state/goal tuples to cost-to-go. "
-                                                                    "QFix maps state/goal tuples to q_values for a fixed action space. "
-                                                                    "QIn maps state/goal/action tuples to q_value (can be used in arbitrary action spaces).")
+    # functions and corresponding nnets
+    parser.add_argument('--fn', type=str, nargs='*', help="Function, neural network arguments, and neural network file separated by a comma.")
 
-    parser.add_argument('--policy', type=str, default=None, help="Policy neural network and arguments. If None then a policy that randomly samples actions "
-                                                                 "with equal probability is used.")
-    parser.add_argument('--policy_file', type=str, default=None, help="File that has policy nnet. Can be None if using random policy.")
-    parser.add_argument('--policy_samp', type=int, default=10, help="Number of actions to sample.")
-
+    # pathfinding
     parser.add_argument('--pathfind', type=str, required=True, help="Pathfinding algorithm and arguments.")
+
     parser.add_argument('--file', type=str, required=True, help="File containing problem instances to solve")
 
     parser.add_argument('--time_limit', type=float, default=-1.0, help="A time limit (in seconds) for search. Default is -1, which means infinite.")
@@ -74,57 +69,9 @@ def parse_solve(parser: ArgumentParser) -> None:
     parser.set_defaults(func=solve_cli)
 
 
-def get_heur_fn(domain: Domain, domain_name: str, heur_nnet_str: Optional[str], heur_file: Optional[str], heur_type: Optional[str],
-                nnet_batch_size: Optional[int]) -> Optional[HeurFn]:
-    heur_fn: Optional[HeurFn] = None
-    if heur_nnet_str is not None:
-        assert heur_file is not None
-        assert heur_type is not None
-        heur_nnet_par: HeurNNetPar = get_heur_nnet_par_from_arg(domain, domain_name, heur_nnet_str, heur_type)[0]
-        device, devices, on_gpu = nnet_utils.get_device()
-        print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
-
-        nnet: nn.Module = nnet_utils.load_nnet(heur_file, heur_nnet_par.get_nnet())
-        nnet.eval()
-        nnet.to(device)
-        nnet = nn.DataParallel(nnet)
-        heur_fn = heur_nnet_par.get_nnet_fn(nnet, nnet_batch_size, device, None)
-    elif heur_type is not None:
-        heur_fn = get_zero_heur(heur_type)
-
-    return heur_fn
-
-
-def get_policy_fn(domain: Domain, domain_name: str, policy_nnet_str: Optional[str], policy_file: Optional[str], policy_samp: int,
-                  nnet_batch_size: Optional[int]) -> Optional[PolicyFn]:
-    policy_fn: Optional[PolicyFn]
-    if policy_nnet_str is not None:
-        assert policy_file is not None
-        policy_nnet_par: PolicyNNetPar = get_policy_nnet_par_from_arg(domain, domain_name, policy_nnet_str, policy_samp)[0]
-        device, devices, on_gpu = nnet_utils.get_device()
-        print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
-        nnet: nn.Module = nnet_utils.load_nnet(policy_file, policy_nnet_par.get_nnet())
-        nnet.eval()
-        nnet.to(device)
-        nnet = nn.DataParallel(nnet)
-        policy_fn = policy_nnet_par.get_nnet_fn(nnet, nnet_batch_size, device, None)
-    else:
-        policy_fn = get_rand_policy(domain, policy_samp)
-
-    return policy_fn
-
-
 def solve_cli(args: argparse.Namespace) -> None:
     if not os.path.exists(args.results):
         os.makedirs(args.results)
-
-    # domain
-    domain, domain_name = get_domain_from_arg(args.domain)
-
-    # heur and policy fn
-    heur_fn: Optional[HeurFn] = get_heur_fn(domain, domain_name, args.heur, args.heur_file, args.heur_type, args.nnet_batch_size)
-    policy_fn: Optional[PolicyFn] = get_policy_fn(domain, domain_name, args.policy, args.policy_file, args.policy_samp, args.nnet_batch_size)
-    pathfind_functions: Any = get_pathfind_functions(get_pathfind_name_kwargs(args.pathfind)[0], heur_fn, policy_fn)
 
     # get data
     data: Dict = pickle.load(open(args.file, "rb"))
@@ -151,10 +98,41 @@ def solve_cli(args: argparse.Namespace) -> None:
 
     print_command()
 
-    # print info
-    print(domain)
-    pathfind: PathFind = get_pathfind_from_arg(domain, pathfind_functions, args.pathfind)[0]
-    print(pathfind)
+    # get device
+    on_gpu: bool
+    device: torch.device
+    device, devices, on_gpu = get_device()
+    print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
+
+    # domain
+    domain, domain_name = get_domain_from_arg(args.domain)
+
+    # parse nnet fn args
+    fns: List[str] = []
+    nnet_files: List[Optional[str]] = []
+    for fn in args.fn:
+        fns_split: List[str] = fn.split(",")
+        if len(fns_split) == 1:
+            fns.append(f"{fns_split[0]},placeholder")
+            nnet_files.append(None)
+        elif len(fns_split) == 3:
+            fns.append(f"{fns_split[0]},{fns_split[1]}")
+            nnet_files.append(fns_split[2])
+        else:
+            raise ValueError("--fn must be either --fn fn or --fn fn,nnet,nnet_file")
+
+    nnet_fn_dict, nnet_par_dict = get_fn_dicts(domain, domain_name, fns, device, nnet_files=nnet_files, nnet_batch_size=args.nnet_batch_size)
+    for nnet_par_name, nnet_par in nnet_par_dict.items():
+        print(nnet_par)
+        print(f"(name: {nnet_par_name}, nnet_input_name: {nnet_par.nnet_input_name})")
+
+    # pathfind functions
+    pathfind_fns: PFNs = pathfind_fns_factory.build_class(nnet_fn_dict)
+    print(pathfind_fns)
+
+    # pathfinding
+    pathfind, pathfind_name, _ = get_pathfind_from_arg(domain, pathfind_fns, args.pathfind)
+    print(pathfind, f"(name: {pathfind_name})")
 
     start_idx: int
     if args.start_idx is not None:
@@ -167,7 +145,7 @@ def solve_cli(args: argparse.Namespace) -> None:
         goal: Goal = goals[state_idx]
 
         # get pathfinding alg
-        pathfind = get_pathfind_from_arg(domain, pathfind_functions, args.pathfind)[0]
+        pathfind = get_pathfind_from_arg(domain, pathfind_fns, args.pathfind)[0]
 
         # do pathfinding
         start_time = time.time()
@@ -195,6 +173,7 @@ def solve_cli(args: argparse.Namespace) -> None:
         is_rollout: bool = isinstance(pathfind, BeamSearch) and pathfind.rollout  # special case
         if goal_node is not None:
             path_states, path_actions, tcs, path_cost = get_path(goal_node)
+            assert (path_states is not None) and (path_actions is not None)
             if is_rollout:
                 # see if any state on path is solved, if so, modify path to end at solved state
                 is_sovled_path: List[bool] = domain.is_solved(path_states, [goal] * len(path_states))
@@ -209,6 +188,7 @@ def solve_cli(args: argparse.Namespace) -> None:
                 solved = True
 
             if solved:
+                assert path_actions is not None
                 assert is_valid_soln(state, goal, path_actions, domain)
 
         results["actions"].append(path_actions)
@@ -229,7 +209,7 @@ def solve_cli(args: argparse.Namespace) -> None:
         print("Means - SolnCost: %.2f, # Nodes Gen: %.2f, Itrs: %.2f, Itrs/sec: %.2f, Solved: %.2f%%, "
               "Time: %.2f" % (_get_mean(results, "path_costs"), _get_mean(results, "num_nodes_generated"),
                               _get_mean(results, "iterations"), _get_mean(results, "itrs/sec"),
-                              100.0 * np.mean(results["solved"]), _get_mean(results, "times")))
+                              float(100.0 * np.mean(results["solved"])), _get_mean(results, "times")))
         print("")
 
         # noinspection PyTypeChecker

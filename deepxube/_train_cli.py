@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 
 import torch
 
-from deepxube.utils.command_line_utils import get_name_args, print_command
+from deepxube.utils.command_line_utils import print_command
 from deepxube.pytorch.nnet_utils import get_device
 from deepxube.base.pathfind_fns import PFNs, DeepXubeNNetPar
 from deepxube.factories.domain_factory import get_domain_from_arg

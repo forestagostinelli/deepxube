@@ -243,6 +243,7 @@ class NNetPar(ABC, Generic[NNF_T, CTX_T]):
         self.nnet_par_info_l: Optional[List[NNetParInfo]] = None
         self.nnet_runner_proc_l: Optional[List[BaseProcess]] = None
         self.targ_update_num: Optional[int] = None
+        self.use_default_fn: bool = False
 
     """ A neural network that can be called from other processes """
     def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device, update_num: Optional[int]) -> NNF_T:
@@ -255,15 +256,18 @@ class NNetPar(ABC, Generic[NNF_T, CTX_T]):
         :param update_num: Update number (only relevant for training)
         :return: Neural network function
         """
-        nnet.eval()
+        if self.use_default_fn:
+            return self.get_default_fn()
+        else:
+            nnet.eval()
 
-        def nnet_fn(*args: Any) -> Any:
-            processed_input: ProcessedInput[CTX_T] = self.process_inputs(*args)
-            outs: List[NDArray[np.float64]] = nnet_batched(nnet, processed_input.inputs_nnet, batch_size, device)
+            def nnet_fn(*args: Any) -> Any:
+                processed_input: ProcessedInput[CTX_T] = self.process_inputs(*args)
+                outs: List[NDArray[np.float64]] = nnet_batched(nnet, processed_input.inputs_nnet, batch_size, device)
 
-            return self.process_outputs(outs, update_num, processed_input.ctx)
+                return self.process_outputs(outs, update_num, processed_input.ctx)
 
-        return cast(NNF_T, nnet_fn)
+            return cast(NNF_T, nnet_fn)
 
     def get_nnet_par_fn_w_info(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> NNF_T:
         """
@@ -272,13 +276,16 @@ class NNetPar(ABC, Generic[NNF_T, CTX_T]):
         :param update_num: Update number (only relevant for training)
         :return: Neural network function
         """
-        def nnet_fn(*args: Any) -> Any:
-            processed_input: ProcessedInput[CTX_T] = self.process_inputs(*args)
-            outs: List[NDArray[np.float64]] = get_nnet_par_out(processed_input.inputs_nnet, nnet_par_info)
+        if self.use_default_fn:
+            return self.get_default_fn()
+        else:
+            def nnet_fn(*args: Any) -> Any:
+                processed_input: ProcessedInput[CTX_T] = self.process_inputs(*args)
+                outs: List[NDArray[np.float64]] = get_nnet_par_out(processed_input.inputs_nnet, nnet_par_info)
 
-            return self.process_outputs(outs, update_num, processed_input.ctx)
+                return self.process_outputs(outs, update_num, processed_input.ctx)
 
-        return cast(NNF_T, nnet_fn)
+            return cast(NNF_T, nnet_fn)
 
     @abstractmethod
     def get_nnet(self) -> nn.Module:
@@ -294,6 +301,13 @@ class NNetPar(ABC, Generic[NNF_T, CTX_T]):
 
     @abstractmethod
     def process_outputs(self, outs: List[NDArray], update_num: Optional[int], ctx: CTX_T) -> Any:
+        pass
+
+    def set_use_default_fn(self, use_default_fn: bool) -> None:
+        self.use_default_fn = use_default_fn
+
+    @abstractmethod
+    def get_default_fn(self) -> NNF_T:
         pass
 
     def set_nnet_file(self, nnet_file: str) -> None:

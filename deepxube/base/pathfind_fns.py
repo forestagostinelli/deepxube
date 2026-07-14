@@ -5,6 +5,7 @@ from typing import List, Union, runtime_checkable, Protocol, Tuple, TypeVar, Gen
 import numpy as np
 from numpy.typing import NDArray
 
+from deepxube.utils import misc_utils
 from deepxube.base.domain import State, Action, Goal, Domain
 from deepxube.base.nnet import DeepXubeNNet, HeurNNet, PolicyNNet
 from deepxube.base.nnet_input import NNetInput, StateGoalIn, PolicyNNetIn
@@ -188,6 +189,13 @@ class HeurVNNetPar(HeurNNetPar[HeurVFn, None, Domain, StateGoalIn], ABC):
     def nnet_input_type() -> Type[StateGoalIn]:
         return StateGoalIn
 
+    def get_default_fn(self) -> HeurVFn:
+        class HeurZerosVFn(HeurVFn):
+            def __call__(self, states: List[State], goals: List[Goal]) -> List[float]:
+                return [0.0] * len(states)
+
+        return HeurZerosVFn()
+
     def get_field_name(self) -> str:
         return "heurv"
 
@@ -213,6 +221,16 @@ class HeurQNNetPar(HeurNNetPar[HeurQFn, CTX_T, D, NNInP], ABC):
     def process_inputs(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> ProcessedInput[CTX_T]:
         pass
 
+    def get_default_fn(self) -> HeurQFn:
+        class HeurZerosQFn(HeurQFn):
+            def __call__(self, states_in: List[State], goals_in: List[Goal], actions_l_in: List[List[Action]]) -> List[List[float]]:
+                heur_vals_l: List[List[float]] = []
+                for actions_in in actions_l_in:
+                    heur_vals_l.append([0.0] * len(actions_in))
+                return heur_vals_l
+
+        return HeurZerosQFn()
+
     def get_field_name(self) -> str:
         return "heurq"
 
@@ -220,6 +238,26 @@ class HeurQNNetPar(HeurNNetPar[HeurQFn, CTX_T, D, NNInP], ABC):
 @dataclass(frozen=True)
 class PolicyCtx:
     num_states: int
+
+
+def policy_fn_rand(domain: Domain, states: List[State], num_rand: int) -> Tuple[List[List[Action]], List[List[float]]]:
+    if num_rand == 0:
+        return [[] for _ in states], [[] for _ in states]
+
+    states_rep: List[List[State]] = []
+    for state in states:
+        states_rep.append([state] * num_rand)
+
+    states_rep_flat, split_idxs = misc_utils.flatten(states_rep)
+
+    actions_samp_flat: List[Action] = domain.sample_state_action(states_rep_flat)
+    actions_samp_l: List[List[Action]] = misc_utils.unflatten(actions_samp_flat, split_idxs)
+
+    probs_l: List[List[float]] = []
+    for actions_samp_i in actions_samp_l:
+        probs_l.append([1.0 / len(actions_samp_i)] * len(actions_samp_i))
+
+    return actions_samp_l, probs_l
 
 
 class PolicyNNetPar(DeepXubeNNetPar[PolicyFn, PolicyCtx, Domain, PolicyNNetIn, PolicyNNet]):
@@ -239,6 +277,15 @@ class PolicyNNetPar(DeepXubeNNetPar[PolicyFn, PolicyCtx, Domain, PolicyNNetIn, P
     @staticmethod
     def nnet_type() -> Type[PolicyNNet]:
         return PolicyNNet
+
+    def get_default_fn(self) -> PolicyFn:
+        domain: Domain = self.domain
+        num_samp: int = self.num_samp
+        class PolicyFnRand(PolicyFn):
+            def __call__(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[Action]], List[List[float]]]:
+                return policy_fn_rand(domain, states, num_samp)
+
+        return PolicyFnRand()
 
     def get_field_name(self) -> str:
         return "policy"
