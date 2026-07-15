@@ -3,7 +3,7 @@ import sys
 import shlex
 
 
-def print_command():
+def print_command() -> None:
     print(" ".join(shlex.quote(arg) for arg in sys.argv))
 
 

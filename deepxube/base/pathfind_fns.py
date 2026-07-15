@@ -5,6 +5,7 @@ from typing import List, Union, runtime_checkable, Protocol, Tuple, TypeVar, Gen
 import numpy as np
 from numpy.typing import NDArray
 
+from deepxube.utils.command_line_utils import get_name_args
 from deepxube.utils import misc_utils
 from deepxube.base.domain import State, Action, Goal, Domain
 from deepxube.base.nnet import DeepXubeNNet, HeurNNet, PolicyNNet
@@ -99,30 +100,34 @@ class DeepXubeNNetPar(NNetPar[NNF_T, CTX_T], Generic[NNF_T, CTX_T, D, NNInP, DXN
         pass
 
     @classmethod
-    def get_incompat_reason(cls, domain: Domain, nnet_input_t: Type[NNetInput], nnet_t: Type[DeepXubeNNet]) -> Optional[str]:
+    def get_incompat_reason(cls, domain: Domain, nnet_input_t: Optional[Type[NNetInput]], nnet_t: Optional[Type[DeepXubeNNet]]) -> Optional[str]:
         if not isinstance(domain, cls.domain_type()):
             return f"Domain {domain} is not an instance of {cls.domain_type()}"
-        elif not issubclass(nnet_input_t, cls.nnet_input_type()):
+        elif (nnet_input_t is not None) and (not issubclass(nnet_input_t, cls.nnet_input_type())):
             return f"NNetInput type {nnet_input_t} is not a subclass of {cls.nnet_input_type()}"
-        elif not issubclass(nnet_t, cls.nnet_type()):
+        elif (nnet_t is not None) and (not issubclass(nnet_t, cls.nnet_type())):
             return f"DeepXubeNNet type {nnet_t} is not a subclass of {cls.nnet_type()}"
-        elif not issubclass(nnet_input_t, nnet_t.nnet_input_type()):
+        elif (nnet_input_t is not None) and (nnet_t is not None) and (not issubclass(nnet_input_t, nnet_t.nnet_input_type())):
             return f"NNetInput type {nnet_input_t} is not a subclass of type nnet expects: {nnet_t.nnet_input_type()}"
 
         return None
 
-    def __init__(self, domain: D, nnet_input_name: Tuple[str, str], nnet_name: str, nnet_kwargs: Dict[str, Any], **kwargs: Any):
-        nnet_input_t: Type[NNetInput] = get_nnet_input_t(nnet_input_name)
-        nnet_t: Type[DeepXubeNNet] = deepxube_nnet_factory.get_type(nnet_name)
+    def __init__(self, domain: D, nnet_input_name: Optional[Tuple[str, str]], nnet_name_args: Optional[str], **kwargs: Any):
+
+        nnet_input_t: Optional[Type[NNetInput]] = None
+        nnet_t: Optional[Type[DeepXubeNNet]] = None
+        if nnet_input_name is not None:
+            nnet_input_t = get_nnet_input_t(nnet_input_name)
+        if nnet_name_args is not None:
+            nnet_t = deepxube_nnet_factory.get_type(get_name_args(nnet_name_args)[0])
 
         incompat_reason: Optional[str] = self.get_incompat_reason(domain, nnet_input_t, nnet_t)
         if incompat_reason is not None:
             raise TypeError(incompat_reason)
 
         self.domain: D = domain
-        self.nnet_input_name: Tuple[str, str] = nnet_input_name
-        self.nnet_name: str = nnet_name
-        self.nnet_kwargs: Dict[str, Any] = nnet_kwargs
+        self.nnet_input_name: Optional[Tuple[str, str]] = nnet_input_name
+        self.nnet_name_args: Optional[str] = nnet_name_args
 
         super().__init__(**kwargs)
 
@@ -133,19 +138,23 @@ class DeepXubeNNetPar(NNetPar[NNF_T, CTX_T], Generic[NNF_T, CTX_T, D, NNInP, DXN
         pass
 
     def get_nnet(self) -> DXNNet:
-        nnet_params: Dict = self.nnet_kwargs.copy()
-        nnet_params['nnet_input'] = self._get_nnet_input()
-        self._add_nnet_kwargs(nnet_params)
-        nnet: DeepXubeNNet = deepxube_nnet_factory.build_class(self.nnet_name, nnet_params)
+        assert self.nnet_name_args is not None
+        nnet_name, nnet_args = get_name_args(self.nnet_name_args)
+        nnet_kwargs = deepxube_nnet_factory.get_kwargs(nnet_name, nnet_args)
+        nnet_kwargs['nnet_input'] = self._get_nnet_input()
+
+        self._add_nnet_kwargs(nnet_kwargs)
+        nnet: DeepXubeNNet = deepxube_nnet_factory.build_class(nnet_name, nnet_kwargs)
         assert isinstance(nnet, self.nnet_type())
         return nnet
 
     @abstractmethod
-    def _add_nnet_kwargs(self, nnet_params: Dict) -> None:
+    def _add_nnet_kwargs(self, nnet_kwargs: Dict) -> None:
         pass
 
     def _get_nnet_input(self) -> NNInP:
         if self.nnet_input is None:
+            assert self.nnet_input_name is not None
             self.nnet_input = cast(NNInP, get_nnet_input_t(self.nnet_input_name)(domain=self.domain))
 
         assert self.nnet_input is not None
@@ -156,7 +165,11 @@ class DeepXubeNNetPar(NNetPar[NNF_T, CTX_T], Generic[NNF_T, CTX_T, D, NNInP, DXN
         return self.__dict__
 
     def __repr__(self) -> str:
-        return f"NNetInputType: {get_nnet_input_t(self.nnet_input_name)} (name: {self.nnet_input_name})\n{super().__repr__()}"
+        if self.nnet_input_name is None:
+            return f"{type(self).__name__}()"
+        else:
+            assert self.nnet_name_args is not None
+            return f"NNetInputType: {get_nnet_input_t(self.nnet_input_name)} (name: {self.nnet_input_name})\n{super().__repr__()}"
 
 
 H = TypeVar('H', bound=HeurFn)
@@ -175,9 +188,9 @@ class HeurNNetPar(DeepXubeNNetPar[H, CTX_T, D, NNInP, HeurNNet], ABC):
     def _out_dim(self) -> int:
         pass
 
-    def _add_nnet_kwargs(self, nnet_params: Dict) -> None:
-        nnet_params["q_fix"] = self._qfix()
-        nnet_params["out_dim"] = self._out_dim()
+    def _add_nnet_kwargs(self, nnet_kwargs: Dict) -> None:
+        nnet_kwargs["q_fix"] = self._qfix()
+        nnet_kwargs["out_dim"] = self._out_dim()
 
 
 class HeurVNNetPar(HeurNNetPar[HeurVFn, None, Domain, StateGoalIn], ABC):
@@ -320,8 +333,8 @@ class PolicyNNetPar(DeepXubeNNetPar[PolicyFn, PolicyCtx, Domain, PolicyNNetIn, P
 
         return actions_l, pdfs_l
 
-    def _add_nnet_kwargs(self, nnet_params: Dict) -> None:
-        nnet_params["num_samp"] = self.num_samp
+    def _add_nnet_kwargs(self, nnet_kwargs: Dict) -> None:
+        nnet_kwargs["num_samp"] = self.num_samp
 
     def __repr__(self) -> str:
         nnet: PolicyNNet = self.get_nnet()
