@@ -215,11 +215,9 @@ class HeurVNNetPar(HeurNNetPar[HeurVFn, None, Domain, StateGoalIn], ABC):
     def process_inputs(self, states: List[State], goals: List[Goal]) -> ProcessedInput[None]:
         return ProcessedInput(self._get_nnet_input().to_np(states, goals), None)
 
-    def process_outputs(self, outs: List[NDArray], update_num: Optional[int], ctx: None) -> List[float]:
+    def process_outputs(self, outs: List[NDArray], ctx: None) -> List[float]:
         heurs: NDArray = outs[0]
         heurs = np.maximum(heurs[:, 0], 0)
-        if (update_num is not None) and (update_num == 0):
-            heurs = heurs * 0
         return cast(List[float], heurs.astype(np.float64).tolist())
 
     def _qfix(self) -> bool:
@@ -309,7 +307,7 @@ class PolicyNNetPar(DeepXubeNNetPar[PolicyFn, PolicyCtx, Domain, PolicyNNetIn, P
     def process_inputs(self, states: List[State], goals: List[Goal]) -> ProcessedInput[PolicyCtx]:
         return ProcessedInput(self._get_nnet_input().to_np_fn(states, goals), PolicyCtx(len(states)))
 
-    def process_outputs(self, outs: List[NDArray], update_num: Optional[int], ctx: PolicyCtx) -> Tuple[List[List[Action]], List[List[float]]]:
+    def process_outputs(self, outs: List[NDArray], ctx: PolicyCtx) -> Tuple[List[List[Action]], List[List[float]]]:
         actions_np: List[NDArray] = outs[0:-1]
         pdfs_np: NDArray = outs[-1]
 

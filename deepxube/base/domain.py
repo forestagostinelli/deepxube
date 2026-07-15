@@ -199,7 +199,7 @@ class Domain(ABC, Generic[S, A, G]):
             nnet = load_nnet(nnet_file, nnet, device=device)
             nnet.to(device)
 
-            nnet_fn = nnet_par.get_nnet_fn(nnet, None, device, None)
+            nnet_fn = nnet_par.get_nnet_fn(nnet, None, device)
 
         assert nnet_fn is not None
         return nnet_fn

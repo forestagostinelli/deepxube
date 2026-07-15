@@ -1,4 +1,4 @@
-from typing import List, Type, Optional
+from typing import List, Type
 
 from deepxube.utils import misc_utils
 from deepxube.pytorch.nnet_utils import ProcessedInput
@@ -75,13 +75,11 @@ class HeurQNNetParFixOut(HeurQNNetPar[QOutFixCtx, ActsEnumFixed, StateGoalActFix
         self._check_same_num_acts(actions_l)
         return ProcessedInput(self._get_nnet_input().to_np(states, goals, actions_l), QOutFixCtx(states))
 
-    def process_outputs(self, outs: List[NDArray], update_num: Optional[int], ctx: QOutFixCtx) -> List[List[float]]:
+    def process_outputs(self, outs: List[NDArray], ctx: QOutFixCtx) -> List[List[float]]:
         q_vals_np: NDArray = outs[0]
         assert q_vals_np.shape[0] == len(ctx.states)
 
         q_vals_np = np.maximum(q_vals_np, 0)
-        if (update_num is not None) and (update_num == 0):
-            q_vals_np = q_vals_np * 0
         q_vals_l: List[List[float]] = [q_vals_np[state_idx].astype(np.float64).tolist() for state_idx in range(q_vals_np.shape[0])]
         return q_vals_l
 
@@ -118,13 +116,11 @@ class HeurQNNetParIn(HeurQNNetPar[QInCtx, Domain, StateGoalActIn]):
 
         return ProcessedInput(self._get_nnet_input().to_np(states_rep, goals_rep, actions_flat), QInCtx(states_rep, split_idxs))
 
-    def process_outputs(self, outs: List[NDArray], update_num: Optional[int], ctx: QInCtx) -> List[List[float]]:
+    def process_outputs(self, outs: List[NDArray], ctx: QInCtx) -> List[List[float]]:
         q_vals_np: NDArray = outs[0]
 
         assert q_vals_np.shape[0] == len(ctx.states_rep)
         q_vals_np = np.maximum(q_vals_np[:, 0], 0)
-        if (update_num is not None) and (update_num == 0):
-            q_vals_np = q_vals_np * 0
 
         q_vals_flat: List[float] = q_vals_np.astype(np.float64).tolist()
         q_vals_l: List[List[float]] = misc_utils.unflatten(q_vals_flat, ctx.split_idxs)

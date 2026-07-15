@@ -242,17 +242,15 @@ class NNetPar(ABC, Generic[NNF_T, CTX_T]):
         self.nnet_par_info: Optional[NNetParInfo] = None
         self.nnet_par_info_l: Optional[List[NNetParInfo]] = None
         self.nnet_runner_proc_l: Optional[List[BaseProcess]] = None
-        self.targ_update_num: Optional[int] = None
 
     """ A neural network that can be called from other processes """
-    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device, update_num: Optional[int]) -> NNF_T:
+    def get_nnet_fn(self, nnet: nn.Module, batch_size: Optional[int], device: torch.device) -> NNF_T:
         """
 
         :param nnet: Neural network module, assumed to take a List of NDArrays as input
         :param batch_size: Maximum number of inputs to pass to neural network at a time. Loops until all inputs are given. If None, all inputs are given
         at once, no matter how large.
         :param device: Device that the neural network is on
-        :param update_num: Update number (only relevant for training)
         :return: Neural network function
         """
         nnet.eval()
@@ -261,22 +259,21 @@ class NNetPar(ABC, Generic[NNF_T, CTX_T]):
             processed_input: ProcessedInput[CTX_T] = self.process_inputs(*args)
             outs: List[NDArray[np.float64]] = nnet_batched(nnet, processed_input.inputs_nnet, batch_size, device)
 
-            return self.process_outputs(outs, update_num, processed_input.ctx)
+            return self.process_outputs(outs, processed_input.ctx)
 
         return cast(NNF_T, nnet_fn)
 
-    def get_nnet_par_fn_w_info(self, nnet_par_info: NNetParInfo, update_num: Optional[int]) -> NNF_T:
+    def get_nnet_par_fn_w_info(self, nnet_par_info: NNetParInfo) -> NNF_T:
         """
 
         :param nnet_par_info: Information of neural network which may exist on a different process
-        :param update_num: Update number (only relevant for training)
         :return: Neural network function
         """
         def nnet_fn(*args: Any) -> Any:
             processed_input: ProcessedInput[CTX_T] = self.process_inputs(*args)
             outs: List[NDArray[np.float64]] = get_nnet_par_out(processed_input.inputs_nnet, nnet_par_info)
 
-            return self.process_outputs(outs, update_num, processed_input.ctx)
+            return self.process_outputs(outs, processed_input.ctx)
 
         return cast(NNF_T, nnet_fn)
 
@@ -293,7 +290,7 @@ class NNetPar(ABC, Generic[NNF_T, CTX_T]):
         pass
 
     @abstractmethod
-    def process_outputs(self, outs: List[NDArray], update_num: Optional[int], ctx: CTX_T) -> Any:
+    def process_outputs(self, outs: List[NDArray], ctx: CTX_T) -> Any:
         pass
 
     @abstractmethod
@@ -310,9 +307,6 @@ class NNetPar(ABC, Generic[NNF_T, CTX_T]):
     def get_nnet_par_fn(self) -> NNF_T:
         assert self.nnet_par_fn is not None
         return self.nnet_par_fn
-
-    def set_targ_update_num(self, targ_update_num: Optional[int]) -> None:
-        self.targ_update_num = targ_update_num
 
     def set_nnet_par_info_l(self, num_procs: int) -> None:
         assert self.nnet_runner_proc_l is None
@@ -338,7 +332,7 @@ class NNetPar(ABC, Generic[NNF_T, CTX_T]):
     def init_nnet_par_fn(self) -> None:
         assert self.nnet_par_fn is None
         assert self.nnet_par_info is not None
-        self.nnet_par_fn = self.get_nnet_par_fn_w_info(self.nnet_par_info, self.targ_update_num)
+        self.nnet_par_fn = self.get_nnet_par_fn_w_info(self.nnet_par_info)
 
     def clear_nnet_fn(self) -> None:
         assert self.nnet_par_fn is not None

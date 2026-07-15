@@ -98,7 +98,7 @@ def get_path_up_fns(domain: Domain, domain_name: str, fn_name_args_l: List[str],
                 nnet.to(device)
                 nnet = nn.DataParallel(nnet)
 
-            fn = nnet_par.get_nnet_fn(nnet, nnet_batch_size, device, None)
+            fn = nnet_par.get_nnet_fn(nnet, nnet_batch_size, device)
         else:
             fn = nnet_par.get_default_fn()
 

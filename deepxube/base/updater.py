@@ -355,8 +355,7 @@ class Update(Generic[D, PFNsT, P, InstT, UFNsT], ABC):
             times: Times = Times()
 
             step_probs, targ_update_nums = data_q
-            for nnet_name, targ_update_num in targ_update_nums.items():
-                self._get_up_fn(nnet_name).set_targ_update_num(targ_update_num)
+            self.targ_update_nums = targ_update_nums.copy()
             self.init_nnet_fns()
 
             step_to_pathperf: Dict[int, PathFindPerf] = dict()
@@ -555,7 +554,12 @@ class UpdateHasHeurV(Update[D, PFNsT, P, InstT, UFNsHV_T], ABC):
         return self._get_targ_heurv_fn()
 
     def _get_targ_heurv_fn(self) -> HeurVFn:
-        return self.get_heurv_nnet_par().get_nnet_par_fn()
+        heurv_nnet_par: HeurVNNetPar = self.get_heurv_nnet_par()
+        update_num: int = self.targ_update_nums[heurv_nnet_par.get_field_name()]
+        if update_num == 0:
+            return heurv_nnet_par.get_default_fn()
+        else:
+            return heurv_nnet_par.get_nnet_par_fn()
 
 
 class UpdateHasHeurQ(Update[D, PFNsT, P, InstT, UFNsHQ_T], ABC):
@@ -566,7 +570,12 @@ class UpdateHasHeurQ(Update[D, PFNsT, P, InstT, UFNsHQ_T], ABC):
         return self._get_targ_heurq_fn()
 
     def _get_targ_heurq_fn(self) -> HeurQFn:
-        return self.get_heurq_nnet_par().get_nnet_par_fn()
+        heurq_nnet_par: HeurQNNetPar = self.get_heurq_nnet_par()
+        update_num: int = self.targ_update_nums[heurq_nnet_par.get_field_name()]
+        if update_num == 0:
+            return heurq_nnet_par.get_default_fn()
+        else:
+            return heurq_nnet_par.get_nnet_par_fn()
 
 
 class UpdateHasPolicy(Update[D, PFNsP_T, P, InstT, UFNsP_T], ABC):
@@ -574,14 +583,16 @@ class UpdateHasPolicy(Update[D, PFNsP_T, P, InstT, UFNsP_T], ABC):
         return self.up_fns.policy
 
     def get_policy_fn(self) -> PolicyFn:
-        policy_nnet_par: PolicyNNetPar = self.get_policy_nnet_par()
-        update_num: Optional[int] = policy_nnet_par.targ_update_num
-        update_num_is_0: bool = (update_num is not None) and (update_num == 0)
+        return self._get_targ_policy_fn()
 
-        if update_num_is_0:
+    def _get_targ_policy_fn(self) -> PolicyFn:
+        policy_nnet_par: PolicyNNetPar = self.get_policy_nnet_par()
+        update_num: int = self.targ_update_nums[policy_nnet_par.get_field_name()]
+
+        if update_num == 0:
             return policy_nnet_par.get_default_fn()
         else:
-            return self.get_policy_nnet_par().get_nnet_par_fn()
+            return policy_nnet_par.get_nnet_par_fn()
 
 
 PS = TypeVar('PS', bound=PathFindSup)
@@ -658,7 +669,7 @@ class UpdateHeurV(UpdateHeur[D, PFNsHV_T, P, InstanceNode, UFNsHV_T], UpdateHasH
             return super().get_heurv_fn()
         else:
             assert self.nnet_par_info_main is not None
-            return self.get_heurv_nnet_par().get_nnet_par_fn_w_info(self.nnet_par_info_main, None)
+            return self.get_heurv_nnet_par().get_nnet_par_fn_w_info(self.nnet_par_info_main)
 
 
 class UpdateHeurQ(UpdateHeur[D, PFNsHQ_T, P, InstanceEdge, UFNsHQ_T], UpdateHasHeurQ[D, PFNsHQ_T, P, InstanceEdge, UFNsHQ_T], ABC):
@@ -682,7 +693,7 @@ class UpdateHeurQ(UpdateHeur[D, PFNsHQ_T, P, InstanceEdge, UFNsHQ_T], UpdateHasH
             return super().get_heurq_fn()
         else:
             assert self.nnet_par_info_main is not None
-            return self.get_heurq_nnet_par().get_nnet_par_fn_w_info(self.nnet_par_info_main, None)
+            return self.get_heurq_nnet_par().get_nnet_par_fn_w_info(self.nnet_par_info_main)
 
 
 class UpdatePolicy(UpdateHasPolicy[D, PFNsP_T, P, InstT, UFNsP_T], ABC):
