@@ -200,7 +200,7 @@ class PathFind(Generic[D, PFNsT, I], ABC):
 
     @staticmethod
     @abstractmethod
-    def functions_type() -> Type[PFNsT]:
+    def pathfind_functions_type() -> Type[PFNsT]:
         pass
 
     @staticmethod
@@ -209,21 +209,21 @@ class PathFind(Generic[D, PFNsT, I], ABC):
         pass
 
     @classmethod
-    def get_incompat_reason(cls, domain: Domain, functions_t: Type[PFNs]) -> Optional[str]:
+    def get_incompat_reason(cls, domain: Domain, pathfind_fns_t: Type[PFNs]) -> Optional[str]:
         if not isinstance(domain, cls.domain_type()):
             return f"Domain {domain} is not an instance of {cls.domain_type()}"
-        elif not issubclass(functions_t, cls.functions_type()):
-            return f"Functions type {functions_t} is not a subclass of {cls.functions_type()}"
+        elif not issubclass(pathfind_fns_t, cls.pathfind_functions_type()):
+            return f"PathFind functions type {pathfind_fns_t} is not a subclass of {cls.pathfind_functions_type()}"
 
         return None
 
-    def __init__(self, domain: D, functions: PFNsT):
-        incompat_reason: Optional[str] = self.get_incompat_reason(domain, type(functions))
+    def __init__(self, domain: D, pathfind_fns: PFNsT):
+        incompat_reason: Optional[str] = self.get_incompat_reason(domain, type(pathfind_fns))
         if incompat_reason is not None:
             raise TypeError(incompat_reason)
 
         self.domain: D = domain
-        self.functions: PFNsT = functions
+        self.pathfind_fns: PFNsT = pathfind_fns
         self.instances: List[I] = []
         self.times: Times = Times()
         self.itr: int = 0
@@ -646,7 +646,7 @@ class PathFindSetPolicy(PathFind[D, PFNsP_T, I], ABC):
         start_time = time.time()
         states: List[State] = [node.state for node in nodes]
         goals: List[Goal] = [node.goal for node in nodes]
-        actions_l, probs_l = self.functions.policy(states, goals)
+        actions_l, probs_l = self.pathfind_fns.policy(states, goals)
 
         assert len(actions_l) == len(probs_l) == len(states) == len(goals), \
             f"{len(actions_l)}, {len(probs_l)}, {len(states)}, {len(goals)}"
@@ -664,7 +664,7 @@ class PathFindSetHeurV(PathFind[D, PFNsHV_T, I], ABC):
         states: List[State] = [node.state for node in nodes]
         goals: List[Goal] = [node.goal for node in nodes]
 
-        heuristics: List[float] = self.functions.heurv(states, goals)
+        heuristics: List[float] = self.pathfind_fns.heurv(states, goals)
 
         assert len(heuristics) == len(states) == len(goals), \
             f"{len(heuristics)}, {len(states)}, {len(goals)}"
@@ -685,7 +685,7 @@ class PathFindSetHeurQ(PathFind[D, PFNsHQ_T, I], ABC):
         self.times.record_time("actions", time.time() - start_time)
 
         start_time = time.time()
-        qvals_l: List[List[float]] = self.functions.heurq(states, goals, actions_l)
+        qvals_l: List[List[float]] = self.pathfind_fns.heurq(states, goals, actions_l)
         heuristics: List[float] = [min(x) for x in qvals_l]
 
         assert len(heuristics) == len(actions_l) == len(qvals_l) == len(states) == len(goals), \
@@ -741,7 +741,7 @@ class PathFindActsPolicy(PathFind[D, PFNsP_T, I], ABC):
         return self._get_actions(states, goals)
 
     def _get_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
-        actions_l: List[List[Action]] = self.functions.policy(states, goals)[0]
+        actions_l: List[List[Action]] = self.pathfind_fns.policy(states, goals)[0]
 
         if self.num_rand_edges > 0:
             states_rep_l: List[List[State]] = [[state] * self.num_rand_edges for state in states]
@@ -764,7 +764,7 @@ class PathFindSup(PathFind[D, PFNs, I]):
 
     """
     @staticmethod
-    def functions_type() -> Type[PFNs]:
+    def pathfind_functions_type() -> Type[PFNs]:
         return PFNs
 
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True) -> List[I]:

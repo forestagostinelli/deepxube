@@ -145,7 +145,7 @@ class BeamSearchPolicy(BeamSearch[Domain, PFNsPolicy, InstanceEdgeBeam], PathFin
         return Domain
 
     @staticmethod
-    def functions_type() -> Type[PFNsPolicy]:
+    def pathfind_functions_type() -> Type[PFNsPolicy]:
         return PFNsPolicy
 
     @staticmethod
@@ -218,7 +218,7 @@ class BeamSearchHeurNodeActsEnum(BeamSearchHeurNode[ActsEnum, PFNsHeurV], PathFi
         return ActsEnum
 
     @staticmethod
-    def functions_type() -> Type[PFNsHeurV]:
+    def pathfind_functions_type() -> Type[PFNsHeurV]:
         return PFNsHeurV
 
     @staticmethod
@@ -233,7 +233,7 @@ class BeamSearchHeurEdgeActsEnum(BeamSearchHeurEdge[ActsEnum, PFNsHeurQ], PathFi
         return ActsEnum
 
     @staticmethod
-    def functions_type() -> Type[PFNsHeurQ]:
+    def pathfind_functions_type() -> Type[PFNsHeurQ]:
         return PFNsHeurQ
 
     @staticmethod
@@ -248,7 +248,7 @@ class BeamSearchHeurNodeActsPolicy(BeamSearchHeurNode[Domain, PFNsHeurVPolicy], 
         return Domain
 
     @staticmethod
-    def functions_type() -> Type[PFNsHeurVPolicy]:
+    def pathfind_functions_type() -> Type[PFNsHeurVPolicy]:
         return PFNsHeurVPolicy
 
     @staticmethod
@@ -267,7 +267,7 @@ class BeamSearchHeurEdgeActsPolicy(BeamSearchHeurEdge[Domain, PFNsHeurQPolicy], 
         return Domain
 
     @staticmethod
-    def functions_type() -> Type[PFNsHeurQPolicy]:
+    def pathfind_functions_type() -> Type[PFNsHeurQPolicy]:
         return PFNsHeurQPolicy
 
     @staticmethod

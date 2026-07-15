@@ -8,14 +8,14 @@ from deepxube.base.factory import Factory, Parser
 from deepxube.base.domain import Domain, StateGoalVizable, StringToAct, State, Action, Goal
 from deepxube.base.nnet_input import NNetInput
 from deepxube.base.nnet import DeepXubeNNet
-from deepxube.base.pathfind_fns import PFNs, HeurNNetPar, PolicyNNetPar, DeepXubeNNetPar
+from deepxube.base.pathfind_fns import PFNs, HeurNNetPar, PolicyNNetPar, DeepXubeNNetPar, UFNs
 from deepxube.base.pathfinding import PathFind
 from deepxube.base.updater import Update
 from deepxube.base.trainer import Train
 from deepxube.factories.domain_factory import domain_factory, get_domain_from_arg
 from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys, get_nnet_input_t
 from deepxube.factories.nnet_factory import deepxube_nnet_factory
-from deepxube.factories.pathfind_fns_factory import pathfind_fns_factory, deepxube_nnet_par_factory
+from deepxube.factories.pathfind_fns_factory import pathfind_fns_factory, deepxube_nnet_par_factory, updater_fns_factory
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.factories.updater_factory import updater_factory
 from deepxube.factories.trainer_factory import trainer_factory
@@ -148,6 +148,16 @@ def pathfind_fns_info(args: argparse.Namespace) -> None:
             print(f"Pathfind Functions (Name, Module, Class): {name}, {path_fns_t.__module__}, {path_fns_t.__qualname__}")
 
 
+def updater_fns_info(args: argparse.Namespace) -> None:
+    name: Tuple[Tuple[str, Type], ...]
+    up_fns_t: Type[UFNs]
+    if args.name is None:
+        names: List[Tuple[Tuple[str, Type], ...]] = updater_fns_factory.get_all_class_names()
+        for name in names:
+            up_fns_t = updater_fns_factory.get_type(name)
+            print(f"Updater Functions (Name, Module, Class): {name}, {up_fns_t.__module__}, {up_fns_t.__qualname__}")
+
+
 def pathfind_info(args: argparse.Namespace) -> None:
     name: str
     pathfind_t: Type[PathFind]
@@ -164,7 +174,7 @@ def pathfind_info(args: argparse.Namespace) -> None:
         mixin_str: str = ', '.join([f"{x.__qualname__}" for x in get_immediate_mixins(pathfind_t, PathFind)])
         print(f"Mixins: {mixin_str}", '\t')
         print(f"Expected Domain type: {pathfind_t.domain_type().__qualname__}", '\t')
-        print(f"Expected Functions type: {pathfind_t.functions_type().__qualname__}", '\t')
+        print(f"Expected Functions type: {pathfind_t.pathfind_functions_type().__qualname__}", '\t')
 
         parser: Optional[Parser] = pathfinding_factory.get_parser(name)
         if parser is not None:
@@ -187,7 +197,7 @@ def updater_info(args: argparse.Namespace) -> None:
         print(f"Mixins: {mixin_str}", '\t')
         print(f"Expected Domain type: {up_t.domain_type().__qualname__}", '\t')
         print(f"Expected NNetParRunner types: {{{','.join(f'{key}: {val.__name__}' for key, val in up_t.nnpar_types.items())}}}", '\t')
-        print(f"Expected PathFind type: {up_t.pathfind_type().__qualname__} with functions {up_t.functions_type().__qualname__}", '\t')
+        print(f"Expected PathFind type: {up_t.pathfind_type().__qualname__} with functions {up_t.pathfind_functions_type().__qualname__}", '\t')
 
         parser: Optional[Parser] = updater_factory.get_parser(name)
         if parser is not None:
@@ -473,7 +483,7 @@ def main() -> None:
     parser_nnet_info.add_argument('--name', type=str, default=None, help="Name of nnet.")
     parser_nnet_info.set_defaults(func=nnet_info)
 
-    # pathfinding functions
+    # functions
     parser_fn_info: ArgumentParser = subparsers.add_parser('fn_info', help="Print information on parallel nnet functions")
     parser_fn_info.add_argument('--name', type=str, default=None, help="Name of nnet par function.")
     parser_fn_info.set_defaults(func=fn_info)
@@ -481,6 +491,10 @@ def main() -> None:
     parser_pathfind_fns_info: ArgumentParser = subparsers.add_parser('pathfind_fns_info', help="Print information on pathfinding functions")
     parser_pathfind_fns_info.add_argument('--name', type=str, default=None, help="Name of pathfinding functions object.")
     parser_pathfind_fns_info.set_defaults(func=pathfind_fns_info)
+
+    parser_up_fns_info: ArgumentParser = subparsers.add_parser('updater_fns_info', help="Print information on updater functions")
+    parser_up_fns_info.add_argument('--name', type=str, default=None, help="Name of updater functions object.")
+    parser_up_fns_info.set_defaults(func=updater_fns_info)
 
     # pathfinding info
     parser_pathfind_info: ArgumentParser = subparsers.add_parser('pathfind_info', help="Print information on pathfinding algorithms that deepxube has "

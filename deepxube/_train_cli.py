@@ -4,11 +4,12 @@ from argparse import ArgumentParser
 
 import torch
 
+from dataclasses import fields
 from deepxube.utils.command_line_utils import print_command
 from deepxube.pytorch.nnet_utils import get_device, NNetPar
 from deepxube.base.pathfind_fns import PFNs, DeepXubeNNetPar
 from deepxube.factories.domain_factory import get_domain_from_arg
-from deepxube.factories.pathfind_fns_factory import get_fn_dicts, pathfind_fns_factory
+from deepxube.factories.pathfind_fns_factory import get_path_up_fns, pathfind_fns_factory
 from deepxube.factories.pathfinding_factory import get_pathfind_from_arg
 from deepxube.factories.updater_factory import get_updater_from_args
 from deepxube.factories.trainer_factory import get_trainer_from_args
@@ -74,15 +75,15 @@ def train_cli(args: argparse.Namespace) -> None:
     domain, domain_name = get_domain_from_arg(args.domain)
 
     # parse nnet fn args
-    nnet_fn_dict, nnet_par_dict = get_fn_dicts(domain, domain_name, args.fn, device)
-    for nnet_par_name, nnet_par in nnet_par_dict.items():
+    pathfind_fns, updater_fns = get_path_up_fns(domain, domain_name, args.fn, device)
+    for field in fields(updater_fns):
+        nnet_par: DeepXubeNNetPar = cast(DeepXubeNNetPar, getattr(updater_fns, field.name))
         print(nnet_par)
-        print(f"(name: {nnet_par_name}, nnet_input_name: {nnet_par.nnet_input_name})")
+        print(f"(name: {field.name}, nnet_input_name: {nnet_par.nnet_input_name})")
 
     print(domain, f"(name: {domain_name})")
 
     # pathfind functions
-    pathfind_fns: PFNs = pathfind_fns_factory.build_class(nnet_fn_dict)
     print(pathfind_fns)
 
     # pathfinding
@@ -90,7 +91,7 @@ def train_cli(args: argparse.Namespace) -> None:
     print(pathfind, f"(name: {pathfind_name})")
 
     # updater
-    updater, updater_name = get_updater_from_args(domain, pathfind, pathfind_name_args_full, cast(Dict[str, NNetPar], nnet_par_dict), args.up)
+    updater, updater_name = get_updater_from_args(domain, pathfind, pathfind_name_args_full, updater_fns, args.up)
     print(updater, f"(name: {updater_name})")
 
     """

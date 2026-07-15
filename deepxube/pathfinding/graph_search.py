@@ -195,7 +195,7 @@ class GraphSearchHeurNodeActsEnum(GraphSearchHeurNode[ActsEnum, PFNsHeurV], Path
         return ActsEnum
 
     @staticmethod
-    def functions_type() -> Type[PFNsHeurV]:
+    def pathfind_functions_type() -> Type[PFNsHeurV]:
         return PFNsHeurV
 
     @staticmethod
@@ -210,7 +210,7 @@ class GraphSearchHeurEdgeActsEnum(GraphSearchHeurEdge[ActsEnum, PFNsHeurQ], Path
         return ActsEnum
 
     @staticmethod
-    def functions_type() -> Type[PFNsHeurQ]:
+    def pathfind_functions_type() -> Type[PFNsHeurQ]:
         return PFNsHeurQ
 
     @staticmethod
@@ -225,7 +225,7 @@ class GraphSearchHeurNodeActsPolicy(GraphSearchHeurNode[Domain, PFNsHeurVPolicy]
         return Domain
 
     @staticmethod
-    def functions_type() -> Type[PFNsHeurVPolicy]:
+    def pathfind_functions_type() -> Type[PFNsHeurVPolicy]:
         return PFNsHeurVPolicy
 
     @staticmethod
@@ -244,7 +244,7 @@ class GraphSearchHeurEdgeActsPolicy(GraphSearchHeurEdge[Domain, PFNsHeurQPolicy]
         return Domain
 
     @staticmethod
-    def functions_type() -> Type[PFNsHeurQPolicy]:
+    def pathfind_functions_type() -> Type[PFNsHeurQPolicy]:
         return PFNsHeurQPolicy
 
     @staticmethod

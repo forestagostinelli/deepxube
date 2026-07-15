@@ -1,14 +1,15 @@
-from typing import List, Dict, Optional, Any, Tuple
+from typing import List, Dict, Optional, Any, Tuple, cast
 import argparse
 from argparse import ArgumentParser
 
+from dataclasses import fields
 import torch
 
 from deepxube.pytorch.nnet_utils import get_device
 from deepxube.base.domain import Domain, State, Action, Goal
 from deepxube.base.pathfinding import Node, Instance, get_path
-from deepxube.base.pathfind_fns import PFNs
-from deepxube.factories.pathfind_fns_factory import get_fn_dicts, pathfind_fns_factory
+from deepxube.base.pathfind_fns import DeepXubeNNetPar
+from deepxube.factories.pathfind_fns_factory import get_path_up_fns
 from deepxube.factories.pathfinding_factory import get_pathfind_from_arg
 from deepxube.pathfinding.beam_search import BeamSearch
 from deepxube.factories.domain_factory import get_domain_from_arg
@@ -119,13 +120,13 @@ def solve_cli(args: argparse.Namespace) -> None:
         else:
             raise ValueError("--fn must be either --fn <fn> or --fn <fn>,<nnet>,<nnet_file>")
 
-    nnet_fn_dict, nnet_par_dict = get_fn_dicts(domain, domain_name, fns, device, nnet_files=nnet_files, nnet_batch_size=args.nnet_batch_size)
-    for nnet_par_name, nnet_par in nnet_par_dict.items():
+    pathfind_fns, updater_fns = get_path_up_fns(domain, domain_name, fns, device, nnet_files=nnet_files, nnet_batch_size=args.nnet_batch_size)
+    for field in fields(updater_fns):
+        nnet_par: DeepXubeNNetPar = cast(DeepXubeNNetPar, getattr(updater_fns, field.name))
         print(nnet_par)
-        print(f"(name: {nnet_par_name}, nnet_input_name: {nnet_par.nnet_input_name})")
+        print(f"(name: {field.name}, nnet_input_name: {nnet_par.nnet_input_name})")
 
     # pathfind functions
-    pathfind_fns: PFNs = pathfind_fns_factory.build_class(nnet_fn_dict)
     print(pathfind_fns)
 
     # pathfinding

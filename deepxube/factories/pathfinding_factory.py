@@ -57,7 +57,7 @@ def get_pathfind_from_arg(domain: Domain, pathfind_fns: PFNs, pathfind_name_args
 
     pathfind_kwargs: Dict[str, Any] = pathfinding_factory.get_kwargs(pathfind_name, args_str)
     pathfind_kwargs["domain"] = domain
-    pathfind_kwargs["functions"] = pathfind_fns
+    pathfind_kwargs["pathfind_fns"] = pathfind_fns
 
     pathfind_name_args_full: str = f"{pathfind_name}"
     if args_str is not None:

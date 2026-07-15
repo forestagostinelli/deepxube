@@ -5,8 +5,9 @@ from deepxube.pytorch.nnet_utils import ProcessedInput
 from deepxube.base.domain import Domain, State, Action, Goal, ActsEnumFixed
 from deepxube.base.nnet_input import StateGoalActFixIn, StateGoalActIn
 from dataclasses import dataclass
-from deepxube.base.pathfind_fns import PFNsHeurV, PFNsHeurQ, PFNsPolicy, PFNsHeurVPolicy, PFNsHeurQPolicy, HeurVNNetPar, HeurQNNetPar, PolicyNNetPar
-from deepxube.factories.pathfind_fns_factory import pathfind_fns_factory, deepxube_nnet_par_factory
+from deepxube.base.pathfind_fns import (PFNsHeurV, PFNsHeurQ, PFNsPolicy, PFNsHeurVPolicy, PFNsHeurQPolicy, HeurVNNetPar, HeurQNNetPar, PolicyNNetPar,
+                                        UFNsHeurV, UFNsHeurQ, UFNsPolicy, UFNsHeurVPolicy, UFNsHeurQPolicy)
+from deepxube.factories.pathfind_fns_factory import pathfind_fns_factory, deepxube_nnet_par_factory, updater_fns_factory
 
 import numpy as np
 from numpy.typing import NDArray
@@ -16,13 +17,13 @@ from numpy.typing import NDArray
 
 @pathfind_fns_factory.register
 @dataclass(frozen=True)
-class FNsHeurVC(PFNsHeurV):
+class PFNsHeurVC(PFNsHeurV):
     pass
 
 
 @pathfind_fns_factory.register
 @dataclass(frozen=True)
-class FNsHeurQC(PFNsHeurQ):
+class PFNsHeurQC(PFNsHeurQ):
     pass
 
 
@@ -138,4 +139,34 @@ class HeurQNNetParIn(HeurQNNetPar[QInCtx, Domain, StateGoalActIn]):
 
 @deepxube_nnet_par_factory.register_class("policy")
 class PolicyNNetParC(PolicyNNetPar):
+    pass
+
+
+@updater_fns_factory.register
+@dataclass(frozen=True)
+class UFNsHeurVC(UFNsHeurV):
+    pass
+
+
+@updater_fns_factory.register
+@dataclass(frozen=True)
+class UFNsHeurQC(UFNsHeurQ):
+    pass
+
+
+@updater_fns_factory.register
+@dataclass(frozen=True)
+class UPFNsPolicyC(UFNsPolicy):
+    pass
+
+
+@updater_fns_factory.register
+@dataclass(frozen=True)
+class UPFNsHeurVPolicyC(UFNsHeurVPolicy):
+    pass
+
+
+@updater_fns_factory.register
+@dataclass(frozen=True)
+class UPFNsHeurQPolicyC(UFNsHeurQPolicy):
     pass

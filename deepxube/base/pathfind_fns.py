@@ -339,3 +339,33 @@ class PolicyNNetPar(DeepXubeNNetPar[PolicyFn, PolicyCtx, Domain, PolicyNNetIn, P
     def __repr__(self) -> str:
         nnet: PolicyNNet = self.get_nnet()
         return f"{super().__repr__()}\n#Samp: {nnet.num_samp}"
+
+
+@dataclass(frozen=True)
+class UFNs:
+    pass
+
+
+@dataclass(frozen=True)
+class UFNsHeurV(UFNs):
+    heurv: HeurVNNetPar
+
+
+@dataclass(frozen=True)
+class UFNsHeurQ(UFNs):
+    heurq: HeurQNNetPar
+
+
+@dataclass(frozen=True)
+class UFNsPolicy(UFNs):
+    policy: PolicyNNetPar
+
+
+@dataclass(frozen=True)
+class UFNsHeurVPolicy(UFNsPolicy, UFNsHeurV):
+    pass
+
+
+@dataclass(frozen=True)
+class UFNsHeurQPolicy(UFNsPolicy, UFNsHeurQ):
+    pass

@@ -10,12 +10,14 @@ from deepxube.factories.nnet_factory import deepxube_nnet_factory
 from deepxube.base.domain import Domain
 from deepxube.base.nnet_input import NNetInput
 from deepxube.base.nnet import DeepXubeNNet
-from deepxube.base.pathfind_fns import PFNs, DeepXubeNNetPar
+from deepxube.base.pathfind_fns import PFNs, UFNs, DeepXubeNNetPar
 from deepxube.base.factory import FactoryAutoBuild, Factory
 
 deepxube_nnet_par_factory: Factory[DeepXubeNNetPar] = Factory[DeepXubeNNetPar]("DeepXubeNNetPar")
 
 pathfind_fns_factory: FactoryAutoBuild[PFNs] = FactoryAutoBuild[PFNs]("PathFindFNs")
+
+updater_fns_factory: FactoryAutoBuild[UFNs] = FactoryAutoBuild[UFNs]("UpdateFNs")
 
 
 def get_dx_nnet_par(domain: Domain, domain_name: str, nnet_par_name_args: str, nnet_name_args: Optional[str]) -> Tuple[DeepXubeNNetPar, str]:
@@ -58,8 +60,8 @@ def get_dx_nnet_par(domain: Domain, domain_name: str, nnet_par_name_args: str, n
                      f"\nIncompatibility reasons:\n{incompat_reasons_str}")
 
 
-def get_fn_dicts(domain: Domain, domain_name: str, fn_name_args_l: List[str], device: torch.device, nnet_files: Optional[List[Optional[str]]] = None,
-                 nnet_batch_size: Optional[int] = None) -> Tuple[Dict[str, NNetCallable], Dict[str, DeepXubeNNetPar]]:
+def get_path_up_fns(domain: Domain, domain_name: str, fn_name_args_l: List[str], device: torch.device, nnet_files: Optional[List[Optional[str]]] = None,
+                    nnet_batch_size: Optional[int] = None) -> Tuple[PFNs, UFNs]:
     nnet_fn_dict: Dict[str, NNetCallable] = dict()
     nnet_par_dict: Dict[str, DeepXubeNNetPar] = dict()
     if nnet_files is not None:
@@ -104,4 +106,7 @@ def get_fn_dicts(domain: Domain, domain_name: str, fn_name_args_l: List[str], de
         nnet_fn_dict[field_name] = fn
         nnet_par_dict[field_name] = nnet_par
 
-    return nnet_fn_dict, nnet_par_dict
+    pathfind_fns: PFNs = pathfind_fns_factory.build_class(nnet_fn_dict)
+    updater_fns: UFNs = updater_fns_factory.build_class(nnet_par_dict)
+
+    return pathfind_fns, updater_fns

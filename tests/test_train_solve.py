@@ -6,9 +6,9 @@ from torch.utils.tensorboard import SummaryWriter
 from deepxube.base.pathfinding import Node, Instance, get_path
 from deepxube.pathfinding.utils.performance import is_valid_soln, PathFindPerf
 from deepxube.base.pathfinding import PathFind
-from deepxube.base.pathfind_fns import DeepXubeNNetPar, PFNs, PFNsHeurV, PFNsHeurQ
+from deepxube.base.pathfind_fns import DeepXubeNNetPar, PFNsHeurV, PFNsHeurQ
 from deepxube.factories.domain_factory import get_domain_from_arg
-from deepxube.factories.pathfind_fns_factory import get_fn_dicts, pathfind_fns_factory
+from deepxube.factories.pathfind_fns_factory import get_path_up_fns
 from deepxube.factories.pathfinding_factory import get_pathfind_from_arg
 from deepxube.factories.updater_factory import get_updater_from_args
 from deepxube.factories.trainer_factory import get_trainer_from_args
@@ -40,10 +40,9 @@ def test_train_compat(fn_str: str, pathfind_str: str, up_str: str, tr_str: str) 
         shutil.rmtree(save_dir)
 
     domain, domain_name = get_domain_from_arg(domain_str)
-    nnet_fn_dict, nnet_par_dict = get_fn_dicts(domain, domain_name, [f"{fn_str},{nnet_name_args}"], device)
-    pathfind_fns: PFNs = pathfind_fns_factory.build_class(nnet_fn_dict)
+    pathfind_fns, updater_fns = get_path_up_fns(domain, domain_name, [f"{fn_str},{nnet_name_args}"], device)
     pathfind, pathfind_name, pathfind_name_args_full = get_pathfind_from_arg(domain, pathfind_fns, pathfind_str)
-    updater, updater_name = get_updater_from_args(domain, pathfind, pathfind_name_args_full, nnet_par_dict, up_str)
+    updater, updater_name = get_updater_from_args(domain, pathfind, pathfind_name_args_full, updater_fns, up_str)
 
     writer: SummaryWriter = SummaryWriter(save_dir)
     nnet_par_train: DeepXubeNNetPar = updater.get_train_nnet_par()

@@ -4,9 +4,9 @@ from typing import Any, List, Tuple, Type
 from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, GoalSampleableFromState, Action, State, Goal
-from deepxube.base.pathfind_fns import PFNsPolicy, PFNsHeurVPolicy, PFNsHeurQPolicy
+from deepxube.base.pathfind_fns import PFNsPolicy, PFNsHeurVPolicy, PFNsHeurQPolicy, UFNsPolicy, UFNsHeurVPolicy, UFNsHeurQPolicy
 from deepxube.base.pathfinding import PFNsP_T, PathFind, PathFindActsPolicy, EdgeQ, Node, Instance
-from deepxube.base.updater import UpdateHER, UpdatePolicy, UpdateHasHeurV, UpdateHasHeurQ, UpdateRL, D
+from deepxube.base.updater import UpdateHER, UpdatePolicy, UpdateHasHeurV, UpdateHasHeurQ, UpdateRL, D, UFNsP_T, UFNsT
 from deepxube.factories.updater_factory import updater_factory
 from deepxube.updaters.utils.replay_buffer_utils import ReplayBufferP
 from deepxube.utils.timing_utils import Times
@@ -33,7 +33,7 @@ def _get_edge_popped_data(edges_popped: List[EdgeQ], times: Times) -> Tuple[List
     return states, goals, actions
 
 
-class UpdatePolicyRL(UpdatePolicy[D, PFNsP_T, PathFindActsPolicy, Instance], UpdateRL[D, PFNsP_T, PathFindActsPolicy, Instance], ABC):
+class UpdatePolicyRL(UpdatePolicy[D, PFNsP_T, PathFindActsPolicy, Instance, UFNsP_T], UpdateRL[D, PFNsP_T, PathFindActsPolicy, Instance, UFNsP_T], ABC):
     @staticmethod
     def pathfind_type() -> Type[PathFindActsPolicy]:
         return PathFindActsPolicy
@@ -82,7 +82,7 @@ class UpdatePolicyRL(UpdatePolicy[D, PFNsP_T, PathFindActsPolicy, Instance], Upd
         return states, goals, actions
 
 
-class UpdatePolicyRLKeepGoalABC(UpdatePolicyRL[Domain, PFNsP_T], ABC):
+class UpdatePolicyRLKeepGoalABC(UpdatePolicyRL[Domain, PFNsP_T, UFNsP_T], ABC):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -135,7 +135,7 @@ class UpdatePolicyRLKeepGoalABC(UpdatePolicyRL[Domain, PFNsP_T], ABC):
         return self._inputs_ctgs_to_np(states, goals, actions, times)
 
 
-class UpdatePolicyRLHERABC(UpdatePolicyRL[GoalSampleableFromState, PFNsP_T], UpdateHER[PFNsP_T, PathFindActsPolicy, Instance], ABC):
+class UpdatePolicyRLHERABC(UpdatePolicyRL[GoalSampleableFromState, PFNsP_T, UFNsP_T], UpdateHER[PFNsP_T, PathFindActsPolicy, Instance, UFNsP_T], ABC):
     @staticmethod
     def domain_type() -> Type[GoalSampleableFromState]:
         return GoalSampleableFromState
@@ -169,60 +169,88 @@ class UpdatePolicyRLHERABC(UpdatePolicyRL[GoalSampleableFromState, PFNsP_T], Upd
 
 
 @updater_factory.register_class("up_rl_p")
-class UpdatePolicyRLKeepGoal(UpdatePolicyRLKeepGoalABC[PFNsPolicy]):
+class UpdatePolicyRLKeepGoal(UpdatePolicyRLKeepGoalABC[PFNsPolicy, UFNsPolicy]):
     @staticmethod
-    def functions_type() -> Type[PFNsPolicy]:
+    def pathfind_functions_type() -> Type[PFNsPolicy]:
         return PFNsPolicy
+
+    @staticmethod
+    def updater_functions_type() -> Type[UFNsPolicy]:
+        return UFNsPolicy
 
     def _get_pathfind_functions(self) -> PFNsPolicy:
         return PFNsPolicy(self.get_policy_fn())
 
 
 @updater_factory.register_class("up_her_p")
-class UpdatePolicyRLHER(UpdatePolicyRLHERABC[PFNsPolicy]):
+class UpdatePolicyRLHER(UpdatePolicyRLHERABC[PFNsPolicy, UFNsPolicy]):
     @staticmethod
-    def functions_type() -> Type[PFNsPolicy]:
+    def pathfind_functions_type() -> Type[PFNsPolicy]:
         return PFNsPolicy
+
+    @staticmethod
+    def updater_functions_type() -> Type[UFNsPolicy]:
+        return UFNsPolicy
 
     def _get_pathfind_functions(self) -> PFNsPolicy:
         return PFNsPolicy(self.get_policy_fn())
 
 
 @updater_factory.register_class("up_rl_p_v")
-class UpdatePolicyRLKeepGoalHeurV(UpdatePolicyRLKeepGoalABC[PFNsHeurVPolicy], UpdateHasHeurV[Domain, PFNsHeurVPolicy, PathFindActsPolicy, Instance]):
+class UpdatePolicyRLKeepGoalHeurV(UpdatePolicyRLKeepGoalABC[PFNsHeurVPolicy, UFNsHeurVPolicy],
+                                  UpdateHasHeurV[Domain, PFNsHeurVPolicy, PathFindActsPolicy, Instance, UFNsHeurVPolicy]):
     @staticmethod
-    def functions_type() -> Type[PFNsHeurVPolicy]:
+    def pathfind_functions_type() -> Type[PFNsHeurVPolicy]:
         return PFNsHeurVPolicy
+
+    @staticmethod
+    def updater_functions_type() -> Type[UFNsHeurVPolicy]:
+        return UFNsHeurVPolicy
 
     def _get_pathfind_functions(self) -> PFNsHeurVPolicy:
         return PFNsHeurVPolicy(self.get_heurv_fn(), self.get_policy_fn())
 
 
 @updater_factory.register_class("up_her_p_v")
-class UpdatePolicyRLHERHeurV(UpdatePolicyRLHERABC[PFNsHeurVPolicy], UpdateHasHeurV[Domain, PFNsHeurVPolicy, PathFindActsPolicy, Instance]):
+class UpdatePolicyRLHERHeurV(UpdatePolicyRLHERABC[PFNsHeurVPolicy, UFNsHeurVPolicy],
+                             UpdateHasHeurV[Domain, PFNsHeurVPolicy, PathFindActsPolicy, Instance, UFNsHeurVPolicy]):
     @staticmethod
-    def functions_type() -> Type[PFNsHeurVPolicy]:
+    def pathfind_functions_type() -> Type[PFNsHeurVPolicy]:
         return PFNsHeurVPolicy
+
+    @staticmethod
+    def updater_functions_type() -> Type[UFNsHeurVPolicy]:
+        return UFNsHeurVPolicy
 
     def _get_pathfind_functions(self) -> PFNsHeurVPolicy:
         return PFNsHeurVPolicy(self.get_heurv_fn(), self.get_policy_fn())
 
 
 @updater_factory.register_class("up_rl_p_q")
-class UpdatePolicyRLKeepGoalHeurQ(UpdatePolicyRLKeepGoalABC[PFNsHeurQPolicy], UpdateHasHeurQ[Domain, PFNsHeurQPolicy, PathFindActsPolicy, Instance]):
+class UpdatePolicyRLKeepGoalHeurQ(UpdatePolicyRLKeepGoalABC[PFNsHeurQPolicy, UFNsHeurQPolicy],
+                                  UpdateHasHeurQ[Domain, PFNsHeurQPolicy, PathFindActsPolicy, Instance, UFNsHeurQPolicy]):
     @staticmethod
-    def functions_type() -> Type[PFNsHeurQPolicy]:
+    def pathfind_functions_type() -> Type[PFNsHeurQPolicy]:
         return PFNsHeurQPolicy
+
+    @staticmethod
+    def updater_functions_type() -> Type[UFNsHeurQPolicy]:
+        return UFNsHeurQPolicy
 
     def _get_pathfind_functions(self) -> PFNsHeurQPolicy:
         return PFNsHeurQPolicy(self.get_heurq_fn(), self.get_policy_fn())
 
 
 @updater_factory.register_class("up_her_p_q")
-class UpdatePolicyRLHERHeurQ(UpdatePolicyRLHERABC[PFNsHeurQPolicy], UpdateHasHeurQ[Domain, PFNsHeurQPolicy, PathFindActsPolicy, Instance]):
+class UpdatePolicyRLHERHeurQ(UpdatePolicyRLHERABC[PFNsHeurQPolicy, UFNsHeurQPolicy],
+                             UpdateHasHeurQ[Domain, PFNsHeurQPolicy, PathFindActsPolicy, Instance, UFNsHeurQPolicy]):
     @staticmethod
-    def functions_type() -> Type[PFNsHeurQPolicy]:
+    def pathfind_functions_type() -> Type[PFNsHeurQPolicy]:
         return PFNsHeurQPolicy
+
+    @staticmethod
+    def updater_functions_type() -> Type[UFNsHeurQPolicy]:
+        return UFNsHeurQPolicy
 
     def _get_pathfind_functions(self) -> PFNsHeurQPolicy:
         return PFNsHeurQPolicy(self.get_heurq_fn(), self.get_policy_fn())

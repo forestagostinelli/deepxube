@@ -3,6 +3,7 @@ from typing import List, Type, Any
 from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, State, Action, Goal
+from deepxube.base.pathfind_fns import UFNsHeurV, UFNsHeurQ, UFNsPolicy
 from deepxube.base.pathfinding import Node, EdgeQ, InstanceEdge, InstanceNode
 from deepxube.base.updater import UpdatePolicy, UpdateHeurV, UpdateHeurQ, UpdateSup, UpdateParser
 from deepxube.factories.updater_factory import updater_factory
@@ -13,7 +14,7 @@ import numpy as np
 
 
 @updater_factory.register_class("up_sup_v")
-class UpdateHeurVSup(UpdateHeurV[Domain, Any, PathFindNodeSup], UpdateSup[Domain, PathFindNodeSup, InstanceNode]):
+class UpdateHeurVSup(UpdateHeurV[Domain, Any, PathFindNodeSup, UFNsHeurV], UpdateSup[Domain, PathFindNodeSup, InstanceNode, UFNsHeurV]):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -21,6 +22,10 @@ class UpdateHeurVSup(UpdateHeurV[Domain, Any, PathFindNodeSup], UpdateSup[Domain
     @staticmethod
     def pathfind_type() -> Type[PathFindNodeSup]:
         return PathFindNodeSup
+
+    @staticmethod
+    def updater_functions_type() -> Type[UFNsHeurV]:
+        return UFNsHeurV
 
     def _get_instance_data_norb(self, instances: List[InstanceNode], times: Times) -> List[NDArray]:
         nodes_popped: List[Node] = []
@@ -36,7 +41,7 @@ class UpdateHeurVSup(UpdateHeurV[Domain, Any, PathFindNodeSup], UpdateSup[Domain
 
 
 @updater_factory.register_class("up_sup_q")
-class UpdateHeurQSup(UpdateHeurQ[Domain, Any, PathFindEdgeSup], UpdateSup[Domain, PathFindEdgeSup, InstanceEdge]):
+class UpdateHeurQSup(UpdateHeurQ[Domain, Any, PathFindEdgeSup, UFNsHeurQ], UpdateSup[Domain, PathFindEdgeSup, InstanceEdge, UFNsHeurQ]):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -44,6 +49,10 @@ class UpdateHeurQSup(UpdateHeurQ[Domain, Any, PathFindEdgeSup], UpdateSup[Domain
     @staticmethod
     def pathfind_type() -> Type[PathFindEdgeSup]:
         return PathFindEdgeSup
+
+    @staticmethod
+    def updater_functions_type() -> Type[UFNsHeurQ]:
+        return UFNsHeurQ
 
     def _get_instance_data_norb(self, instances: List[InstanceEdge], times: Times) -> List[NDArray]:
         edges_popped: List[EdgeQ] = []
@@ -60,7 +69,7 @@ class UpdateHeurQSup(UpdateHeurQ[Domain, Any, PathFindEdgeSup], UpdateSup[Domain
 
 
 @updater_factory.register_class("up_sup_p")
-class UpdatePolicySup(UpdatePolicy[Domain, Any, PathFindEdgeSamp, InstanceEdge], UpdateSup[Domain, PathFindEdgeSamp, InstanceEdge]):
+class UpdatePolicySup(UpdatePolicy[Domain, Any, PathFindEdgeSamp, InstanceEdge, UFNsPolicy], UpdateSup[Domain, PathFindEdgeSamp, InstanceEdge, UFNsPolicy]):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -68,6 +77,10 @@ class UpdatePolicySup(UpdatePolicy[Domain, Any, PathFindEdgeSamp, InstanceEdge],
     @staticmethod
     def pathfind_type() -> Type[PathFindEdgeSamp]:
         return PathFindEdgeSamp
+
+    @staticmethod
+    def updater_functions_type() -> Type[UFNsPolicy]:
+        return UFNsPolicy
 
     def _get_instance_data_norb(self, instances: List[InstanceEdge], times: Times) -> List[NDArray]:
         edges_popped: List[EdgeQ] = []

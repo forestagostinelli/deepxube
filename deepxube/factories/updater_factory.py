@@ -1,9 +1,8 @@
 from typing import Type, List, Tuple, Dict, Any, Optional
 
-from deepxube.pytorch.nnet_utils import NNetPar
 from deepxube.utils.command_line_utils import get_name_args
 from deepxube.base.domain import Domain
-from deepxube.base.pathfind_fns import PFNs
+from deepxube.base.pathfind_fns import PFNs, UFNs
 from deepxube.base.pathfinding import PathFind
 from deepxube.base.updater import Update
 from deepxube.base.factory import Factory
@@ -25,17 +24,17 @@ def get_pathfind_compat_updater_names(pathfind_t: Type[PathFind]) -> List[str]:
     names: List[str] = []
     for name in updater_factory.get_all_class_names():
         class_t: Type[Update] = updater_factory.get_type(name)
-        if issubclass(pathfind_t, class_t.pathfind_type()) and (pathfind_t.functions_type() is class_t.functions_type()):
+        if issubclass(pathfind_t, class_t.pathfind_type()) and (pathfind_t.pathfind_functions_type() is class_t.pathfind_functions_type()):
             names.append(name)
 
     return names
 
 
-def get_updater_from_args(domain: Domain, pathfind: PathFind, pathfind_arg: str, nnet_par_dict: Dict[str, NNetPar],
-                          updater_name_args: str) -> Tuple[Update, str]:
+def get_updater_from_args(domain: Domain, pathfind: PathFind, pathfind_name_args: str, updater_fns: UFNs, updater_name_args: str) -> Tuple[Update, str]:
     updater_name_pre, args_str = get_name_args(updater_name_args)
     pathfind_t: Type[PathFind] = type(pathfind)
-    pathfind_fns_t: Type[PFNs] = pathfind.functions_type()
+    pathfind_fns_t: Type[PFNs] = pathfind.pathfind_functions_type()
+    updater_fns_t: Type[UFNs] = type(updater_fns)
 
     names: List[str] = updater_factory.get_all_class_names()
     compat_names: List[str] = []
@@ -44,7 +43,7 @@ def get_updater_from_args(domain: Domain, pathfind: PathFind, pathfind_arg: str,
         if not name.startswith(updater_name_pre):
             continue
 
-        incompat_reason: Optional[str] = updater_factory.get_type(name).get_incompat_reason(domain, pathfind_fns_t, pathfind_t)
+        incompat_reason: Optional[str] = updater_factory.get_type(name).get_incompat_reason(domain, pathfind_fns_t, pathfind_t, updater_fns_t)
         if incompat_reason is not None:
             incompat_reasons.append(incompat_reason + f" (Updater name: {name})")
         else:
@@ -66,6 +65,6 @@ def get_updater_from_args(domain: Domain, pathfind: PathFind, pathfind_arg: str,
 
     updater_kwargs: Dict[str, Any] = updater_factory.get_kwargs(updater_name, args_str)
     updater_kwargs["domain"] = domain
-    updater_kwargs["pathfind_arg"] = pathfind_arg
-    updater_kwargs["nnet_par_dict"] = nnet_par_dict
+    updater_kwargs["pathfind_name_args"] = pathfind_name_args
+    updater_kwargs["up_fns"] = updater_fns
     return updater_factory.build_class(updater_name, updater_kwargs), updater_name
