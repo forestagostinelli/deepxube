@@ -423,14 +423,14 @@ class PathFindNode(PathFind[D, PFNsT, INode]):
             instance.set_next_nodes(nodes_next)
         self.times.record_time("set_next", time.time() - start_time)
 
+        # verbose
+        if verbose:
+            self._verbose(instances, nodes_popped_by_inst)
+
         # update iterations
         self.itr += 1
         for instance in instances:
             instance.itr += 1
-
-        # verbose
-        if verbose:
-            self._verbose(instances, nodes_popped_by_inst)
 
         return nodes_popped_flat, edges_next_flat
 
@@ -554,14 +554,14 @@ class PathFindEdge(PathFind[D, PFNsT, IEdge]):  # TODO add nodes popped
             instance.set_next_nodes(nodes_next)
         self.times.record_time("set_next", time.time() - start_time)
 
+        # verbose
+        if verbose:
+            self._verbose(instances, nodes_popped_by_inst)
+
         # update iterations
         self.itr += 1
         for instance in instances:
             instance.itr += 1
-
-        # verbose
-        if verbose:
-            self._verbose(instances, nodes_popped_by_inst)
 
         return nodes_popped_flat, misc_utils.flatten(edges_next_by_inst)[0]
 
