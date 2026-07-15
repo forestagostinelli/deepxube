@@ -1,7 +1,7 @@
 from typing import List, Dict, Tuple, Any, Generic, TypeVar, Optional, cast, Type
 from abc import ABC, abstractmethod
 import time
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 from multiprocessing import Queue
 from multiprocessing.process import BaseProcess
 from multiprocessing.context import SpawnContext  # noqa
@@ -177,24 +177,24 @@ class Update(Generic[D, PFNsT, P, InstT, UFNsT], ABC):
         pass
 
     def set_nnet_par_info_l(self) -> None:
-        for up_fn in self._get_up_fns():
+        for up_fn in self.up_fns.get_up_fns():
             up_fn.set_nnet_par_info_l(self.up_args.procs)
 
     def set_nnet_par_info(self, nnet_name: str, nnet_par_info: NNetParInfo) -> None:
-        self._get_up_fn(nnet_name).set_nnet_par_info(nnet_par_info)
+        self.up_fns.get_up_fn(nnet_name).set_nnet_par_info(nnet_par_info)
 
     def start_nnet_runners(self, device: torch.device, on_gpu: bool) -> None:
-        for up_fn in self._get_up_fns():
+        for up_fn in self.up_fns.get_up_fns():
             up_fn.start_nnet_runners(device, on_gpu, self.up_args.nnet_batch_size)
 
     def init_nnet_fns(self) -> None:
-        for up_fn in self._get_up_fns():
+        for up_fn in self.up_fns.get_up_fns():
             up_fn.init_nnet_par_fn()
 
         # self.domain.set_nnet_fns(self.nnet_fn_dict)  # TODO set domain fns
 
     def clear_nnet_fns(self) -> None:
-        for up_fn in self._get_up_fns():
+        for up_fn in self.up_fns.get_up_fns():
             up_fn.clear_nnet_fn()
 
     def set_main_qs(self, to_main_q: Queue, from_main_q: Queue, q_id: int) -> None:
@@ -218,8 +218,8 @@ class Update(Generic[D, PFNsT, P, InstT, UFNsT], ABC):
             from_main_q: Queue = ctx.Queue(1)
             self.from_main_qs.append(from_main_q)
             updater.set_main_qs(to_main_q, from_main_q, proc_idx)
-            for field_name in self._get_up_fn_field_names():
-                updater.set_nnet_par_info(field_name, self._get_up_fn(field_name).get_nnet_par_infos(proc_idx))
+            for field_name in self.up_fns.get_field_names():
+                updater.set_nnet_par_info(field_name, self.up_fns.get_up_fn(field_name).get_nnet_par_infos(proc_idx))
 
         # get rb sizes
         rb_sizes_q: List[int] = [0] * len(updaters)
@@ -316,7 +316,7 @@ class Update(Generic[D, PFNsT, P, InstT, UFNsT], ABC):
             print_pathfindperf(step_to_pathperf)
 
         # clean up clean up everybody do your share
-        for up_fn in self._get_up_fns():
+        for up_fn in self.up_fns.get_up_fns():
             up_fn.stop_nnet_runners()
 
         self.num_generated = 0
@@ -411,18 +411,6 @@ class Update(Generic[D, PFNsT, P, InstT, UFNsT], ABC):
         self.to_main_q = None
         self.from_main_q = None
         self.nnet_par_info_main = None
-
-    def _get_up_fn_field_names(self) -> List[str]:
-        return [field.name for field in fields(self.up_fns)]
-
-    def _get_up_fn(self, field_name: str) -> DeepXubeNNetPar:
-        nnet_par: DeepXubeNNetPar = cast(DeepXubeNNetPar, getattr(self.up_fns, field_name))
-        assert isinstance(nnet_par, DeepXubeNNetPar)
-        assert nnet_par.get_field_name() == field_name
-        return nnet_par
-
-    def _get_up_fns(self) -> List[DeepXubeNNetPar]:
-        return [self._get_up_fn(field_name) for field_name in self._get_up_fn_field_names()]
 
     def _add_instances(self, pathfind: P, insts_rem: List[InstT], batch_size: int, step_probs: List[int],
                        times: Times) -> None:

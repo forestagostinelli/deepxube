@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABC
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from typing import List, Union, runtime_checkable, Protocol, Tuple, TypeVar, Generic, Type, Dict, Any, Optional, cast
 
 import numpy as np
@@ -342,7 +342,17 @@ class PolicyNNetPar(DeepXubeNNetPar[PolicyFn, PolicyCtx, Domain, PolicyNNetIn, P
 
 @dataclass(frozen=True)
 class UFNs:
-    pass
+    def get_field_names(self) -> List[str]:
+        return [field.name for field in fields(self)]
+
+    def get_up_fns(self) -> List[DeepXubeNNetPar]:
+        return [self.get_up_fn(field_name) for field_name in self.get_field_names()]
+
+    def get_up_fn(self, field_name: str) -> DeepXubeNNetPar:
+        nnet_par: DeepXubeNNetPar = cast(DeepXubeNNetPar, getattr(self, field_name))
+        assert isinstance(nnet_par, DeepXubeNNetPar)
+        assert nnet_par.get_field_name() == field_name
+        return nnet_par
 
 
 @dataclass(frozen=True)
