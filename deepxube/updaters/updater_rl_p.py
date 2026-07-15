@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 from deepxube.base.domain import Domain, GoalSampleableFromState, Action, State, Goal
 from deepxube.base.pathfind_fns import PFNsPolicy, PFNsHeurVPolicy, PFNsHeurQPolicy, UFNsPolicy, UFNsHeurVPolicy, UFNsHeurQPolicy
 from deepxube.base.pathfinding import PFNsP_T, PathFind, PathFindActsPolicy, EdgeQ, Node, Instance
-from deepxube.base.updater import UpdateHER, UpdatePolicy, UpdateHasHeurV, UpdateHasHeurQ, UpdateRL, D, UFNsP_T, UFNsT
+from deepxube.base.updater import UpdateHER, UpdatePolicy, UpdateHasHeurV, UpdateHasHeurQ, UpdateRL, D, UFNsP_T
 from deepxube.factories.updater_factory import updater_factory
 from deepxube.updaters.utils.replay_buffer_utils import ReplayBufferP
 from deepxube.utils.timing_utils import Times

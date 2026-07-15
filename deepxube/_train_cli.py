@@ -1,4 +1,4 @@
-from typing import Dict, cast
+from typing import cast
 import argparse
 from argparse import ArgumentParser
 
@@ -6,10 +6,10 @@ import torch
 
 from dataclasses import fields
 from deepxube.utils.command_line_utils import print_command
-from deepxube.pytorch.nnet_utils import get_device, NNetPar
-from deepxube.base.pathfind_fns import PFNs, DeepXubeNNetPar
+from deepxube.pytorch.nnet_utils import get_device
+from deepxube.base.pathfind_fns import DeepXubeNNetPar
 from deepxube.factories.domain_factory import get_domain_from_arg
-from deepxube.factories.pathfind_fns_factory import get_path_up_fns, pathfind_fns_factory
+from deepxube.factories.pathfind_fns_factory import get_path_up_fns
 from deepxube.factories.pathfinding_factory import get_pathfind_from_arg
 from deepxube.factories.updater_factory import get_updater_from_args
 from deepxube.factories.trainer_factory import get_trainer_from_args

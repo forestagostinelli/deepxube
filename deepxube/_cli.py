@@ -1,21 +1,23 @@
-from typing import List, Optional, Tuple, Type, Dict, Any
+from typing import List, Optional, Tuple, Type, Dict, Any, cast
 import argparse
 from argparse import ArgumentParser
+from dataclasses import fields
 
 from deepxube._train_cli import parser_train
 from deepxube._solve import parse_solve
+from deepxube.pytorch.nnet_utils import get_device
 from deepxube.base.factory import Factory, Parser
 from deepxube.base.domain import Domain, StateGoalVizable, StringToAct, State, Action, Goal
 from deepxube.base.nnet_input import NNetInput
 from deepxube.base.nnet import DeepXubeNNet
-from deepxube.base.pathfind_fns import PFNs, HeurNNetPar, PolicyNNetPar, DeepXubeNNetPar, UFNs
+from deepxube.base.pathfind_fns import PFNs, DeepXubeNNetPar, UFNs
 from deepxube.base.pathfinding import PathFind
 from deepxube.base.updater import Update
 from deepxube.base.trainer import Train
 from deepxube.factories.domain_factory import domain_factory, get_domain_from_arg
 from deepxube.factories.nnet_input_factory import get_domain_nnet_input_keys, get_nnet_input_t
 from deepxube.factories.nnet_factory import deepxube_nnet_factory
-from deepxube.factories.pathfind_fns_factory import pathfind_fns_factory, deepxube_nnet_par_factory, updater_fns_factory
+from deepxube.factories.pathfind_fns_factory import pathfind_fns_factory, deepxube_nnet_par_factory, updater_fns_factory, get_path_up_fns
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.factories.updater_factory import updater_factory
 from deepxube.factories.trainer_factory import trainer_factory
@@ -196,8 +198,8 @@ def updater_info(args: argparse.Namespace) -> None:
         mixin_str: str = ', '.join([f"{x.__qualname__}" for x in get_immediate_mixins(up_t, Update)])
         print(f"Mixins: {mixin_str}", '\t')
         print(f"Expected Domain type: {up_t.domain_type().__qualname__}", '\t')
-        print(f"Expected NNetParRunner types: {{{','.join(f'{key}: {val.__name__}' for key, val in up_t.nnpar_types.items())}}}", '\t')
         print(f"Expected PathFind type: {up_t.pathfind_type().__qualname__} with functions {up_t.pathfind_functions_type().__qualname__}", '\t')
+        print(f"Expected Updater functions type: {up_t.updater_functions_type()}", '\t')
 
         parser: Optional[Parser] = updater_factory.get_parser(name)
         if parser is not None:
@@ -369,13 +371,15 @@ def _viz_state_goal_update(domain: StateGoalVizable, state: State, goal: Goal, f
 
 def time_test_args(args: argparse.Namespace) -> None:
     domain, domain_name = get_domain_from_arg(args.domain)
-    heur_nnet_par: Optional[HeurNNetPar] = None
-    policy_nnet_par: Optional[PolicyNNetPar] = None
-    if args.heur is not None:
-        heur_nnet_par = get_heur_nnet_par_from_arg(domain, domain_name, args.heur, args.heur_type)[0]
-    if args.policy is not None:
-        policy_nnet_par = get_policy_nnet_par_from_arg(domain, domain_name, args.policy, args.policy_samp)[0]
-    time_test(domain, heur_nnet_par, policy_nnet_par, args.num_insts, args.step_min, args.step_max)
+    dx_nnet_par_l: List[DeepXubeNNetPar] = []
+    if args.fn is not None:
+        device = get_device()[0]
+        updater_fns: UFNs = get_path_up_fns(domain, domain_name, args.fn, device)[1]
+        for field in fields(updater_fns):
+            dx_nnet_par: DeepXubeNNetPar = cast(DeepXubeNNetPar, getattr(updater_fns, field.name))
+            dx_nnet_par_l.append(dx_nnet_par)
+
+    time_test(domain, dx_nnet_par_l, args.num_insts, args.step_min, args.step_max)
 
 
 def plot_itr_data(axs: List[Axes], step_slider: Slider, itr: int, itr_to_in_out: Dict[int, Tuple[NDArray, NDArray]],
@@ -561,10 +565,7 @@ def _parse_viz_info(parser: ArgumentParser) -> None:
 
 def _parse_time(parser: ArgumentParser) -> None:
     parser.add_argument('--domain', type=str, required=True, help="Domain name and arguments.")
-    parser.add_argument('--heur', type=str, default=None, help="Heuristic name and arguments.")
-    parser.add_argument('--heur_type', type=str, default="V", help="V, QFix, QIn.")
-    parser.add_argument('--policy', type=str, default=None, help="Policy name and arguments.")
-    parser.add_argument('--policy_samp', type=int, default=10, help="")
+    parser.add_argument('--fn', type=str, nargs='*', help="Function and neural network arguments separated by a comma.")
     parser.add_argument('--num_insts', type=int, default=10, help="Number of problem instances to generate.")
     parser.add_argument('--step_min', type=int, default=0, help="Min number of steps for problem instance generation.")
     parser.add_argument('--step_max', type=int, default=10, help="Max number of steps for problem instance generation.")

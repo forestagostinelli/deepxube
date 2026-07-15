@@ -292,6 +292,7 @@ class PolicyNNetPar(DeepXubeNNetPar[PolicyFn, PolicyCtx, Domain, PolicyNNetIn, P
     def get_default_fn(self) -> PolicyFn:
         domain: Domain = self.domain
         num_samp: int = self.num_samp
+
         class PolicyFnRand(PolicyFn):
             def __call__(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[Action]], List[List[float]]]:
                 return policy_fn_rand(domain, states, num_samp)
