@@ -1,10 +1,11 @@
+from typing import Dict, cast
 import argparse
 from argparse import ArgumentParser
 
 import torch
 
 from deepxube.utils.command_line_utils import print_command
-from deepxube.pytorch.nnet_utils import get_device
+from deepxube.pytorch.nnet_utils import get_device, NNetPar
 from deepxube.base.pathfind_fns import PFNs, DeepXubeNNetPar
 from deepxube.factories.domain_factory import get_domain_from_arg
 from deepxube.factories.pathfind_fns_factory import get_fn_dicts, pathfind_fns_factory
@@ -89,7 +90,7 @@ def train_cli(args: argparse.Namespace) -> None:
     print(pathfind, f"(name: {pathfind_name})")
 
     # updater
-    updater, updater_name = get_updater_from_args(domain, pathfind, pathfind_name_args_full, nnet_par_dict, args.up)
+    updater, updater_name = get_updater_from_args(domain, pathfind, pathfind_name_args_full, cast(Dict[str, NNetPar], nnet_par_dict), args.up)
     print(updater, f"(name: {updater_name})")
 
     """

@@ -91,7 +91,7 @@ def get_fn_dicts(domain: Domain, domain_name: str, fn_name_args_l: List[str], de
             if nnet_file is not None:
                 nnet_par.set_nnet_file(nnet_file)
 
-                nnet: nn.Module = load_nnet(nnet_file, nnet_par.get_nnet())
+                nnet = load_nnet(nnet_file, nnet_par.get_nnet())
                 nnet.eval()
                 nnet.to(device)
                 nnet = nn.DataParallel(nnet)

@@ -1,6 +1,6 @@
 from typing import Dict, Any, Generic, TypeVar, Type, Callable, Optional, List, Tuple, Iterator, cast, get_type_hints
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, is_dataclass
 import logging
 
 
@@ -189,8 +189,11 @@ class FactoryAutoBuild(Generic[T]):
         self._class_type_str: str = class_type_str
 
     def register(self, cls: Type[T]) -> Type[T]:
+        if not is_dataclass(cls):
+            raise TypeError(f"{cls} must be a dataclass")
+
         type_hints: Dict[str, Type] = get_type_hints(cls)
-        type_hints_dataclass: Dict[str, Type] = {field.name: type_hints[field.name] for field in fields(cls)}
+        type_hints_dataclass: Dict[str, Type] = {field.name: type_hints[field.name] for field in fields(cast(Any, cls))}
 
         key: Tuple[Tuple[str, Type], ...] = self._schema_key(type_hints_dataclass)
 
