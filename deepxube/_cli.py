@@ -221,7 +221,7 @@ def trainer_info(args: argparse.Namespace) -> None:
         print(f"Expected DeepXubeNNet type: {tr_t.nnet_type().__qualname__}", '\t')
         print(f"Expected Updater type: {tr_t.updater_type().__qualname__}", '\t')
 
-        parser: Optional[Parser] = updater_factory.get_parser(name)
+        parser: Optional[Parser] = trainer_factory.get_parser(name)
         if parser is not None:
             print("Parser help:\n" + textwrap.indent(parser.help(), '\t'))
 
