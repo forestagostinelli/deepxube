@@ -30,6 +30,8 @@ Classes
           :summary:
    * - :py:obj:`Train <deepxube.base.trainer.Train>`
      -
+   * - :py:obj:`TrainParser <deepxube.base.trainer.TrainParser>`
+     -
 
 Functions
 ~~~~~~~~~
@@ -85,13 +87,6 @@ API
 
       .. autodoc2-docstring:: deepxube.base.trainer.TrainArgs.balance_steps
 
-   .. py:attribute:: rb
-      :canonical: deepxube.base.trainer.TrainArgs.rb
-      :type: int
-      :value: 0
-
-      .. autodoc2-docstring:: deepxube.base.trainer.TrainArgs.rb
-
    .. py:attribute:: loss_thresh
       :canonical: deepxube.base.trainer.TrainArgs.loss_thresh
       :type: float
@@ -99,45 +94,24 @@ API
 
       .. autodoc2-docstring:: deepxube.base.trainer.TrainArgs.loss_thresh
 
-   .. py:attribute:: targ_up_searches
-      :canonical: deepxube.base.trainer.TrainArgs.targ_up_searches
-      :type: int
-      :value: 0
-
-      .. autodoc2-docstring:: deepxube.base.trainer.TrainArgs.targ_up_searches
-
-   .. py:attribute:: skip_heur
-      :canonical: deepxube.base.trainer.TrainArgs.skip_heur
-      :type: bool
-      :value: False
-
-      .. autodoc2-docstring:: deepxube.base.trainer.TrainArgs.skip_heur
-
-   .. py:attribute:: skip_policy
-      :canonical: deepxube.base.trainer.TrainArgs.skip_policy
-      :type: bool
-      :value: False
-
-      .. autodoc2-docstring:: deepxube.base.trainer.TrainArgs.skip_policy
-
    .. py:attribute:: checkpoint
       :canonical: deepxube.base.trainer.TrainArgs.checkpoint
       :type: int
-      :value: 0
+      :value: None
 
       .. autodoc2-docstring:: deepxube.base.trainer.TrainArgs.checkpoint
 
    .. py:attribute:: grad_accum
       :canonical: deepxube.base.trainer.TrainArgs.grad_accum
       :type: int
-      :value: 1
+      :value: None
 
       .. autodoc2-docstring:: deepxube.base.trainer.TrainArgs.grad_accum
 
    .. py:attribute:: display
       :canonical: deepxube.base.trainer.TrainArgs.display
       :type: int
-      :value: 100
+      :value: None
 
       .. autodoc2-docstring:: deepxube.base.trainer.TrainArgs.display
 
@@ -215,12 +189,12 @@ API
 
    .. autodoc2-docstring:: deepxube.base.trainer.Up
 
-.. py:function:: update_optimizer(optimizer: torch.optim.Optimizer, nnet: typing.Union[torch.nn.DataParallel, deepxube.base.heuristic.DeepXubeNNet], train_itr: int) -> None
+.. py:function:: update_optimizer(optimizer: torch.optim.Optimizer, nnet: typing.Union[torch.nn.DataParallel, deepxube.base.nnet.DeepXubeNNet], train_itr: int) -> None
    :canonical: deepxube.base.trainer.update_optimizer
 
    .. autodoc2-docstring:: deepxube.base.trainer.update_optimizer
 
-.. py:class:: Train(nnet: deepxube.base.trainer.NNet, updater: deepxube.base.trainer.Up, to_main_q: multiprocessing.Queue, from_main_qs: typing.List[multiprocessing.Queue], nnet_file: str, nnet_targ_file: str, status_file: str, train_summary_file: str, device: torch.device, on_gpu: bool, writer: torch.utils.tensorboard.SummaryWriter, train_args: deepxube.base.trainer.TrainArgs)
+.. py:class:: Train(nnet_dir: str, updater: deepxube.base.trainer.Up, device: torch.device, on_gpu: bool, batch_size: int = 100, max_itrs: int = 100000, balance_steps: bool = False, loss_thresh: float = np.inf, checkpoint: int = 0, grad_accum: int = 1, display: int = 100)
    :canonical: deepxube.base.trainer.Train
 
    Bases: :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.base.trainer.NNet`\ , :py:obj:`deepxube.base.trainer.Up`\ ], :py:obj:`abc.ABC`
@@ -232,10 +206,42 @@ API
 
       .. autodoc2-docstring:: deepxube.base.trainer.Train.data_parallel
 
-   .. py:method:: update_step() -> None
-      :canonical: deepxube.base.trainer.Train.update_step
+   .. py:method:: nnet_type() -> typing.Type[deepxube.base.trainer.NNet]
+      :canonical: deepxube.base.trainer.Train.nnet_type
+      :abstractmethod:
+      :staticmethod:
 
-      .. autodoc2-docstring:: deepxube.base.trainer.Train.update_step
+      .. autodoc2-docstring:: deepxube.base.trainer.Train.nnet_type
+
+   .. py:method:: updater_type() -> typing.Type[deepxube.base.trainer.Up]
+      :canonical: deepxube.base.trainer.Train.updater_type
+      :abstractmethod:
+      :staticmethod:
+
+      .. autodoc2-docstring:: deepxube.base.trainer.Train.updater_type
+
+   .. py:method:: get_incompat_reason(updater: deepxube.base.updater.Update) -> typing.Optional[str]
+      :canonical: deepxube.base.trainer.Train.get_incompat_reason
+      :classmethod:
+
+      .. autodoc2-docstring:: deepxube.base.trainer.Train.get_incompat_reason
+
+   .. py:method:: get_nnet_name() -> str
+      :canonical: deepxube.base.trainer.Train.get_nnet_name
+      :abstractmethod:
+      :staticmethod:
+
+      .. autodoc2-docstring:: deepxube.base.trainer.Train.get_nnet_name
+
+   .. py:method:: train_loop() -> None
+      :canonical: deepxube.base.trainer.Train.train_loop
+
+      .. autodoc2-docstring:: deepxube.base.trainer.Train.train_loop
+
+   .. py:method:: _update_step(to_main_q: multiprocessing.Queue, from_main_qs: typing.List[multiprocessing.Queue]) -> None
+      :canonical: deepxube.base.trainer.Train._update_step
+
+      .. autodoc2-docstring:: deepxube.base.trainer.Train._update_step
 
    .. py:method:: _get_update_data(num_gen: int, times: deepxube.utils.timing_utils.Times) -> None
       :canonical: deepxube.base.trainer.Train._get_update_data
@@ -247,7 +253,7 @@ API
 
       .. autodoc2-docstring:: deepxube.base.trainer.Train._train
 
-   .. py:method:: _train_sync_main(num_gen: int, times: deepxube.utils.timing_utils.Times) -> float
+   .. py:method:: _train_sync_main(num_gen: int, times: deepxube.utils.timing_utils.Times, to_main_q: multiprocessing.Queue, from_main_qs: typing.List[multiprocessing.Queue]) -> float
       :canonical: deepxube.base.trainer.Train._train_sync_main
 
       .. autodoc2-docstring:: deepxube.base.trainer.Train._train_sync_main
@@ -274,8 +280,16 @@ API
 
       .. autodoc2-docstring:: deepxube.base.trainer.Train._add_post_up_info
 
-   .. py:method:: _get_shapes_dtypes() -> typing.List[typing.Tuple[typing.Tuple[int, ...], numpy.dtype]]
-      :canonical: deepxube.base.trainer.Train._get_shapes_dtypes
-      :abstractmethod:
+   .. py:method:: __repr__() -> str
+      :canonical: deepxube.base.trainer.Train.__repr__
 
-      .. autodoc2-docstring:: deepxube.base.trainer.Train._get_shapes_dtypes
+.. py:class:: TrainParser()
+   :canonical: deepxube.base.trainer.TrainParser
+
+   Bases: :py:obj:`deepxube.base.factory.DelimParser`
+
+   .. py:property:: delim
+      :canonical: deepxube.base.trainer.TrainParser.delim
+      :type: str
+
+      .. autodoc2-docstring:: deepxube.base.trainer.TrainParser.delim

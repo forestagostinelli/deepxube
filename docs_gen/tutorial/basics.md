@@ -4,7 +4,7 @@
 The objective of DeepXube is to automate the solution of pathfinding problems by using deep reinforcement learning to 
 learn heuristic functions that guide heuristic search to solve problems. As a result, user implementation is reduced to the 
 definition of the {class}`deepxube.base.domain.Domain`, {class}`deepxube.base.nnet_input.NNetInput`, 
-and {class}`deepxube.base.heuristic.DeepXubeNNet`. Furthermore, since DeepXube comes with common 
+and {class}`deepxube.base.nnet.DeepXubeNNet`. Furthermore, since DeepXube comes with common 
 neural networks, such as residual neural networks, the implementation of a heuristic function architecture may not be necessary.
 
 ```{tip}
@@ -67,11 +67,11 @@ compatible pathfinding algorithms for a particular domain use
 ## Neural Network Inputs and Neural Networks
 The {class}`deepxube.base.nnet_input.NNetInput` class defines the information about the data given to a 
 neural network (i.e. its dimensionality) and a function that converts data (i.e. state/goal pairs) to a representation suitable for 
-the neural network. The {class}`deepxube.base.heuristic.DeepXubeNNet` defines how the converted data is processed during training,
+the neural network. The {class}`deepxube.base.nnet.DeepXubeNNet` defines how the converted data is processed during training,
 evaluation, and what loss function and optimizer is used.
 
-For training heuristic functions, the {class}`deepxube.base.heuristic.HeurNNet` class is used and for training policies, the 
-{class}`deepxube.base.heuristic.PolicyNNet`.
+For training heuristic functions, the {class}`deepxube.base.nnet.HeurNNet` class is used and for training policies, the 
+{class}`deepxube.base.nnet.PolicyNNet`.
 
 Mixins define what kind of heuristic function is being created and impact what input and output data to expect:
 
@@ -95,10 +95,10 @@ DeepXube integration with policy neural networks is preliminary and may signific
 ```
 
 ```{tip}
-To see all registered heuristic neural networks use `deepxube heuristic_info`.
+To see all registered neural networks use `deepxube nnet_info`.
 
 To see the parser help and required neural network input type, use  
-`deepxube heuristic_info --name <name>` (i.e. `deepxube heuristic_info --name resnet_fc`)
+`deepxube nnet_info --name <name>` (i.e. `deepxube nnet_info --name resnet_fc`)
 ```
 
 ## Pathfinding
@@ -122,40 +122,28 @@ the ability to sample actions from the policy function and, therefore, are agnos
 ```
 
 ```{tip}
-To see all registered pathfinding algorithms use `deepxube pathfinding_info`.
+To see all registered pathfinding algorithms use `deepxube pathfind_info`.
 
 To see the parser help, mixins, the required domain type, and required functions type, use  
-`deepxube pathfinding_info --name <name>` (i.e. `deepxube pathfinding_info --name graph_v`)
+`deepxube pathfind_info --name <name>` (i.e. `deepxube pathfind_info --name graph_v`)
 ```
 
 
-## Training
+## Update
 Given a domain, neural network, and pathfinding algorithm, DeepXube uses the domain to generate problem instances, the pathfinding
-algorithm to attempt to solve those problem instances, adds nodes/edges encountered during pathfinding to the training set, computes
-an update for these nodes/edges using reinforcement learning, and trains the neural network using this data.
-
-```{figure} ../_static/images/deepxube_overview.png
-:alt: DeepXube training
-:width: 100%
-:align: center
-
-Overview of the DeepXube training pipeline.
-```
-
-DeepXube leverages parallelism with GPUs to compute target network updates and train the neural network and uses 
-parallelism with CPUs sample problem instances and perform pathfinding.
+algorithm to attempt to solve those problem instances, adds nodes/edges encountered during pathfinding to the training set, and computes
+an update for these nodes/edges using reinforcement learning or supervised learning.
 
 ```{figure} ../_static/images/train_multiproc.png
 :alt: DeepXube multiprocessing during training
 :width: 100%
 :align: center
 
-Training is parallelized across $C$ CPUs and $G$ GPUs. CPUs sample problem instances, perform heuristic search, and 
+Update computation is parallelized across $C$ CPUs and $G$ GPUs. CPUs sample problem instances, perform heuristic search, and 
 compute targets for training. When computing targets, the CPU sends the corresponding input data and its process ID to the 
 target network queue, which sends the data to the first available target network. The output of the target network is obtained 
 and sent to the correct CPU via the given process ID.
 ```
-
 
 ### Reinforcement learning
 Problem instances are generated with a given parameter, $K$, where each problem instance is generated with a value, 
@@ -203,3 +191,25 @@ a neural network to obtain training data; thererfore, often computing targets mu
 The mixins for supervised learning and the pathfinding algorithms along with their required mixin. Mixins from {mod}`deepxube.base.domain` 
 can be used to automatically implement the functionality of the mixins for supervised learning.
 ```
+
+```{tip}
+To see all registered updaters use `deepxube updater_info`.
+
+To see the parser help, mixins, the required domain type, and required functions type, use  
+`deepxube updater_info --name <name>` (i.e. `deepxube updater_info --name up_rl_v`)
+```
+
+
+## Training
+Given an update method, DeepXube uses the generated node/edge data and corresponding targets obtained from the updater to train 
+the neural network. 
+Training is automatically parallelized across GPUs based on the `CUDA_VISIBLE_DEVICES` environment variable.
+
+```{figure} ../_static/images/deepxube_overview.png
+:alt: DeepXube training
+:width: 100%
+:align: center
+
+Overview of the DeepXube training pipeline.
+```
+

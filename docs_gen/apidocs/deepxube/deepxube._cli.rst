@@ -22,14 +22,32 @@ Functions
    * - :py:obj:`get_immediate_mixins <deepxube._cli.get_immediate_mixins>`
      - .. autodoc2-docstring:: deepxube._cli.get_immediate_mixins
           :summary:
+   * - :py:obj:`get_names_match_type <deepxube._cli.get_names_match_type>`
+     - .. autodoc2-docstring:: deepxube._cli.get_names_match_type
+          :summary:
    * - :py:obj:`domain_info <deepxube._cli.domain_info>`
      - .. autodoc2-docstring:: deepxube._cli.domain_info
           :summary:
-   * - :py:obj:`heur_info <deepxube._cli.heur_info>`
-     - .. autodoc2-docstring:: deepxube._cli.heur_info
+   * - :py:obj:`nnet_info <deepxube._cli.nnet_info>`
+     - .. autodoc2-docstring:: deepxube._cli.nnet_info
           :summary:
-   * - :py:obj:`pathfinding_info <deepxube._cli.pathfinding_info>`
-     - .. autodoc2-docstring:: deepxube._cli.pathfinding_info
+   * - :py:obj:`fn_info <deepxube._cli.fn_info>`
+     - .. autodoc2-docstring:: deepxube._cli.fn_info
+          :summary:
+   * - :py:obj:`pathfind_fns_info <deepxube._cli.pathfind_fns_info>`
+     - .. autodoc2-docstring:: deepxube._cli.pathfind_fns_info
+          :summary:
+   * - :py:obj:`updater_fns_info <deepxube._cli.updater_fns_info>`
+     - .. autodoc2-docstring:: deepxube._cli.updater_fns_info
+          :summary:
+   * - :py:obj:`pathfind_info <deepxube._cli.pathfind_info>`
+     - .. autodoc2-docstring:: deepxube._cli.pathfind_info
+          :summary:
+   * - :py:obj:`updater_info <deepxube._cli.updater_info>`
+     - .. autodoc2-docstring:: deepxube._cli.updater_info
+          :summary:
+   * - :py:obj:`trainer_info <deepxube._cli.trainer_info>`
+     - .. autodoc2-docstring:: deepxube._cli.trainer_info
           :summary:
    * - :py:obj:`fig_to_rgba <deepxube._cli.fig_to_rgba>`
      - .. autodoc2-docstring:: deepxube._cli.fig_to_rgba
@@ -58,15 +76,6 @@ Functions
    * - :py:obj:`main <deepxube._cli.main>`
      - .. autodoc2-docstring:: deepxube._cli.main
           :summary:
-   * - :py:obj:`_parser_domain_info <deepxube._cli._parser_domain_info>`
-     - .. autodoc2-docstring:: deepxube._cli._parser_domain_info
-          :summary:
-   * - :py:obj:`_parser_heur_info <deepxube._cli._parser_heur_info>`
-     - .. autodoc2-docstring:: deepxube._cli._parser_heur_info
-          :summary:
-   * - :py:obj:`_parser_pathfind_info <deepxube._cli._parser_pathfind_info>`
-     - .. autodoc2-docstring:: deepxube._cli._parser_pathfind_info
-          :summary:
    * - :py:obj:`_parse_viz_info <deepxube._cli._parse_viz_info>`
      - .. autodoc2-docstring:: deepxube._cli._parse_viz_info
           :summary:
@@ -93,20 +102,50 @@ API
 
    .. autodoc2-docstring:: deepxube._cli.get_immediate_mixins
 
+.. py:function:: get_names_match_type(req_type: typing.Type, factory: deepxube.base.factory.Factory) -> typing.List[str]
+   :canonical: deepxube._cli.get_names_match_type
+
+   .. autodoc2-docstring:: deepxube._cli.get_names_match_type
+
 .. py:function:: domain_info(args: argparse.Namespace) -> None
    :canonical: deepxube._cli.domain_info
 
    .. autodoc2-docstring:: deepxube._cli.domain_info
 
-.. py:function:: heur_info(args: argparse.Namespace) -> None
-   :canonical: deepxube._cli.heur_info
+.. py:function:: nnet_info(args: argparse.Namespace) -> None
+   :canonical: deepxube._cli.nnet_info
 
-   .. autodoc2-docstring:: deepxube._cli.heur_info
+   .. autodoc2-docstring:: deepxube._cli.nnet_info
 
-.. py:function:: pathfinding_info(args: argparse.Namespace) -> None
-   :canonical: deepxube._cli.pathfinding_info
+.. py:function:: fn_info(args: argparse.Namespace) -> None
+   :canonical: deepxube._cli.fn_info
 
-   .. autodoc2-docstring:: deepxube._cli.pathfinding_info
+   .. autodoc2-docstring:: deepxube._cli.fn_info
+
+.. py:function:: pathfind_fns_info(args: argparse.Namespace) -> None
+   :canonical: deepxube._cli.pathfind_fns_info
+
+   .. autodoc2-docstring:: deepxube._cli.pathfind_fns_info
+
+.. py:function:: updater_fns_info(args: argparse.Namespace) -> None
+   :canonical: deepxube._cli.updater_fns_info
+
+   .. autodoc2-docstring:: deepxube._cli.updater_fns_info
+
+.. py:function:: pathfind_info(args: argparse.Namespace) -> None
+   :canonical: deepxube._cli.pathfind_info
+
+   .. autodoc2-docstring:: deepxube._cli.pathfind_info
+
+.. py:function:: updater_info(args: argparse.Namespace) -> None
+   :canonical: deepxube._cli.updater_info
+
+   .. autodoc2-docstring:: deepxube._cli.updater_info
+
+.. py:function:: trainer_info(args: argparse.Namespace) -> None
+   :canonical: deepxube._cli.trainer_info
+
+   .. autodoc2-docstring:: deepxube._cli.trainer_info
 
 .. py:function:: fig_to_rgba(fig: matplotlib.figure.Figure) -> numpy.typing.NDArray
    :canonical: deepxube._cli.fig_to_rgba
@@ -152,21 +191,6 @@ API
    :canonical: deepxube._cli.main
 
    .. autodoc2-docstring:: deepxube._cli.main
-
-.. py:function:: _parser_domain_info(parser: argparse.ArgumentParser) -> None
-   :canonical: deepxube._cli._parser_domain_info
-
-   .. autodoc2-docstring:: deepxube._cli._parser_domain_info
-
-.. py:function:: _parser_heur_info(parser: argparse.ArgumentParser) -> None
-   :canonical: deepxube._cli._parser_heur_info
-
-   .. autodoc2-docstring:: deepxube._cli._parser_heur_info
-
-.. py:function:: _parser_pathfind_info(parser: argparse.ArgumentParser) -> None
-   :canonical: deepxube._cli._parser_pathfind_info
-
-   .. autodoc2-docstring:: deepxube._cli._parser_pathfind_info
 
 .. py:function:: _parse_viz_info(parser: argparse.ArgumentParser) -> None
    :canonical: deepxube._cli._parse_viz_info

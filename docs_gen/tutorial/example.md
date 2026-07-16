@@ -74,7 +74,12 @@ We can achieve this by performing A* search with a heuristic function that is al
 By not giving any file for the heuristic function, DeepXube automatically uses this always-zero 
 heuristic function.
 
-`deepxube solve --domain cube3 --heur_type V --pathfind graph_v.1B_1.0W --file tutorial/cube3/easy.pkl --results tutorial/cube3/results_brute_easy/ --redo`
+`deepxube solve --domain cube3 --fn heurv --pathfind graph.1B_1.0W --file tutorial/cube3/easy.pkl --results tutorial/cube3/results_brute_easy/ --redo`
+
+```{tip}
+While the exact pathfind name is "graph_v", given the "heurv" function and "graph" prefix, DeepXube, finds the name of 
+pathfinding algorithm that has "graph" as the prefix and uses the heurv function.
+```
 
 This should result in solving all 10 instances with an average path cost of about 2.5 and an average solve time of about 0.1 seconds:
 ```{literalinclude} ../../tutorial/cube3/results_brute_easy/output.txt
@@ -91,7 +96,7 @@ Trying to solve the hard instances with brute force search will most likely resu
 your computer will running out of memory.
 To set a time limit so this does not happen:
 
-`deepxube solve --domain cube3 --heur_type V --pathfind graph_v.1B_1.0W --file tutorial/cube3/hard.pkl --results tutorial/cube3/results_brute_hard/ --redo --time_limit 10`
+`deepxube solve --domain cube3 --fn heurv --pathfind graph.1B_1.0W --file tutorial/cube3/hard.pkl --results tutorial/cube3/results_brute_hard/ --redo --time_limit 10`
 
 This should result in no instances being solved:
 
@@ -128,20 +133,23 @@ two residual blocks, two layers of width 200 per block,
 and batch normalization {cite:p}`ioffe2015batch`. Building on 
 approximate value iteration {cite:p}`bellman1957dynamic,bertsekas1996neuro`, the DNN
 will be trained with limited-horizon Bellman-based learning (LHBL) {cite:p}`hadar2025beyond`.
+Two parallel processes will be used to generate data.
 
-`deepxube train --domain cube3 --heur resnet_fc.200H_2B_bn --heur_type V --pathfind graph_v --step_max 100 --up_itrs 100 --search_itrs 50 --backup -1 --procs 2 --batch_size 200 --max_itrs 5000 --dir tutorial/cube3/models/`
+`deepxube train --domain cube3 --fn heurv,resnet_fc.200H_2B_bn --pathfind graph --up up_rl.100sm_50sitrs_100up_lhbl_2p --tr tr_h.200bs_5000maxit --dir tutorial/cube3/models/`
 
-`--step_max 100` uses 100 steps to generate problem instances. In the Rubik's Cube domain, this starts from the goal and 
-takes between 0 and 100 actions to generate a problem instance.
+- `up_rl.100sm_50sitrs_100up_lhbl_2p` Generates training data
+  - Uses 100 steps to generate problem instances. In the Rubik's Cube domain, this starts from the goal and 
+  takes between 0 and 100 actions to generate a problem instance. 
+  - Performs search for 50 iterations on each generated problem instances. All states expanded during search are
+  added to the training set. 
+  - Updates the target network every 100 iterations. 
+  - Uses LHBL training update by backing up the entire search tree. 
+  - Uses two parallel processes to generate training data.
 
-`--up_itrs 100` updates the target network every 100 iterations.
+- `tr_h.200bs_5000maxit` trains the heuristic function 
+  - Uses a batch size of 200 
+  - Uses 5000 iterations
 
-`--search_itrs 50` performs search for 50 iterations on each generated problem instances. All states expanded during search are
-added to the training set.
-
-`--backup -1` uses the LHBL training update by backing up the entire search tree.
-
-`--procs 2` uses two parallel processes to generate training data.
 
 ```{important}
 The product of the number of update steps and batch size should be divisible by the number of search iterations.
@@ -152,7 +160,13 @@ Currently, DeepXube expects the given pathfinding algorithm expand exactly one s
 batched versions of search cannot currently be used during training. 
 ```
 
-Training should result in a heuristic function that goes from solving about 3% to about 11% of problem instances during training.
+
+```{tip}
+While the exact updater name is "up_rl_v", DeepXube, finds the correct updater algorithm based on the "up_rl" prefix and the type
+of functions and pathfinding algorithms.
+```
+
+Training should result in a heuristic function that goes from solving about 3% to about 10% of problem instances during training.
 
 ```{literalinclude} ../../tutorial/cube3/models/output.txt
 :language: none
@@ -196,9 +210,10 @@ To improve solution rate without improving the heuristic function we can search 
 batch weighted A* search (BWAS) {cite:p}`pohl1970heuristic,agostinelli2019solving,li2022optimal`. To perform BWAS
 with a batch size of 100 and a weight of 0.1 on the path cost with the trained heuristic function:
 
-`deepxube solve --domain cube3 --heur resnet_fc.200H_2B_bn --heur_file tutorial/cube3/models/heur.pt --heur_type V --pathfind graph_v.100B_0.1W --file tutorial/cube3/hard.pkl --results tutorial/cube3/results_heur_hard/ --redo`
+`deepxube solve --domain cube3 --fn heurv,resnet_fc.200H_2B_bn,tutorial/cube3/models/heur.pt --pathfind graph.100B_0.1W --file tutorial/cube3/hard.pkl --results tutorial/cube3/results_heur_hard/ --redo`
 
-This should result in solving all of the hard instances with an average path cost of about 47 and an average solve time of about 3.5 seconds.
+This should result in solving all of the hard instances with an average path cost of around 50-60 and 
+an average solve time of around a few seconds seconds.
 ```{literalinclude} ../../tutorial/cube3/results_heur_hard/output.txt
 :language: none
 :class: scroll-code

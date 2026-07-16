@@ -25,5 +25,7 @@ Submodules
    deepxube.factories.updater_factory
    deepxube.factories.domain_factory
    deepxube.factories.nnet_input_factory
+   deepxube.factories.pathfind_fns_factory
    deepxube.factories.pathfinding_factory
-   deepxube.factories.heuristic_factory
+   deepxube.factories.nnet_factory
+   deepxube.factories.trainer_factory

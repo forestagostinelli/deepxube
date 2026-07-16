@@ -16,11 +16,14 @@ Functions
    :class: autosummary longtable
    :align: left
 
-   * - :py:obj:`_updater_reject_reason <deepxube.factories.updater_factory._updater_reject_reason>`
-     - .. autodoc2-docstring:: deepxube.factories.updater_factory._updater_reject_reason
+   * - :py:obj:`get_domain_compat_updater_names <deepxube.factories.updater_factory.get_domain_compat_updater_names>`
+     - .. autodoc2-docstring:: deepxube.factories.updater_factory.get_domain_compat_updater_names
           :summary:
-   * - :py:obj:`get_updater <deepxube.factories.updater_factory.get_updater>`
-     - .. autodoc2-docstring:: deepxube.factories.updater_factory.get_updater
+   * - :py:obj:`get_pathfind_compat_updater_names <deepxube.factories.updater_factory.get_pathfind_compat_updater_names>`
+     - .. autodoc2-docstring:: deepxube.factories.updater_factory.get_pathfind_compat_updater_names
+          :summary:
+   * - :py:obj:`get_updater_from_args <deepxube.factories.updater_factory.get_updater_from_args>`
+     - .. autodoc2-docstring:: deepxube.factories.updater_factory.get_updater_from_args
           :summary:
 
 Data
@@ -44,12 +47,17 @@ API
 
    .. autodoc2-docstring:: deepxube.factories.updater_factory.updater_factory
 
-.. py:function:: _updater_reject_reason(up_cls: typing.Type[deepxube.base.updater.Update], domain: deepxube.base.domain.Domain, pathfind_t: typing.Type[deepxube.base.pathfinding.PathFind], her: bool, func_update: str) -> typing.Optional[str]
-   :canonical: deepxube.factories.updater_factory._updater_reject_reason
+.. py:function:: get_domain_compat_updater_names(domain_t: typing.Type[deepxube.base.domain.Domain]) -> typing.List[str]
+   :canonical: deepxube.factories.updater_factory.get_domain_compat_updater_names
 
-   .. autodoc2-docstring:: deepxube.factories.updater_factory._updater_reject_reason
+   .. autodoc2-docstring:: deepxube.factories.updater_factory.get_domain_compat_updater_names
 
-.. py:function:: get_updater(domain: deepxube.base.domain.Domain, pathfind_arg: str, up_args: deepxube.base.updater.UpArgs, her: bool, func_update: str) -> deepxube.base.updater.Update
-   :canonical: deepxube.factories.updater_factory.get_updater
+.. py:function:: get_pathfind_compat_updater_names(pathfind_t: typing.Type[deepxube.base.pathfinding.PathFind]) -> typing.List[str]
+   :canonical: deepxube.factories.updater_factory.get_pathfind_compat_updater_names
 
-   .. autodoc2-docstring:: deepxube.factories.updater_factory.get_updater
+   .. autodoc2-docstring:: deepxube.factories.updater_factory.get_pathfind_compat_updater_names
+
+.. py:function:: get_updater_from_args(domain: deepxube.base.domain.Domain, pathfind: deepxube.base.pathfinding.PathFind, pathfind_name_args: str, updater_fns: deepxube.base.pathfind_fns.UFNs, updater_name_args: str) -> typing.Tuple[deepxube.base.updater.Update, str]
+   :canonical: deepxube.factories.updater_factory.get_updater_from_args
+
+   .. autodoc2-docstring:: deepxube.factories.updater_factory.get_updater_from_args

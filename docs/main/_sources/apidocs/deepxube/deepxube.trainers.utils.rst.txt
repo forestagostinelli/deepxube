@@ -14,4 +14,3 @@ Submodules
    :maxdepth: 1
 
    deepxube.trainers.utils.train_utils
-   deepxube.trainers.utils.train_loop

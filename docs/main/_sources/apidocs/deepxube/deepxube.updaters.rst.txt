@@ -23,6 +23,6 @@ Submodules
    :maxdepth: 1
 
    deepxube.updaters.updater_sup
-   deepxube.updaters.updater_v_rl
-   deepxube.updaters.updater_q_rl
-   deepxube.updaters.updater_policy_rl
+   deepxube.updaters.updater_rl_v
+   deepxube.updaters.updater_rl_p
+   deepxube.updaters.updater_rl_q

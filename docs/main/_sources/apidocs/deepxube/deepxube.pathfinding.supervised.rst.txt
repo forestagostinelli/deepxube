@@ -88,7 +88,7 @@ API
 
       .. autodoc2-docstring:: deepxube.pathfinding.supervised.InstanceEdgeSup.push_pop_edges
 
-.. py:class:: PathFindNodeSup(domain: deepxube.base.pathfinding.D, functions: deepxube.base.pathfinding.FNs)
+.. py:class:: PathFindNodeSup(domain: deepxube.base.pathfinding.D, pathfind_fns: deepxube.base.pathfinding.PFNsT)
    :canonical: deepxube.pathfinding.supervised.PathFindNodeSup
 
    Bases: :py:obj:`deepxube.base.pathfinding.PathFindNode`\ [\ :py:obj:`deepxube.base.domain.NodesSupervisable`\ , :py:obj:`typing.Any`\ , :py:obj:`deepxube.pathfinding.supervised.InstanceNodeSup`\ ], :py:obj:`deepxube.base.pathfinding.PathFindSup`\ [\ :py:obj:`deepxube.base.domain.NodesSupervisable`\ , :py:obj:`deepxube.pathfinding.supervised.InstanceNodeSup`\ ]
@@ -98,6 +98,12 @@ API
       :staticmethod:
 
       .. autodoc2-docstring:: deepxube.pathfinding.supervised.PathFindNodeSup.domain_type
+
+   .. py:method:: description() -> str
+      :canonical: deepxube.pathfinding.supervised.PathFindNodeSup.description
+      :staticmethod:
+
+      .. autodoc2-docstring:: deepxube.pathfinding.supervised.PathFindNodeSup.description
 
    .. py:method:: step(verbose: bool = False) -> typing.Tuple[typing.List[deepxube.base.pathfinding.Node], typing.List[deepxube.base.pathfinding.EdgeQ]]
       :canonical: deepxube.pathfinding.supervised.PathFindNodeSup.step
@@ -113,7 +119,7 @@ API
    .. py:method:: make_instances_sup(steps_gen: typing.List[int], inst_infos: typing.Optional[typing.List[typing.Any]]) -> typing.List[deepxube.pathfinding.supervised.InstanceNodeSup]
       :canonical: deepxube.pathfinding.supervised.PathFindNodeSup.make_instances_sup
 
-.. py:class:: PathFindEdgeSup(domain: deepxube.base.pathfinding.D, functions: deepxube.base.pathfinding.FNs)
+.. py:class:: PathFindEdgeSup(domain: deepxube.base.pathfinding.D, pathfind_fns: deepxube.base.pathfinding.PFNsT)
    :canonical: deepxube.pathfinding.supervised.PathFindEdgeSup
 
    Bases: :py:obj:`deepxube.base.pathfinding.PathFindEdge`\ [\ :py:obj:`deepxube.base.domain.EdgesSupervisable`\ , :py:obj:`typing.Any`\ , :py:obj:`deepxube.pathfinding.supervised.InstanceEdgeSup`\ ], :py:obj:`deepxube.base.pathfinding.PathFindSup`\ [\ :py:obj:`deepxube.base.domain.EdgesSupervisable`\ , :py:obj:`deepxube.pathfinding.supervised.InstanceEdgeSup`\ ]
@@ -123,6 +129,12 @@ API
       :staticmethod:
 
       .. autodoc2-docstring:: deepxube.pathfinding.supervised.PathFindEdgeSup.domain_type
+
+   .. py:method:: description() -> str
+      :canonical: deepxube.pathfinding.supervised.PathFindEdgeSup.description
+      :staticmethod:
+
+      .. autodoc2-docstring:: deepxube.pathfinding.supervised.PathFindEdgeSup.description
 
    .. py:method:: step(verbose: bool = False) -> typing.Tuple[typing.List[deepxube.base.pathfinding.Node], typing.List[deepxube.base.pathfinding.EdgeQ]]
       :canonical: deepxube.pathfinding.supervised.PathFindEdgeSup.step
@@ -138,7 +150,7 @@ API
    .. py:method:: make_instances_sup(steps_gen: typing.List[int], inst_infos: typing.Optional[typing.List[typing.Any]]) -> typing.List[deepxube.pathfinding.supervised.InstanceEdgeSup]
       :canonical: deepxube.pathfinding.supervised.PathFindEdgeSup.make_instances_sup
 
-.. py:class:: PathFindEdgeSamp(domain: deepxube.base.pathfinding.D, functions: deepxube.base.pathfinding.FNs)
+.. py:class:: PathFindEdgeSamp(domain: deepxube.base.pathfinding.D, pathfind_fns: deepxube.base.pathfinding.PFNsT)
    :canonical: deepxube.pathfinding.supervised.PathFindEdgeSamp
 
    Bases: :py:obj:`deepxube.base.pathfinding.PathFindEdge`\ [\ :py:obj:`deepxube.base.domain.EdgesSampleable`\ , :py:obj:`typing.Any`\ , :py:obj:`deepxube.pathfinding.supervised.InstanceEdgeSup`\ ], :py:obj:`deepxube.base.pathfinding.PathFindSup`\ [\ :py:obj:`deepxube.base.domain.EdgesSampleable`\ , :py:obj:`deepxube.pathfinding.supervised.InstanceEdgeSup`\ ]
@@ -148,6 +160,12 @@ API
       :staticmethod:
 
       .. autodoc2-docstring:: deepxube.pathfinding.supervised.PathFindEdgeSamp.domain_type
+
+   .. py:method:: description() -> str
+      :canonical: deepxube.pathfinding.supervised.PathFindEdgeSamp.description
+      :staticmethod:
+
+      .. autodoc2-docstring:: deepxube.pathfinding.supervised.PathFindEdgeSamp.description
 
    .. py:method:: step(verbose: bool = False) -> typing.Tuple[typing.List[deepxube.base.pathfinding.Node], typing.List[deepxube.base.pathfinding.EdgeQ]]
       :canonical: deepxube.pathfinding.supervised.PathFindEdgeSamp.step

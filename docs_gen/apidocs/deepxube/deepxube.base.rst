@@ -15,8 +15,9 @@ Submodules
 
    deepxube.base.nnet_input
    deepxube.base.domain
+   deepxube.base.nnet
    deepxube.base.factory
    deepxube.base.updater
+   deepxube.base.pathfind_fns
    deepxube.base.trainer
    deepxube.base.pathfinding
-   deepxube.base.heuristic

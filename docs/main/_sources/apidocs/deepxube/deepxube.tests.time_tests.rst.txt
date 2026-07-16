@@ -67,27 +67,27 @@ API
 
    .. autodoc2-docstring:: deepxube.tests.time_tests.test_envenumerableacts
 
-.. py:function:: init_nnet(nnet_par: deepxube.nnet.nnet_utils.NNetPar) -> typing.Tuple[torch.nn.Module, torch.device]
+.. py:function:: init_nnet(nnet_par: deepxube.pytorch.nnet_utils.NNetPar) -> typing.Tuple[torch.nn.Module, torch.device]
    :canonical: deepxube.tests.time_tests.init_nnet
 
    .. autodoc2-docstring:: deepxube.tests.time_tests.init_nnet
 
-.. py:function:: heur_fn_out(heur_nnet: deepxube.base.heuristic.HeurNNetPar, heur_fn: deepxube.nnet.nnet_utils.NNetCallable, states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], actions: typing.List[deepxube.base.domain.Action]) -> None
+.. py:function:: heur_fn_out(heur_nnet: deepxube.base.pathfind_fns.HeurNNetPar, heur_fn: deepxube.pytorch.nnet_utils.NNetCallable, states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], actions: typing.List[deepxube.base.domain.Action]) -> None
    :canonical: deepxube.tests.time_tests.heur_fn_out
 
    .. autodoc2-docstring:: deepxube.tests.time_tests.heur_fn_out
 
-.. py:function:: test_heur_nnet_par(heur_nnet_par: deepxube.base.heuristic.HeurNNetPar, states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], actions: typing.List[deepxube.base.domain.Action]) -> None
+.. py:function:: test_heur_nnet_par(heur_nnet_par: deepxube.base.pathfind_fns.HeurNNetPar, states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], actions: typing.List[deepxube.base.domain.Action]) -> None
    :canonical: deepxube.tests.time_tests.test_heur_nnet_par
 
    .. autodoc2-docstring:: deepxube.tests.time_tests.test_heur_nnet_par
 
-.. py:function:: test_policy_nnet_par(policy_nnet_par: deepxube.base.heuristic.PolicyNNetPar, states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], actions: typing.List[deepxube.base.domain.Action]) -> None
+.. py:function:: test_policy_nnet_par(policy_nnet_par: deepxube.base.pathfind_fns.PolicyNNetPar, states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], actions: typing.List[deepxube.base.domain.Action]) -> None
    :canonical: deepxube.tests.time_tests.test_policy_nnet_par
 
    .. autodoc2-docstring:: deepxube.tests.time_tests.test_policy_nnet_par
 
-.. py:function:: time_test(domain: deepxube.base.domain.Domain, heur_nnet_par: typing.Optional[deepxube.base.heuristic.HeurNNetPar], policy_nnet_par: typing.Optional[deepxube.base.heuristic.PolicyNNetPar], num_states: int, step_min: int, step_max: int) -> None
+.. py:function:: time_test(domain: deepxube.base.domain.Domain, dx_nnet_par_l: typing.Optional[typing.List[deepxube.base.pathfind_fns.DeepXubeNNetPar]], num_states: int, step_min: int, step_max: int) -> None
    :canonical: deepxube.tests.time_tests.time_test
 
    .. autodoc2-docstring:: deepxube.tests.time_tests.time_test

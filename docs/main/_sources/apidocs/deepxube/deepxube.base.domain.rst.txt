@@ -218,22 +218,22 @@ API
 
       .. autodoc2-docstring:: deepxube.base.domain.Domain.random_walk
 
-   .. py:method:: get_nnet_par_dict() -> typing.Dict[str, typing.Tuple[str, deepxube.nnet.nnet_utils.NNetPar]]
+   .. py:method:: get_nnet_par_dict() -> typing.Dict[str, typing.Tuple[str, deepxube.pytorch.nnet_utils.NNetPar]]
       :canonical: deepxube.base.domain.Domain.get_nnet_par_dict
 
       .. autodoc2-docstring:: deepxube.base.domain.Domain.get_nnet_par_dict
 
-   .. py:method:: set_nnet_fns(nnet_fn_dict: typing.Dict[str, deepxube.nnet.nnet_utils.NNetCallable]) -> None
+   .. py:method:: set_nnet_fns(nnet_fn_dict: typing.Dict[str, deepxube.pytorch.nnet_utils.NNetCallable]) -> None
       :canonical: deepxube.base.domain.Domain.set_nnet_fns
 
       .. autodoc2-docstring:: deepxube.base.domain.Domain.set_nnet_fns
 
-   .. py:method:: get_nnet_fn(nnet_fn_name: str) -> deepxube.nnet.nnet_utils.NNetCallable
+   .. py:method:: get_nnet_fn(nnet_fn_name: str) -> deepxube.pytorch.nnet_utils.NNetCallable
       :canonical: deepxube.base.domain.Domain.get_nnet_fn
 
       .. autodoc2-docstring:: deepxube.base.domain.Domain.get_nnet_fn
 
-   .. py:method:: _add_nnet_par(nnet_name: str, nnet_file: str, nnet_par: deepxube.nnet.nnet_utils.NNetPar) -> None
+   .. py:method:: _add_nnet_par(nnet_name: str, nnet_file: str, nnet_par: deepxube.pytorch.nnet_utils.NNetPar) -> None
       :canonical: deepxube.base.domain.Domain._add_nnet_par
 
       .. autodoc2-docstring:: deepxube.base.domain.Domain._add_nnet_par

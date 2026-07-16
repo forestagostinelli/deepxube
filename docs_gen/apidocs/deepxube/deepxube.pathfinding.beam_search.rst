@@ -133,10 +133,10 @@ API
 
    .. autodoc2-docstring:: deepxube.pathfinding.beam_search.IBeam
 
-.. py:class:: BeamSearch(domain: deepxube.pathfinding.beam_search.D, functions: deepxube.base.pathfinding.FNs, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False)
+.. py:class:: BeamSearch(*args: typing.Any, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.beam_search.BeamSearch
 
-   Bases: :py:obj:`deepxube.base.pathfinding.PathFind`\ [\ :py:obj:`deepxube.pathfinding.beam_search.D`\ , :py:obj:`deepxube.base.pathfinding.FNs`\ , :py:obj:`deepxube.pathfinding.beam_search.IBeam`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.base.pathfinding.PathFind`\ [\ :py:obj:`deepxube.pathfinding.beam_search.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.pathfinding.beam_search.IBeam`\ ], :py:obj:`abc.ABC`
 
    .. py:method:: _construct_instances(inst_cls: type[deepxube.pathfinding.beam_search.IBeam], nodes_root: typing.List[deepxube.base.pathfinding.Node], inst_infos: typing.Optional[typing.List[typing.Any]], beam_size: typing.Optional[int], temp: typing.Optional[float], eps: typing.Optional[float]) -> typing.List[deepxube.pathfinding.beam_search.IBeam]
       :canonical: deepxube.pathfinding.beam_search.BeamSearch._construct_instances
@@ -176,10 +176,10 @@ API
 
       .. autodoc2-docstring:: deepxube.pathfinding.beam_search.InstanceEdgeBeam.push_pop_edges
 
-.. py:class:: BeamSearchPolicy(domain: deepxube.pathfinding.beam_search.D, functions: deepxube.base.pathfinding.FNs, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False)
+.. py:class:: BeamSearchPolicy(*args: typing.Any, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.beam_search.BeamSearchPolicy
 
-   Bases: :py:obj:`deepxube.pathfinding.beam_search.BeamSearch`\ [\ :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.pathfinding.FNsPolicy`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceEdgeBeam`\ ], :py:obj:`deepxube.base.pathfinding.PathFindEdge`\ [\ :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.pathfinding.FNsPolicy`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceEdgeBeam`\ ], :py:obj:`deepxube.base.pathfinding.PathFindActsPolicy`\ [\ :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.pathfinding.FNsPolicy`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceEdgeBeam`\ ], :py:obj:`deepxube.base.pathfinding.PathFindSetPolicy`\ [\ :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.pathfinding.FNsPolicy`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceEdgeBeam`\ ]
+   Bases: :py:obj:`deepxube.pathfinding.beam_search.BeamSearch`\ [\ :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.pathfind_fns.PFNsPolicy`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceEdgeBeam`\ ], :py:obj:`deepxube.base.pathfinding.PathFindEdge`\ [\ :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.pathfind_fns.PFNsPolicy`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceEdgeBeam`\ ], :py:obj:`deepxube.base.pathfinding.PathFindActsPolicy`\ [\ :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.pathfind_fns.PFNsPolicy`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceEdgeBeam`\ ], :py:obj:`deepxube.base.pathfinding.PathFindSetPolicy`\ [\ :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.pathfind_fns.PFNsPolicy`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceEdgeBeam`\ ]
 
    .. py:method:: domain_type() -> typing.Type[deepxube.base.domain.Domain]
       :canonical: deepxube.pathfinding.beam_search.BeamSearchPolicy.domain_type
@@ -187,17 +187,17 @@ API
 
       .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchPolicy.domain_type
 
-   .. py:method:: functions_type() -> typing.Type[deepxube.base.pathfinding.FNsPolicy]
-      :canonical: deepxube.pathfinding.beam_search.BeamSearchPolicy.functions_type
+   .. py:method:: pathfind_functions_type() -> typing.Type[deepxube.base.pathfind_fns.PFNsPolicy]
+      :canonical: deepxube.pathfinding.beam_search.BeamSearchPolicy.pathfind_functions_type
       :staticmethod:
 
-      .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchPolicy.functions_type
+      .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchPolicy.pathfind_functions_type
 
-   .. py:property:: num_rand_edges
-      :canonical: deepxube.pathfinding.beam_search.BeamSearchPolicy.num_rand_edges
-      :type: int
+   .. py:method:: description() -> str
+      :canonical: deepxube.pathfinding.beam_search.BeamSearchPolicy.description
+      :staticmethod:
 
-      .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchPolicy.num_rand_edges
+      .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchPolicy.description
 
    .. py:method:: make_instances(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], inst_infos: typing.Optional[typing.List[typing.Any]] = None, compute_root_vals: bool = True, beam_size: typing.Optional[int] = None, temp: typing.Optional[float] = None, eps: typing.Optional[float] = None) -> typing.List[deepxube.pathfinding.beam_search.InstanceEdgeBeam]
       :canonical: deepxube.pathfinding.beam_search.BeamSearchPolicy.make_instances
@@ -207,10 +207,10 @@ API
 
       .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchPolicy._compute_costs
 
-.. py:class:: BeamSearchHeurNode(domain: deepxube.pathfinding.beam_search.D, functions: deepxube.base.pathfinding.FNs, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False)
+.. py:class:: BeamSearchHeurNode(*args: typing.Any, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurNode
 
-   Bases: :py:obj:`deepxube.pathfinding.beam_search.BeamSearch`\ [\ :py:obj:`deepxube.pathfinding.beam_search.D`\ , :py:obj:`deepxube.base.pathfinding.FNsHV`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceNodeBeam`\ ], :py:obj:`deepxube.base.pathfinding.PathFindNode`\ [\ :py:obj:`deepxube.pathfinding.beam_search.D`\ , :py:obj:`deepxube.base.pathfinding.FNsHV`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceNodeBeam`\ ], :py:obj:`deepxube.base.pathfinding.PathFindSetHeurV`\ [\ :py:obj:`deepxube.pathfinding.beam_search.D`\ , :py:obj:`deepxube.base.pathfinding.FNsHV`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceNodeBeam`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.pathfinding.beam_search.BeamSearch`\ [\ :py:obj:`deepxube.pathfinding.beam_search.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHV_T`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceNodeBeam`\ ], :py:obj:`deepxube.base.pathfinding.PathFindNode`\ [\ :py:obj:`deepxube.pathfinding.beam_search.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHV_T`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceNodeBeam`\ ], :py:obj:`deepxube.base.pathfinding.PathFindSetHeurV`\ [\ :py:obj:`deepxube.pathfinding.beam_search.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHV_T`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceNodeBeam`\ ], :py:obj:`abc.ABC`
 
    .. py:method:: make_instances(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], inst_infos: typing.Optional[typing.List[typing.Any]] = None, compute_root_vals: bool = True, beam_size: typing.Optional[int] = None, temp: typing.Optional[float] = None, eps: typing.Optional[float] = None) -> typing.List[deepxube.pathfinding.beam_search.InstanceNodeBeam]
       :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurNode.make_instances
@@ -220,10 +220,10 @@ API
 
       .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchHeurNode._compute_costs
 
-.. py:class:: BeamSearchHeurEdge(domain: deepxube.pathfinding.beam_search.D, functions: deepxube.base.pathfinding.FNs, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False)
+.. py:class:: BeamSearchHeurEdge(*args: typing.Any, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurEdge
 
-   Bases: :py:obj:`deepxube.pathfinding.beam_search.BeamSearch`\ [\ :py:obj:`deepxube.pathfinding.beam_search.D`\ , :py:obj:`deepxube.base.pathfinding.FNsHQ`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceEdgeBeam`\ ], :py:obj:`deepxube.base.pathfinding.PathFindEdge`\ [\ :py:obj:`deepxube.pathfinding.beam_search.D`\ , :py:obj:`deepxube.base.pathfinding.FNsHQ`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceEdgeBeam`\ ], :py:obj:`deepxube.base.pathfinding.PathFindSetHeurQ`\ [\ :py:obj:`deepxube.pathfinding.beam_search.D`\ , :py:obj:`deepxube.base.pathfinding.FNsHQ`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceEdgeBeam`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.pathfinding.beam_search.BeamSearch`\ [\ :py:obj:`deepxube.pathfinding.beam_search.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHQ_T`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceEdgeBeam`\ ], :py:obj:`deepxube.base.pathfinding.PathFindEdge`\ [\ :py:obj:`deepxube.pathfinding.beam_search.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHQ_T`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceEdgeBeam`\ ], :py:obj:`deepxube.base.pathfinding.PathFindSetHeurQ`\ [\ :py:obj:`deepxube.pathfinding.beam_search.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHQ_T`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceEdgeBeam`\ ], :py:obj:`abc.ABC`
 
    .. py:method:: make_instances(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], inst_infos: typing.Optional[typing.List[typing.Any]] = None, compute_root_vals: bool = True, beam_size: typing.Optional[int] = None, temp: typing.Optional[float] = None, eps: typing.Optional[float] = None) -> typing.List[deepxube.pathfinding.beam_search.InstanceEdgeBeam]
       :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurEdge.make_instances
@@ -233,10 +233,10 @@ API
 
       .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchHeurEdge._compute_costs
 
-.. py:class:: BeamSearchHeurNodeActsEnum(domain: deepxube.pathfinding.beam_search.D, functions: deepxube.base.pathfinding.FNs, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False)
+.. py:class:: BeamSearchHeurNodeActsEnum(*args: typing.Any, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurNodeActsEnum
 
-   Bases: :py:obj:`deepxube.pathfinding.beam_search.BeamSearchHeurNode`\ [\ :py:obj:`deepxube.base.domain.ActsEnum`\ , :py:obj:`deepxube.base.pathfinding.FNsHeurV`\ ], :py:obj:`deepxube.base.pathfinding.PathFindActsEnum`\ [\ :py:obj:`deepxube.base.domain.ActsEnum`\ , :py:obj:`deepxube.base.pathfinding.FNsHeurV`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceNodeBeam`\ ]
+   Bases: :py:obj:`deepxube.pathfinding.beam_search.BeamSearchHeurNode`\ [\ :py:obj:`deepxube.base.domain.ActsEnum`\ , :py:obj:`deepxube.base.pathfind_fns.PFNsHeurV`\ ], :py:obj:`deepxube.base.pathfinding.PathFindActsEnum`\ [\ :py:obj:`deepxube.base.domain.ActsEnum`\ , :py:obj:`deepxube.base.pathfind_fns.PFNsHeurV`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceNodeBeam`\ ]
 
    .. py:method:: domain_type() -> typing.Type[deepxube.base.domain.ActsEnum]
       :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurNodeActsEnum.domain_type
@@ -244,16 +244,22 @@ API
 
       .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchHeurNodeActsEnum.domain_type
 
-   .. py:method:: functions_type() -> typing.Type[deepxube.base.pathfinding.FNsHeurV]
-      :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurNodeActsEnum.functions_type
+   .. py:method:: pathfind_functions_type() -> typing.Type[deepxube.base.pathfind_fns.PFNsHeurV]
+      :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurNodeActsEnum.pathfind_functions_type
       :staticmethod:
 
-      .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchHeurNodeActsEnum.functions_type
+      .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchHeurNodeActsEnum.pathfind_functions_type
 
-.. py:class:: BeamSearchHeurEdgeActsEnum(domain: deepxube.pathfinding.beam_search.D, functions: deepxube.base.pathfinding.FNs, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False)
+   .. py:method:: description() -> str
+      :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurNodeActsEnum.description
+      :staticmethod:
+
+      .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchHeurNodeActsEnum.description
+
+.. py:class:: BeamSearchHeurEdgeActsEnum(*args: typing.Any, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsEnum
 
-   Bases: :py:obj:`deepxube.pathfinding.beam_search.BeamSearchHeurEdge`\ [\ :py:obj:`deepxube.base.domain.ActsEnum`\ , :py:obj:`deepxube.base.pathfinding.FNsHeurQ`\ ], :py:obj:`deepxube.base.pathfinding.PathFindActsEnum`\ [\ :py:obj:`deepxube.base.domain.ActsEnum`\ , :py:obj:`deepxube.base.pathfinding.FNsHeurQ`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceEdgeBeam`\ ]
+   Bases: :py:obj:`deepxube.pathfinding.beam_search.BeamSearchHeurEdge`\ [\ :py:obj:`deepxube.base.domain.ActsEnum`\ , :py:obj:`deepxube.base.pathfind_fns.PFNsHeurQ`\ ], :py:obj:`deepxube.base.pathfinding.PathFindActsEnum`\ [\ :py:obj:`deepxube.base.domain.ActsEnum`\ , :py:obj:`deepxube.base.pathfind_fns.PFNsHeurQ`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceEdgeBeam`\ ]
 
    .. py:method:: domain_type() -> typing.Type[deepxube.base.domain.ActsEnum]
       :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsEnum.domain_type
@@ -261,22 +267,22 @@ API
 
       .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsEnum.domain_type
 
-   .. py:method:: functions_type() -> typing.Type[deepxube.base.pathfinding.FNsHeurQ]
-      :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsEnum.functions_type
+   .. py:method:: pathfind_functions_type() -> typing.Type[deepxube.base.pathfind_fns.PFNsHeurQ]
+      :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsEnum.pathfind_functions_type
       :staticmethod:
 
-      .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsEnum.functions_type
+      .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsEnum.pathfind_functions_type
 
-.. py:class:: BeamSearchHeurNodeActsPolicy(domain: deepxube.base.domain.Domain, functions: deepxube.base.pathfinding.FNsHeurVPolicy, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False, num_rand_edges: int = 0)
+   .. py:method:: description() -> str
+      :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsEnum.description
+      :staticmethod:
+
+      .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsEnum.description
+
+.. py:class:: BeamSearchHeurNodeActsPolicy(*args: typing.Any, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurNodeActsPolicy
 
-   Bases: :py:obj:`deepxube.pathfinding.beam_search.BeamSearchHeurNode`\ [\ :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.pathfinding.FNsHeurVPolicy`\ ], :py:obj:`deepxube.base.pathfinding.PathFindActsPolicy`\ [\ :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.pathfinding.FNsHeurVPolicy`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceNodeBeam`\ ]
-
-   .. py:property:: num_rand_edges
-      :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurNodeActsPolicy.num_rand_edges
-      :type: int
-
-      .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchHeurNodeActsPolicy.num_rand_edges
+   Bases: :py:obj:`deepxube.pathfinding.beam_search.BeamSearchHeurNode`\ [\ :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.pathfind_fns.PFNsHeurVPolicy`\ ], :py:obj:`deepxube.base.pathfinding.PathFindActsPolicy`\ [\ :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.pathfind_fns.PFNsHeurVPolicy`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceNodeBeam`\ ]
 
    .. py:method:: domain_type() -> typing.Type[deepxube.base.domain.Domain]
       :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurNodeActsPolicy.domain_type
@@ -284,25 +290,25 @@ API
 
       .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchHeurNodeActsPolicy.domain_type
 
-   .. py:method:: functions_type() -> typing.Type[deepxube.base.pathfinding.FNsHeurVPolicy]
-      :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurNodeActsPolicy.functions_type
+   .. py:method:: pathfind_functions_type() -> typing.Type[deepxube.base.pathfind_fns.PFNsHeurVPolicy]
+      :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurNodeActsPolicy.pathfind_functions_type
       :staticmethod:
 
-      .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchHeurNodeActsPolicy.functions_type
+      .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchHeurNodeActsPolicy.pathfind_functions_type
+
+   .. py:method:: description() -> str
+      :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurNodeActsPolicy.description
+      :staticmethod:
+
+      .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchHeurNodeActsPolicy.description
 
    .. py:method:: __repr__() -> str
       :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurNodeActsPolicy.__repr__
 
-.. py:class:: BeamSearchHeurEdgeActsPolicy(domain: deepxube.base.domain.Domain, functions: deepxube.base.pathfinding.FNsHeurQPolicy, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False, num_rand_edges: int = 0)
+.. py:class:: BeamSearchHeurEdgeActsPolicy(*args: typing.Any, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsPolicy
 
-   Bases: :py:obj:`deepxube.pathfinding.beam_search.BeamSearchHeurEdge`\ [\ :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.pathfinding.FNsHeurQPolicy`\ ], :py:obj:`deepxube.base.pathfinding.PathFindActsPolicy`\ [\ :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.pathfinding.FNsHeurQPolicy`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceEdgeBeam`\ ]
-
-   .. py:property:: num_rand_edges
-      :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsPolicy.num_rand_edges
-      :type: int
-
-      .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsPolicy.num_rand_edges
+   Bases: :py:obj:`deepxube.pathfinding.beam_search.BeamSearchHeurEdge`\ [\ :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.pathfind_fns.PFNsHeurQPolicy`\ ], :py:obj:`deepxube.base.pathfinding.PathFindActsPolicy`\ [\ :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.pathfind_fns.PFNsHeurQPolicy`\ , :py:obj:`deepxube.pathfinding.beam_search.InstanceEdgeBeam`\ ]
 
    .. py:method:: domain_type() -> typing.Type[deepxube.base.domain.Domain]
       :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsPolicy.domain_type
@@ -310,11 +316,17 @@ API
 
       .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsPolicy.domain_type
 
-   .. py:method:: functions_type() -> typing.Type[deepxube.base.pathfinding.FNsHeurQPolicy]
-      :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsPolicy.functions_type
+   .. py:method:: pathfind_functions_type() -> typing.Type[deepxube.base.pathfind_fns.PFNsHeurQPolicy]
+      :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsPolicy.pathfind_functions_type
       :staticmethod:
 
-      .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsPolicy.functions_type
+      .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsPolicy.pathfind_functions_type
+
+   .. py:method:: description() -> str
+      :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsPolicy.description
+      :staticmethod:
+
+      .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsPolicy.description
 
    .. py:method:: __repr__() -> str
       :canonical: deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsPolicy.__repr__
@@ -411,10 +423,16 @@ API
 
       .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearchEdgeHasPolicyParser._alg_name
 
-.. py:class:: RolloutPolicy(domain: deepxube.pathfinding.beam_search.D, functions: deepxube.base.pathfinding.FNs, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False)
+.. py:class:: RolloutPolicy(*args: typing.Any, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.beam_search.RolloutPolicy
 
    Bases: :py:obj:`deepxube.pathfinding.beam_search.BeamSearchPolicy`
+
+   .. py:method:: description() -> str
+      :canonical: deepxube.pathfinding.beam_search.RolloutPolicy.description
+      :staticmethod:
+
+      .. autodoc2-docstring:: deepxube.pathfinding.beam_search.RolloutPolicy.description
 
 .. py:class:: RolloutParser
    :canonical: deepxube.pathfinding.beam_search.RolloutParser

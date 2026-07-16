@@ -24,21 +24,6 @@ Classes
           :summary:
    * - :py:obj:`Instance <deepxube.base.pathfinding.Instance>`
      -
-   * - :py:obj:`FNsHeurV <deepxube.base.pathfinding.FNsHeurV>`
-     - .. autodoc2-docstring:: deepxube.base.pathfinding.FNsHeurV
-          :summary:
-   * - :py:obj:`FNsHeurQ <deepxube.base.pathfinding.FNsHeurQ>`
-     - .. autodoc2-docstring:: deepxube.base.pathfinding.FNsHeurQ
-          :summary:
-   * - :py:obj:`FNsPolicy <deepxube.base.pathfinding.FNsPolicy>`
-     - .. autodoc2-docstring:: deepxube.base.pathfinding.FNsPolicy
-          :summary:
-   * - :py:obj:`FNsHeurVPolicy <deepxube.base.pathfinding.FNsHeurVPolicy>`
-     - .. autodoc2-docstring:: deepxube.base.pathfinding.FNsHeurVPolicy
-          :summary:
-   * - :py:obj:`FNsHeurQPolicy <deepxube.base.pathfinding.FNsHeurQPolicy>`
-     - .. autodoc2-docstring:: deepxube.base.pathfinding.FNsHeurQPolicy
-          :summary:
    * - :py:obj:`PathFind <deepxube.base.pathfinding.PathFind>`
      -
    * - :py:obj:`InstanceNode <deepxube.base.pathfinding.InstanceNode>`
@@ -81,17 +66,14 @@ Data
    :class: autosummary longtable
    :align: left
 
-   * - :py:obj:`FNsHeur <deepxube.base.pathfinding.FNsHeur>`
-     - .. autodoc2-docstring:: deepxube.base.pathfinding.FNsHeur
-          :summary:
    * - :py:obj:`I <deepxube.base.pathfinding.I>`
      - .. autodoc2-docstring:: deepxube.base.pathfinding.I
           :summary:
    * - :py:obj:`D <deepxube.base.pathfinding.D>`
      - .. autodoc2-docstring:: deepxube.base.pathfinding.D
           :summary:
-   * - :py:obj:`FNs <deepxube.base.pathfinding.FNs>`
-     - .. autodoc2-docstring:: deepxube.base.pathfinding.FNs
+   * - :py:obj:`PFNsT <deepxube.base.pathfinding.PFNsT>`
+     - .. autodoc2-docstring:: deepxube.base.pathfinding.PFNsT
           :summary:
    * - :py:obj:`INode <deepxube.base.pathfinding.INode>`
      - .. autodoc2-docstring:: deepxube.base.pathfinding.INode
@@ -99,14 +81,14 @@ Data
    * - :py:obj:`IEdge <deepxube.base.pathfinding.IEdge>`
      - .. autodoc2-docstring:: deepxube.base.pathfinding.IEdge
           :summary:
-   * - :py:obj:`FNsP <deepxube.base.pathfinding.FNsP>`
-     - .. autodoc2-docstring:: deepxube.base.pathfinding.FNsP
+   * - :py:obj:`PFNsP_T <deepxube.base.pathfinding.PFNsP_T>`
+     - .. autodoc2-docstring:: deepxube.base.pathfinding.PFNsP_T
           :summary:
-   * - :py:obj:`FNsHV <deepxube.base.pathfinding.FNsHV>`
-     - .. autodoc2-docstring:: deepxube.base.pathfinding.FNsHV
+   * - :py:obj:`PFNsHV_T <deepxube.base.pathfinding.PFNsHV_T>`
+     - .. autodoc2-docstring:: deepxube.base.pathfinding.PFNsHV_T
           :summary:
-   * - :py:obj:`FNsHQ <deepxube.base.pathfinding.FNsHQ>`
-     - .. autodoc2-docstring:: deepxube.base.pathfinding.FNsHQ
+   * - :py:obj:`PFNsHQ_T <deepxube.base.pathfinding.PFNsHQ_T>`
+     - .. autodoc2-docstring:: deepxube.base.pathfinding.PFNsHQ_T
           :summary:
    * - :py:obj:`DActsEnum <deepxube.base.pathfinding.DActsEnum>`
      - .. autodoc2-docstring:: deepxube.base.pathfinding.DActsEnum
@@ -243,62 +225,6 @@ API
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.Instance.finished
 
-.. py:class:: FNsHeurV
-   :canonical: deepxube.base.pathfinding.FNsHeurV
-
-   .. autodoc2-docstring:: deepxube.base.pathfinding.FNsHeurV
-
-   .. py:attribute:: heur_fn_v
-      :canonical: deepxube.base.pathfinding.FNsHeurV.heur_fn_v
-      :type: deepxube.base.heuristic.HeurFnV
-      :value: None
-
-      .. autodoc2-docstring:: deepxube.base.pathfinding.FNsHeurV.heur_fn_v
-
-.. py:class:: FNsHeurQ
-   :canonical: deepxube.base.pathfinding.FNsHeurQ
-
-   .. autodoc2-docstring:: deepxube.base.pathfinding.FNsHeurQ
-
-   .. py:attribute:: heur_fn_q
-      :canonical: deepxube.base.pathfinding.FNsHeurQ.heur_fn_q
-      :type: deepxube.base.heuristic.HeurFnQ
-      :value: None
-
-      .. autodoc2-docstring:: deepxube.base.pathfinding.FNsHeurQ.heur_fn_q
-
-.. py:data:: FNsHeur
-   :canonical: deepxube.base.pathfinding.FNsHeur
-   :value: None
-
-   .. autodoc2-docstring:: deepxube.base.pathfinding.FNsHeur
-
-.. py:class:: FNsPolicy
-   :canonical: deepxube.base.pathfinding.FNsPolicy
-
-   .. autodoc2-docstring:: deepxube.base.pathfinding.FNsPolicy
-
-   .. py:attribute:: policy_fn
-      :canonical: deepxube.base.pathfinding.FNsPolicy.policy_fn
-      :type: deepxube.base.heuristic.PolicyFn
-      :value: None
-
-      .. autodoc2-docstring:: deepxube.base.pathfinding.FNsPolicy.policy_fn
-
-.. py:class:: FNsHeurVPolicy
-   :canonical: deepxube.base.pathfinding.FNsHeurVPolicy
-
-   Bases: :py:obj:`deepxube.base.pathfinding.FNsPolicy`, :py:obj:`deepxube.base.pathfinding.FNsHeurV`
-
-   .. autodoc2-docstring:: deepxube.base.pathfinding.FNsHeurVPolicy
-
-.. py:class:: FNsHeurQPolicy
-   :canonical: deepxube.base.pathfinding.FNsHeurQPolicy
-
-   Bases: :py:obj:`deepxube.base.pathfinding.FNsPolicy`, :py:obj:`deepxube.base.pathfinding.FNsHeurQ`
-
-   .. autodoc2-docstring:: deepxube.base.pathfinding.FNsHeurQPolicy
-
 .. py:data:: I
    :canonical: deepxube.base.pathfinding.I
    :value: 'TypeVar(...)'
@@ -311,16 +237,16 @@ API
 
    .. autodoc2-docstring:: deepxube.base.pathfinding.D
 
-.. py:data:: FNs
-   :canonical: deepxube.base.pathfinding.FNs
+.. py:data:: PFNsT
+   :canonical: deepxube.base.pathfinding.PFNsT
    :value: 'TypeVar(...)'
 
-   .. autodoc2-docstring:: deepxube.base.pathfinding.FNs
+   .. autodoc2-docstring:: deepxube.base.pathfinding.PFNsT
 
-.. py:class:: PathFind(domain: deepxube.base.pathfinding.D, functions: deepxube.base.pathfinding.FNs)
+.. py:class:: PathFind(domain: deepxube.base.pathfinding.D, pathfind_fns: deepxube.base.pathfinding.PFNsT)
    :canonical: deepxube.base.pathfinding.PathFind
 
-   Bases: :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.base.pathfinding.D`\ , :py:obj:`deepxube.base.pathfinding.FNs`\ , :py:obj:`deepxube.base.pathfinding.I`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.base.pathfinding.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.pathfinding.I`\ ], :py:obj:`abc.ABC`
 
    .. py:method:: domain_type() -> typing.Type[deepxube.base.pathfinding.D]
       :canonical: deepxube.base.pathfinding.PathFind.domain_type
@@ -329,12 +255,25 @@ API
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFind.domain_type
 
-   .. py:method:: functions_type() -> typing.Type[deepxube.base.pathfinding.FNs]
-      :canonical: deepxube.base.pathfinding.PathFind.functions_type
+   .. py:method:: pathfind_functions_type() -> typing.Type[deepxube.base.pathfinding.PFNsT]
+      :canonical: deepxube.base.pathfinding.PathFind.pathfind_functions_type
       :abstractmethod:
       :staticmethod:
 
-      .. autodoc2-docstring:: deepxube.base.pathfinding.PathFind.functions_type
+      .. autodoc2-docstring:: deepxube.base.pathfinding.PathFind.pathfind_functions_type
+
+   .. py:method:: description() -> str
+      :canonical: deepxube.base.pathfinding.PathFind.description
+      :abstractmethod:
+      :staticmethod:
+
+      .. autodoc2-docstring:: deepxube.base.pathfinding.PathFind.description
+
+   .. py:method:: get_incompat_reason(domain: deepxube.base.domain.Domain, pathfind_fns_t: typing.Type[deepxube.base.pathfind_fns.PFNs]) -> typing.Optional[str]
+      :canonical: deepxube.base.pathfinding.PathFind.get_incompat_reason
+      :classmethod:
+
+      .. autodoc2-docstring:: deepxube.base.pathfinding.PathFind.get_incompat_reason
 
    .. py:method:: make_instances(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], inst_infos: typing.Optional[typing.List[typing.Any]] = None, compute_root_vals: bool = True) -> typing.List[deepxube.base.pathfinding.I]
       :canonical: deepxube.base.pathfinding.PathFind.make_instances
@@ -442,10 +381,10 @@ API
 
    .. autodoc2-docstring:: deepxube.base.pathfinding.IEdge
 
-.. py:class:: PathFindNode(domain: deepxube.base.pathfinding.D, functions: deepxube.base.pathfinding.FNs)
+.. py:class:: PathFindNode(domain: deepxube.base.pathfinding.D, pathfind_fns: deepxube.base.pathfinding.PFNsT)
    :canonical: deepxube.base.pathfinding.PathFindNode
 
-   Bases: :py:obj:`deepxube.base.pathfinding.PathFind`\ [\ :py:obj:`deepxube.base.pathfinding.D`\ , :py:obj:`deepxube.base.pathfinding.FNs`\ , :py:obj:`deepxube.base.pathfinding.INode`\ ]
+   Bases: :py:obj:`deepxube.base.pathfinding.PathFind`\ [\ :py:obj:`deepxube.base.pathfinding.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.pathfinding.INode`\ ]
 
    .. py:method:: step(verbose: bool = False) -> typing.Tuple[typing.List[deepxube.base.pathfinding.Node], typing.List[deepxube.base.pathfinding.EdgeQ]]
       :canonical: deepxube.base.pathfinding.PathFindNode.step
@@ -463,10 +402,10 @@ API
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindNode._compute_costs
 
-.. py:class:: PathFindEdge(domain: deepxube.base.pathfinding.D, functions: deepxube.base.pathfinding.FNs)
+.. py:class:: PathFindEdge(domain: deepxube.base.pathfinding.D, pathfind_fns: deepxube.base.pathfinding.PFNsT)
    :canonical: deepxube.base.pathfinding.PathFindEdge
 
-   Bases: :py:obj:`deepxube.base.pathfinding.PathFind`\ [\ :py:obj:`deepxube.base.pathfinding.D`\ , :py:obj:`deepxube.base.pathfinding.FNs`\ , :py:obj:`deepxube.base.pathfinding.IEdge`\ ]
+   Bases: :py:obj:`deepxube.base.pathfinding.PathFind`\ [\ :py:obj:`deepxube.base.pathfinding.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.pathfinding.IEdge`\ ]
 
    .. py:method:: step(verbose: bool = False) -> typing.Tuple[typing.List[deepxube.base.pathfinding.Node], typing.List[deepxube.base.pathfinding.EdgeQ]]
       :canonical: deepxube.base.pathfinding.PathFindEdge.step
@@ -489,48 +428,48 @@ API
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindEdge._compute_costs
 
-.. py:data:: FNsP
-   :canonical: deepxube.base.pathfinding.FNsP
+.. py:data:: PFNsP_T
+   :canonical: deepxube.base.pathfinding.PFNsP_T
    :value: 'TypeVar(...)'
 
-   .. autodoc2-docstring:: deepxube.base.pathfinding.FNsP
+   .. autodoc2-docstring:: deepxube.base.pathfinding.PFNsP_T
 
-.. py:data:: FNsHV
-   :canonical: deepxube.base.pathfinding.FNsHV
+.. py:data:: PFNsHV_T
+   :canonical: deepxube.base.pathfinding.PFNsHV_T
    :value: 'TypeVar(...)'
 
-   .. autodoc2-docstring:: deepxube.base.pathfinding.FNsHV
+   .. autodoc2-docstring:: deepxube.base.pathfinding.PFNsHV_T
 
-.. py:data:: FNsHQ
-   :canonical: deepxube.base.pathfinding.FNsHQ
+.. py:data:: PFNsHQ_T
+   :canonical: deepxube.base.pathfinding.PFNsHQ_T
    :value: 'TypeVar(...)'
 
-   .. autodoc2-docstring:: deepxube.base.pathfinding.FNsHQ
+   .. autodoc2-docstring:: deepxube.base.pathfinding.PFNsHQ_T
 
-.. py:class:: PathFindSetPolicy(domain: deepxube.base.pathfinding.D, functions: deepxube.base.pathfinding.FNs)
+.. py:class:: PathFindSetPolicy(domain: deepxube.base.pathfinding.D, pathfind_fns: deepxube.base.pathfinding.PFNsT)
    :canonical: deepxube.base.pathfinding.PathFindSetPolicy
 
-   Bases: :py:obj:`deepxube.base.pathfinding.PathFind`\ [\ :py:obj:`deepxube.base.pathfinding.D`\ , :py:obj:`deepxube.base.pathfinding.FNsP`\ , :py:obj:`deepxube.base.pathfinding.I`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.base.pathfinding.PathFind`\ [\ :py:obj:`deepxube.base.pathfinding.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsP_T`\ , :py:obj:`deepxube.base.pathfinding.I`\ ], :py:obj:`abc.ABC`
 
    .. py:method:: _set_node_vals(nodes: typing.List[deepxube.base.pathfinding.Node]) -> None
       :canonical: deepxube.base.pathfinding.PathFindSetPolicy._set_node_vals
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindSetPolicy._set_node_vals
 
-.. py:class:: PathFindSetHeurV(domain: deepxube.base.pathfinding.D, functions: deepxube.base.pathfinding.FNs)
+.. py:class:: PathFindSetHeurV(domain: deepxube.base.pathfinding.D, pathfind_fns: deepxube.base.pathfinding.PFNsT)
    :canonical: deepxube.base.pathfinding.PathFindSetHeurV
 
-   Bases: :py:obj:`deepxube.base.pathfinding.PathFind`\ [\ :py:obj:`deepxube.base.pathfinding.D`\ , :py:obj:`deepxube.base.pathfinding.FNsHV`\ , :py:obj:`deepxube.base.pathfinding.I`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.base.pathfinding.PathFind`\ [\ :py:obj:`deepxube.base.pathfinding.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHV_T`\ , :py:obj:`deepxube.base.pathfinding.I`\ ], :py:obj:`abc.ABC`
 
    .. py:method:: _set_node_vals(nodes: typing.List[deepxube.base.pathfinding.Node]) -> None
       :canonical: deepxube.base.pathfinding.PathFindSetHeurV._set_node_vals
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindSetHeurV._set_node_vals
 
-.. py:class:: PathFindSetHeurQ(domain: deepxube.base.pathfinding.D, functions: deepxube.base.pathfinding.FNs)
+.. py:class:: PathFindSetHeurQ(domain: deepxube.base.pathfinding.D, pathfind_fns: deepxube.base.pathfinding.PFNsT)
    :canonical: deepxube.base.pathfinding.PathFindSetHeurQ
 
-   Bases: :py:obj:`deepxube.base.pathfinding.PathFind`\ [\ :py:obj:`deepxube.base.pathfinding.D`\ , :py:obj:`deepxube.base.pathfinding.FNsHQ`\ , :py:obj:`deepxube.base.pathfinding.I`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.base.pathfinding.PathFind`\ [\ :py:obj:`deepxube.base.pathfinding.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHQ_T`\ , :py:obj:`deepxube.base.pathfinding.I`\ ], :py:obj:`abc.ABC`
 
    .. py:method:: _set_node_vals(nodes: typing.List[deepxube.base.pathfinding.Node]) -> None
       :canonical: deepxube.base.pathfinding.PathFindSetHeurQ._set_node_vals
@@ -543,10 +482,10 @@ API
 
    .. autodoc2-docstring:: deepxube.base.pathfinding.DActsEnum
 
-.. py:class:: PathFindActsEnum(domain: deepxube.base.pathfinding.D, functions: deepxube.base.pathfinding.FNs)
+.. py:class:: PathFindActsEnum(domain: deepxube.base.pathfinding.D, pathfind_fns: deepxube.base.pathfinding.PFNsT)
    :canonical: deepxube.base.pathfinding.PathFindActsEnum
 
-   Bases: :py:obj:`deepxube.base.pathfinding.PathFind`\ [\ :py:obj:`deepxube.base.pathfinding.DActsEnum`\ , :py:obj:`deepxube.base.pathfinding.FNs`\ , :py:obj:`deepxube.base.pathfinding.I`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.base.pathfinding.PathFind`\ [\ :py:obj:`deepxube.base.pathfinding.DActsEnum`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.pathfinding.I`\ ], :py:obj:`abc.ABC`
 
    .. py:method:: expand_states(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal]) -> typing.Tuple[typing.List[typing.List[deepxube.base.domain.State]], typing.List[typing.List[deepxube.base.domain.Action]], typing.List[typing.List[float]]]
       :canonical: deepxube.base.pathfinding.PathFindActsEnum.expand_states
@@ -558,17 +497,10 @@ API
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindActsEnum.get_state_actions
 
-.. py:class:: PathFindActsPolicy(domain: deepxube.base.pathfinding.D, functions: deepxube.base.pathfinding.FNs)
+.. py:class:: PathFindActsPolicy(*args: typing.Any, num_rand_edges: int = 0, **kwargs: typing.Any)
    :canonical: deepxube.base.pathfinding.PathFindActsPolicy
 
-   Bases: :py:obj:`deepxube.base.pathfinding.PathFind`\ [\ :py:obj:`deepxube.base.pathfinding.D`\ , :py:obj:`deepxube.base.pathfinding.FNsP`\ , :py:obj:`deepxube.base.pathfinding.I`\ ], :py:obj:`abc.ABC`
-
-   .. py:property:: num_rand_edges
-      :canonical: deepxube.base.pathfinding.PathFindActsPolicy.num_rand_edges
-      :abstractmethod:
-      :type: int
-
-      .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindActsPolicy.num_rand_edges
+   Bases: :py:obj:`deepxube.base.pathfinding.PathFind`\ [\ :py:obj:`deepxube.base.pathfinding.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsP_T`\ , :py:obj:`deepxube.base.pathfinding.I`\ ], :py:obj:`abc.ABC`
 
    .. py:method:: expand_states(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal]) -> typing.Tuple[typing.List[typing.List[deepxube.base.domain.State]], typing.List[typing.List[deepxube.base.domain.Action]], typing.List[typing.List[float]]]
       :canonical: deepxube.base.pathfinding.PathFindActsPolicy.expand_states
@@ -585,10 +517,10 @@ API
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindActsPolicy._get_actions
 
-.. py:class:: PathFindSup(domain: deepxube.base.pathfinding.D, functions: deepxube.base.pathfinding.FNs)
+.. py:class:: PathFindSup(domain: deepxube.base.pathfinding.D, pathfind_fns: deepxube.base.pathfinding.PFNsT)
    :canonical: deepxube.base.pathfinding.PathFindSup
 
-   Bases: :py:obj:`deepxube.base.pathfinding.PathFind`\ [\ :py:obj:`deepxube.base.pathfinding.D`\ , :py:obj:`typing.Any`\ , :py:obj:`deepxube.base.pathfinding.I`\ ]
+   Bases: :py:obj:`deepxube.base.pathfinding.PathFind`\ [\ :py:obj:`deepxube.base.pathfinding.D`\ , :py:obj:`deepxube.base.pathfind_fns.PFNs`\ , :py:obj:`deepxube.base.pathfinding.I`\ ]
 
    .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindSup
 
@@ -596,11 +528,11 @@ API
 
    .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindSup.__init__
 
-   .. py:method:: functions_type() -> typing.Type[typing.Any]
-      :canonical: deepxube.base.pathfinding.PathFindSup.functions_type
+   .. py:method:: pathfind_functions_type() -> typing.Type[deepxube.base.pathfind_fns.PFNs]
+      :canonical: deepxube.base.pathfinding.PathFindSup.pathfind_functions_type
       :staticmethod:
 
-      .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindSup.functions_type
+      .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindSup.pathfind_functions_type
 
    .. py:method:: make_instances(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], inst_infos: typing.Optional[typing.List[typing.Any]] = None, compute_root_vals: bool = True) -> typing.List[deepxube.base.pathfinding.I]
       :canonical: deepxube.base.pathfinding.PathFindSup.make_instances

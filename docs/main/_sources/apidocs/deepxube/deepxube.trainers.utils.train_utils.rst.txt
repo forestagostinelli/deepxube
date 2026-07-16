@@ -34,12 +34,12 @@ API
 
    .. autodoc2-docstring:: deepxube.trainers.utils.train_utils.ctgs_summary
 
-.. py:function:: get_deepxube_nnet(nnet: typing.Union[deepxube.base.heuristic.DeepXubeNNet, torch.nn.DataParallel]) -> deepxube.base.heuristic.DeepXubeNNet
+.. py:function:: get_deepxube_nnet(nnet: typing.Union[deepxube.base.nnet.DeepXubeNNet, torch.nn.DataParallel]) -> deepxube.base.nnet.DeepXubeNNet
    :canonical: deepxube.trainers.utils.train_utils.get_deepxube_nnet
 
    .. autodoc2-docstring:: deepxube.trainers.utils.train_utils.get_deepxube_nnet
 
-.. py:function:: train_nnet_step(nnet: typing.Union[deepxube.base.heuristic.DeepXubeNNet, torch.nn.DataParallel], data_np: typing.List[numpy.typing.NDArray], optimizer: torch.optim.optimizer.Optimizer, device: torch.device, train_itr: int, train_args: deepxube.base.trainer.TrainArgs, start_time: float) -> typing.Tuple[typing.List[numpy.typing.NDArray], float]
+.. py:function:: train_nnet_step(nnet: typing.Union[deepxube.base.nnet.DeepXubeNNet, torch.nn.DataParallel], data_np: typing.List[numpy.typing.NDArray], optimizer: torch.optim.optimizer.Optimizer, device: torch.device, train_itr: int, train_args: deepxube.base.trainer.TrainArgs, start_time: float) -> typing.Tuple[typing.List[numpy.typing.NDArray], float]
    :canonical: deepxube.trainers.utils.train_utils.train_nnet_step
 
    .. autodoc2-docstring:: deepxube.trainers.utils.train_utils.train_nnet_step

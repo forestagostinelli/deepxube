@@ -166,7 +166,7 @@ API
 .. py:class:: GridNet(nnet_input: deepxube.domains.grid.GridNNetInput, out_dim: int, q_fix: bool, chan_size: int = 8, fc_size: int = 100)
    :canonical: deepxube.domains.grid.GridNet
 
-   Bases: :py:obj:`deepxube.base.heuristic.HeurNNet`\ [\ :py:obj:`deepxube.domains.grid.GridNNetInput`\ ]
+   Bases: :py:obj:`deepxube.base.nnet.HeurNNet`\ [\ :py:obj:`deepxube.domains.grid.GridNNetInput`\ ]
 
    .. py:method:: nnet_input_type() -> typing.Type[deepxube.domains.grid.GridNNetInput]
       :canonical: deepxube.domains.grid.GridNet.nnet_input_type

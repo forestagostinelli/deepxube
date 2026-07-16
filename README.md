@@ -65,16 +65,16 @@ After installing deepxube run:
   - Visualize random problem instance: `deepxube viz --domain grid.7d --steps 10`
   - Visualize a problem instance from a file: `deepxube viz --domain grid.7d --file valid.pkl --idx 13`
 - **Time to ensure basic functionality** (Can use breakpoints in your code to debug): 
-  - With deepxube residual neural network: `deepxube time --domain grid.7d --heur resnet_fc.100H_2B_bn --heur_type V`
-  - With deepxube residual neural network and deep Q-network: `deepxube time --domain grid.7d --heur resnet_fc.100H_2B_bn --heur_type QFix`
-  - With custom neural network: `deepxube time --domain grid.7d --heur gridnet.8CH_200FC --heur_type V`
+  - With deepxube residual neural network: `deepxube time --domain grid.7d --fn heurv,resnet_fc.100H_2B_bn`
+  - With deepxube residual neural network and deep Q-network: `deepxube time --domain grid.7d --fn heurq_fixout,resnet_fc.100H_2B_bn`
+  - With custom neural network: `deepxube time --domain grid.7d --fn heurv,gridnet.8CH_200FC`
 - **Training**
-  - Train heuristic function: `deepxube train --domain grid.7d --heur resnet_fc.100H_2B_bn --heur_type V --pathfind graph_v --step_max 100 --up_itrs 100 --search_itrs 20 --backup -1 --procs 1 --batch_size 50 --max_itrs 5000 --dir dummy/`
+  - Train heuristic function: `deepxube train --domain grid.7d --fn heurv,resnet_fc.100H_2B_bn --pathfind graph --up up_rl.100sm_100up_20sitrs_lhbl_1p --tr tr_h.50bs_5000maxit --dir dummy/`
   - Use tensorboard to see training progress: `tensorboard --logdir=dummy/`
   - Plot more detailed training information with interactive slider for training iteration: `deepxube train_summary --dir dummy` 
 - **Solving**
-  - Solve problem instances with all-zero heuristic: `deepxube solve --domain grid.7d --heur_type V --pathfind graph_v.1B_1.0W --file valid.pkl --results results_zeros_ex/ --redo`
-  - Solve problem instances with trained heuristic: `deepxube solve --domain grid.7d --heur resnet_fc.100H_2B_bn --heur_file dummy/heur.pt --heur_type V --pathfind graph_v.1B_1.0W --file valid.pkl --results results_trained_ex/ --redo`
+  - Solve problem instances with all-zero heuristic: `deepxube solve --domain grid.7d --fn heurv --pathfind graph.1B_1.0W --file valid.pkl --results results_zeros_ex/ --redo`
+  - Solve problem instances with trained heuristic: `deepxube solve --domain grid.7d --fn heurv,resnet_fc.100H_2B_bn,dummy/heur.pt --pathfind graph.1B_1.0W --file valid.pkl --results results_trained_ex/ --redo`
   - Solving with the trained heuristic should have a significantly lower number of nodes generated and number of iterations.
   - You can get the actions taken for each instance with the "actions" key in the dictionary saved in the `results.pkl` file in the `--results` directory.
   - Visualize solutions with `deepxube viz --domain grid.7d --file results_trained_ex/results.pkl --idx 3 --soln`. 
@@ -107,26 +107,20 @@ After applying an action, the transition cost and whether or not the goal is rea
 
 
 ### Neural Network Inputs
-`deepxube` trains heuristic functions represented as neural networks. Different kinds of neural networks expect different kinds of inputs.
-By inheriting from Mixins from `deepxube.base.nnet_input` a `NNetInput` class can be dynamically created for a domain.
-
-`Grid` inherits from `HasFlatSGActsEnumFixedIn` and implements `get_input_info_flat_sg`, `to_np_flat_sg`, and `actions_to_indices`.
-From this, if a neural network expects a flat (1D) input from a state/goal pair, then a `NNetInput` class that tells the neural network the 
-dimension of the input, the number of inputs, and that converts state/goal pairs to numpy arrays is dynamically created. 
-Furthermore, if deep Q-network is used with an output for each action, then the heuristic function is automatically modified to have the correct output dimension.  
-Hence, the `flat_sg` and `flat_sg_actfix` in the domain information.
-
-A `NNetInput` object has a `to_np` function which converts a problem instance, or a problem instance along with actions in the case of a deep Q-network that 
+`deepxube` trains heuristic functions represented as neural networks. Different kinds of neural networks expect 
+different kinds of inputs.
+A `NNetInput` object has a `to_np` function which converts a state/goal pair, or a state/goal pair along with actions in the 
+case of a deep Q-network that 
 takes an action as input, to a list of numpy arrays. Each row of each array in the list of numpy arrays represents a different problem instance. Therefore, 
-multiple arrays of different sizes can be used to represent a single problem instance, if needed.
+multiple arrays can be used to represent a single problem instance, if needed. 
+Custom neural network input types can be created and registered. Given a heuristic function, deepxube searches for a 
+registered `NNetInput` class that matches its expected input. If multiple exist, it uses the first one it finds.
 
-With this dynamic `NNetInput` creation, `Grid` can be used with deepxube's built in `resnet_fc` heuristic function, which expects a flat input.
-
-Custom neural network input types can also be created and registered. Given a heuristic function, deepxube searches for a registered `NNetInput` class that 
-matches its expected input. If multiple exist, it uses the first one it finds.
+With `GridFlatIn`, `Grid` can be used with deepxube's built in `resnet_fc` heuristic function, which expects a flat input.
 
 ### Heuristics
-User-defined neural networks for heuristic functions can go in the domain file, itself, or, if generlizable to multiple domains, should go in the go in the `./heuristics/` folder. 
+User-defined neural networks for heuristic functions can go in the domain file, itself, or, if generlizable to multiple domains, 
+should go in the go in the `./nnets/` folder. 
 deepxube will recursively search this directory and import all modules so that heuristic functions are registered. 
 
 A heuristic function is constructed given a neural network input of a pre-determined type, the dimensionality of the output, and a boolean indicating whether 

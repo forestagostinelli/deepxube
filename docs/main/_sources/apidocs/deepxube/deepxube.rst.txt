@@ -13,16 +13,17 @@ Subpackages
    :titlesonly:
    :maxdepth: 3
 
-   deepxube.heuristics
    deepxube.domains
    deepxube.pathfinding
    deepxube.tests
-   deepxube.nnet
    deepxube.logic
    deepxube.utils
    deepxube.trainers
    deepxube.factories
    deepxube.updaters
+   deepxube.pathfind_fns
+   deepxube.pytorch
+   deepxube.nnets
    deepxube.base
 
 Submodules

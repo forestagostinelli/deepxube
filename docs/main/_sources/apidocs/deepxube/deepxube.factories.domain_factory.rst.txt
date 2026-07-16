@@ -9,6 +9,17 @@
 Module Contents
 ---------------
 
+Functions
+~~~~~~~~~
+
+.. list-table::
+   :class: autosummary longtable
+   :align: left
+
+   * - :py:obj:`get_domain_from_arg <deepxube.factories.domain_factory.get_domain_from_arg>`
+     - .. autodoc2-docstring:: deepxube.factories.domain_factory.get_domain_from_arg
+          :summary:
+
 Data
 ~~~~
 
@@ -29,3 +40,8 @@ API
    :value: '(...)'
 
    .. autodoc2-docstring:: deepxube.factories.domain_factory.domain_factory
+
+.. py:function:: get_domain_from_arg(domain: str) -> typing.Tuple[deepxube.base.domain.Domain, str]
+   :canonical: deepxube.factories.domain_factory.get_domain_from_arg
+
+   .. autodoc2-docstring:: deepxube.factories.domain_factory.get_domain_from_arg

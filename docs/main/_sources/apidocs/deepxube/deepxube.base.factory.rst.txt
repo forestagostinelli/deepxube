@@ -25,6 +25,10 @@ Classes
      -
    * - :py:obj:`Factory <deepxube.base.factory.Factory>`
      -
+   * - :py:obj:`FactoryAutoBuild <deepxube.base.factory.FactoryAutoBuild>`
+     -
+   * - :py:obj:`NamedObjects <deepxube.base.factory.NamedObjects>`
+     -
 
 Data
 ~~~~
@@ -35,6 +39,9 @@ Data
 
    * - :py:obj:`T <deepxube.base.factory.T>`
      - .. autodoc2-docstring:: deepxube.base.factory.T
+          :summary:
+   * - :py:obj:`O <deepxube.base.factory.O>`
+     - .. autodoc2-docstring:: deepxube.base.factory.O
           :summary:
 
 API
@@ -180,3 +187,72 @@ API
       :canonical: deepxube.base.factory.Factory.get_all_class_names
 
       .. autodoc2-docstring:: deepxube.base.factory.Factory.get_all_class_names
+
+.. py:class:: FactoryAutoBuild(class_type_str: str)
+   :canonical: deepxube.base.factory.FactoryAutoBuild
+
+   Bases: :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.base.factory.T`\ ]
+
+   .. py:method:: _schema_key(field_specs: typing.Dict[str, typing.Type]) -> typing.Tuple[typing.Tuple[str, typing.Type], ...]
+      :canonical: deepxube.base.factory.FactoryAutoBuild._schema_key
+      :staticmethod:
+
+      .. autodoc2-docstring:: deepxube.base.factory.FactoryAutoBuild._schema_key
+
+   .. py:method:: register(cls: typing.Type[deepxube.base.factory.T]) -> typing.Type[deepxube.base.factory.T]
+      :canonical: deepxube.base.factory.FactoryAutoBuild.register
+
+      .. autodoc2-docstring:: deepxube.base.factory.FactoryAutoBuild.register
+
+   .. py:method:: get_type(key: typing.Tuple[typing.Tuple[str, typing.Type], ...]) -> typing.Type[deepxube.base.factory.T]
+      :canonical: deepxube.base.factory.FactoryAutoBuild.get_type
+
+      .. autodoc2-docstring:: deepxube.base.factory.FactoryAutoBuild.get_type
+
+   .. py:method:: build_class(field_data: typing.Dict[str, typing.Any]) -> deepxube.base.factory.T
+      :canonical: deepxube.base.factory.FactoryAutoBuild.build_class
+
+      .. autodoc2-docstring:: deepxube.base.factory.FactoryAutoBuild.build_class
+
+   .. py:method:: get_all_class_names() -> typing.List[typing.Tuple[typing.Tuple[str, typing.Type], ...]]
+      :canonical: deepxube.base.factory.FactoryAutoBuild.get_all_class_names
+
+      .. autodoc2-docstring:: deepxube.base.factory.FactoryAutoBuild.get_all_class_names
+
+.. py:data:: O
+   :canonical: deepxube.base.factory.O
+   :value: 'TypeVar(...)'
+
+   .. autodoc2-docstring:: deepxube.base.factory.O
+
+.. py:class:: NamedObjects
+   :canonical: deepxube.base.factory.NamedObjects
+
+   Bases: :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.base.factory.O`\ ], :py:obj:`abc.ABC`
+
+   .. py:method:: object_type() -> typing.Type[deepxube.base.factory.O]
+      :canonical: deepxube.base.factory.NamedObjects.object_type
+      :abstractmethod:
+      :staticmethod:
+
+      .. autodoc2-docstring:: deepxube.base.factory.NamedObjects.object_type
+
+   .. py:method:: items() -> typing.Iterator[tuple[str, deepxube.base.factory.O]]
+      :canonical: deepxube.base.factory.NamedObjects.items
+
+      .. autodoc2-docstring:: deepxube.base.factory.NamedObjects.items
+
+   .. py:method:: values() -> typing.Iterator[deepxube.base.factory.O]
+      :canonical: deepxube.base.factory.NamedObjects.values
+
+      .. autodoc2-docstring:: deepxube.base.factory.NamedObjects.values
+
+   .. py:method:: names() -> typing.Iterator[str]
+      :canonical: deepxube.base.factory.NamedObjects.names
+
+      .. autodoc2-docstring:: deepxube.base.factory.NamedObjects.names
+
+   .. py:method:: __post_init__() -> None
+      :canonical: deepxube.base.factory.NamedObjects.__post_init__
+
+      .. autodoc2-docstring:: deepxube.base.factory.NamedObjects.__post_init__

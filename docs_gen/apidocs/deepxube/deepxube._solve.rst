@@ -22,12 +22,6 @@ Functions
    * - :py:obj:`parse_solve <deepxube._solve.parse_solve>`
      - .. autodoc2-docstring:: deepxube._solve.parse_solve
           :summary:
-   * - :py:obj:`get_heur_fn <deepxube._solve.get_heur_fn>`
-     - .. autodoc2-docstring:: deepxube._solve.get_heur_fn
-          :summary:
-   * - :py:obj:`get_policy_fn <deepxube._solve.get_policy_fn>`
-     - .. autodoc2-docstring:: deepxube._solve.get_policy_fn
-          :summary:
    * - :py:obj:`solve_cli <deepxube._solve.solve_cli>`
      - .. autodoc2-docstring:: deepxube._solve.solve_cli
           :summary:
@@ -47,16 +41,6 @@ API
    :canonical: deepxube._solve.parse_solve
 
    .. autodoc2-docstring:: deepxube._solve.parse_solve
-
-.. py:function:: get_heur_fn(domain: deepxube.base.domain.Domain, domain_name: str, heur_nnet_str: typing.Optional[str], heur_file: typing.Optional[str], heur_type: typing.Optional[str], nnet_batch_size: typing.Optional[int]) -> typing.Optional[deepxube.base.heuristic.HeurFn]
-   :canonical: deepxube._solve.get_heur_fn
-
-   .. autodoc2-docstring:: deepxube._solve.get_heur_fn
-
-.. py:function:: get_policy_fn(domain: deepxube.base.domain.Domain, domain_name: str, policy_nnet_str: typing.Optional[str], policy_file: typing.Optional[str], policy_samp: int, nnet_batch_size: typing.Optional[int]) -> typing.Optional[deepxube.base.heuristic.PolicyFn]
-   :canonical: deepxube._solve.get_policy_fn
-
-   .. autodoc2-docstring:: deepxube._solve.get_policy_fn
 
 .. py:function:: solve_cli(args: argparse.Namespace) -> None
    :canonical: deepxube._solve.solve_cli

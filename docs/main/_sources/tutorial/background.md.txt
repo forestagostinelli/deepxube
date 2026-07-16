@@ -1,4 +1,4 @@
-# Background Literature HAI
+# Background Literature
 
 To familiarize yourself with the core concepts, please read the writeup {cite:p}`agostinelli2026deepxube`. 
 
