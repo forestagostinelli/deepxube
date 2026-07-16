@@ -106,10 +106,7 @@ def train_cli(args: argparse.Namespace) -> None:
     """
 
     # trainer
-    writer: SummaryWriter = SummaryWriter(args.dir)
-    nnet_par_train: DeepXubeNNetPar = updater.get_train_nnet_par()
-
-    trainer, trainer_name = get_trainer_from_args(args.dir, nnet_par_train, updater, device, on_gpu, writer, args.tr)
+    trainer, trainer_name = get_trainer_from_args(args.dir, updater, device, on_gpu, args.tr)
     print(trainer, f"(name: {trainer_name})")
 
     trainer.train_loop()

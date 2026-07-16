@@ -4,8 +4,6 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from deepxube.utils.command_line_utils import get_name_args
-from deepxube.base.nnet import DeepXubeNNet
-from deepxube.base.pathfind_fns import DeepXubeNNetPar
 from deepxube.base.updater import Update
 from deepxube.base.trainer import Train
 from deepxube.base.factory import Factory
@@ -13,10 +11,8 @@ from deepxube.base.factory import Factory
 trainer_factory: Factory[Train] = Factory[Train]("Train")
 
 
-def get_trainer_from_args(nnet_dir: str, nnet_par: DeepXubeNNetPar, updater: Update, device: torch.device, on_gpu: bool, writer: SummaryWriter,
-                          trainer_name_args: str) -> Tuple[Train, str]:
+def get_trainer_from_args(nnet_dir: str, updater: Update, device: torch.device, on_gpu: bool, trainer_name_args: str) -> Tuple[Train, str]:
     trainer_name_pre, args_str = get_name_args(trainer_name_args)
-    nnet: DeepXubeNNet = nnet_par.get_nnet()
 
     names: List[str] = trainer_factory.get_all_class_names()
     compat_names: List[str] = []
@@ -25,7 +21,7 @@ def get_trainer_from_args(nnet_dir: str, nnet_par: DeepXubeNNetPar, updater: Upd
         if not name.startswith(trainer_name_pre):
             continue
 
-        incompat_reason: Optional[str] = trainer_factory.get_type(name).get_incompat_reason(nnet, updater)
+        incompat_reason: Optional[str] = trainer_factory.get_type(name).get_incompat_reason(updater)
         if incompat_reason is not None:
             incompat_reasons.append(incompat_reason + f" (Trainer name: {name})")
         else:
@@ -44,10 +40,7 @@ def get_trainer_from_args(nnet_dir: str, nnet_par: DeepXubeNNetPar, updater: Upd
 
     trainer_kwargs: Dict[str, Any] = trainer_factory.get_kwargs(trainer_name, args_str)
     trainer_kwargs["nnet_dir"] = nnet_dir
-    trainer_kwargs["nnet"] = nnet
-    trainer_kwargs["nnet_par"] = nnet_par
     trainer_kwargs["updater"] = updater
     trainer_kwargs["device"] = device
     trainer_kwargs["on_gpu"] = on_gpu
-    trainer_kwargs["writer"] = writer
     return trainer_factory.build_class(trainer_name, trainer_kwargs), trainer_name

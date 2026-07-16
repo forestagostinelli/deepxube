@@ -174,10 +174,8 @@ class Train(Generic[NNet, Up], ABC):
         pass
 
     @classmethod
-    def get_incompat_reason(cls, nnet: DeepXubeNNet, updater: Update) -> Optional[str]:
-        if not isinstance(nnet, cls.nnet_type()):
-            return f"DeepXubeNNet {nnet} is not an instance of {cls.nnet_type()}"
-        elif not isinstance(updater, cls.updater_type()):
+    def get_incompat_reason(cls, updater: Update) -> Optional[str]:
+        if not isinstance(updater, cls.updater_type()):
             return f"Updater {updater} is not an instance of {cls.updater_type()}"
 
         return None
@@ -187,33 +185,42 @@ class Train(Generic[NNet, Up], ABC):
     def get_nnet_name() -> str:
         pass
 
-    def __init__(self, nnet_dir: str, nnet: NNet, nnet_par: DeepXubeNNetPar, updater: Up, device: torch.device, on_gpu: bool, writer: SummaryWriter,
-                 batch_size: int = 100, max_itrs: int = 100000, balance_steps: bool = False, loss_thresh: float = np.inf, checkpoint: int = 0,
-                 grad_accum: int = 1, display: int = 100) -> None:
-        self.nnet_dir: str = nnet_dir
-        if not os.path.exists(self.nnet_dir):
-            os.makedirs(self.nnet_dir)
-
-        self.nnet_name: str = self.get_nnet_name()
-        self.nnet_file: str = f"{self.nnet_dir}/{self.nnet_name}.pt"
-        self.nnet_targ_file: str = f"{self.nnet_dir}/{self.nnet_name}_targ.pt"
-
-        self.updater: Up = updater
-        self.nnet_field_name: str = nnet_par.get_field_name()
-        nnet_par.set_nnet_file(self.nnet_targ_file)
-        self.nnet: NNet = nnet
-
-        incompat_reason: Optional[str] = self.get_incompat_reason(self.nnet, self.updater)
+    def __init__(self, nnet_dir: str, updater: Up, device: torch.device, on_gpu: bool, batch_size: int = 100, max_itrs: int = 100000,
+                 balance_steps: bool = False, loss_thresh: float = np.inf, checkpoint: int = 0, grad_accum: int = 1, display: int = 100) -> None:
+        incompat_reason: Optional[str] = self.get_incompat_reason(updater)
         if incompat_reason is not None:
             raise TypeError(incompat_reason)
 
-        self.writer: SummaryWriter = writer
+        # make directories and writers
+        self.nnet_dir: str = nnet_dir
+        if not os.path.exists(self.nnet_dir):
+            os.makedirs(self.nnet_dir)
+        self.nnet_name: str = self.get_nnet_name()
 
-        # kwargs
-        self.train_args: TrainArgs = TrainArgs(batch_size=batch_size, max_itrs=max_itrs, balance_steps=balance_steps, loss_thresh=loss_thresh,
-                                               checkpoint=checkpoint, grad_accum=grad_accum, display=display)
+        summ_write_dir: str = f"{self.nnet_dir}/{self.nnet_name}_tboard/"
+        if not os.path.exists(summ_write_dir):
+            os.makedirs(summ_write_dir)
+        self.writer: SummaryWriter = SummaryWriter(summ_write_dir)
+
+        # args and kwargs
         self.device: torch.device = device
         self.on_gpu: bool = on_gpu
+
+        self.train_args: TrainArgs = TrainArgs(batch_size=batch_size, max_itrs=max_itrs, balance_steps=balance_steps, loss_thresh=loss_thresh,
+                                               checkpoint=checkpoint, grad_accum=grad_accum, display=display)
+
+        # get nnet
+        self.updater: Up = updater
+
+        self.nnet_file: str = f"{self.nnet_dir}/{self.nnet_name}.pt"
+        self.nnet_targ_file: str = f"{self.nnet_dir}/{self.nnet_name}_targ.pt"
+
+        nnet_par: DeepXubeNNetPar = self.updater.get_train_nnet_par()
+        self.nnet: NNet = nnet_par.get_nnet()
+        assert isinstance(self.nnet, self.nnet_type()), f"{self.nnet} is of type {type(self.nnet)} which is not an instance of {self.nnet_type()}"
+
+        self.nnet_field_name: str = nnet_par.get_field_name()
+        nnet_par.set_nnet_file(self.nnet_targ_file)
 
         # load status
         self.status_file: str = f"{self.nnet_dir}/{self.nnet_name}_status.pkl"
@@ -226,6 +233,7 @@ class Train(Generic[NNet, Up], ABC):
             # noinspection PyTypeChecker
             pickle.dump(self.status, open(self.status_file, "wb"), protocol=-1)
 
+        # load summary
         self.train_summary_file: str = f"{self.nnet_dir}/{self.nnet_name}_train_summary.pkl"
         self.train_summary: TrainSummary
         if os.path.isfile(self.train_summary_file):
