@@ -1,0 +1,17 @@
+.scroll-code {
+  max-height: 500px;
+  overflow-y: auto;
+  background: var(--color-code-background);
+  border-radius: 0.4rem;
+}
+
+.scroll-code .highlight {
+  background: transparent;
+}
+
+.scroll-code pre {
+  max-height: none;
+  overflow: visible;
+  background: transparent !important;
+  margin-bottom: 0;
+}
