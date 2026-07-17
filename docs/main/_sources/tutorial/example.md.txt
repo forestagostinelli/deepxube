@@ -1,3 +1,4 @@
+(rubiks_cube_example)=
 # Rubik's Cube Example
 
 ```{note}
