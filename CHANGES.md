@@ -1,5 +1,13 @@
 # Changes
 
+## 0.4.0
+* Function -> Pathfinding functions -> Pathfinding -> Updater -> Trainer
+* More concise function and neural network input via the command line
+* Updater and Trainer are now defined via command line arguments like pathfinding algorithms
+* Automatic pathinding and updater name resolution based on dependencies
+* More informative output.txt
+
+
 ## 0.3.1
 * Save .gif file of train_summary option
 
