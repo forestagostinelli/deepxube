@@ -186,7 +186,7 @@ We can now train a heuristic function that takes a flat input for the
 grid domain. It should learn to solve over 95% of problem instances with 
 20 iterations of A* search during training.
 
-`deepxube train --domain grid_tut.7d --heur resnet_fc.100H_1B_bn --heur_type V --pathfind graph_v --step_max 100 --up_itrs 100 --search_itrs 20 --backup -1 --procs 2 --batch_size 200 --max_itrs 1000 --dir tutorial/grid_tut/flatin_v/`
+`deepxube train --domain grid_tut.7d --fn heurv,resnet_fc.100H_1B_bn --pathfind graph --up up_rl.100sm_100up_20sitrs_lhbl_2p --tr tr_h.200bs_1000maxit --dir tutorial/grid_tut/flatin_v/`
 
 ```{literalinclude} ../../tutorial/grid_tut/flatin_v/output.txt
 :language: none
@@ -219,7 +219,7 @@ be the index of the output that corresponds to each action in `actions_l`.
 We can now train a deep Q-network that takes a flat input for the
 grid domain.
 
-`deepxube train --domain grid_tut.7d --heur resnet_fc.100H_1B_bn --heur_type QFix --pathfind graph_q --step_max 100 --up_itrs 100 --search_itrs 20 --backup -1 --procs 2 --batch_size 200 --max_itrs 1000 --dir tutorial/grid_tut/flatin_qfix/`
+`deepxube train --domain grid_tut.7d --fn heurq_fixout,resnet_fc.100H_1B_bn --pathfind graph --up up_rl.100sm_100up_20sitrs_lhbl_2p --tr tr_h.200bs_1000maxit --dir tutorial/grid_tut/flatin_qfix/`
 
 ```{literalinclude} ../../tutorial/grid_tut/flatin_qfix/output.txt
 :language: none
@@ -227,7 +227,7 @@ grid domain.
 ```
 
 ```{tip}
-We can verify in the output that the final layer of the deep Q-network 
+We can verify in the output.txt that the final layer of the deep Q-network 
 matches the number of actions (4)
 `(2): Linear(in_features=100, out_features=4, bias=True)`
 ```
@@ -251,7 +251,7 @@ number of applicable actions.
 We can now train a deep Q-network that takes the action as in input and a 
 flat input for the grid domain.
 
-`deepxube train --domain grid_tut.7d --heur resnet_fc.100H_1B_bn --heur_type QIn --pathfind graph_q --step_max 100 --up_itrs 100 --search_itrs 20 --backup -1 --procs 2 --batch_size 200 --max_itrs 1000 --dir tutorial/grid_tut/flatin_qin/ `
+`deepxube train --domain grid_tut.7d --fn heurq_in,resnet_fc.100H_1B_bn --pathfind graph --up up_rl.100sm_100up_20sitrs_lhbl_2p --tr tr_h.200bs_1000maxit --dir tutorial/grid_tut/flatin_qin/`
 
 ```{literalinclude} ../../tutorial/grid_tut/flatin_qin/output.txt
 :language: none
@@ -284,7 +284,7 @@ location of the goal.
 
 ### Neural Network
 While the neural network uses DeepXube modules to implement convolutional layers followed by a fully connected layer, arbitrary PyTorch code 
-can be used to implement neural networks. The user implements {mod}`deepxube.base.heuristic.HeurNNet._forward`, which is used by superclass.
+can be used to implement neural networks. The user implements {mod}`deepxube.base.nnet.HeurNNet._forward`, which is used by superclass.
 
 ```{literalinclude} ../../domains/grid_tutorial.py
 :language: python
@@ -295,7 +295,7 @@ can be used to implement neural networks. The user implements {mod}`deepxube.bas
 
 ```{important}
 The neural network should return the type of neural network input it is expecting with 
-{mod}`deepxube.base.heuristic.DeepXubeNNet.nnet_input_type`. The neural network can access it with `self.nnet_input`.
+{mod}`deepxube.base.nnet.DeepXubeNNet.nnet_input_type`. The neural network can access it with `self.nnet_input`.
 ```
 
 ```{note}
@@ -312,8 +312,8 @@ neural network can be properly initialized.
 ```
 
 ```{tip}
-The custom neural network can be seen with `deepxube heuristic_info` and more specific information can be seen with 
-`deepxube heuristic_info --name gridnet_tut`.
+The custom neural network can be seen with `deepxube nnet_info` and more specific information can be seen with 
+`deepxube nnet_info --name gridnet_tut`.
 ```
 
 
@@ -330,7 +330,7 @@ A parser for the custom neural network can be implemented to allow for setting h
 
 We can now train a network with 16 channels and a fully connected layer of size 100:
 
-`deepxube train --domain grid_tut.7d --heur gridnet_tut.16ch_100fc --heur_type V --pathfind graph_v --step_max 100 --up_itrs 100 --search_itrs 20 --backup -1 --procs 2 --batch_size 200 --max_itrs 1000 --dir tutorial/grid_tut/gridnet_v/`
+`deepxube train --domain grid_tut.7d --fn heurv,gridnet_tut.16ch_100fc --pathfind graph --up up_rl.100sm_100up_20sitrs_lhbl_2p --tr tr_h.200bs_1000maxit --dir tutorial/grid_tut/gridnet_v/`
 
 ```{literalinclude} ../../tutorial/grid_tut/gridnet_v/output.txt
 :language: none
@@ -340,6 +340,7 @@ We can now train a network with 16 channels and a fully connected layer of size 
 ## Custom Problem Instances
 
 To specify certain problem instances to solve with DeepXube, save a dictionary with a key for the states and a key for the goals.
+Run the script below to save these custom problem instances.
 
 ```{literalinclude} ../../make_gridtut_prob_insts.py
 :language: python
@@ -354,14 +355,14 @@ The two problem instances can be visualized:
 `deepxube viz --domain grid_tut.7d --file tutorial/grid_tut/custom_insts.pkl --idx 1`
 ```
 
-| ![Instance 0](../../tutorial/grid_tut/inst0.png) | ![Instance 1](../../tutorial/grid_tut/inst1.png) |
-|--------------------------------------------------|--------------------------------------------------|
-| Instance 0                                       | Instance 1                                       |
+| ![Instance 0](../_static/grid_tut_inst0.png) | ![Instance 1](../_static/grid_tut_inst1.png) |
+|----------------------------------------------|----------------------------------------------|
+| Instance 0                                   | Instance 1                                   |
 
 The problem instances can then be solved with the trained custom neural
 network:
 
-`deepxube solve --domain grid_tut.7d --heur gridnet_tut.16ch_100fc --heur_file tutorial/grid_tut/gridnet_v/heur.pt --heur_type V --pathfind graph_v.1B_1.0W --file tutorial/grid_tut/custom_insts.pkl --results tutorial/grid_tut/results_custom_insts/ --redo`
+`deepxube solve --domain grid_tut.7d --fn heurv,gridnet_tut.16ch_100fc,tutorial/grid_tut/gridnet_v/heur.pt --pathfind graph.1B_1.0W --file tutorial/grid_tut/custom_insts.pkl --results tutorial/grid_tut/results_custom_insts/ --redo`
 
 ```{literalinclude} ../../tutorial/grid_tut/results_custom_insts/output.txt
 :language: none
@@ -372,6 +373,6 @@ network:
 
 The functionality of the domain and of a given neural network can be timed with `deepxube time`.
 Breakpoints can be set anywhere in any of the tested methods, including in the `__init__` and 
-{mod}`deepxube.base.heuristic.HeurNNet._forward` portions of the neural network.
+{mod}`deepxube.base.HeurNNet._forward` portions of the neural network.
 
-`deepxube time --domain grid_tut.7d --heur gridnet_tut.16ch_100fc --heur_type V --step_min 0 --step_max 10 --num_insts 100`
+`deepxube time --domain grid_tut.7d --fn heurv,gridnet_tut.16ch_100fc --step_min 0 --step_max 10 --num_insts 100`

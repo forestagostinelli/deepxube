@@ -1,0 +1,45 @@
+/opt/miniconda3/envs/deepxube/bin/deepxube solve --domain grid_tut.7d --fn heurv,gridnet_tut.16ch_100fc,tutorial/grid_tut/gridnet_v/heur.pt --pathfind graph.1B_1.0W --file tutorial/grid_tut/custom_insts.pkl --results tutorial/grid_tut/results_custom_insts/ --redo
+device: cpu, devices: [], on_gpu: False
+NNetInputType: <class 'domains.grid_tutorial.GridNNetInput'> (name: ('grid_tut', 'grid_nnet_input'))
+HeurVNNetParC()
+GridNet(
+  (heur): Sequential(
+    (0): Conv2dModel(
+      (layers): ModuleList(
+        (0): ModuleList(
+          (0): Conv2d(2, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU()
+        )
+        (1): ModuleList(
+          (0): Conv2d(16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU()
+        )
+      )
+    )
+    (1): Flatten(start_dim=1, end_dim=-1)
+    (2): FullyConnectedModel(
+      (layers): ModuleList(
+        (0): ModuleList(
+          (0): Linear(in_features=784, out_features=100, bias=True)
+          (1): BatchNorm1d(100, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU()
+        )
+      )
+    )
+    (3): Linear(in_features=100, out_features=1, bias=True)
+  )
+)
+Number of trainable parameters: 81,489
+(name: heurv, nnet_input_name: ('grid_tut', 'grid_nnet_input'))
+PFNsHeurVC(heurv=<function NNetPar.get_nnet_fn.<locals>.nnet_fn at 0x108b811b0>)
+GraphSearchHeurNodeActsEnum(batch_size=1, weight=1.0, eps=0.0) (name: graph_v)
+State: 0, SolnCost: 12.00, # Nodes Gen: 152, Itrs: 38, Itrs/sec: 1574.75, Solved: True, Time: 0.02
+Times - root: 0.00, heur: 0.02, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.00, nodes: 0.00, up_inst: 0.00, filt: 0.00, cost: 0.00, pushpop: 0.00, edges_next: 0.00, set_next: 0.00, Tot: 0.02, num_itrs: 38
+Means - SolnCost: 12.00, # Nodes Gen: 152.00, Itrs: 38.00, Itrs/sec: 1574.75, Solved: 100.00%, Time: 0.02
+
+State: 1, SolnCost: 8.00, # Nodes Gen: 76, Itrs: 19, Itrs/sec: 3652.91, Solved: True, Time: 0.01
+Times - root: 0.00, heur: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.00, nodes: 0.00, up_inst: 0.00, filt: 0.00, cost: 0.00, pushpop: 0.00, edges_next: 0.00, set_next: 0.00, Tot: 0.01, num_itrs: 19
+Means - SolnCost: 10.00, # Nodes Gen: 114.00, Itrs: 28.50, Itrs/sec: 2613.83, Solved: 100.00%, Time: 0.01
+

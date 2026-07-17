@@ -1,0 +1,126 @@
+/opt/miniconda3/envs/deepxube/bin/deepxube train --domain grid_tut.7d --fn heurv,gridnet_tut.16ch_100fc --pathfind graph --up up_rl.100sm_100up_20sitrs_lhbl_2p --tr tr_h.200bs_1000maxit --dir tutorial/grid_tut/gridnet_v/
+device: cpu, devices: [], on_gpu: False
+NNetInputType: <class 'domains.grid_tutorial.GridNNetInput'> (name: ('grid_tut', 'grid_nnet_input'))
+HeurVNNetParC()
+GridNet(
+  (heur): Sequential(
+    (0): Conv2dModel(
+      (layers): ModuleList(
+        (0): ModuleList(
+          (0): Conv2d(2, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU()
+        )
+        (1): ModuleList(
+          (0): Conv2d(16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU()
+        )
+      )
+    )
+    (1): Flatten(start_dim=1, end_dim=-1)
+    (2): FullyConnectedModel(
+      (layers): ModuleList(
+        (0): ModuleList(
+          (0): Linear(in_features=784, out_features=100, bias=True)
+          (1): BatchNorm1d(100, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU()
+        )
+      )
+    )
+    (3): Linear(in_features=100, out_features=1, bias=True)
+  )
+)
+Number of trainable parameters: 81,489
+(name: heurv, nnet_input_name: ('grid_tut', 'grid_nnet_input'))
+Grid(dim=7) (name: grid_tut)
+PFNsHeurVC(heurv=<function NNetPar.get_nnet_fn.<locals>.nnet_fn at 0x10beb91b0>)
+GraphSearchHeurNodeActsEnum(batch_size=1, weight=1.0, eps=0.0) (name: graph_v)
+UpdateHeurVRLKeepGoal, UpArgs(procs=2, step_max=100, search_itrs=20, up_itrs=100, up_gen_itrs=None, rb=0, up_batch_size=100, nnet_batch_size=20000, sync_main=False, v=False), UpRLArgs(ub_heur_solns=False, lhbl=True) (name: up_rl_v)
+Initializing data buffer with max size 20,000
+Input array sizes:
+index: 0, dtype: float64, shape: (2, 7, 7)
+index: 1, dtype: float64, shape: ()
+Data buffer initialized. Time: 0.0001277923583984375
+TrainHeur, TrainArgs(batch_size=200, max_itrs=1000, balance_steps=False, loss_thresh=inf, checkpoint=0, grad_accum=1, display=0) (name: tr_h)
+
+Getting Data - itr: 0, update_num: 0, targ_update: 0, num_gen: 20,000
+Times - steps_gen: 0.02, inst_info: 0.00, inst_add: 0.00, backup: 0.01, get_tr_data: 0.00, to_np: 0.01, update_perf: 0.00, put: 0.01, gc: 0.30, ->get_states: 0.10, ->pathfinding: 0.28, Tot: 0.73
+	(get_states): sample_start_states: 0.00, random_walk: 0.09, sample_goal: 0.00, Tot: 0.10
+	(pathfinding): root: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.09, nodes: 0.07, up_inst: 0.04, heur: 0.00, filt: 0.02, cost: 0.01, pushpop: 0.02, edges_next: 0.01, set_next: 0.00, Tot: 0.28
+Data - %solved: 57.97, path_costs: 2.205, search_itrs: 9.274, cost-to-go (mean/min/max): 0.98/0.00/2.00
+Train - itrs: 100, loss: 3.26E-02, targ_updated: True
+Times - up_start: 0.01, up_data: 1.08, up_end: 0.20, data_samp: 0.01, train: 1.30, save_net: 0.00, save_status: 0.00, Tot: 2.59
+
+Getting Data - itr: 100, update_num: 1, targ_update: 1, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.02, get_tr_data: 0.00, to_np: 0.01, update_perf: 0.00, put: 0.01, gc: 0.30, ->get_states: 0.12, ->pathfinding: 2.44, Tot: 2.89
+	(get_states): sample_start_states: 0.00, random_walk: 0.11, sample_goal: 0.00, Tot: 0.12
+	(pathfinding): root: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.05, nodes: 0.07, up_inst: 0.04, heur: 2.19, filt: 0.03, cost: 0.01, pushpop: 0.02, edges_next: 0.01, set_next: 0.00, Tot: 2.44
+Data - %solved: 72.29, path_costs: 2.453, search_itrs: 7.289, cost-to-go (mean/min/max): 1.80/0.00/3.25
+Train - itrs: 100, loss: 4.92E-02, targ_updated: True
+Times - up_start: 0.00, up_data: 1.43, up_end: 0.17, data_samp: 0.00, train: 1.25, save_net: 0.00, save_status: 0.00, Tot: 2.85
+
+Getting Data - itr: 200, update_num: 2, targ_update: 2, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.02, get_tr_data: 0.00, to_np: 0.01, update_perf: 0.00, put: 0.01, gc: 0.31, ->get_states: 0.13, ->pathfinding: 2.40, Tot: 2.88
+	(get_states): sample_start_states: 0.00, random_walk: 0.13, sample_goal: 0.00, Tot: 0.13
+	(pathfinding): root: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.04, nodes: 0.08, up_inst: 0.04, heur: 2.15, filt: 0.03, cost: 0.01, pushpop: 0.02, edges_next: 0.01, set_next: 0.00, Tot: 2.40
+Data - %solved: 82.43, path_costs: 2.702, search_itrs: 6.523, cost-to-go (mean/min/max): 2.34/0.00/4.16
+Train - itrs: 100, loss: 4.71E-02, targ_updated: True
+Times - up_start: 0.00, up_data: 1.42, up_end: 0.17, data_samp: 0.01, train: 1.53, save_net: 0.00, save_status: 0.00, Tot: 3.13
+
+Getting Data - itr: 300, update_num: 3, targ_update: 3, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.02, get_tr_data: 0.00, to_np: 0.01, update_perf: 0.00, put: 0.01, gc: 0.31, ->get_states: 0.15, ->pathfinding: 2.46, Tot: 2.96
+	(get_states): sample_start_states: 0.00, random_walk: 0.15, sample_goal: 0.00, Tot: 0.15
+	(pathfinding): root: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.05, nodes: 0.08, up_inst: 0.04, heur: 2.21, filt: 0.03, cost: 0.01, pushpop: 0.02, edges_next: 0.01, set_next: 0.00, Tot: 2.46
+Data - %solved: 90.35, path_costs: 3.004, search_itrs: 5.781, cost-to-go (mean/min/max): 2.92/0.00/5.41
+Train - itrs: 100, loss: 4.17E-02, targ_updated: True
+Times - up_start: 0.00, up_data: 1.46, up_end: 0.17, data_samp: 0.00, train: 1.29, save_net: 0.00, save_status: 0.00, Tot: 2.94
+
+Getting Data - itr: 400, update_num: 4, targ_update: 4, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.03, get_tr_data: 0.00, to_np: 0.01, update_perf: 0.00, put: 0.01, gc: 0.47, ->get_states: 0.19, ->pathfinding: 2.74, Tot: 3.45
+	(get_states): sample_start_states: 0.00, random_walk: 0.19, sample_goal: 0.00, Tot: 0.19
+	(pathfinding): root: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.06, nodes: 0.08, up_inst: 0.05, heur: 2.45, filt: 0.04, cost: 0.02, pushpop: 0.02, edges_next: 0.01, set_next: 0.00, Tot: 2.74
+Data - %solved: 96.00, path_costs: 3.311, search_itrs: 5.421, cost-to-go (mean/min/max): 3.03/0.00/6.56
+Train - itrs: 100, loss: 4.18E-02, targ_updated: True
+Times - up_start: 0.00, up_data: 1.75, up_end: 0.20, data_samp: 0.01, train: 1.28, save_net: 0.00, save_status: 0.00, Tot: 3.23
+
+Getting Data - itr: 500, update_num: 5, targ_update: 5, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.02, get_tr_data: 0.00, to_np: 0.01, update_perf: 0.00, put: 0.01, gc: 0.32, ->get_states: 0.15, ->pathfinding: 2.45, Tot: 2.97
+	(get_states): sample_start_states: 0.00, random_walk: 0.15, sample_goal: 0.00, Tot: 0.15
+	(pathfinding): root: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.05, nodes: 0.08, up_inst: 0.04, heur: 2.20, filt: 0.03, cost: 0.01, pushpop: 0.02, edges_next: 0.01, set_next: 0.00, Tot: 2.45
+Data - %solved: 93.87, path_costs: 3.167, search_itrs: 6.231, cost-to-go (mean/min/max): 2.60/0.00/7.01
+Train - itrs: 100, loss: 3.19E-02, targ_updated: True
+Times - up_start: 0.00, up_data: 1.47, up_end: 0.18, data_samp: 0.00, train: 1.27, save_net: 0.00, save_status: 0.00, Tot: 2.92
+
+Getting Data - itr: 600, update_num: 6, targ_update: 6, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.02, get_tr_data: 0.00, to_np: 0.01, update_perf: 0.00, put: 0.01, gc: 0.31, ->get_states: 0.18, ->pathfinding: 2.40, Tot: 2.93
+	(get_states): sample_start_states: 0.00, random_walk: 0.17, sample_goal: 0.00, Tot: 0.18
+	(pathfinding): root: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.06, nodes: 0.07, up_inst: 0.04, heur: 2.15, filt: 0.03, cost: 0.01, pushpop: 0.02, edges_next: 0.01, set_next: 0.00, Tot: 2.40
+Data - %solved: 97.65, path_costs: 3.370, search_itrs: 5.326, cost-to-go (mean/min/max): 3.01/0.00/8.48
+Train - itrs: 100, loss: 6.63E-02, targ_updated: True
+Times - up_start: 0.00, up_data: 1.45, up_end: 0.17, data_samp: 0.00, train: 1.28, save_net: 0.00, save_status: 0.00, Tot: 2.90
+
+Getting Data - itr: 700, update_num: 7, targ_update: 7, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.02, get_tr_data: 0.00, to_np: 0.01, update_perf: 0.00, put: 0.01, gc: 0.31, ->get_states: 0.16, ->pathfinding: 2.40, Tot: 2.90
+	(get_states): sample_start_states: 0.00, random_walk: 0.15, sample_goal: 0.00, Tot: 0.16
+	(pathfinding): root: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.05, nodes: 0.07, up_inst: 0.04, heur: 2.15, filt: 0.03, cost: 0.01, pushpop: 0.02, edges_next: 0.01, set_next: 0.00, Tot: 2.40
+Data - %solved: 95.83, path_costs: 3.281, search_itrs: 6.548, cost-to-go (mean/min/max): 2.54/0.00/8.48
+Train - itrs: 100, loss: 1.44E-01, targ_updated: True
+Times - up_start: 0.00, up_data: 1.43, up_end: 0.17, data_samp: 0.00, train: 1.31, save_net: 0.00, save_status: 0.00, Tot: 2.92
+
+Getting Data - itr: 800, update_num: 8, targ_update: 8, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.02, get_tr_data: 0.00, to_np: 0.01, update_perf: 0.00, put: 0.01, gc: 0.31, ->get_states: 0.17, ->pathfinding: 2.40, Tot: 2.91
+	(get_states): sample_start_states: 0.00, random_walk: 0.16, sample_goal: 0.00, Tot: 0.17
+	(pathfinding): root: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.05, nodes: 0.07, up_inst: 0.04, heur: 2.15, filt: 0.03, cost: 0.01, pushpop: 0.02, edges_next: 0.01, set_next: 0.00, Tot: 2.40
+Data - %solved: 97.01, path_costs: 3.323, search_itrs: 5.958, cost-to-go (mean/min/max): 2.68/0.00/9.25
+Train - itrs: 100, loss: 4.09E-02, targ_updated: True
+Times - up_start: 0.00, up_data: 1.44, up_end: 0.17, data_samp: 0.00, train: 1.30, save_net: 0.00, save_status: 0.00, Tot: 2.91
+
+Getting Data - itr: 900, update_num: 9, targ_update: 9, num_gen: 20,000
+Times - steps_gen: 0.00, inst_info: 0.00, inst_add: 0.00, backup: 0.02, get_tr_data: 0.00, to_np: 0.01, update_perf: 0.00, put: 0.01, gc: 0.31, ->get_states: 0.17, ->pathfinding: 2.42, Tot: 2.94
+	(get_states): sample_start_states: 0.00, random_walk: 0.16, sample_goal: 0.00, Tot: 0.17
+	(pathfinding): root: 0.00, pop: 0.00, is_solved: 0.00, goal: 0.00, expand: 0.05, nodes: 0.07, up_inst: 0.04, heur: 2.17, filt: 0.03, cost: 0.01, pushpop: 0.02, edges_next: 0.01, set_next: 0.00, Tot: 2.42
+Data - %solved: 98.08, path_costs: 3.407, search_itrs: 5.902, cost-to-go (mean/min/max): 2.73/0.00/9.86
+Train - itrs: 100, loss: 3.02E-02, targ_updated: True
+Times - up_start: 0.00, up_data: 1.45, up_end: 0.18, data_samp: 0.00, train: 1.26, save_net: 0.00, save_status: 0.00, Tot: 2.89
+Done

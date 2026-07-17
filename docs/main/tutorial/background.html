@@ -360,27 +360,35 @@
 <h2>Deep Reinforcement Learning<a class="headerlink" href="#deep-reinforcement-learning" title="Link to this heading">¶</a></h2>
 <p>Relevant deep reinforcement learning <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id16" title="Richard S Sutton and Andrew G Barto. Reinforcement learning: An introduction. MIT press, 2018.">SB18</a>]</span> methods include:</p>
 <ul class="simple">
-<li><p>Approximate value iteration <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../references.html#id9" title="Forest Agostinelli, Stephen McAleer, Alexander Shmakov, and Pierre Baldi. Solving the Rubik’s cube with deep reinforcement learning and search. Nature Machine Intelligence, 1(8):356–363, 2019.">AMSB19</a>, <a class="reference internal" href="../references.html#id3" title="Richard Bellman. Dynamic Programming. Princeton University Press, 1957.">Bel57</a>, <a class="reference internal" href="../references.html#id4" title="Dimitri P Bertsekas and John N Tsitsiklis. Neuro-dynamic programming. Athena Scientific, 1996. ISBN 1-886529-10-8.">BT96</a>]</span></p></li>
+<li><p>Deep approximate value iteration <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../references.html#id9" title="Forest Agostinelli, Stephen McAleer, Alexander Shmakov, and Pierre Baldi. Solving the Rubik’s cube with deep reinforcement learning and search. Nature Machine Intelligence, 1(8):356–363, 2019.">AMSB19</a>, <a class="reference internal" href="../references.html#id3" title="Richard Bellman. Dynamic Programming. Princeton University Press, 1957.">Bel57</a>, <a class="reference internal" href="../references.html#id4" title="Dimitri P Bertsekas and John N Tsitsiklis. Neuro-dynamic programming. Athena Scientific, 1996. ISBN 1-886529-10-8.">BT96</a>]</span></p></li>
 <li><p>Deep Q-learning <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../references.html#id13" title="Volodymyr Mnih, Koray Kavukcuoglu, David Silver, Andrei A Rusu, Joel Veness, Marc G Bellemare, Alex Graves, Martin Riedmiller, Andreas K Fidjeland, Georg Ostrovski, Stig Petersen, Charles Beattie, Amir Sadik, Ioannis Antonoglou, Helen King, Dharshan Kumaran, Daan Wierstra, Shane Legg, and Demis Hassabis. Human-level control through deep reinforcement learning. Nature, 518(7540):529–533, 2015.">MKS+15</a>, <a class="reference internal" href="../references.html#id12" title="Christopher JCH Watkins and Peter Dayan. Q-learning. Machine learning, 8(3-4):279–292, 1992.">WD92</a>]</span></p></li>
 <li><p>Hindsight experience replay <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../references.html#id14" title="Marcin Andrychowicz, Filip Wolski, Alex Ray, Jonas Schneider, Rachel Fong, Peter Welinder, Bob McGrew, Josh Tobin, OpenAI Pieter Abbeel, and Wojciech Zaremba. Hindsight experience replay. In Advances in Neural Information Processing Systems, 5048–5058. 2017.">AWR+17</a>]</span></p></li>
-<li><p>Limited-horizon Bellman-based learning (LHBL) <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../references.html#id7" title="Gal Hadar, Forest Agostinelli, and Shahaf S Shperberg. Beyond single-step updates: reinforcement learning of heuristics with limited-horizon search. In AAAI. 2026.">HAS26</a>]</span></p></li>
 </ul>
 </section>
 <section id="heuristic-search">
 <h2>Heuristic Search<a class="headerlink" href="#heuristic-search" title="Link to this heading">¶</a></h2>
 <p>Relevant heuristic search methods include:</p>
 <ul class="simple">
-<li><p>A* Search: <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../references.html#id15" title="Peter E Hart, Nils J Nilsson, and Bertram Raphael. A formal basis for the heuristic determination of minimum cost paths. IEEE transactions on Systems Science and Cybernetics, 4(2):100–107, 1968.">HNR68</a>]</span></p></li>
-<li><p>Batch weighted A* search: <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../references.html#id9" title="Forest Agostinelli, Stephen McAleer, Alexander Shmakov, and Pierre Baldi. Solving the Rubik’s cube with deep reinforcement learning and search. Nature Machine Intelligence, 1(8):356–363, 2019.">AMSB19</a>, <a class="reference internal" href="../references.html#id11" title="Tianhua Li, Ruimin Chen, Borislav Mavrin, Nathan R Sturtevant, Doron Nadav, and Ariel Felner. Optimal search with neural networks: challenges and approaches. In Proceedings of the International Symposium on Combinatorial Search, volume 15, 109–117. 2022.">LCM+22</a>]</span></p></li>
-<li><p>Batch weighted Q* search: <span class="bibtex-citation" id="id9">[<a class="reference internal" href="../references.html#id10" title="Forest Agostinelli, Shahaf S Shperberg, Alexander Shmakov, Stephen McAleer, Roy Fox, and Pierre Baldi. Q* search: heuristic search with deep Q-networks. In ICAPS PRL Workshop. 2024.">ASS+24</a>]</span></p></li>
+<li><p>Uniform cost search (dervied from Dijkstra’s <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../references.html#id21" title="EW Dijkstra. A note on two problems in connexion with graphs. Numerische Mathematik, 1(1):269–271, 1959.">Dij59</a>]</span>)</p></li>
+<li><p>Beam search: <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../references.html#id22" title="Bruce T Lowerre. The harpy speech recognition system. Carnegie Mellon University, 1976.">Low76</a>]</span></p></li>
+<li><p>A* Search: <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../references.html#id15" title="Peter E Hart, Nils J Nilsson, and Bertram Raphael. A formal basis for the heuristic determination of minimum cost paths. IEEE transactions on Systems Science and Cybernetics, 4(2):100–107, 1968.">HNR68</a>]</span></p></li>
+<li><p>Batch weighted A* search: <span class="bibtex-citation" id="id9">[<a class="reference internal" href="../references.html#id9" title="Forest Agostinelli, Stephen McAleer, Alexander Shmakov, and Pierre Baldi. Solving the Rubik’s cube with deep reinforcement learning and search. Nature Machine Intelligence, 1(8):356–363, 2019.">AMSB19</a>, <a class="reference internal" href="../references.html#id11" title="Tianhua Li, Ruimin Chen, Borislav Mavrin, Nathan R Sturtevant, Doron Nadav, and Ariel Felner. Optimal search with neural networks: challenges and approaches. In Proceedings of the International Symposium on Combinatorial Search, volume 15, 109–117. 2022.">LCM+22</a>]</span></p></li>
+<li><p>Batch weighted Q* search: <span class="bibtex-citation" id="id10">[<a class="reference internal" href="../references.html#id10" title="Forest Agostinelli, Shahaf S Shperberg, Alexander Shmakov, Stephen McAleer, Roy Fox, and Pierre Baldi. Q* search: heuristic search with deep Q-networks. In ICAPS PRL Workshop. 2024.">ASS+24</a>]</span></p></li>
 </ul>
 </section>
 <section id="supervised-learning">
 <h2>Supervised Learning<a class="headerlink" href="#supervised-learning" title="Link to this heading">¶</a></h2>
 <p>Relevant supervised learning methods include:</p>
 <ul class="simple">
-<li><p>Heuristic supervision from random walks: <span class="bibtex-citation" id="id10">[<a class="reference internal" href="../references.html#id18" title="Alexander Chervov, Kirill Khoruzhii, Nikita Bukhal, Jalal Naghiyev, Vladislav Zamkovoy, Ivan Koltsov, Lyudmila Cheldieva, Arsenii Sychev, Arsenii Lenin, Mark Obozov, and others. A machine learning approach that beats rubik's cubes. In NeurIPS. 2025.">CKB+25</a>]</span></p></li>
-<li><p>Policy supervision from random walks: <span class="bibtex-citation" id="id11">[<a class="reference internal" href="../references.html#id19" title="Kyo Takano. Self-supervision is all you need for solving rubik's cube. arXiv preprint arXiv:2106.03157, 2021.">Tak21</a>]</span></p></li>
+<li><p>Heuristic supervision from random walks: <span class="bibtex-citation" id="id11">[<a class="reference internal" href="../references.html#id18" title="Alexander Chervov, Kirill Khoruzhii, Nikita Bukhal, Jalal Naghiyev, Vladislav Zamkovoy, Ivan Koltsov, Lyudmila Cheldieva, Arsenii Sychev, Arsenii Lenin, Mark Obozov, and others. A machine learning approach that beats rubik's cubes. In NeurIPS. 2025.">CKB+25</a>]</span></p></li>
+<li><p>Policy supervision from random walks: <span class="bibtex-citation" id="id12">[<a class="reference internal" href="../references.html#id19" title="Kyo Takano. Self-supervision is all you need for solving rubik's cube. arXiv preprint arXiv:2106.03157, 2021.">Tak21</a>]</span></p></li>
+</ul>
+</section>
+<section id="combining-heuristic-search-and-learning">
+<h2>Combining Heuristic Search and Learning<a class="headerlink" href="#combining-heuristic-search-and-learning" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Limited-horizon Bellman-based learning (LHBL) <span class="bibtex-citation" id="id13">[<a class="reference internal" href="../references.html#id7" title="Gal Hadar, Forest Agostinelli, and Shahaf S Shperberg. Beyond single-step updates: reinforcement learning of heuristics with limited-horizon search. In AAAI. 2026.">HAS26</a>]</span></p></li>
+<li><p>Automatic problem instance difficulty balancing: <span class="bibtex-citation" id="id14">[<a class="reference internal" href="../references.html#id20" title="Forest Agostinelli and Shahaf S Shperberg. Data efficient training of heuristic functions for satisficing search. In Tenth Workshop on Bridging the Gap Between AI Planning and (Reinforcement) Learning (PRL). 2026.">AS26</a>]</span></p></li>
 </ul>
 </section>
 </section>
@@ -468,6 +476,7 @@
 <li><a class="reference internal" href="#deep-reinforcement-learning">Deep Reinforcement Learning</a></li>
 <li><a class="reference internal" href="#heuristic-search">Heuristic Search</a></li>
 <li><a class="reference internal" href="#supervised-learning">Supervised Learning</a></li>
+<li><a class="reference internal" href="#combining-heuristic-search-and-learning">Combining Heuristic Search and Learning</a></li>
 </ul>
 </li>
 </ul>
