@@ -53,12 +53,12 @@ class HeurVNNetParC(HeurVNNetPar):
 
 
 @dataclass(frozen=True)
-class QOutFixCtx:
+class QOutFixProcessed:
     states: List[State]
 
 
 @deepxube_nnet_par_factory.register_class("heurq_fixout")
-class HeurQNNetParFixOut(HeurQNNetPar[QOutFixCtx, ActsEnumFixed, StateGoalActFixIn]):
+class HeurQNNetParFixOut(HeurQNNetPar[QOutFixProcessed, ActsEnumFixed, StateGoalActFixIn]):
     @staticmethod
     def domain_type() -> Type[ActsEnumFixed]:
         return ActsEnumFixed
@@ -71,13 +71,13 @@ class HeurQNNetParFixOut(HeurQNNetPar[QOutFixCtx, ActsEnumFixed, StateGoalActFix
     def _check_same_num_acts(actions_l: List[List[Action]]) -> None:
         assert len(set(len(actions) for actions in actions_l)) == 1, "num actions should be the same for all instances"
 
-    def process_inputs(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> ProcessedInput[QOutFixCtx]:
+    def process_inputs(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> ProcessedInput[QOutFixProcessed]:
         self._check_same_num_acts(actions_l)
-        return ProcessedInput(self._get_nnet_input().to_np(states, goals, actions_l), QOutFixCtx(states))
+        return ProcessedInput(self._get_nnet_input().to_np(states, goals, actions_l), QOutFixProcessed(states))
 
-    def process_outputs(self, outs: List[NDArray], ctx: QOutFixCtx) -> List[List[float]]:
+    def process_outputs(self, outs: List[NDArray], processed: QOutFixProcessed) -> List[List[float]]:
         q_vals_np: NDArray = outs[0]
-        assert q_vals_np.shape[0] == len(ctx.states)
+        assert q_vals_np.shape[0] == len(processed.states)
 
         q_vals_np = np.maximum(q_vals_np, 0)
         q_vals_l: List[List[float]] = [q_vals_np[state_idx].astype(np.float64).tolist() for state_idx in range(q_vals_np.shape[0])]
@@ -91,13 +91,13 @@ class HeurQNNetParFixOut(HeurQNNetPar[QOutFixCtx, ActsEnumFixed, StateGoalActFix
 
 
 @dataclass(frozen=True)
-class QInCtx:
+class QInProcessed:
     states_rep: List[State]
     split_idxs: List[int]
 
 
 @deepxube_nnet_par_factory.register_class("heurq_in")
-class HeurQNNetParIn(HeurQNNetPar[QInCtx, Domain, StateGoalActIn]):
+class HeurQNNetParIn(HeurQNNetPar[QInProcessed, Domain, StateGoalActIn]):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -106,7 +106,7 @@ class HeurQNNetParIn(HeurQNNetPar[QInCtx, Domain, StateGoalActIn]):
     def nnet_input_type() -> Type[StateGoalActIn]:
         return StateGoalActIn
 
-    def process_inputs(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> ProcessedInput[QInCtx]:
+    def process_inputs(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> ProcessedInput[QInProcessed]:
         actions_flat, split_idxs = misc_utils.flatten(actions_l)
         states_rep: List[State] = []
         goals_rep: List[Goal] = []
@@ -114,16 +114,16 @@ class HeurQNNetParIn(HeurQNNetPar[QInCtx, Domain, StateGoalActIn]):
             states_rep.extend([state] * len(actions))
             goals_rep.extend([goal] * len(actions))
 
-        return ProcessedInput(self._get_nnet_input().to_np(states_rep, goals_rep, actions_flat), QInCtx(states_rep, split_idxs))
+        return ProcessedInput(self._get_nnet_input().to_np(states_rep, goals_rep, actions_flat), QInProcessed(states_rep, split_idxs))
 
-    def process_outputs(self, outs: List[NDArray], ctx: QInCtx) -> List[List[float]]:
+    def process_outputs(self, outs: List[NDArray], processed: QInProcessed) -> List[List[float]]:
         q_vals_np: NDArray = outs[0]
 
-        assert q_vals_np.shape[0] == len(ctx.states_rep)
+        assert q_vals_np.shape[0] == len(processed.states_rep)
         q_vals_np = np.maximum(q_vals_np[:, 0], 0)
 
         q_vals_flat: List[float] = q_vals_np.astype(np.float64).tolist()
-        q_vals_l: List[List[float]] = misc_utils.unflatten(q_vals_flat, ctx.split_idxs)
+        q_vals_l: List[List[float]] = misc_utils.unflatten(q_vals_flat, processed.split_idxs)
         return q_vals_l
 
     def _qfix(self) -> bool:

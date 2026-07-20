@@ -12,7 +12,7 @@ from deepxube.base.nnet import DeepXubeNNet, HeurNNet, PolicyNNet
 from deepxube.base.nnet_input import NNetInput, StateGoalIn, PolicyNNetIn
 from deepxube.factories.nnet_factory import deepxube_nnet_factory
 from deepxube.factories.nnet_input_factory import get_nnet_input_t
-from deepxube.pytorch.nnet_utils import NNetPar, NNF_T, CTX_T, ProcessedInput
+from deepxube.pytorch.nnet_utils import NNetPar, NNF_T, PROCESSED_T, ProcessedInput
 
 
 # Individual functions
@@ -83,7 +83,7 @@ NNInP = TypeVar('NNInP', bound=NNetInput)
 DXNNet = TypeVar('DXNNet', bound=DeepXubeNNet)
 
 
-class DeepXubeNNetPar(NNetPar[NNF_T, CTX_T], Generic[NNF_T, CTX_T, D, NNInP, DXNNet]):
+class DeepXubeNNetPar(NNetPar[NNF_T, PROCESSED_T], Generic[NNF_T, PROCESSED_T, D, NNInP, DXNNet]):
     @staticmethod
     @abstractmethod
     def domain_type() -> Type[D]:
@@ -175,7 +175,7 @@ class DeepXubeNNetPar(NNetPar[NNF_T, CTX_T], Generic[NNF_T, CTX_T, D, NNInP, DXN
 H = TypeVar('H', bound=HeurFn)
 
 
-class HeurNNetPar(DeepXubeNNetPar[H, CTX_T, D, NNInP, HeurNNet], ABC):
+class HeurNNetPar(DeepXubeNNetPar[H, PROCESSED_T, D, NNInP, HeurNNet], ABC):
     @staticmethod
     def nnet_type() -> Type[HeurNNet]:
         return HeurNNet
@@ -215,7 +215,7 @@ class HeurVNNetPar(HeurNNetPar[HeurVFn, None, Domain, StateGoalIn], ABC):
     def process_inputs(self, states: List[State], goals: List[Goal]) -> ProcessedInput[None]:
         return ProcessedInput(self._get_nnet_input().to_np(states, goals), None)
 
-    def process_outputs(self, outs: List[NDArray], ctx: None) -> List[float]:
+    def process_outputs(self, outs: List[NDArray], processed: None) -> List[float]:
         heurs: NDArray = outs[0]
         heurs = np.maximum(heurs[:, 0], 0)
         return cast(List[float], heurs.astype(np.float64).tolist())
@@ -227,9 +227,9 @@ class HeurVNNetPar(HeurNNetPar[HeurVFn, None, Domain, StateGoalIn], ABC):
         return 1
 
 
-class HeurQNNetPar(HeurNNetPar[HeurQFn, CTX_T, D, NNInP], ABC):
+class HeurQNNetPar(HeurNNetPar[HeurQFn, PROCESSED_T, D, NNInP], ABC):
     @abstractmethod
-    def process_inputs(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> ProcessedInput[CTX_T]:
+    def process_inputs(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> ProcessedInput[PROCESSED_T]:
         pass
 
     def get_default_fn(self) -> HeurQFn:
@@ -247,7 +247,7 @@ class HeurQNNetPar(HeurNNetPar[HeurQFn, CTX_T, D, NNInP], ABC):
 
 
 @dataclass(frozen=True)
-class PolicyCtx:
+class PolicyProcessed:
     num_states: int
 
 
@@ -271,7 +271,7 @@ def policy_fn_rand(domain: Domain, states: List[State], num_rand: int) -> Tuple[
     return actions_samp_l, probs_l
 
 
-class PolicyNNetPar(DeepXubeNNetPar[PolicyFn, PolicyCtx, Domain, PolicyNNetIn, PolicyNNet]):
+class PolicyNNetPar(DeepXubeNNetPar[PolicyFn, PolicyProcessed, Domain, PolicyNNetIn, PolicyNNet]):
     def __init__(self, *args: Any, num_samp: int = 0, **kwargs: Any):
         assert num_samp > 0
         self.num_samp: int = num_samp
@@ -305,25 +305,25 @@ class PolicyNNetPar(DeepXubeNNetPar[PolicyFn, PolicyCtx, Domain, PolicyNNetIn, P
     def to_np_train(self, states: List[State], goals: List[Goal], actions: List[Action]) -> List[NDArray[Any]]:
         return self._get_nnet_input().to_np(states, goals, actions)
 
-    def process_inputs(self, states: List[State], goals: List[Goal]) -> ProcessedInput[PolicyCtx]:
-        return ProcessedInput(self._get_nnet_input().to_np_fn(states, goals), PolicyCtx(len(states)))
+    def process_inputs(self, states: List[State], goals: List[Goal]) -> ProcessedInput[PolicyProcessed]:
+        return ProcessedInput(self._get_nnet_input().to_np_fn(states, goals), PolicyProcessed(len(states)))
 
-    def process_outputs(self, outs: List[NDArray], ctx: PolicyCtx) -> Tuple[List[List[Action]], List[List[float]]]:
+    def process_outputs(self, outs: List[NDArray], processed: PolicyProcessed) -> Tuple[List[List[Action]], List[List[float]]]:
         actions_np: List[NDArray] = outs[0:-1]
         pdfs_np: NDArray = outs[-1]
 
         # assert dimensions match
         assert len(pdfs_np.shape) == 2
-        assert pdfs_np.shape[0] == ctx.num_states
+        assert pdfs_np.shape[0] == processed.num_states
         for actions_np_i in actions_np:
-            assert actions_np_i.shape[0] == ctx.num_states
+            assert actions_np_i.shape[0] == processed.num_states
             assert actions_np_i.shape[0] == pdfs_np.shape[0]
             assert actions_np_i.shape[1] == pdfs_np.shape[1]
 
         # convert to action object rep
         actions_l: List[List[Action]] = []
         pdfs_l: List[List[float]] = []
-        for state_idx in range(ctx.num_states):
+        for state_idx in range(processed.num_states):
             actions_np_state: List[NDArray[np.float64]] = [actions_np_i[state_idx] for actions_np_i in actions_np]
             pdfs_state: List[float] = pdfs_np[state_idx, :].tolist()
 

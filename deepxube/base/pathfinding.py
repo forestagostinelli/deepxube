@@ -658,7 +658,7 @@ class PathFindSetPolicy(PathFind[D, PFNsP_T, I], ABC):
 
 
 class PathFindSetHeurV(PathFind[D, PFNsHV_T, I], ABC):
-    def _set_node_vals(self, nodes_by_inst: List[List[Node]], instnaces_l: List[I]) -> None:
+    def _set_node_vals(self, nodes_by_inst: List[List[Node]], instances: List[I]) -> None:
         start_time = time.time()
         nodes: List[Node] = misc_utils.flatten(nodes_by_inst)[0]
 

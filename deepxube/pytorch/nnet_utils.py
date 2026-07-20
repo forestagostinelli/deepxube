@@ -157,6 +157,7 @@ def nnet_fn_runner(nnet_i_q: Queue, nnet_o_qs: List[Queue], model_file: str, dev
             break
 
         # nnet in/out
+        assert inputs_nnet_shm is not None
         nnet_in_out_shared_q(nnet, inputs_nnet_shm, batch_size, device, nnet_o_qs[proc_id])
 
 
@@ -226,16 +227,16 @@ def get_nnet_par_out(inputs_nnet: List[NDArray], nnet_par_info: NNetParInfo) -> 
 
 NNetCallable = Callable[..., Any]
 NNF_T = TypeVar('NNF_T', bound=NNetCallable)
-CTX_T = TypeVar("CTX_T")
+PROCESSED_T = TypeVar("PROCESSED_T")
 
 
 @dataclass(frozen=True)
-class ProcessedInput(Generic[CTX_T]):
+class ProcessedInput(Generic[PROCESSED_T]):
     inputs_nnet: List[NDArray]
-    ctx: CTX_T
+    processed: PROCESSED_T
 
 
-class NNetPar(ABC, Generic[NNF_T, CTX_T]):
+class NNetPar(ABC, Generic[NNF_T, PROCESSED_T]):
     def __init__(self, **kwargs: Any):
         self.nnet_file: Optional[str] = None
         self.nnet_par_fn: Optional[NNF_T] = None
@@ -256,10 +257,10 @@ class NNetPar(ABC, Generic[NNF_T, CTX_T]):
         nnet.eval()
 
         def nnet_fn(*args: Any) -> Any:
-            processed_input: ProcessedInput[CTX_T] = self.process_inputs(*args)
+            processed_input: ProcessedInput[PROCESSED_T] = self.process_inputs(*args)
             outs: List[NDArray[np.float64]] = nnet_batched(nnet, processed_input.inputs_nnet, batch_size, device)
 
-            return self.process_outputs(outs, processed_input.ctx)
+            return self.process_outputs(outs, processed_input.processed)
 
         return cast(NNF_T, nnet_fn)
 
@@ -270,10 +271,10 @@ class NNetPar(ABC, Generic[NNF_T, CTX_T]):
         :return: Neural network function
         """
         def nnet_fn(*args: Any) -> Any:
-            processed_input: ProcessedInput[CTX_T] = self.process_inputs(*args)
+            processed_input: ProcessedInput[PROCESSED_T] = self.process_inputs(*args)
             outs: List[NDArray[np.float64]] = get_nnet_par_out(processed_input.inputs_nnet, nnet_par_info)
 
-            return self.process_outputs(outs, processed_input.ctx)
+            return self.process_outputs(outs, processed_input.processed)
 
         return cast(NNF_T, nnet_fn)
 
@@ -286,11 +287,11 @@ class NNetPar(ABC, Generic[NNF_T, CTX_T]):
         pass
 
     @abstractmethod
-    def process_inputs(self, *args: Any) -> ProcessedInput[CTX_T]:
+    def process_inputs(self, *args: Any) -> ProcessedInput[PROCESSED_T]:
         pass
 
     @abstractmethod
-    def process_outputs(self, outs: List[NDArray], ctx: CTX_T) -> Any:
+    def process_outputs(self, outs: List[NDArray], processed: PROCESSED_T) -> Any:
         pass
 
     @abstractmethod
