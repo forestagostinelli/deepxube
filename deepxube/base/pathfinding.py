@@ -341,8 +341,10 @@ class PathFindNode(PathFind[D, PFNsT, I]):
         # pop from open
         start_time = time.time()
         nodes_popped_by_inst: List[List[Node]] = [instance.get_nodes() for instance in instances]
+        for nodes_popped_inst, instance in zip(nodes_popped_by_inst, instances):
+            instance.add_nodes_popped(nodes_popped_inst)
         nodes_popped_flat: List[Node] = misc_utils.flatten(nodes_popped_by_inst)[0]
-        self.times.record_time("pop", time.time() - start_time)
+        self.times.record_time("pop_n", time.time() - start_time)
 
         # is solved
         self.set_is_solved(nodes_popped_flat)
@@ -372,7 +374,7 @@ class PathFindNode(PathFind[D, PFNsT, I]):
                 edges_popped_inst.append(EdgeQ(node.parent, node.parent_action, node.parent_t_cost + node.heuristic))
             instance.add_edges_popped(edges_popped_inst)
             edges_next_flat.extend(edges_popped_inst)
-        self.times.record_time("edges_next", time.time() - start_time)
+        self.times.record_time("pop_e", time.time() - start_time)
 
         # set next nodes
         start_time = time.time()
@@ -446,8 +448,7 @@ class PathFindNode(PathFind[D, PFNsT, I]):
         for nodes_c_by_inst_state_i in nodes_c_by_inst_state:
             nodes_c_by_inst.append(misc_utils.flatten(nodes_c_by_inst_state_i)[0])
 
-        for instance, nodes_by_inst_i, nodes_c_by_inst_i in zip(instances, nodes_by_inst, nodes_c_by_inst, strict=True):
-            instance.add_nodes_popped(nodes_by_inst_i)
+        for instance, nodes_c_by_inst_i in zip(instances, nodes_c_by_inst, strict=True):
             instance.num_nodes_generated += len(nodes_c_by_inst_i)
 
         self.times.record_time("up_inst", time.time() - start_time)
@@ -469,8 +470,10 @@ class PathFindEdge(PathFind[D, PFNsT, I]):  # TODO add nodes popped
         # pop from open
         start_time = time.time()
         nodes_popped_by_inst: List[List[Node]] = [instance.get_nodes() for instance in instances]
+        for nodes_popped_inst, instance in zip(nodes_popped_by_inst, instances):
+            instance.add_nodes_popped(nodes_popped_inst)
         nodes_popped_flat: List[Node] = misc_utils.flatten(nodes_popped_by_inst)[0]
-        self.times.record_time("pop", time.time() - start_time)
+        self.times.record_time("pop_n", time.time() - start_time)
 
         # is solved
         self.set_is_solved(nodes_popped_flat)
@@ -483,6 +486,10 @@ class PathFindEdge(PathFind[D, PFNsT, I]):  # TODO add nodes popped
 
         # get next edges
         edges_next_by_inst: List[List[EdgeQ]] = self._get_next_edges(nodes_popped_by_inst, instances)
+        start_time = time.time()
+        for edges_instance, instance in zip(edges_next_by_inst, instances):
+            instance.add_edges_popped(edges_instance)
+        self.times.record_time("add_e", time.time() - start_time)
 
         # get nodes of edges
         nodes_next_by_inst: List[List[Node]] = self._get_edge_nodes(instances, edges_next_by_inst)
@@ -542,8 +549,7 @@ class PathFindEdge(PathFind[D, PFNsT, I]):  # TODO add nodes popped
         # update instances
         start_time = time.time()
         nodes_next_by_inst: List[List[Node]] = misc_utils.unflatten(nodes_next, split_idxs)
-        for instance, edges_by_inst_i, nodes_next_by_inst_i in zip(instances, edges_by_inst, nodes_next_by_inst, strict=True):
-            instance.add_edges_popped(edges_by_inst_i)
+        for instance, nodes_next_by_inst_i in zip(instances, nodes_next_by_inst, strict=True):
             instance.num_nodes_generated += len(nodes_next_by_inst_i)
         self.times.record_time("up_inst", time.time() - start_time)
 
