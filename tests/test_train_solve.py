@@ -80,8 +80,8 @@ def test_train_solve_heur(fn_str: str, pathfind_tr_str: str, up_str: str, tr_str
     search_itrs: int = 20
     for pathfind_solve_str, soln_thresh in [("graph", 85), ("beam.10B", 80)]:
         heur_file: str = f"{save_dir}/heur.pt"
-        pathfind_fns: PFNs = get_path_up_fns(domain, domain_name, fn_l, device, nnet_files=[heur_file])[0]
-        pathfind: PathFind = get_pathfind_from_arg(domain, pathfind_fns, pathfind_solve_str)[0]
+        pathfind_fns = get_path_up_fns(domain, domain_name, fn_l, device, nnet_files=[heur_file])[0]
+        pathfind = get_pathfind_from_arg(domain, pathfind_fns, pathfind_solve_str)[0]
         states, goals = domain.sample_problem_instances(list(range(0, 100)))
         instances: List[Instance] = pathfind.make_instances(states, goals, None, True)
         pathfind.add_instances(instances)

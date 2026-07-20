@@ -1,7 +1,6 @@
 from typing import Tuple, Dict, Any, List, Optional
 
 import torch
-from torch.utils.tensorboard import SummaryWriter
 
 from deepxube.utils.command_line_utils import get_name_args
 from deepxube.base.updater import Update

@@ -298,10 +298,10 @@ class PathFind(Generic[D, PFNsT, I], ABC):
         self.times.record_time("is_solved", time.time() - start_time)
 
     @abstractmethod
-    def _set_node_vals(self, nodes: List[Node]) -> None:
+    def _set_node_vals(self, nodes_by_inst: List[List[Node]], instances: List[I]) -> None:
         pass
 
-    def _create_root_nodes(self, states: List[State], goals: List[Goal], compute_root_vals: bool) -> List[Node]:
+    def _create_root_nodes(self, states: List[State], goals: List[Goal]) -> List[Node]:
         start_time = time.time()
 
         root_nodes: List[Node] = []
@@ -310,9 +310,6 @@ class PathFind(Generic[D, PFNsT, I], ABC):
             root_nodes.append(root_node)
 
         self.times.record_time("root", time.time() - start_time)
-
-        if compute_root_vals:
-            self._set_node_vals(root_nodes)
 
         return root_nodes
 
@@ -388,7 +385,7 @@ class PathFindNode(PathFind[D, PFNsT, INode]):
         nodes_exp_by_inst: List[List[Node]] = self._expand(instances, nodes_popped_by_inst)
 
         # eval nodes
-        self._set_node_vals(misc_utils.flatten(nodes_exp_by_inst)[0])
+        self._set_node_vals(nodes_exp_by_inst, instances)
 
         # filter expanded nodes
         start_time = time.time()
@@ -547,7 +544,7 @@ class PathFindEdge(PathFind[D, PFNsT, IEdge]):  # TODO add nodes popped
         nodes_next_by_inst: List[List[Node]] = self.get_next_nodes(instances, edges_next_by_inst)
 
         # eval nodes
-        self._set_node_vals(misc_utils.flatten(nodes_next_by_inst)[0])
+        self._set_node_vals(nodes_next_by_inst, instances)
 
         start_time = time.time()
         for instance, nodes_next in zip(instances, nodes_next_by_inst, strict=True):
@@ -642,8 +639,10 @@ PFNsHQ_T = TypeVar('PFNsHQ_T', bound=PFNsHeurQ)
 
 
 class PathFindSetPolicy(PathFind[D, PFNsP_T, I], ABC):
-    def _set_node_vals(self, nodes: List[Node]) -> None:
+    def _set_node_vals(self, nodes_by_inst: List[List[Node]], instances: List[I]) -> None:
         start_time = time.time()
+        nodes: List[Node] = misc_utils.flatten(nodes_by_inst)[0]
+
         states: List[State] = [node.state for node in nodes]
         goals: List[Goal] = [node.goal for node in nodes]
         actions_l, probs_l = self.pathfind_fns.policy(states, goals)
@@ -659,8 +658,10 @@ class PathFindSetPolicy(PathFind[D, PFNsP_T, I], ABC):
 
 
 class PathFindSetHeurV(PathFind[D, PFNsHV_T, I], ABC):
-    def _set_node_vals(self, nodes: List[Node]) -> None:
+    def _set_node_vals(self, nodes_by_inst: List[List[Node]], instnaces_l: List[I]) -> None:
         start_time = time.time()
+        nodes: List[Node] = misc_utils.flatten(nodes_by_inst)[0]
+
         states: List[State] = [node.state for node in nodes]
         goals: List[Goal] = [node.goal for node in nodes]
 
@@ -676,8 +677,10 @@ class PathFindSetHeurV(PathFind[D, PFNsHV_T, I], ABC):
 
 
 class PathFindSetHeurQ(PathFind[D, PFNsHQ_T, I], ABC):
-    def _set_node_vals(self, nodes: List[Node]) -> None:
+    def _set_node_vals(self, nodes_by_inst: List[List[Node]], instnaces: List[I]) -> None:
         start_time = time.time()
+        nodes: List[Node] = misc_utils.flatten(nodes_by_inst)[0]
+
         states: List[State] = [node.state for node in nodes]
         goals: List[Goal] = [node.goal for node in nodes]
         actions_l: List[List[Action]] = self.get_state_actions(states, goals)
@@ -783,7 +786,7 @@ class PathFindSup(PathFind[D, PFNs, I]):
         """
         pass
 
-    def _set_node_vals(self, nodes: List[Node]) -> None:
+    def _set_node_vals(self, nodes_by_inst: List[List[Node]], instances: List[I]) -> None:
         raise NotImplementedError
 
     def __repr__(self) -> str:

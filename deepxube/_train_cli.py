@@ -14,7 +14,6 @@ from deepxube.factories.pathfinding_factory import get_pathfind_from_arg
 from deepxube.factories.updater_factory import get_updater_from_args
 from deepxube.factories.trainer_factory import get_trainer_from_args
 from deepxube.utils.data_utils import Logger
-from torch.utils.tensorboard import SummaryWriter
 
 import os
 import sys

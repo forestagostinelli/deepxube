@@ -104,7 +104,7 @@ class GraphSearch(PathFind[D, PFNsT, IGraph], ABC):
         super().__init__(*args, **kwargs)
 
     def _construct_instances(self, inst_cls: type[IGraph], nodes_root: List[Node], inst_infos: Optional[List[Any]], batch_size: Optional[int],
-                             weight: Optional[float], eps: Optional[float]) -> List[IGraph]:
+                             weight: Optional[float], eps: Optional[float], compute_root_vals: bool) -> List[IGraph]:
         if inst_infos is None:
             inst_infos = [None for _ in nodes_root]
 
@@ -117,6 +117,9 @@ class GraphSearch(PathFind[D, PFNsT, IGraph], ABC):
             instance.set_batch_size(batch_size_inst)
             instance.set_weight(weight_inst)
             instance.set_eps(eps_inst)
+
+        if compute_root_vals:
+            self._set_node_vals([[node] for node in nodes_root], instances)
 
         return instances
 
@@ -150,8 +153,8 @@ class GraphSearchHeurNode(GraphSearch[D, PFNsHV_T, InstanceNodeGraph], PathFindN
                           PathFindSetHeurV[D, PFNsHV_T, InstanceNodeGraph], ABC):
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True,
                        beam_size: Optional[int] = None, weight: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceNodeGraph]:
-        nodes_root: List[Node] = self._create_root_nodes(states, goals, compute_root_vals)
-        return self._construct_instances(InstanceNodeGraph, nodes_root, inst_infos, beam_size, weight, eps)
+        nodes_root: List[Node] = self._create_root_nodes(states, goals)
+        return self._construct_instances(InstanceNodeGraph, nodes_root, inst_infos, beam_size, weight, eps, compute_root_vals)
 
     def _compute_costs(self, instances: List[InstanceNodeGraph], nodes_by_inst: List[List[Node]]) -> List[List[float]]:
         start_time = time.time()
@@ -171,8 +174,8 @@ class GraphSearchHeurEdge(GraphSearch[D, PFNsHQ_T, InstanceEdgeGraph], PathFindE
                           PathFindSetHeurQ[D, PFNsHQ_T, InstanceEdgeGraph], ABC):
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True,
                        batch_size: Optional[int] = None, weight: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceEdgeGraph]:
-        nodes_root: List[Node] = self._create_root_nodes(states, goals, True)
-        return self._construct_instances(InstanceEdgeGraph, nodes_root, inst_infos, batch_size, weight, eps)
+        nodes_root: List[Node] = self._create_root_nodes(states, goals)
+        return self._construct_instances(InstanceEdgeGraph, nodes_root, inst_infos, batch_size, weight, eps, True)
 
     def _compute_costs(self, instances: List[InstanceEdgeGraph], edges_by_inst: List[List[EdgeQ]]) -> List[List[float]]:
         start_time = time.time()

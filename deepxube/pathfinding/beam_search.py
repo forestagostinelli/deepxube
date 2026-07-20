@@ -94,7 +94,7 @@ class BeamSearch(PathFind[D, PFNsT, IBeam], ABC):
         super().__init__(*args, **kwargs)
 
     def _construct_instances(self, inst_cls: type[IBeam], nodes_root: List[Node], inst_infos: Optional[List[Any]], beam_size: Optional[int],
-                             temp: Optional[float], eps: Optional[float]) -> List[IBeam]:
+                             temp: Optional[float], eps: Optional[float], compute_root_vals: bool) -> List[IBeam]:
         if inst_infos is None:
             inst_infos = [None for _ in nodes_root]
 
@@ -108,6 +108,9 @@ class BeamSearch(PathFind[D, PFNsT, IBeam], ABC):
             instance.set_temp(temp_inst)
             instance.set_eps(eps_inst)
             instance.set_rollout(self.rollout)
+
+        if compute_root_vals:
+            self._set_node_vals([[node] for node in nodes_root], instances)
 
         return instances
 
@@ -154,8 +157,9 @@ class BeamSearchPolicy(BeamSearch[Domain, PFNsPolicy, InstanceEdgeBeam], PathFin
 
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True,
                        beam_size: Optional[int] = None, temp: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceEdgeBeam]:
-        nodes_root: List[Node] = self._create_root_nodes(states, goals, True)
-        return self._construct_instances(InstanceEdgeBeam, nodes_root, inst_infos, beam_size, temp, eps)
+        nodes_root: List[Node] = self._create_root_nodes(states, goals)
+        instances: List[InstanceEdgeBeam] = self._construct_instances(InstanceEdgeBeam, nodes_root, inst_infos, beam_size, temp, eps, True)
+        return instances
 
     def _compute_costs(self, instances: List[InstanceEdgeBeam], edges_by_inst: List[List[EdgeQ]]) -> List[List[float]]:
         start_time = time.time()
@@ -173,8 +177,8 @@ class BeamSearchHeurNode(BeamSearch[D, PFNsHV_T, InstanceNodeBeam], PathFindNode
                          PathFindSetHeurV[D, PFNsHV_T, InstanceNodeBeam], ABC):
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True,
                        beam_size: Optional[int] = None, temp: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceNodeBeam]:
-        nodes_root: List[Node] = self._create_root_nodes(states, goals, compute_root_vals)
-        return self._construct_instances(InstanceNodeBeam, nodes_root, inst_infos, beam_size, temp, eps)
+        nodes_root: List[Node] = self._create_root_nodes(states, goals)
+        return self._construct_instances(InstanceNodeBeam, nodes_root, inst_infos, beam_size, temp, eps, compute_root_vals)
 
     def _compute_costs(self, instances: List[InstanceNodeBeam], nodes_by_inst: List[List[Node]]) -> List[List[float]]:
         start_time = time.time()
@@ -196,8 +200,8 @@ class BeamSearchHeurEdge(BeamSearch[D, PFNsHQ_T, InstanceEdgeBeam], PathFindEdge
                          PathFindSetHeurQ[D, PFNsHQ_T, InstanceEdgeBeam], ABC):
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True,
                        beam_size: Optional[int] = None, temp: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceEdgeBeam]:
-        nodes_root: List[Node] = self._create_root_nodes(states, goals, True)
-        return self._construct_instances(InstanceEdgeBeam, nodes_root, inst_infos, beam_size, temp, eps)
+        nodes_root: List[Node] = self._create_root_nodes(states, goals)
+        return self._construct_instances(InstanceEdgeBeam, nodes_root, inst_infos, beam_size, temp, eps, True)
 
     def _compute_costs(self, instances: List[InstanceEdgeBeam], edges_by_inst: List[List[EdgeQ]]) -> List[List[float]]:
         start_time = time.time()

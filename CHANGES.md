@@ -6,7 +6,7 @@
 * Updater and Trainer are now defined via command line arguments like pathfinding algorithms
 * Automatic pathinding and updater name resolution based on dependencies
 * More informative output.txt
-
+* PathFind _set_node_vals takes instances along with nodes_by_inst
 
 ## 0.3.1
 * Save .gif file of train_summary option
