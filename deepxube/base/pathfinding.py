@@ -331,35 +331,9 @@ class PathFind(Generic[D, PFNsT, I], ABC):
 
 # pathfinding on nodes or edges of graph
 
-class InstanceNode(Instance, ABC):
-    @abstractmethod
-    def filter_expanded_nodes(self, nodes: List[Node]) -> List[Node]:
-        pass
-
-    @abstractmethod
-    def push_pop_nodes(self, nodes: List[Node], costs: List[float]) -> List[Node]:
-        pass
-
-
-INode = TypeVar('INode', bound=InstanceNode)
-
-
-class InstanceEdge(Instance, ABC):
-    @abstractmethod
-    def filter_popped_nodes(self, nodes: List[Node]) -> List[Node]:
-        pass
-
-    @abstractmethod
-    def push_pop_edges(self, edges: List[EdgeQ], costs: List[float]) -> List[EdgeQ]:
-        pass
-
-
-IEdge = TypeVar('IEdge', bound=InstanceEdge)
-
-
-class PathFindNode(PathFind[D, PFNsT, INode]):
+class PathFindNode(PathFind[D, PFNsT, I]):
     def step(self, verbose: bool = False) -> Tuple[List[Node], List[EdgeQ]]:
-        instances: List[INode] = [instance for instance in self.instances if not instance.finished()]
+        instances: List[I] = [instance for instance in self.instances if not instance.finished()]
         if len(instances) == 0:
             self.itr += 1  # TODO make more elegant
             return [], []
@@ -372,8 +346,6 @@ class PathFindNode(PathFind[D, PFNsT, INode]):
 
         # is solved
         self.set_is_solved(nodes_popped_flat)
-        # for node in nodes_popped_flat:
-        #    print(node.state, node.is_solved)
 
         # record goal
         start_time = time.time()
@@ -387,21 +359,8 @@ class PathFindNode(PathFind[D, PFNsT, INode]):
         # eval nodes
         self._set_node_vals(nodes_exp_by_inst, instances)
 
-        # filter expanded nodes
-        start_time = time.time()
-        for inst_idx, instance in enumerate(instances):
-            nodes_exp_by_inst[inst_idx] = instance.filter_expanded_nodes(nodes_exp_by_inst[inst_idx])
-        self.times.record_time("filt", time.time() - start_time)
-
-        # get costs
-        costs_by_inst: List[List[float]] = self._compute_costs(instances, nodes_exp_by_inst)
-
-        # push
-        start_time = time.time()
-        nodes_next_by_inst: List[List[Node]] = []
-        for instance, nodes_exp, costs in zip(instances, nodes_exp_by_inst, costs_by_inst, strict=True):
-            nodes_next_by_inst.append(instance.push_pop_nodes(nodes_exp, costs))
-        self.times.record_time("pushpop", time.time() - start_time)
+        # get next nodes
+        nodes_next_by_inst: List[List[Node]] = self._get_next_nodes(nodes_exp_by_inst, instances)
 
         # get next edges
         start_time = time.time()
@@ -415,6 +374,7 @@ class PathFindNode(PathFind[D, PFNsT, INode]):
             edges_next_flat.extend(edges_popped_inst)
         self.times.record_time("edges_next", time.time() - start_time)
 
+        # set next nodes
         start_time = time.time()
         for instance, nodes_next in zip(instances, nodes_next_by_inst, strict=True):
             instance.set_next_nodes(nodes_next)
@@ -431,7 +391,7 @@ class PathFindNode(PathFind[D, PFNsT, INode]):
 
         return nodes_popped_flat, edges_next_flat
 
-    def _expand(self, instances: List[INode], nodes_by_inst: List[List[Node]]) -> List[List[Node]]:
+    def _expand(self, instances: List[I], nodes_by_inst: List[List[Node]]) -> List[List[Node]]:
         start_time = time.time()
         # flatten (for speed)
         nodes: List[Node]
@@ -495,13 +455,13 @@ class PathFindNode(PathFind[D, PFNsT, INode]):
         return nodes_c_by_inst
 
     @abstractmethod
-    def _compute_costs(self, instances: List[INode], nodes_by_inst: List[List[Node]]) -> List[List[float]]:
+    def _get_next_nodes(self, nodes_exp_by_inst: List[List[Node]], instances: List[I]) -> List[List[Node]]:
         pass
 
 
-class PathFindEdge(PathFind[D, PFNsT, IEdge]):  # TODO add nodes popped
+class PathFindEdge(PathFind[D, PFNsT, I]):  # TODO add nodes popped
     def step(self, verbose: bool = False) -> Tuple[List[Node], List[EdgeQ]]:
-        instances: List[IEdge] = [instance for instance in self.instances if not instance.finished()]
+        instances: List[I] = [instance for instance in self.instances if not instance.finished()]
         if len(instances) == 0:
             self.itr += 1  # TODO make more elegant
             return [], []
@@ -521,31 +481,16 @@ class PathFindEdge(PathFind[D, PFNsT, IEdge]):  # TODO add nodes popped
             instance.record_goal(nodes)
         self.times.record_time("goal", time.time() - start_time)
 
-        # filter popped nodes
-        start_time = time.time()
-        for inst_idx, instance in enumerate(instances):
-            nodes_popped_by_inst[inst_idx] = instance.filter_popped_nodes(nodes_popped_by_inst[inst_idx])
-        self.times.record_time("filt", time.time() - start_time)
+        # get next edges
+        edges_next_by_inst: List[List[EdgeQ]] = self._get_next_edges(nodes_popped_by_inst, instances)
 
-        # expand
-        edges_exp_by_inst: List[List[EdgeQ]] = self._get_edges(nodes_popped_by_inst)
-
-        # get costs
-        costs_by_inst: List[List[float]] = self._compute_costs(instances, edges_exp_by_inst)
-
-        # push
-        start_time = time.time()
-        edges_next_by_inst: List[List[EdgeQ]] = []
-        for instance, edges_exp, costs in zip(instances, edges_exp_by_inst, costs_by_inst, strict=True):
-            edges_next_by_inst.append(instance.push_pop_edges(edges_exp, costs))
-        self.times.record_time("pushpop", time.time() - start_time)
-
-        # get next nodes
-        nodes_next_by_inst: List[List[Node]] = self.get_next_nodes(instances, edges_next_by_inst)
+        # get nodes of edges
+        nodes_next_by_inst: List[List[Node]] = self._get_edge_nodes(instances, edges_next_by_inst)
 
         # eval nodes
         self._set_node_vals(nodes_next_by_inst, instances)
 
+        # set next
         start_time = time.time()
         for instance, nodes_next in zip(instances, nodes_next_by_inst, strict=True):
             instance.set_next_nodes(nodes_next)
@@ -562,7 +507,7 @@ class PathFindEdge(PathFind[D, PFNsT, IEdge]):  # TODO add nodes popped
 
         return nodes_popped_flat, misc_utils.flatten(edges_next_by_inst)[0]
 
-    def get_next_nodes(self, instances: List[IEdge], edges_by_inst: List[List[EdgeQ]]) -> List[List[Node]]:
+    def _get_edge_nodes(self, instances: List[I], edges_by_inst: List[List[EdgeQ]]) -> List[List[Node]]:
         if len(instances) == 0:
             return []
         start_time = time.time()
@@ -627,8 +572,87 @@ class PathFindEdge(PathFind[D, PFNsT, IEdge]):  # TODO add nodes popped
         return edges_by_inst
 
     @abstractmethod
-    def _compute_costs(self, instances: List[IEdge], edges_by_inst: List[List[EdgeQ]]) -> List[List[float]]:
+    def _get_next_edges(self, nodes_popped_by_inst: List[List[Node]], instances: List[I]) -> List[List[EdgeQ]]:
         pass
+
+
+class InstanceNodeStatic(Instance, ABC):
+    @abstractmethod
+    def filter_expanded_nodes(self, nodes: List[Node]) -> List[Node]:
+        pass
+
+    @abstractmethod
+    def push_pop_nodes(self, nodes: List[Node], costs: List[float]) -> List[Node]:
+        pass
+
+
+INodeS_T = TypeVar('INodeS_T', bound=InstanceNodeStatic)
+
+
+class InstanceEdgeStatic(Instance, ABC):
+    @abstractmethod
+    def filter_popped_nodes(self, nodes: List[Node]) -> List[Node]:
+        pass
+
+    @abstractmethod
+    def push_pop_edges(self, edges: List[EdgeQ], costs: List[float]) -> List[EdgeQ]:
+        pass
+
+
+IEdgeS_T = TypeVar('IEdgeS_T', bound=InstanceEdgeStatic)
+
+
+class PathFindNodeStatic(PathFindNode[D, PFNsT, INodeS_T]):
+    @abstractmethod
+    def _compute_costs(self, instances: List[INodeS_T], nodes_by_inst: List[List[Node]]) -> List[List[float]]:
+        pass
+
+    def _get_next_nodes(self, nodes_exp_by_inst: List[List[Node]], instances: List[INodeS_T]) -> List[List[Node]]:
+        # filter expanded nodes
+        start_time = time.time()
+        for inst_idx, instance in enumerate(instances):
+            nodes_exp_by_inst[inst_idx] = instance.filter_expanded_nodes(nodes_exp_by_inst[inst_idx])
+        self.times.record_time("filt", time.time() - start_time)
+
+        # get costs
+        costs_by_inst: List[List[float]] = self._compute_costs(instances, nodes_exp_by_inst)
+
+        # push
+        start_time = time.time()
+        nodes_next_by_inst: List[List[Node]] = []
+        for instance, nodes_exp, costs in zip(instances, nodes_exp_by_inst, costs_by_inst, strict=True):
+            nodes_next_by_inst.append(instance.push_pop_nodes(nodes_exp, costs))
+        self.times.record_time("pushpop", time.time() - start_time)
+
+        return nodes_next_by_inst
+
+
+class PathFindEdgeStatic(PathFindEdge[D, PFNsT, IEdgeS_T]):
+    @abstractmethod
+    def _compute_costs(self, instances: List[IEdgeS_T], edges_by_inst: List[List[EdgeQ]]) -> List[List[float]]:
+        pass
+
+    def _get_next_edges(self, nodes_popped_by_inst: List[List[Node]], instances: List[IEdgeS_T]) -> List[List[EdgeQ]]:
+        # filter popped nodes
+        start_time = time.time()
+        for inst_idx, instance in enumerate(instances):
+            nodes_popped_by_inst[inst_idx] = instance.filter_popped_nodes(nodes_popped_by_inst[inst_idx])
+        self.times.record_time("filt", time.time() - start_time)
+
+        # expand
+        edges_exp_by_inst: List[List[EdgeQ]] = self._get_edges(nodes_popped_by_inst)
+
+        # get costs
+        costs_by_inst: List[List[float]] = self._compute_costs(instances, edges_exp_by_inst)
+
+        # push
+        start_time = time.time()
+        edges_next_by_inst: List[List[EdgeQ]] = []
+        for instance, edges_exp, costs in zip(instances, edges_exp_by_inst, costs_by_inst, strict=True):
+            edges_next_by_inst.append(instance.push_pop_edges(edges_exp, costs))
+        self.times.record_time("pushpop", time.time() - start_time)
+
+        return edges_next_by_inst
 
 
 # pathfinding with functions

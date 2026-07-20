@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from typing import List, Any, Type, Optional, TypeVar, Generic, Tuple, Dict
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, ActsEnum, State, Goal
-from deepxube.base.pathfinding import (Instance, InstanceNode, InstanceEdge, Node, EdgeQ, PFNsT, PFNsHV_T, PFNsHQ_T, PathFind, PathFindNode, PathFindEdge,
-                                       PathFindActsPolicy, PathFindSetHeurV, PathFindSetHeurQ, PathFindActsEnum)
+from deepxube.base.pathfinding import (Instance, InstanceNodeStatic, InstanceEdgeStatic, Node, EdgeQ, PFNsT, PFNsHV_T, PFNsHQ_T, PathFind,
+                                       PathFindNodeStatic, PathFindEdgeStatic, PathFindActsPolicy, PathFindSetHeurV, PathFindSetHeurQ, PathFindActsEnum)
 from deepxube.base.pathfind_fns import PFNsHeurV, PFNsHeurQ, PFNsHeurVPolicy, PFNsHeurQPolicy
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.utils import misc_utils
@@ -127,7 +127,7 @@ class GraphSearch(PathFind[D, PFNsT, IGraph], ABC):
         return f"{type(self).__name__}(batch_size={self.batch_size_default}, weight={self.weight_default}, eps={self.eps_default})"
 
 
-class InstanceNodeGraph(InstanceNode, InstanceGraph[Node]):
+class InstanceNodeGraph(InstanceNodeStatic, InstanceGraph[Node]):
     def __init__(self, root_node: Node, inst_info: Any):
         super().__init__(root_node, inst_info)
         self.closed_dict[self.root_node.state] = 0.0
@@ -140,7 +140,7 @@ class InstanceNodeGraph(InstanceNode, InstanceGraph[Node]):
         return self._pop_from_open()
 
 
-class InstanceEdgeGraph(InstanceEdge, InstanceGraph[EdgeQ]):
+class InstanceEdgeGraph(InstanceEdgeStatic, InstanceGraph[EdgeQ]):
     def filter_popped_nodes(self, nodes: List[Node]) -> List[Node]:
         return self._check_closed(nodes)
 
@@ -149,7 +149,7 @@ class InstanceEdgeGraph(InstanceEdge, InstanceGraph[EdgeQ]):
         return self._pop_from_open()
 
 
-class GraphSearchHeurNode(GraphSearch[D, PFNsHV_T, InstanceNodeGraph], PathFindNode[D, PFNsHV_T, InstanceNodeGraph],
+class GraphSearchHeurNode(GraphSearch[D, PFNsHV_T, InstanceNodeGraph], PathFindNodeStatic[D, PFNsHV_T, InstanceNodeGraph],
                           PathFindSetHeurV[D, PFNsHV_T, InstanceNodeGraph], ABC):
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True,
                        beam_size: Optional[int] = None, weight: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceNodeGraph]:
@@ -170,7 +170,7 @@ class GraphSearchHeurNode(GraphSearch[D, PFNsHV_T, InstanceNodeGraph], PathFindN
         return costs_by_inst
 
 
-class GraphSearchHeurEdge(GraphSearch[D, PFNsHQ_T, InstanceEdgeGraph], PathFindEdge[D, PFNsHQ_T, InstanceEdgeGraph],
+class GraphSearchHeurEdge(GraphSearch[D, PFNsHQ_T, InstanceEdgeGraph], PathFindEdgeStatic[D, PFNsHQ_T, InstanceEdgeGraph],
                           PathFindSetHeurQ[D, PFNsHQ_T, InstanceEdgeGraph], ABC):
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True,
                        batch_size: Optional[int] = None, weight: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceEdgeGraph]:

@@ -5,7 +5,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, GoalSampleableFromState, Action, State, Goal
-from deepxube.base.pathfinding import PFNsHQ_T, PathFindSetHeurQ, EdgeQ, InstanceEdge, Node
+from deepxube.base.pathfinding import PFNsHQ_T, PathFindSetHeurQ, EdgeQ, InstanceEdgeStatic, Node
 from deepxube.base.pathfind_fns import PFNsHeurQ, PFNsHeurQPolicy, UFNsHeurQ, UFNsHeurQPolicy
 from deepxube.base.updater import UpdateHER, UpdateHasPolicy, UpdateHeurQ, UpdateRL, D, UpdateRLParser, UFNsHQ_T
 from deepxube.factories.updater_factory import updater_factory
@@ -45,7 +45,7 @@ def _get_edge_popped_data(edges_popped: List[EdgeQ],
     return states, goals, is_solved_l, actions, tcs, states_next
 
 
-class UpdateHeurQRL(UpdateHeurQ[D, PFNsHQ_T, PathFindSetHeurQ, UFNsHQ_T], UpdateRL[D, PFNsHQ_T, PathFindSetHeurQ, InstanceEdge, UFNsHQ_T], ABC):
+class UpdateHeurQRL(UpdateHeurQ[D, PFNsHQ_T, PathFindSetHeurQ, UFNsHQ_T], UpdateRL[D, PFNsHQ_T, PathFindSetHeurQ, InstanceEdgeStatic, UFNsHQ_T], ABC):
     @staticmethod
     def pathfind_type() -> Type[PathFindSetHeurQ]:
         return PathFindSetHeurQ
@@ -119,7 +119,7 @@ class UpdateHeurQRLKeepGoalABC(UpdateHeurQRL[Domain, PFNsHQ_T, UFNsHQ_T], ABC):
 
         return self._inputs_ctgs_to_np(states, goals, actions, ctgs_backup, times)
 
-    def _get_instance_data_norb(self, instances: List[InstanceEdge], times: Times) -> List[NDArray]:
+    def _get_instance_data_norb(self, instances: List[InstanceEdgeStatic], times: Times) -> List[NDArray]:
         # get popped edge data
         edges_popped: List[EdgeQ] = []
         for instance in instances:
@@ -156,7 +156,7 @@ class UpdateHeurQRLKeepGoalABC(UpdateHeurQRL[Domain, PFNsHQ_T, UFNsHQ_T], ABC):
         # to_np
         return self._inputs_ctgs_to_np(states, goals, actions, ctgs_backup, times)
 
-    def _get_instance_data_rb(self, instances: List[InstanceEdge], times: Times) -> List[NDArray]:
+    def _get_instance_data_rb(self, instances: List[InstanceEdgeStatic], times: Times) -> List[NDArray]:
         # get popped edge data
         edges_popped: List[EdgeQ] = []
         for instance in instances:
@@ -172,12 +172,12 @@ class UpdateHeurQRLKeepGoalABC(UpdateHeurQRL[Domain, PFNsHQ_T, UFNsHQ_T], ABC):
         return self._inputs_ctgs_to_np(states, goals, actions, ctgs_backup, times)
 
 
-class UpdateHeurQRLHERABC(UpdateHeurQRL[GoalSampleableFromState, PFNsHQ_T, UFNsHQ_T], UpdateHER[PFNsHQ_T, PathFindSetHeurQ, InstanceEdge, UFNsHQ_T], ABC):
+class UpdateHeurQRLHERABC(UpdateHeurQRL[GoalSampleableFromState, PFNsHQ_T, UFNsHQ_T], UpdateHER[PFNsHQ_T, PathFindSetHeurQ, InstanceEdgeStatic, UFNsHQ_T], ABC):
     @staticmethod
     def domain_type() -> Type[GoalSampleableFromState]:
         return GoalSampleableFromState
 
-    def _get_instance_data_rb(self, instances: List[InstanceEdge], times: Times) -> List[NDArray]:
+    def _get_instance_data_rb(self, instances: List[InstanceEdgeStatic], times: Times) -> List[NDArray]:
         # get goals according to HER
         instances, goals_inst_her = self._get_her_goals(instances, times)
 
@@ -247,7 +247,7 @@ class UpdateHeurQRLHER(UpdateHeurQRLHERABC[PFNsHeurQ, UFNsHeurQ]):
 
 @updater_factory.register_class("up_rl_q_p")
 class UpdateHeurQRLKeepGoalPolicy(UpdateHeurQRLKeepGoalABC[PFNsHeurQPolicy, UFNsHeurQPolicy],
-                                  UpdateHasPolicy[Domain, PFNsHeurQPolicy, PathFindSetHeurQ, InstanceEdge, UFNsHeurQPolicy]):
+                                  UpdateHasPolicy[Domain, PFNsHeurQPolicy, PathFindSetHeurQ, InstanceEdgeStatic, UFNsHeurQPolicy]):
     @staticmethod
     def pathfind_functions_type() -> Type[PFNsHeurQPolicy]:
         return PFNsHeurQPolicy
@@ -262,7 +262,7 @@ class UpdateHeurQRLKeepGoalPolicy(UpdateHeurQRLKeepGoalABC[PFNsHeurQPolicy, UFNs
 
 @updater_factory.register_class("up_her_q_p")
 class UpdateHeurQRLHERPolicy(UpdateHeurQRLHERABC[PFNsHeurQPolicy, UFNsHeurQPolicy],
-                             UpdateHasPolicy[Domain, PFNsHeurQPolicy, PathFindSetHeurQ, InstanceEdge, UFNsHeurQPolicy]):
+                             UpdateHasPolicy[Domain, PFNsHeurQPolicy, PathFindSetHeurQ, InstanceEdgeStatic, UFNsHeurQPolicy]):
     @staticmethod
     def pathfind_functions_type() -> Type[PFNsHeurQPolicy]:
         return PFNsHeurQPolicy

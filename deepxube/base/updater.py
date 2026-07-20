@@ -15,7 +15,8 @@ from deepxube.base.factory import DelimParser
 from deepxube.base.domain import Domain, State, Action, Goal, GoalSampleableFromState
 from deepxube.base.pathfind_fns import (PFNs, DeepXubeNNetPar, HeurVFn, HeurQFn, PolicyFn, HeurVNNetPar, HeurQNNetPar, PolicyNNetPar, UFNs,
                                         UFNsHeurV, UFNsHeurQ, UFNsPolicy)
-from deepxube.base.pathfinding import PFNsT, PFNsHV_T, PFNsHQ_T, PFNsP_T, PathFind, PathFindSup, Instance, InstanceNode, InstanceEdge, get_path, Node
+from deepxube.base.pathfinding import (PFNsT, PFNsHV_T, PFNsHQ_T, PFNsP_T, PathFind, PathFindSup, Instance, InstanceNodeStatic, InstanceEdgeStatic, get_path,
+                                       Node)
 from deepxube.factories.pathfinding_factory import pathfinding_factory, get_pathfind_name_kwargs, get_pathfind_from_arg
 from deepxube.pathfinding.utils.performance import PathFindPerf, print_pathfindperf
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd, get_nowait_noerr
@@ -637,7 +638,7 @@ class UpdateHeur(Update[D, PFNsT, P, InstT, UFNsT], ABC):
     pass
 
 
-class UpdateHeurV(UpdateHeur[D, PFNsHV_T, P, InstanceNode, UFNsHV_T], UpdateHasHeurV[D, PFNsHV_T, P, InstanceNode, UFNsHV_T], ABC):
+class UpdateHeurV(UpdateHeur[D, PFNsHV_T, P, InstanceNodeStatic, UFNsHV_T], UpdateHasHeurV[D, PFNsHV_T, P, InstanceNodeStatic, UFNsHV_T], ABC):
     def get_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.domain.sample_problem_instances([0])
         inputs_nnet: List[NDArray[Any]] = self.get_heurv_nnet_par().process_inputs(states, goals).inputs_nnet
@@ -660,7 +661,7 @@ class UpdateHeurV(UpdateHeur[D, PFNsHV_T, P, InstanceNode, UFNsHV_T], UpdateHasH
             return self.get_heurv_nnet_par().get_nnet_par_fn_w_info(self.nnet_par_info_main)
 
 
-class UpdateHeurQ(UpdateHeur[D, PFNsHQ_T, P, InstanceEdge, UFNsHQ_T], UpdateHasHeurQ[D, PFNsHQ_T, P, InstanceEdge, UFNsHQ_T], ABC):
+class UpdateHeurQ(UpdateHeur[D, PFNsHQ_T, P, InstanceEdgeStatic, UFNsHQ_T], UpdateHasHeurQ[D, PFNsHQ_T, P, InstanceEdgeStatic, UFNsHQ_T], ABC):
     def get_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.domain.sample_problem_instances([0])
         actions: List[Action] = self.domain.sample_state_action(states)

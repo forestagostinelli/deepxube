@@ -5,7 +5,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, GoalSampleableFromState, State, Goal
-from deepxube.base.pathfinding import PFNsHV_T, PathFindSetHeurV, Node, InstanceNode
+from deepxube.base.pathfinding import PFNsHV_T, PathFindSetHeurV, Node, InstanceNodeStatic
 from deepxube.base.pathfind_fns import PFNsHeurV, PFNsHeurVPolicy, UFNsHeurV, UFNsHeurVPolicy
 from deepxube.base.updater import UpdateHER, UpdateHasPolicy, UpdateHeurV, UpdateRL, D, UpdateRLParser, UFNsHV_T
 from deepxube.factories.updater_factory import updater_factory
@@ -40,7 +40,7 @@ def _get_nodes_popped_data(nodes_popped: List[Node], times: Times) -> Tuple[List
 
 
 # TODO update __repr__
-class UpdateHeurVRL(UpdateHeurV[D, PFNsHV_T, PathFindSetHeurV, UFNsHV_T], UpdateRL[D, PFNsHV_T, PathFindSetHeurV, InstanceNode, UFNsHV_T], ABC):
+class UpdateHeurVRL(UpdateHeurV[D, PFNsHV_T, PathFindSetHeurV, UFNsHV_T], UpdateRL[D, PFNsHV_T, PathFindSetHeurV, InstanceNodeStatic, UFNsHV_T], ABC):
     @staticmethod
     def pathfind_type() -> Type[PathFindSetHeurV]:
         return PathFindSetHeurV
@@ -124,7 +124,7 @@ class UpdateHeurVRLKeepGoalABC(UpdateHeurVRL[Domain, PFNsHV_T, UFNsHV_T], ABC):
 
         return self._inputs_ctgs_to_np(states, goals, ctgs_backup, times)
 
-    def _get_instance_data_norb(self, instances: List[InstanceNode], times: Times) -> List[NDArray]:
+    def _get_instance_data_norb(self, instances: List[InstanceNodeStatic], times: Times) -> List[NDArray]:
         # get popped node data
         nodes_popped: List[Node] = []
         for instance in instances:
@@ -155,7 +155,7 @@ class UpdateHeurVRLKeepGoalABC(UpdateHeurVRL[Domain, PFNsHV_T, UFNsHV_T], ABC):
 
         return self._inputs_ctgs_to_np(states, goals, ctgs_backup, times)
 
-    def _get_instance_data_rb(self, instances: List[InstanceNode], times: Times) -> List[NDArray]:
+    def _get_instance_data_rb(self, instances: List[InstanceNodeStatic], times: Times) -> List[NDArray]:
         # get popped node data
         nodes_popped: List[Node] = []
         for instance in instances:
@@ -171,12 +171,12 @@ class UpdateHeurVRLKeepGoalABC(UpdateHeurVRL[Domain, PFNsHV_T, UFNsHV_T], ABC):
         return self._inputs_ctgs_to_np(states, goals, ctgs_backup, times)
 
 
-class UpdateHeurVRLHERABC(UpdateHeurVRL[GoalSampleableFromState, PFNsHV_T, UFNsHV_T], UpdateHER[PFNsHV_T, PathFindSetHeurV, InstanceNode, UFNsHV_T], ABC):
+class UpdateHeurVRLHERABC(UpdateHeurVRL[GoalSampleableFromState, PFNsHV_T, UFNsHV_T], UpdateHER[PFNsHV_T, PathFindSetHeurV, InstanceNodeStatic, UFNsHV_T], ABC):
     @staticmethod
     def domain_type() -> Type[GoalSampleableFromState]:
         return GoalSampleableFromState
 
-    def _get_instance_data_rb(self, instances: List[InstanceNode], times: Times) -> List[NDArray]:
+    def _get_instance_data_rb(self, instances: List[InstanceNodeStatic], times: Times) -> List[NDArray]:
         # get goals according to HER
         instances, goals_inst_her = self._get_her_goals(instances, times)
 
@@ -235,7 +235,7 @@ class UpdateHeurVRLHER(UpdateHeurVRLHERABC[PFNsHeurV, UFNsHeurV]):
 
 @updater_factory.register_class("up_rl_v_p")
 class UpdateHeurVRLKeepGoalPolicy(UpdateHeurVRLKeepGoalABC[PFNsHeurVPolicy, UFNsHeurVPolicy],
-                                  UpdateHasPolicy[Domain, PFNsHeurVPolicy, PathFindSetHeurV, InstanceNode, UFNsHeurVPolicy]):
+                                  UpdateHasPolicy[Domain, PFNsHeurVPolicy, PathFindSetHeurV, InstanceNodeStatic, UFNsHeurVPolicy]):
     @staticmethod
     def pathfind_functions_type() -> Type[PFNsHeurVPolicy]:
         return PFNsHeurVPolicy
@@ -250,7 +250,7 @@ class UpdateHeurVRLKeepGoalPolicy(UpdateHeurVRLKeepGoalABC[PFNsHeurVPolicy, UFNs
 
 @updater_factory.register_class("up_her_v_p")
 class UpdateHeurVRLHERPolicy(UpdateHeurVRLHERABC[PFNsHeurVPolicy, UFNsHeurVPolicy],
-                             UpdateHasPolicy[Domain, PFNsHeurVPolicy, PathFindSetHeurV, InstanceNode, UFNsHeurVPolicy]):
+                             UpdateHasPolicy[Domain, PFNsHeurVPolicy, PathFindSetHeurV, InstanceNodeStatic, UFNsHeurVPolicy]):
     @staticmethod
     def pathfind_functions_type() -> Type[PFNsHeurVPolicy]:
         return PFNsHeurVPolicy

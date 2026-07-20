@@ -1,6 +1,6 @@
 from typing import List, Any, Optional, Type, Tuple
 from deepxube.base.domain import Action, NodesSupervisable, EdgesSupervisable, EdgesSampleable
-from deepxube.base.pathfinding import Instance, InstanceNode, InstanceEdge, Node, EdgeQ, PathFindNode, PathFindEdge, PathFindSup
+from deepxube.base.pathfinding import Instance, InstanceNodeStatic, InstanceEdgeStatic, Node, EdgeQ, PathFindNodeStatic, PathFindEdgeStatic, PathFindSup
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 import time
 
@@ -16,7 +16,7 @@ class InstanceSup(Instance):
         return self.itr > 0
 
 
-class InstanceNodeSup(InstanceNode, InstanceSup):
+class InstanceNodeSup(InstanceNodeStatic, InstanceSup):
     def __init__(self, root_node: Node, path_cost_sup: float, inst_info: Any):
         super().__init__(root_node, inst_info)
         self.path_cost_sup: float = path_cost_sup
@@ -28,7 +28,7 @@ class InstanceNodeSup(InstanceNode, InstanceSup):
         raise NotImplementedError
 
 
-class InstanceEdgeSup(InstanceEdge, InstanceSup):
+class InstanceEdgeSup(InstanceEdgeStatic, InstanceSup):
     def __init__(self, root_node: Node, action: Action, path_cost_sup: float, inst_info: Any):
         super().__init__(root_node, inst_info)
         self.action: Action = action
@@ -42,7 +42,7 @@ class InstanceEdgeSup(InstanceEdge, InstanceSup):
 
 
 @pathfinding_factory.register_class("sup_v")
-class PathFindNodeSup(PathFindNode[NodesSupervisable, Any, InstanceNodeSup], PathFindSup[NodesSupervisable, InstanceNodeSup]):
+class PathFindNodeSup(PathFindNodeStatic[NodesSupervisable, Any, InstanceNodeSup], PathFindSup[NodesSupervisable, InstanceNodeSup]):
     @staticmethod
     def domain_type() -> Type[NodesSupervisable]:
         return NodesSupervisable
@@ -91,7 +91,7 @@ class PathFindNodeSup(PathFindNode[NodesSupervisable, Any, InstanceNodeSup], Pat
 
 
 @pathfinding_factory.register_class("sup_q")
-class PathFindEdgeSup(PathFindEdge[EdgesSupervisable, Any, InstanceEdgeSup], PathFindSup[EdgesSupervisable, InstanceEdgeSup]):
+class PathFindEdgeSup(PathFindEdgeStatic[EdgesSupervisable, Any, InstanceEdgeSup], PathFindSup[EdgesSupervisable, InstanceEdgeSup]):
     @staticmethod
     def domain_type() -> Type[EdgesSupervisable]:
         return EdgesSupervisable
@@ -141,7 +141,7 @@ class PathFindEdgeSup(PathFindEdge[EdgesSupervisable, Any, InstanceEdgeSup], Pat
 
 
 @pathfinding_factory.register_class("sup_p")
-class PathFindEdgeSamp(PathFindEdge[EdgesSampleable, Any, InstanceEdgeSup], PathFindSup[EdgesSampleable, InstanceEdgeSup]):
+class PathFindEdgeSamp(PathFindEdgeStatic[EdgesSampleable, Any, InstanceEdgeSup], PathFindSup[EdgesSampleable, InstanceEdgeSup]):
     @staticmethod
     def domain_type() -> Type[EdgesSampleable]:
         return EdgesSampleable

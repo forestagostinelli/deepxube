@@ -2,8 +2,9 @@ from abc import ABC, abstractmethod
 from typing import List, Any, Type, Optional, TypeVar, Dict
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, ActsEnum, State, Goal
-from deepxube.base.pathfinding import (Instance, InstanceNode, InstanceEdge, Node, EdgeQ, PFNsT, PFNsHV_T, PFNsHQ_T, PathFind, PathFindNode, PathFindEdge,
-                                       PathFindActsPolicy, PathFindSetPolicy, PathFindSetHeurV, PathFindSetHeurQ, PathFindActsEnum)
+from deepxube.base.pathfinding import (Instance, InstanceNodeStatic, InstanceEdgeStatic, Node, EdgeQ, PFNsT, PFNsHV_T, PFNsHQ_T, PathFind,
+                                       PathFindNodeStatic, PathFindEdgeStatic, PathFindActsPolicy, PathFindSetPolicy, PathFindSetHeurV, PathFindSetHeurQ,
+                                       PathFindActsEnum)
 from deepxube.base.pathfind_fns import PFNsHeurV, PFNsHeurQ, PFNsPolicy, PFNsHeurVPolicy, PFNsHeurQPolicy
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.utils.misc_utils import boltzmann
@@ -118,7 +119,7 @@ class BeamSearch(PathFind[D, PFNsT, IBeam], ABC):
         return f"{type(self).__name__}(beam_size={self.beam_size_default}, temp={self.temp_default}, eps={self.eps_default}, rollout={self.rollout})"
 
 
-class InstanceNodeBeam(InstanceNode, InstanceBeam):
+class InstanceNodeBeam(InstanceNodeStatic, InstanceBeam):
     def filter_expanded_nodes(self, nodes: List[Node]) -> List[Node]:
         return nodes
 
@@ -127,7 +128,7 @@ class InstanceNodeBeam(InstanceNode, InstanceBeam):
         return [nodes[idx] for idx in next_idxs]
 
 
-class InstanceEdgeBeam(InstanceEdge, InstanceBeam):
+class InstanceEdgeBeam(InstanceEdgeStatic, InstanceBeam):
     def __init__(self, root_node: Node, inst_info: Any):
         super().__init__(root_node, inst_info)
         self.beam_edges: List[EdgeQ] = []
@@ -141,7 +142,7 @@ class InstanceEdgeBeam(InstanceEdge, InstanceBeam):
 
 
 @pathfinding_factory.register_class("beam_p")
-class BeamSearchPolicy(BeamSearch[Domain, PFNsPolicy, InstanceEdgeBeam], PathFindEdge[Domain, PFNsPolicy, InstanceEdgeBeam],
+class BeamSearchPolicy(BeamSearch[Domain, PFNsPolicy, InstanceEdgeBeam], PathFindEdgeStatic[Domain, PFNsPolicy, InstanceEdgeBeam],
                        PathFindActsPolicy[Domain, PFNsPolicy, InstanceEdgeBeam], PathFindSetPolicy[Domain, PFNsPolicy, InstanceEdgeBeam]):
     @staticmethod
     def domain_type() -> Type[Domain]:
@@ -173,7 +174,7 @@ class BeamSearchPolicy(BeamSearch[Domain, PFNsPolicy, InstanceEdgeBeam], PathFin
         return logits_by_inst
 
 
-class BeamSearchHeurNode(BeamSearch[D, PFNsHV_T, InstanceNodeBeam], PathFindNode[D, PFNsHV_T, InstanceNodeBeam],
+class BeamSearchHeurNode(BeamSearch[D, PFNsHV_T, InstanceNodeBeam], PathFindNodeStatic[D, PFNsHV_T, InstanceNodeBeam],
                          PathFindSetHeurV[D, PFNsHV_T, InstanceNodeBeam], ABC):
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True,
                        beam_size: Optional[int] = None, temp: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceNodeBeam]:
@@ -196,7 +197,7 @@ class BeamSearchHeurNode(BeamSearch[D, PFNsHV_T, InstanceNodeBeam], PathFindNode
         return logits_by_inst
 
 
-class BeamSearchHeurEdge(BeamSearch[D, PFNsHQ_T, InstanceEdgeBeam], PathFindEdge[D, PFNsHQ_T, InstanceEdgeBeam],
+class BeamSearchHeurEdge(BeamSearch[D, PFNsHQ_T, InstanceEdgeBeam], PathFindEdgeStatic[D, PFNsHQ_T, InstanceEdgeBeam],
                          PathFindSetHeurQ[D, PFNsHQ_T, InstanceEdgeBeam], ABC):
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True,
                        beam_size: Optional[int] = None, temp: Optional[float] = None, eps: Optional[float] = None) -> List[InstanceEdgeBeam]:
