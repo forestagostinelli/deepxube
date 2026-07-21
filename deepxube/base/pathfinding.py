@@ -38,8 +38,6 @@ class Node:
         self.edge_dict[action] = (t_cost, node_next)
 
     def bellman_backup(self) -> float:
-        assert self.is_solved is not None
-
         if self.is_solved:
             self.backup_val = 0.0
         else:
