@@ -113,8 +113,8 @@ class GraphSearch(PathFind[D, PFNsT, IGraph], ABC):
 
 
 class InstanceNodeGraph(InstanceNodeStatic, InstanceGraph[Node]):
-    def __init__(self, root_node: Node, inst_info: Any):
-        super().__init__(root_node, inst_info)
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
         self.closed_dict[self.root_node.state] = 0.0
 
     def filter_expanded_nodes(self, nodes: List[Node]) -> List[Node]:

@@ -111,8 +111,8 @@ class InstanceNodeBeam(InstanceNodeStatic, InstanceBeam):
 
 
 class InstanceEdgeBeam(InstanceEdgeStatic, InstanceBeam):
-    def __init__(self, root_node: Node, inst_info: Any):
-        super().__init__(root_node, inst_info)
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
         self.beam_edges: List[EdgeQ] = []
 
     def filter_popped_nodes(self, nodes: List[Node]) -> List[Node]:

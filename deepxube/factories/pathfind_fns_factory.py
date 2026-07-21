@@ -60,8 +60,9 @@ def get_dx_nnet_par(domain: Domain, domain_name: str, nnet_par_name_args: str, n
                      f"\nIncompatibility reasons:\n{incompat_reasons_str}")
 
 
-def get_path_up_fns(domain: Domain, domain_name: str, fn_name_args_l: List[str], device: torch.device, nnet_files: Optional[List[Optional[str]]] = None,
-                    nnet_batch_size: Optional[int] = None) -> Tuple[PFNs, UFNs]:
+def get_path_fns_nnet_par_dict(domain: Domain, domain_name: str, fn_name_args_l: List[str], device: torch.device,
+                               nnet_files: Optional[List[Optional[str]]] = None,
+                               nnet_batch_size: Optional[int] = None) -> Tuple[PFNs, Dict[str, DeepXubeNNetPar]]:
     nnet_fn_dict: Dict[str, NNetCallable] = dict()
     nnet_par_dict: Dict[str, DeepXubeNNetPar] = dict()
     if nnet_files is not None:
@@ -107,6 +108,14 @@ def get_path_up_fns(domain: Domain, domain_name: str, fn_name_args_l: List[str],
         nnet_par_dict[field_name] = nnet_par
 
     pathfind_fns: PFNs = pathfind_fns_factory.build_class(nnet_fn_dict)
+
+    return pathfind_fns, nnet_par_dict
+
+
+def get_path_up_fns(domain: Domain, domain_name: str, fn_name_args_l: List[str], device: torch.device, nnet_files: Optional[List[Optional[str]]] = None,
+                    nnet_batch_size: Optional[int] = None) -> Tuple[PFNs, UFNs]:
+    pathfind_fns, nnet_par_dict = get_path_fns_nnet_par_dict(domain, domain_name, fn_name_args_l, device, nnet_files=nnet_files,
+                                                             nnet_batch_size=nnet_batch_size)
     updater_fns: UFNs = updater_fns_factory.build_class(nnet_par_dict)
 
     return pathfind_fns, updater_fns

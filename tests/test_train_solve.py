@@ -4,7 +4,7 @@ import pytest  # type: ignore
 from deepxube.base.pathfinding import Node, Instance, get_path
 from deepxube.pathfinding.utils.performance import is_valid_soln, PathFindPerf
 from deepxube.factories.domain_factory import get_domain_from_arg
-from deepxube.factories.pathfind_fns_factory import get_path_up_fns
+from deepxube.factories.pathfind_fns_factory import get_path_up_fns, get_path_fns_nnet_par_dict
 from deepxube.factories.pathfinding_factory import get_pathfind_from_arg
 from deepxube.factories.updater_factory import get_updater_from_args
 from deepxube.factories.trainer_factory import get_trainer_from_args
@@ -51,7 +51,7 @@ def test_train_solve_heur(fn_str: str, pathfind_tr_str: str, up_str: str, tr_str
     search_itrs: int = 20
     for pathfind_solve_str, soln_thresh in [("graph", 85), ("beam.10B", 80)]:
         heur_file: str = f"{save_dir}/heur.pt"
-        pathfind_fns = get_path_up_fns(domain, domain_name, fn_l, device, nnet_files=[heur_file])[0]
+        pathfind_fns = get_path_fns_nnet_par_dict(domain, domain_name, fn_l, device, nnet_files=[heur_file])[0]
         pathfind = get_pathfind_from_arg(domain, pathfind_fns, pathfind_solve_str)[0]
         states, goals = domain.sample_problem_instances(list(range(0, 100)))
         instances: List[Instance] = pathfind.make_instances(states, goals, None, True)
