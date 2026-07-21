@@ -18,28 +18,16 @@ SchOver = TypeVar("SchOver")
 
 
 class InstanceGraph(Instance, Generic[SchOver]):
-    def __init__(self, root_node: Node, inst_info: Any):
-        super().__init__(root_node, inst_info)
+    def __init__(self, *args: Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, **kwargs: Any):
+        super().__init__(*args, **kwargs)
         self.open_set: List[Tuple[float, int, SchOver]] = []
         self.heappush_count: int = 0
         self.closed_dict: Dict[State, float] = {}
         self.ub: float = np.inf
         self.lb: float = self.root_node.heuristic
-        self.batch_size: int = 1
-        self.weight: float = 1.0
-        self.eps: float = 0.0
-
-    def set_batch_size(self, batch_size: int) -> None:
-        assert batch_size >= 1
-        self.batch_size = batch_size
-
-    def set_weight(self, weight: float) -> None:
-        assert (weight <= 1) and (weight >= 0)
-        self.weight = weight
-
-    def set_eps(self, eps: float) -> None:
-        assert (eps <= 1) and (eps >= 0)
-        self.eps = eps
+        self.batch_size: int = batch_size
+        self.weight: float = weight
+        self.eps: float = eps
 
     def frontier_size(self) -> int:
         return len(self.open_set)
@@ -112,11 +100,8 @@ class GraphSearch(PathFind[D, PFNsT, IGraph], ABC):
         weight_inst: float = weight if weight is not None else self.weight_default
         eps_inst: float = eps if eps is not None else self.eps_default
 
-        instances: List[IGraph] = [inst_cls(node_root, inst_info) for node_root, inst_info in zip(nodes_root, inst_infos, strict=True)]
-        for instance in instances:
-            instance.set_batch_size(batch_size_inst)
-            instance.set_weight(weight_inst)
-            instance.set_eps(eps_inst)
+        instances: List[IGraph] = [inst_cls(node_root, inst_info, batch_size=batch_size_inst, weight=weight_inst, eps=eps_inst)
+                                   for node_root, inst_info in zip(nodes_root, inst_infos, strict=True)]
 
         if compute_root_vals:
             self._set_node_vals([[node] for node in nodes_root], instances)

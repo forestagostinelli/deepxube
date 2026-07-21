@@ -131,7 +131,7 @@ class EdgeQ:
 
 
 class Instance(ABC):
-    def __init__(self, root_node: Node, inst_info: Any):
+    def __init__(self, root_node: Node, inst_info: Any, **kwargs: Any):
         self.root_node: Node = root_node
         self.itr: int = 0  # updater with every pathfinding iteration
         self.num_nodes_generated: int = 0

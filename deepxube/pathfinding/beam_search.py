@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List, Any, Type, Optional, TypeVar, Dict
+
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, ActsEnum, State, Goal
 from deepxube.base.pathfinding import (Instance, InstanceNodeStatic, InstanceEdgeStatic, Node, EdgeQ, PFNsT, PFNsHV_T, PFNsHQ_T, PathFind,
@@ -14,27 +15,12 @@ import re
 
 
 class InstanceBeam(Instance, ABC):
-    def __init__(self, root_node: Node, inst_info: Any):
-        super().__init__(root_node, inst_info)
-        self.beam_size: int = 1
-        self.temp: float = 0.0
-        self.eps: float = 0.0
-        self.rollout: bool = False
-
-    def set_beam_size(self, beam_size: int) -> None:
-        assert beam_size >= 1
-        self.beam_size = beam_size
-
-    def set_temp(self, temp: float) -> None:
-        assert temp >= 0.0
-        self.temp = temp
-
-    def set_eps(self, eps: float) -> None:
-        assert (eps >= 0.0) and (eps <= 1.0)
-        self.eps = eps
-
-    def set_rollout(self, rollout: bool) -> None:
-        self.rollout = rollout
+    def __init__(self, *args: Any, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self.beam_size: int = beam_size
+        self.temp: float = temp
+        self.eps: float = eps
+        self.rollout: bool = rollout
 
     def frontier_size(self) -> int:
         return len(self._nodes_curr)
@@ -103,12 +89,8 @@ class BeamSearch(PathFind[D, PFNsT, IBeam], ABC):
         temp_inst: float = temp if temp is not None else self.temp_default
         eps_inst: float = eps if eps is not None else self.eps_default
 
-        instances: List[IBeam] = [inst_cls(node_root, inst_info) for node_root, inst_info in zip(nodes_root, inst_infos, strict=True)]
-        for instance in instances:
-            instance.set_beam_size(beam_size_inst)
-            instance.set_temp(temp_inst)
-            instance.set_eps(eps_inst)
-            instance.set_rollout(self.rollout)
+        instances: List[IBeam] = [inst_cls(node_root, inst_info, beam_size=beam_size_inst, temp=temp_inst, eps=eps_inst, rollout=self.rollout)
+                                  for node_root, inst_info in zip(nodes_root, inst_infos, strict=True)]
 
         if compute_root_vals:
             self._set_node_vals([[node] for node in nodes_root], instances)

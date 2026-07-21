@@ -17,8 +17,9 @@ class InstanceSup(Instance):
 
 
 class InstanceNodeSup(InstanceNodeStatic, InstanceSup):
-    def __init__(self, root_node: Node, path_cost_sup: float, inst_info: Any):
-        super().__init__(root_node, inst_info)
+    def __init__(self, *args: Any, path_cost_sup: Optional[float] = None, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        assert path_cost_sup is not None
         self.path_cost_sup: float = path_cost_sup
 
     def filter_expanded_nodes(self, nodes: List[Node]) -> List[Node]:
@@ -29,9 +30,11 @@ class InstanceNodeSup(InstanceNodeStatic, InstanceSup):
 
 
 class InstanceEdgeSup(InstanceEdgeStatic, InstanceSup):
-    def __init__(self, root_node: Node, action: Action, path_cost_sup: float, inst_info: Any):
-        super().__init__(root_node, inst_info)
+    def __init__(self, *args: Any, action: Optional[Action] = None, path_cost_sup: Optional[float] = None, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        assert action is not None
         self.action: Action = action
+        assert path_cost_sup is not None
         self.path_cost_sup: float = path_cost_sup
 
     def filter_popped_nodes(self, nodes: List[Node]) -> List[Node]:
@@ -83,8 +86,8 @@ class PathFindNodeSup(PathFindNodeStatic[NodesSupervisable, Any, InstanceNodeSup
             inst_infos = [None for _ in states_start]
 
         instances: List[InstanceNodeSup] = []
-        for node_root, label, inst_info in zip(nodes_root, labels, inst_infos):
-            instances.append(InstanceNodeSup(node_root, label, inst_info))
+        for node_root, inst_info, label in zip(nodes_root, inst_infos, labels):
+            instances.append(InstanceNodeSup(node_root, inst_info, path_cost_sup=label))
         self.times.record_time("instances", time.time() - start_time)
 
         return instances
@@ -133,8 +136,8 @@ class PathFindEdgeSup(PathFindEdgeStatic[EdgesSupervisable, Any, InstanceEdgeSup
             inst_infos = [None for _ in states_start]
 
         instances: List[InstanceEdgeSup] = []
-        for node_root, action_init, label, inst_info in zip(nodes_root, actions_init, labels, inst_infos, strict=True):
-            instances.append(InstanceEdgeSup(node_root, action_init, label, inst_info))
+        for node_root, inst_info, action_init, label in zip(nodes_root, inst_infos, actions_init, labels, strict=True):
+            instances.append(InstanceEdgeSup(node_root, inst_info, action=action_init, path_cost_sup=label))
         self.times.record_time("instances", time.time() - start_time)
 
         return instances
