@@ -78,8 +78,8 @@ Data
    * - :py:obj:`NNF_T <deepxube.pytorch.nnet_utils.NNF_T>`
      - .. autodoc2-docstring:: deepxube.pytorch.nnet_utils.NNF_T
           :summary:
-   * - :py:obj:`CTX_T <deepxube.pytorch.nnet_utils.CTX_T>`
-     - .. autodoc2-docstring:: deepxube.pytorch.nnet_utils.CTX_T
+   * - :py:obj:`PROCESSED_T <deepxube.pytorch.nnet_utils.PROCESSED_T>`
+     - .. autodoc2-docstring:: deepxube.pytorch.nnet_utils.PROCESSED_T
           :summary:
 
 API
@@ -178,16 +178,16 @@ API
 
    .. autodoc2-docstring:: deepxube.pytorch.nnet_utils.NNF_T
 
-.. py:data:: CTX_T
-   :canonical: deepxube.pytorch.nnet_utils.CTX_T
+.. py:data:: PROCESSED_T
+   :canonical: deepxube.pytorch.nnet_utils.PROCESSED_T
    :value: 'TypeVar(...)'
 
-   .. autodoc2-docstring:: deepxube.pytorch.nnet_utils.CTX_T
+   .. autodoc2-docstring:: deepxube.pytorch.nnet_utils.PROCESSED_T
 
 .. py:class:: ProcessedInput
    :canonical: deepxube.pytorch.nnet_utils.ProcessedInput
 
-   Bases: :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.pytorch.nnet_utils.CTX_T`\ ]
+   Bases: :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.pytorch.nnet_utils.PROCESSED_T`\ ]
 
    .. py:attribute:: inputs_nnet
       :canonical: deepxube.pytorch.nnet_utils.ProcessedInput.inputs_nnet
@@ -196,17 +196,17 @@ API
 
       .. autodoc2-docstring:: deepxube.pytorch.nnet_utils.ProcessedInput.inputs_nnet
 
-   .. py:attribute:: ctx
-      :canonical: deepxube.pytorch.nnet_utils.ProcessedInput.ctx
-      :type: deepxube.pytorch.nnet_utils.CTX_T
+   .. py:attribute:: processed
+      :canonical: deepxube.pytorch.nnet_utils.ProcessedInput.processed
+      :type: deepxube.pytorch.nnet_utils.PROCESSED_T
       :value: None
 
-      .. autodoc2-docstring:: deepxube.pytorch.nnet_utils.ProcessedInput.ctx
+      .. autodoc2-docstring:: deepxube.pytorch.nnet_utils.ProcessedInput.processed
 
 .. py:class:: NNetPar(**kwargs: typing.Any)
    :canonical: deepxube.pytorch.nnet_utils.NNetPar
 
-   Bases: :py:obj:`abc.ABC`, :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.pytorch.nnet_utils.NNF_T`\ , :py:obj:`deepxube.pytorch.nnet_utils.CTX_T`\ ]
+   Bases: :py:obj:`abc.ABC`, :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.pytorch.nnet_utils.NNF_T`\ , :py:obj:`deepxube.pytorch.nnet_utils.PROCESSED_T`\ ]
 
    .. py:method:: get_nnet_fn(nnet: torch.nn.Module, batch_size: typing.Optional[int], device: torch.device) -> deepxube.pytorch.nnet_utils.NNF_T
       :canonical: deepxube.pytorch.nnet_utils.NNetPar.get_nnet_fn
@@ -224,13 +224,13 @@ API
 
       .. autodoc2-docstring:: deepxube.pytorch.nnet_utils.NNetPar.get_nnet
 
-   .. py:method:: process_inputs(*args: typing.Any) -> deepxube.pytorch.nnet_utils.ProcessedInput[deepxube.pytorch.nnet_utils.CTX_T]
+   .. py:method:: process_inputs(*args: typing.Any) -> deepxube.pytorch.nnet_utils.ProcessedInput[deepxube.pytorch.nnet_utils.PROCESSED_T]
       :canonical: deepxube.pytorch.nnet_utils.NNetPar.process_inputs
       :abstractmethod:
 
       .. autodoc2-docstring:: deepxube.pytorch.nnet_utils.NNetPar.process_inputs
 
-   .. py:method:: process_outputs(outs: typing.List[numpy.typing.NDArray], ctx: deepxube.pytorch.nnet_utils.CTX_T) -> typing.Any
+   .. py:method:: process_outputs(outs: typing.List[numpy.typing.NDArray], processed: deepxube.pytorch.nnet_utils.PROCESSED_T) -> typing.Any
       :canonical: deepxube.pytorch.nnet_utils.NNetPar.process_outputs
       :abstractmethod:
 

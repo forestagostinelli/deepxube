@@ -19,6 +19,9 @@ Functions
    * - :py:obj:`get_dx_nnet_par <deepxube.factories.pathfind_fns_factory.get_dx_nnet_par>`
      - .. autodoc2-docstring:: deepxube.factories.pathfind_fns_factory.get_dx_nnet_par
           :summary:
+   * - :py:obj:`get_path_fns_nnet_par_dict <deepxube.factories.pathfind_fns_factory.get_path_fns_nnet_par_dict>`
+     - .. autodoc2-docstring:: deepxube.factories.pathfind_fns_factory.get_path_fns_nnet_par_dict
+          :summary:
    * - :py:obj:`get_path_up_fns <deepxube.factories.pathfind_fns_factory.get_path_up_fns>`
      - .. autodoc2-docstring:: deepxube.factories.pathfind_fns_factory.get_path_up_fns
           :summary:
@@ -68,6 +71,11 @@ API
    :canonical: deepxube.factories.pathfind_fns_factory.get_dx_nnet_par
 
    .. autodoc2-docstring:: deepxube.factories.pathfind_fns_factory.get_dx_nnet_par
+
+.. py:function:: get_path_fns_nnet_par_dict(domain: deepxube.base.domain.Domain, domain_name: str, fn_name_args_l: typing.List[str], device: torch.device, nnet_files: typing.Optional[typing.List[typing.Optional[str]]] = None, nnet_batch_size: typing.Optional[int] = None) -> typing.Tuple[deepxube.base.pathfind_fns.PFNs, typing.Dict[str, deepxube.base.pathfind_fns.DeepXubeNNetPar]]
+   :canonical: deepxube.factories.pathfind_fns_factory.get_path_fns_nnet_par_dict
+
+   .. autodoc2-docstring:: deepxube.factories.pathfind_fns_factory.get_path_fns_nnet_par_dict
 
 .. py:function:: get_path_up_fns(domain: deepxube.base.domain.Domain, domain_name: str, fn_name_args_l: typing.List[str], device: torch.device, nnet_files: typing.Optional[typing.List[typing.Optional[str]]] = None, nnet_batch_size: typing.Optional[int] = None) -> typing.Tuple[deepxube.base.pathfind_fns.PFNs, deepxube.base.pathfind_fns.UFNs]
    :canonical: deepxube.factories.pathfind_fns_factory.get_path_up_fns

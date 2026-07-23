@@ -33,13 +33,13 @@ Classes
           :summary:
    * - :py:obj:`HeurVNNetParC <deepxube.pathfind_fns.fns_core.HeurVNNetParC>`
      -
-   * - :py:obj:`QOutFixCtx <deepxube.pathfind_fns.fns_core.QOutFixCtx>`
-     - .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.QOutFixCtx
+   * - :py:obj:`QOutFixProcessed <deepxube.pathfind_fns.fns_core.QOutFixProcessed>`
+     - .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.QOutFixProcessed
           :summary:
    * - :py:obj:`HeurQNNetParFixOut <deepxube.pathfind_fns.fns_core.HeurQNNetParFixOut>`
      -
-   * - :py:obj:`QInCtx <deepxube.pathfind_fns.fns_core.QInCtx>`
-     - .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.QInCtx
+   * - :py:obj:`QInProcessed <deepxube.pathfind_fns.fns_core.QInProcessed>`
+     - .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.QInProcessed
           :summary:
    * - :py:obj:`HeurQNNetParIn <deepxube.pathfind_fns.fns_core.HeurQNNetParIn>`
      -
@@ -104,22 +104,22 @@ API
 
    Bases: :py:obj:`deepxube.base.pathfind_fns.HeurVNNetPar`
 
-.. py:class:: QOutFixCtx
-   :canonical: deepxube.pathfind_fns.fns_core.QOutFixCtx
+.. py:class:: QOutFixProcessed
+   :canonical: deepxube.pathfind_fns.fns_core.QOutFixProcessed
 
-   .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.QOutFixCtx
+   .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.QOutFixProcessed
 
    .. py:attribute:: states
-      :canonical: deepxube.pathfind_fns.fns_core.QOutFixCtx.states
+      :canonical: deepxube.pathfind_fns.fns_core.QOutFixProcessed.states
       :type: typing.List[deepxube.base.domain.State]
       :value: None
 
-      .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.QOutFixCtx.states
+      .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.QOutFixProcessed.states
 
 .. py:class:: HeurQNNetParFixOut(domain: deepxube.base.pathfind_fns.D, nnet_input_name: typing.Optional[typing.Tuple[str, str]], nnet_name_args: typing.Optional[str], **kwargs: typing.Any)
    :canonical: deepxube.pathfind_fns.fns_core.HeurQNNetParFixOut
 
-   Bases: :py:obj:`deepxube.base.pathfind_fns.HeurQNNetPar`\ [\ :py:obj:`deepxube.pathfind_fns.fns_core.QOutFixCtx`\ , :py:obj:`deepxube.base.domain.ActsEnumFixed`\ , :py:obj:`deepxube.base.nnet_input.StateGoalActFixIn`\ ]
+   Bases: :py:obj:`deepxube.base.pathfind_fns.HeurQNNetPar`\ [\ :py:obj:`deepxube.pathfind_fns.fns_core.QOutFixProcessed`\ , :py:obj:`deepxube.base.domain.ActsEnumFixed`\ , :py:obj:`deepxube.base.nnet_input.StateGoalActFixIn`\ ]
 
    .. py:method:: domain_type() -> typing.Type[deepxube.base.domain.ActsEnumFixed]
       :canonical: deepxube.pathfind_fns.fns_core.HeurQNNetParFixOut.domain_type
@@ -139,12 +139,12 @@ API
 
       .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.HeurQNNetParFixOut._check_same_num_acts
 
-   .. py:method:: process_inputs(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], actions_l: typing.List[typing.List[deepxube.base.domain.Action]]) -> deepxube.pytorch.nnet_utils.ProcessedInput[deepxube.pathfind_fns.fns_core.QOutFixCtx]
+   .. py:method:: process_inputs(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], actions_l: typing.List[typing.List[deepxube.base.domain.Action]]) -> deepxube.pytorch.nnet_utils.ProcessedInput[deepxube.pathfind_fns.fns_core.QOutFixProcessed]
       :canonical: deepxube.pathfind_fns.fns_core.HeurQNNetParFixOut.process_inputs
 
       .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.HeurQNNetParFixOut.process_inputs
 
-   .. py:method:: process_outputs(outs: typing.List[numpy.typing.NDArray], ctx: deepxube.pathfind_fns.fns_core.QOutFixCtx) -> typing.List[typing.List[float]]
+   .. py:method:: process_outputs(outs: typing.List[numpy.typing.NDArray], processed: deepxube.pathfind_fns.fns_core.QOutFixProcessed) -> typing.List[typing.List[float]]
       :canonical: deepxube.pathfind_fns.fns_core.HeurQNNetParFixOut.process_outputs
 
       .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.HeurQNNetParFixOut.process_outputs
@@ -159,29 +159,29 @@ API
 
       .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.HeurQNNetParFixOut._out_dim
 
-.. py:class:: QInCtx
-   :canonical: deepxube.pathfind_fns.fns_core.QInCtx
+.. py:class:: QInProcessed
+   :canonical: deepxube.pathfind_fns.fns_core.QInProcessed
 
-   .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.QInCtx
+   .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.QInProcessed
 
    .. py:attribute:: states_rep
-      :canonical: deepxube.pathfind_fns.fns_core.QInCtx.states_rep
+      :canonical: deepxube.pathfind_fns.fns_core.QInProcessed.states_rep
       :type: typing.List[deepxube.base.domain.State]
       :value: None
 
-      .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.QInCtx.states_rep
+      .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.QInProcessed.states_rep
 
    .. py:attribute:: split_idxs
-      :canonical: deepxube.pathfind_fns.fns_core.QInCtx.split_idxs
+      :canonical: deepxube.pathfind_fns.fns_core.QInProcessed.split_idxs
       :type: typing.List[int]
       :value: None
 
-      .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.QInCtx.split_idxs
+      .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.QInProcessed.split_idxs
 
 .. py:class:: HeurQNNetParIn(domain: deepxube.base.pathfind_fns.D, nnet_input_name: typing.Optional[typing.Tuple[str, str]], nnet_name_args: typing.Optional[str], **kwargs: typing.Any)
    :canonical: deepxube.pathfind_fns.fns_core.HeurQNNetParIn
 
-   Bases: :py:obj:`deepxube.base.pathfind_fns.HeurQNNetPar`\ [\ :py:obj:`deepxube.pathfind_fns.fns_core.QInCtx`\ , :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.nnet_input.StateGoalActIn`\ ]
+   Bases: :py:obj:`deepxube.base.pathfind_fns.HeurQNNetPar`\ [\ :py:obj:`deepxube.pathfind_fns.fns_core.QInProcessed`\ , :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.nnet_input.StateGoalActIn`\ ]
 
    .. py:method:: domain_type() -> typing.Type[deepxube.base.domain.Domain]
       :canonical: deepxube.pathfind_fns.fns_core.HeurQNNetParIn.domain_type
@@ -195,12 +195,12 @@ API
 
       .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.HeurQNNetParIn.nnet_input_type
 
-   .. py:method:: process_inputs(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], actions_l: typing.List[typing.List[deepxube.base.domain.Action]]) -> deepxube.pytorch.nnet_utils.ProcessedInput[deepxube.pathfind_fns.fns_core.QInCtx]
+   .. py:method:: process_inputs(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], actions_l: typing.List[typing.List[deepxube.base.domain.Action]]) -> deepxube.pytorch.nnet_utils.ProcessedInput[deepxube.pathfind_fns.fns_core.QInProcessed]
       :canonical: deepxube.pathfind_fns.fns_core.HeurQNNetParIn.process_inputs
 
       .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.HeurQNNetParIn.process_inputs
 
-   .. py:method:: process_outputs(outs: typing.List[numpy.typing.NDArray], ctx: deepxube.pathfind_fns.fns_core.QInCtx) -> typing.List[typing.List[float]]
+   .. py:method:: process_outputs(outs: typing.List[numpy.typing.NDArray], processed: deepxube.pathfind_fns.fns_core.QInProcessed) -> typing.List[typing.List[float]]
       :canonical: deepxube.pathfind_fns.fns_core.HeurQNNetParIn.process_outputs
 
       .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.HeurQNNetParIn.process_outputs
