@@ -81,11 +81,11 @@ def domain_info(args: argparse.Namespace) -> None:
         print("Mixins:\n" + mixin_str, '\t')
 
         # nnet inputs
-        nnet_input_t_keys: List[Tuple[str, str]] = get_domain_nnet_input_keys(domain_name)
+        nnet_input_t_keys: List[str] = get_domain_nnet_input_keys(domain_name)
         print("NNet Inputs (Name, Module, Class):")
         for nnet_input_t_key in nnet_input_t_keys:
-            nnet_input_t: Type[NNetInput] = get_nnet_input_t(nnet_input_t_key)
-            print(textwrap.indent(f"{nnet_input_t_key[1]}, {nnet_input_t.__module__}, {nnet_input_t.__qualname__}", '\t'))
+            nnet_input_t: Type[NNetInput] = get_nnet_input_t(domain_name, nnet_input_t_key)
+            print(textwrap.indent(f"{nnet_input_t_key}, {nnet_input_t.__module__}, {nnet_input_t.__qualname__}", '\t'))
 
         parser: Optional[Parser] = domain_factory.get_parser(domain_name)
         if parser is not None:

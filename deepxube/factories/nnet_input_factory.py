@@ -1,29 +1,39 @@
-from typing import Dict, Tuple, Type, Callable, List
+from typing import Dict, Type, Callable, List
 
 from deepxube.base.nnet_input import NNetInput, DynamicNNetInput
 from deepxube.base.domain import Domain
+from deepxube.base.factory import Factory, Parser
 from deepxube.factories.domain_factory import domain_factory
 
 
-_nnet_input_registry: Dict[Tuple[str, str], Type[NNetInput]] = {}
+_nnet_input_registry: Dict[str, Factory[NNetInput]] = {}
 
 
 def register_nnet_input(domain_name: str, nnet_input_name: str) -> Callable[[Type[NNetInput]], Type[NNetInput]]:
     def deco(cls: Type[NNetInput]) -> Type[NNetInput]:
-        key: Tuple[str, str] = (domain_name, nnet_input_name)
-        if key in _nnet_input_registry.keys():
-            raise ValueError(f"{key!r} already registered for nnet inputs")
-        _nnet_input_registry[key] = cls
+        if domain_name not in _nnet_input_registry.keys():
+            _nnet_input_registry[domain_name] = Factory[NNetInput](f"{domain_name} NNetInput")
+        _nnet_input_registry[domain_name].register_class(nnet_input_name)(cls)
         return cls
     return deco
 
 
-def get_domain_nnet_input_keys(domain_name: str) -> List[Tuple[str, str]]:
-    return [key for key in _nnet_input_registry.keys() if key[0] == domain_name]
+def register_nnet_input_parser(domain_name: str, nnet_input_name: str) -> Callable[[Type[Parser]], Type[Parser]]:
+    def deco(cls: Type[Parser]) -> Type[Parser]:
+        if domain_name not in _nnet_input_registry.keys():
+            _nnet_input_registry[domain_name] = Factory[NNetInput](f"{domain_name} NNetInput")
+        _nnet_input_registry[domain_name].register_parser(nnet_input_name)(cls)
+        return cls
+
+    return deco
 
 
-def get_nnet_input_t(key: Tuple[str, str]) -> Type[NNetInput]:
-    return _nnet_input_registry[key]
+def get_domain_nnet_input_keys(domain_name: str) -> List[str]:
+    return _nnet_input_registry[domain_name].get_all_class_names()
+
+
+def get_nnet_input_t(domain_name: str, nnet_input_name: str) -> Type[NNetInput]:
+    return _nnet_input_registry[domain_name].get_type(nnet_input_name)
 
 
 def register_nnet_input_dynamic() -> None:

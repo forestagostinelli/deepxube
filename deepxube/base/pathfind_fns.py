@@ -112,12 +112,12 @@ class DeepXubeNNetPar(NNetPar[NNF_T, PROCESSED_T], Generic[NNF_T, PROCESSED_T, D
 
         return None
 
-    def __init__(self, domain: D, nnet_input_name: Optional[Tuple[str, str]], nnet_name_args: Optional[str], **kwargs: Any):
+    def __init__(self, domain: D, domain_name: str, nnet_input_name: Optional[str], nnet_name_args: Optional[str], **kwargs: Any):
 
         nnet_input_t: Optional[Type[NNetInput]] = None
         nnet_t: Optional[Type[DeepXubeNNet]] = None
         if nnet_input_name is not None:
-            nnet_input_t = get_nnet_input_t(nnet_input_name)
+            nnet_input_t = get_nnet_input_t(domain_name, nnet_input_name)
         if nnet_name_args is not None:
             nnet_t = deepxube_nnet_factory.get_type(get_name_args(nnet_name_args)[0])
 
@@ -126,7 +126,8 @@ class DeepXubeNNetPar(NNetPar[NNF_T, PROCESSED_T], Generic[NNF_T, PROCESSED_T, D
             raise TypeError(incompat_reason)
 
         self.domain: D = domain
-        self.nnet_input_name: Optional[Tuple[str, str]] = nnet_input_name
+        self.domain_name: str = domain_name
+        self.nnet_input_name: Optional[str] = nnet_input_name
         self.nnet_name_args: Optional[str] = nnet_name_args
 
         super().__init__(**kwargs)
@@ -155,7 +156,7 @@ class DeepXubeNNetPar(NNetPar[NNF_T, PROCESSED_T], Generic[NNF_T, PROCESSED_T, D
     def _get_nnet_input(self) -> NNInP:
         if self.nnet_input is None:
             assert self.nnet_input_name is not None
-            self.nnet_input = cast(NNInP, get_nnet_input_t(self.nnet_input_name)(domain=self.domain))
+            self.nnet_input = cast(NNInP, get_nnet_input_t(self.domain_name, self.nnet_input_name)(domain=self.domain))
 
         assert self.nnet_input is not None
         return self.nnet_input
@@ -169,7 +170,7 @@ class DeepXubeNNetPar(NNetPar[NNF_T, PROCESSED_T], Generic[NNF_T, PROCESSED_T, D
             return f"{type(self).__name__}()"
         else:
             assert self.nnet_name_args is not None
-            return f"NNetInputType: {get_nnet_input_t(self.nnet_input_name)} (name: {self.nnet_input_name})\n{super().__repr__()}"
+            return f"NNetInputType: {get_nnet_input_t(self.domain_name, self.nnet_input_name)} (name: {self.nnet_input_name})\n{super().__repr__()}"
 
 
 H = TypeVar('H', bound=HeurFn)

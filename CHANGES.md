@@ -8,6 +8,8 @@
 * More informative output.txt
 * PathFind _set_node_vals takes instances along with nodes_by_inst
 * Add special PathFind case when heuristics are static
+* Add mixins for labeling nodes and edges
+* Use Factory when registering NNetInput
 
 ## 0.3.1
 * Save .gif file of train_summary option

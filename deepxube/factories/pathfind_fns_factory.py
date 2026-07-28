@@ -31,7 +31,7 @@ def get_dx_nnet_par(domain: Domain, domain_name: str, nnet_par_name_args: str, n
         nnet_t = deepxube_nnet_factory.get_type(get_name_args(nnet_name_args)[0])
 
     # get possible nnet_input names for given domain
-    nnet_input_domain_names: Union[List[Tuple[str, str]], List[None]]
+    nnet_input_domain_names: Union[List[str], List[None]]
     if nnet_t is None:
         nnet_input_domain_names = [None]
     else:
@@ -42,7 +42,7 @@ def get_dx_nnet_par(domain: Domain, domain_name: str, nnet_par_name_args: str, n
     for nnet_input_domain_name in nnet_input_domain_names:
         nnet_input_domain_t: Optional[Type[NNetInput]] = None
         if nnet_input_domain_name is not None:
-            nnet_input_domain_t = get_nnet_input_t(nnet_input_domain_name)
+            nnet_input_domain_t = get_nnet_input_t(domain_name, nnet_input_domain_name)
 
         incompat_reason: Optional[str] = nnet_par_t.get_incompat_reason(domain, nnet_input_domain_t, nnet_t)
         if incompat_reason is not None:
@@ -50,6 +50,7 @@ def get_dx_nnet_par(domain: Domain, domain_name: str, nnet_par_name_args: str, n
         else:
             nnet_par_kwargs: Dict[str, Any] = deepxube_nnet_par_factory.get_kwargs(nnet_par_name, nnet_par_args)
             nnet_par_kwargs["domain"] = domain
+            nnet_par_kwargs["domain_name"] = domain_name
             nnet_par_kwargs["nnet_input_name"] = nnet_input_domain_name
             nnet_par_kwargs["nnet_name_args"] = nnet_name_args
 
