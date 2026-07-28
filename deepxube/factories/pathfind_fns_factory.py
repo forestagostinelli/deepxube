@@ -1,4 +1,4 @@
-from typing import Any, Dict, Tuple, Type, List, Optional, Union
+from typing import Any, Dict, Tuple, Type, List, Optional
 
 import torch
 from torch import nn
@@ -20,45 +20,43 @@ pathfind_fns_factory: FactoryAutoBuild[PFNs] = FactoryAutoBuild[PFNs]("PathFindF
 updater_fns_factory: FactoryAutoBuild[UFNs] = FactoryAutoBuild[UFNs]("UpdateFNs")
 
 
+def get_compat_nnet_input_name(domain: Domain, domain_name: str, nnet_par_t: Type[DeepXubeNNetPar], nnet_name_args: str, nnet_par_name_args: str) -> str:
+    nnet_t: Type[DeepXubeNNet] = deepxube_nnet_factory.get_type(get_name_args(nnet_name_args)[0])
+    nnet_input_domain_names: List[str] = get_domain_nnet_input_keys(domain_name)
+
+    incompat_reasons: List[str] = []
+    for nnet_input_domain_name in nnet_input_domain_names:
+        nnet_input_domain_t: Type[NNetInput] = get_nnet_input_t(domain_name, nnet_input_domain_name)
+
+        incompat_reason: Optional[str] = nnet_par_t.get_incompat_reason(domain, nnet_input_domain_t, nnet_t)
+        if incompat_reason is not None:
+            incompat_reasons.append(incompat_reason + f" (NNetInput name: {nnet_input_domain_name})")
+        else:
+            return nnet_input_domain_name
+
+    incompat_reasons_str: str = '\n'.join(incompat_reasons)
+    raise ValueError(f"Cannot build fn for domain: {domain_name}, nnet_args: {nnet_name_args}, nnet_par_args: {nnet_par_name_args}."
+                     f"\nIncompatibility reasons:\n{incompat_reasons_str}")
+
+
 def get_dx_nnet_par(domain: Domain, domain_name: str, nnet_par_name_args: str, nnet_name_args: Optional[str]) -> Tuple[DeepXubeNNetPar, str]:
     # get nnet par type
     nnet_par_name, nnet_par_args = get_name_args(nnet_par_name_args)
     nnet_par_t: Type[DeepXubeNNetPar] = deepxube_nnet_par_factory.get_type(nnet_par_name)
 
     # get nnet type
-    nnet_t: Optional[Type[DeepXubeNNet]] = None
+    nnet_input_domain_name: Optional[str] = None
     if nnet_name_args is not None:
-        nnet_t = deepxube_nnet_factory.get_type(get_name_args(nnet_name_args)[0])
+        nnet_input_domain_name = get_compat_nnet_input_name(domain, domain_name, nnet_par_t, nnet_name_args, nnet_par_name_args)
 
-    # get possible nnet_input names for given domain
-    nnet_input_domain_names: Union[List[str], List[None]]
-    if nnet_t is None:
-        nnet_input_domain_names = [None]
-    else:
-        nnet_input_domain_names = get_domain_nnet_input_keys(domain_name)
+    # build nnet par
+    nnet_par_kwargs: Dict[str, Any] = deepxube_nnet_par_factory.get_kwargs(nnet_par_name, nnet_par_args)
+    nnet_par_kwargs["domain"] = domain
+    nnet_par_kwargs["domain_name"] = domain_name
+    nnet_par_kwargs["nnet_input_name"] = nnet_input_domain_name
+    nnet_par_kwargs["nnet_name_args"] = nnet_name_args
 
-    # find nnet input and create class
-    incompat_reasons: List[str] = []
-    for nnet_input_domain_name in nnet_input_domain_names:
-        nnet_input_domain_t: Optional[Type[NNetInput]] = None
-        if nnet_input_domain_name is not None:
-            nnet_input_domain_t = get_nnet_input_t(domain_name, nnet_input_domain_name)
-
-        incompat_reason: Optional[str] = nnet_par_t.get_incompat_reason(domain, nnet_input_domain_t, nnet_t)
-        if incompat_reason is not None:
-            incompat_reasons.append(incompat_reason + f" (NNetInput name: {nnet_input_domain_name})")
-        else:
-            nnet_par_kwargs: Dict[str, Any] = deepxube_nnet_par_factory.get_kwargs(nnet_par_name, nnet_par_args)
-            nnet_par_kwargs["domain"] = domain
-            nnet_par_kwargs["domain_name"] = domain_name
-            nnet_par_kwargs["nnet_input_name"] = nnet_input_domain_name
-            nnet_par_kwargs["nnet_name_args"] = nnet_name_args
-
-            return deepxube_nnet_par_factory.build_class(nnet_par_name, nnet_par_kwargs), nnet_par_name
-
-    incompat_reasons_str: str = '\n'.join(incompat_reasons)
-    raise ValueError(f"Cannot build fn for domain: {domain_name}, nnet_args: {nnet_name_args}, nnet_par_args: {nnet_par_name_args}."
-                     f"\nIncompatibility reasons:\n{incompat_reasons_str}")
+    return deepxube_nnet_par_factory.build_class(nnet_par_name, nnet_par_kwargs), nnet_par_name
 
 
 def get_path_fns_nnet_par_dict(domain: Domain, domain_name: str, fn_name_args_l: List[str], device: torch.device,
