@@ -39,21 +39,21 @@ def get_compat_nnet_input_name(domain: Domain, domain_name: str, nnet_par_t: Typ
                      f"\nIncompatibility reasons:\n{incompat_reasons_str}")
 
 
-def get_dx_nnet_par(domain: Domain, domain_name: str, nnet_par_name_args: str, nnet_name_args: Optional[str]) -> Tuple[DeepXubeNNetPar, str]:
+def get_dx_nnet_par(domain: Domain, domain_name: str, nnet_input_name_args: Optional[str], nnet_par_name_args: str,
+                    nnet_name_args: Optional[str]) -> Tuple[DeepXubeNNetPar, str]:
     # get nnet par type
     nnet_par_name, nnet_par_args = get_name_args(nnet_par_name_args)
     nnet_par_t: Type[DeepXubeNNetPar] = deepxube_nnet_par_factory.get_type(nnet_par_name)
 
-    # get nnet type
-    nnet_input_domain_name: Optional[str] = None
-    if nnet_name_args is not None:
-        nnet_input_domain_name = get_compat_nnet_input_name(domain, domain_name, nnet_par_t, nnet_name_args, nnet_par_name_args)
+    # find compat nnet input type
+    if (nnet_name_args is not None) and (nnet_input_name_args is None):
+        nnet_input_name_args = get_compat_nnet_input_name(domain, domain_name, nnet_par_t, nnet_name_args, nnet_par_name_args)
 
     # build nnet par
     nnet_par_kwargs: Dict[str, Any] = deepxube_nnet_par_factory.get_kwargs(nnet_par_name, nnet_par_args)
     nnet_par_kwargs["domain"] = domain
     nnet_par_kwargs["domain_name"] = domain_name
-    nnet_par_kwargs["nnet_input_name"] = nnet_input_domain_name
+    nnet_par_kwargs["nnet_input_name_args"] = nnet_input_name_args
     nnet_par_kwargs["nnet_name_args"] = nnet_name_args
 
     return deepxube_nnet_par_factory.build_class(nnet_par_name, nnet_par_kwargs), nnet_par_name
@@ -62,12 +62,15 @@ def get_dx_nnet_par(domain: Domain, domain_name: str, nnet_par_name_args: str, n
 def get_path_fns_nnet_par_dict(domain: Domain, domain_name: str, fn_name_args_l: List[str], device: torch.device,
                                nnet_files: Optional[List[Optional[str]]] = None,
                                nnet_batch_size: Optional[int] = None) -> Tuple[PFNs, Dict[str, DeepXubeNNetPar]]:
-    nnet_fn_dict: Dict[str, NNetCallable] = dict()
-    nnet_par_dict: Dict[str, DeepXubeNNetPar] = dict()
     if nnet_files is not None:
         assert len(nnet_files) == len(fn_name_args_l)
 
+    nnet_fn_dict: Dict[str, NNetCallable] = dict()
+    nnet_par_dict: Dict[str, DeepXubeNNetPar] = dict()
+
     for fn_idx, fn_arg in enumerate(fn_name_args_l):
+        nnet_input_name_args: Optional[str] = None
+
         # get nnet par
         fn_arg_split: List[str] = fn_arg.split(",")
         nnet_name_args: Optional[str] = None
@@ -75,10 +78,12 @@ def get_path_fns_nnet_par_dict(domain: Domain, domain_name: str, fn_name_args_l:
             nnet_par_name_args = fn_arg_split[0]
         elif len(fn_arg_split) == 2:
             nnet_par_name_args, nnet_name_args = fn_arg_split[0], fn_arg_split[1]
+        elif len(fn_arg_split) == 3:
+            nnet_par_name_args, nnet_input_name_args, nnet_name_args = fn_arg_split[0], fn_arg_split[1], fn_arg_split[2]
         else:
-            raise ValueError("Each element of fn_name_args_l must be either <fn> or <fn>,<nnet>")
+            raise ValueError("Each element of fn_name_args_l must be either <fn>, <fn>,<nnet>, or <fn>,<nnet_input>,<nnet>")
 
-        nnet_par, nnet_par_name = get_dx_nnet_par(domain, domain_name, nnet_par_name_args, nnet_name_args)
+        nnet_par, nnet_par_name = get_dx_nnet_par(domain, domain_name, nnet_input_name_args, nnet_par_name_args, nnet_name_args)
 
         # get fn
         fn: NNetCallable

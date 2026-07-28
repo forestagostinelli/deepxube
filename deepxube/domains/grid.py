@@ -169,6 +169,20 @@ class GridNNetInput(StateGoalIn[Grid, GridState, GridGoal]):
         return [np_rep]
 
 
+@register_nnet_input("grid", "grid_nnet_input_2")
+class GridNNetInput2(GridNNetInput):
+    def get_input_info(self) -> int:
+        return self.domain.dim * 2
+
+    def to_np(self, states: List[GridState], goals: List[GridGoal]) -> List[NDArray]:
+        np_rep: NDArray = np.zeros((len(states), 2, self.domain.dim * 2, self.domain.dim * 2))
+        for idx, (state, goal) in enumerate(zip(states, goals)):
+            np_rep[idx, 0, state.robot_x, state.robot_y] = 1
+            np_rep[idx, 1, goal.robot_x, goal.robot_y] = 1
+
+        return [np_rep]
+
+
 @deepxube_nnet_factory.register_class("gridnet")
 class GridNet(HeurNNet[GridNNetInput]):
     @staticmethod

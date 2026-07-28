@@ -115,13 +115,16 @@ def solve_cli(args: argparse.Namespace) -> None:
         elif len(fns_split) == 3:
             fns.append(f"{fns_split[0]},{fns_split[1]}")
             nnet_files.append(fns_split[2])
+        elif len(fns_split) == 4:
+            fns.append(f"{fns_split[0]},{fns_split[1]},{fns_split[2]}")
+            nnet_files.append(fns_split[3])
         else:
-            raise ValueError("--fn must be either --fn <fn> or --fn <fn>,<nnet>,<nnet_file>")
+            raise ValueError("--fn must be either --fn <fn>, --fn <fn>,<nnet>,<nnet_file>, or --fn <fn>,<nnet_input>,<nnet>,<nnet_file>")
 
     pathfind_fns, nnet_par_dict = get_path_fns_nnet_par_dict(domain, domain_name, fns, device, nnet_files=nnet_files, nnet_batch_size=args.nnet_batch_size)
     for nnet_par in nnet_par_dict.values():
         print(nnet_par)
-        print(f"(name: {nnet_par.get_field_name()}, nnet_input_name: {nnet_par.nnet_input_name})")
+        print(f"(name: {nnet_par.get_field_name()}, nnet_input_name_args: {nnet_par.nnet_input_name_args})")
 
     # pathfind functions
     print(pathfind_fns)

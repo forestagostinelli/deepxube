@@ -1,8 +1,8 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, cast
 import pytest  # type: ignore
 
 from deepxube.base.domain import Domain, State, Goal
-from deepxube.domains.cube3 import Cube3
+from deepxube.domains.cube3 import Cube3, Cube3State, Cube3Goal
 from deepxube.base.pathfinding import Node, Instance, get_path
 from deepxube.pathfinding.utils.performance import is_valid_soln, PathFindPerf
 from deepxube.factories.pathfind_fns_factory import get_path_fns_nnet_par_dict
@@ -12,7 +12,7 @@ from itertools import product
 
 
 @pytest.fixture
-def prob_insts() -> Tuple[List[State], List[Goal]]:
+def prob_insts() -> Tuple[List[Cube3State], List[Cube3Goal]]:
     states, goals = Cube3().sample_problem_instances(([0] * 3) + ([1] * 3) + ([2] * 3))
     return states, goals
 
@@ -24,7 +24,7 @@ cases = (
 
 
 @pytest.mark.parametrize("fn_str,pathfind_solve_str", cases)
-def test_bruteforce(fn_str: str, pathfind_solve_str: str, prob_insts: Tuple[List[State], List[Goal]]) -> None:
+def test_bruteforce(fn_str: str, pathfind_solve_str: str, prob_insts: Tuple[List[Cube3State], List[Cube3Goal]]) -> None:
     device, devices, on_gpu = nnet_utils.get_device()
 
     domain: Domain = Cube3()
@@ -34,8 +34,8 @@ def test_bruteforce(fn_str: str, pathfind_solve_str: str, prob_insts: Tuple[List
     pathfind_fns = get_path_fns_nnet_par_dict(domain, domain_name, fn_l, device)[0]
     pathfind = get_pathfind_from_arg(domain, pathfind_fns, pathfind_solve_str)[0]
 
-    states: List[State] = prob_insts[0]
-    goals: List[Goal] = prob_insts[1]
+    states: List[State] = cast(List[State], prob_insts[0])
+    goals: List[Goal] = cast(List[Goal], prob_insts[1])
     instances: List[Instance] = pathfind.make_instances(states, goals, None, True)
     pathfind.add_instances(instances)
     for _ in range(200):

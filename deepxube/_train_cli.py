@@ -78,7 +78,7 @@ def train_cli(args: argparse.Namespace) -> None:
     for field in fields(updater_fns):
         nnet_par: DeepXubeNNetPar = cast(DeepXubeNNetPar, getattr(updater_fns, field.name))
         print(nnet_par)
-        print(f"(name: {field.name}, nnet_input_name: {nnet_par.nnet_input_name})")
+        print(f"(name: {field.name}, nnet_input_name_args: {nnet_par.nnet_input_name_args})")
 
     print(domain, f"(name: {domain_name})")
 

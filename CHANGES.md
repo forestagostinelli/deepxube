@@ -10,6 +10,7 @@
 * Add special PathFind case when heuristics are static
 * Add mixins for labeling nodes and edges
 * Use Factory when registering NNetInput
+* Add ability to add name of NNetInput to command line and add arguments
 
 ## 0.3.1
 * Save .gif file of train_summary option
