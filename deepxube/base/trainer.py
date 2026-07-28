@@ -232,6 +232,7 @@ class Train(Generic[NNet, Up], ABC):
             self.status = Status(self.updater.up_args.step_max, self.train_args.balance_steps)
             # noinspection PyTypeChecker
             pickle.dump(self.status, open(self.status_file, "wb"), protocol=-1)
+        self.updater.set_targ_update_num(self.nnet_field_name, self.status.targ_update_num)
 
         # load summary
         self.train_summary_file: str = f"{self.nnet_dir}/{self.nnet_name}_train_summary.pkl"
