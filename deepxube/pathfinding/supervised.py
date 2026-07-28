@@ -1,5 +1,5 @@
 from typing import List, Any, Optional, Type, Tuple
-from deepxube.base.domain import Action, NodesSupervisable, EdgesSupervisable, EdgesSampleable
+from deepxube.base.domain import Action, NodesLabelsSampleable, EdgesLabelsSampleable, EdgesSampleable
 from deepxube.base.pathfinding import Instance, InstanceNodeStatic, InstanceEdgeStatic, Node, EdgeQ, PathFindNodeStatic, PathFindEdgeStatic, PathFindSup
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 import time
@@ -45,10 +45,10 @@ class InstanceEdgeSup(InstanceEdgeStatic, InstanceSup):
 
 
 @pathfinding_factory.register_class("sup_v")
-class PathFindNodeSup(PathFindNodeStatic[NodesSupervisable, Any, InstanceNodeSup], PathFindSup[NodesSupervisable, InstanceNodeSup]):
+class PathFindNodeSup(PathFindNodeStatic[NodesLabelsSampleable, Any, InstanceNodeSup], PathFindSup[NodesLabelsSampleable, InstanceNodeSup]):
     @staticmethod
-    def domain_type() -> Type[NodesSupervisable]:
-        return NodesSupervisable
+    def domain_type() -> Type[NodesLabelsSampleable]:
+        return NodesLabelsSampleable
 
     @staticmethod
     def description() -> str:
@@ -94,10 +94,10 @@ class PathFindNodeSup(PathFindNodeStatic[NodesSupervisable, Any, InstanceNodeSup
 
 
 @pathfinding_factory.register_class("sup_q")
-class PathFindEdgeSup(PathFindEdgeStatic[EdgesSupervisable, Any, InstanceEdgeSup], PathFindSup[EdgesSupervisable, InstanceEdgeSup]):
+class PathFindEdgeSup(PathFindEdgeStatic[EdgesLabelsSampleable, Any, InstanceEdgeSup], PathFindSup[EdgesLabelsSampleable, InstanceEdgeSup]):
     @staticmethod
-    def domain_type() -> Type[EdgesSupervisable]:
-        return EdgesSupervisable
+    def domain_type() -> Type[EdgesLabelsSampleable]:
+        return EdgesLabelsSampleable
 
     @staticmethod
     def description() -> str:

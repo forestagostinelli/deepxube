@@ -5,15 +5,10 @@ from deepxube.base.domain import Domain, State, Goal
 from deepxube.domains.cube3 import Cube3
 from deepxube.base.pathfinding import Node, Instance, get_path
 from deepxube.pathfinding.utils.performance import is_valid_soln, PathFindPerf
-from deepxube.factories.domain_factory import get_domain_from_arg
-from deepxube.factories.pathfind_fns_factory import get_path_up_fns, get_path_fns_nnet_par_dict
+from deepxube.factories.pathfind_fns_factory import get_path_fns_nnet_par_dict
 from deepxube.factories.pathfinding_factory import get_pathfind_from_arg
-from deepxube.factories.updater_factory import get_updater_from_args
-from deepxube.factories.trainer_factory import get_trainer_from_args
 from deepxube.pytorch import nnet_utils
 from itertools import product
-import shutil
-import os
 
 
 @pytest.fixture

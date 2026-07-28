@@ -345,10 +345,10 @@ class ActsEnumFixed(ActsEnum[S, A, G], ActsFixed[S, A, G]):
 
 
 # supervised data generation
-class NodesSupervisable(Domain[S, A, G]):
+class NodesLabelsSampleable(Domain[S, A, G]):
     @abstractmethod
     def samp_nodes_and_labels(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[float]]:
-        """ Return problem instances with a supervised label for the cost-to-go. This label need not be the true cost-to-go.
+        """ Return states and goals with a supervised label for the cost-to-go. This label need not be the true cost-to-go.
 
         :param steps_gen: Number of actions to take to sample nodes. Labels are the number of actions taken
         :return: States, goals, labels
@@ -356,10 +356,10 @@ class NodesSupervisable(Domain[S, A, G]):
         pass
 
 
-class EdgesSupervisable(Domain[S, A, G]):
+class EdgesLabelsSampleable(Domain[S, A, G]):
     @abstractmethod
     def samp_edges_and_labels(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[A], List[float]]:
-        """ Return problem instances with a supervised label for the cost-to-go. This label need not be the true cost-to-go.
+        """ Return states, goals, and actions with a supervised label for the cost-to-go. This label need not be the true cost-to-go.
 
         :param steps_gen: Number of actions to take to sample nodes. Labels are the number of actions taken
         :return: States, goals, actions, labels
@@ -374,6 +374,31 @@ class EdgesSampleable(Domain[S, A, G]):
 
         :param steps_gen: Number of steps to take between start state and goal
         :return: States, goals, actions taken from states that lead to goal
+        """
+        pass
+
+
+class NodesLabelable(Domain[S, A, G]):
+    @abstractmethod
+    def label_nodes(self, states: List[S], goals: List[G]) -> List[float]:
+        """ Return an estimate of the cost-to-go of the given states and goals
+
+        :param states: States
+        :param goals: Goals
+        :return: labels
+        """
+        pass
+
+
+class EdgesLabelable(Domain[S, A, G]):
+    @abstractmethod
+    def label_edges(self, states: List[S], actions: List[A], goals: List[G]) -> List[float]:
+        """ Return an estimate of the cost-to-go of the given states, goals, and actions
+
+        :param states: States
+        :param actions: Actions
+        :param goals: Goals
+        :return: labels
         """
         pass
 
@@ -466,7 +491,7 @@ class GoalSampGoalStateSamp(GoalStateGoalPairSampleable[S, A, G], GoalSampleable
 
 
 # Problem instance generation mixins
-class StartGoalWalkable(GoalSampleableFromState[S, A, G], NodesSupervisable[S, A, G], EdgesSupervisable[S, A, G], EdgesSampleable[S, A, G]):
+class StartGoalWalkable(GoalSampleableFromState[S, A, G], NodesLabelsSampleable[S, A, G], EdgesLabelsSampleable[S, A, G], EdgesSampleable[S, A, G]):
     """ Can sample start states, take actions to obtain another state, and sample a goal from that state"""
     @abstractmethod
     def sample_start_states(self, num_states: int) -> List[S]:
@@ -566,7 +591,7 @@ class GoalStartRevWalkable(GoalStateGoalPairSampleable[S, A, G]):
         pass
 
 
-class GoalStartRevWalkableActsRev(GoalStartRevWalkable[S, A, G], ActsRev[S, A, G], NodesSupervisable[S, A, G], EdgesSupervisable[S, A, G],
+class GoalStartRevWalkableActsRev(GoalStartRevWalkable[S, A, G], ActsRev[S, A, G], NodesLabelsSampleable[S, A, G], EdgesLabelsSampleable[S, A, G],
                                   EdgesSampleable[S, A, G], ABC):
     def random_walk_rev_no_path_cost(self, states: List[S], num_steps_l: List[int]) -> List[S]:
         return self.random_walk(states, num_steps_l)[0]
