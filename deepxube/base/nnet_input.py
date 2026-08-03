@@ -16,6 +16,10 @@ G = TypeVar('G', bound=Goal)
 
 
 class NNetInput(ABC, Generic[D]):
+    @staticmethod
+    def uses_context() -> bool:
+        return False
+
     """ Defines how some combination of states/goals/actions for a given domain are converted to a representation suitable for a neural network """
     def __init__(self, domain: D):
         self.domain: D = domain
@@ -61,9 +65,19 @@ class TwoDIn(NNetInput[D]):
 
 
 class StateGoalIn(NNetInput[D], Generic[D, S, G]):
+    def to_np_ctx_option(self, states: List[S], goals: List[G], contexts: List[Any]) -> List[NDArray]:
+        if self.uses_context():
+            return self.to_np_ctx(states, goals, contexts)
+        else:
+            assert all([context is None for context in contexts]), "Should not have been given context if uses_context is False"
+            return self.to_np(states, goals)
+
     @abstractmethod
     def to_np(self, states: List[S], goals: List[G]) -> List[NDArray]:
         pass
+
+    def to_np_ctx(self, states: List[S], goals: List[G], contexts: Optional[List[Any]]) -> List[NDArray]:
+        raise NotImplementedError
 
 
 class StateGoalActFixIn(NNetInput[D], Generic[D, S, G, A]):

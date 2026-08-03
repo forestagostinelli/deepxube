@@ -34,9 +34,10 @@ class UpdateHeurVSup(UpdateHeurV[Domain, Any, PathFindNodeSup, Instance, UFNsHeu
 
         states: List[State] = [node.state for node in nodes_popped]
         goals: List[Goal] = [node.goal for node in nodes_popped]
+        contexts: List[Any] = [node.context for node in nodes_popped]
 
         ctgs_backup: List[float] = [node.heuristic for node in nodes_popped]
-        inputs_np: List[NDArray] = self.get_heurv_nnet_par().process_inputs(states, goals).inputs_nnet
+        inputs_np: List[NDArray] = self.get_heurv_nnet_par().process_inputs(states, goals, contexts).inputs_nnet
         return inputs_np + [np.array(ctgs_backup)]
 
 

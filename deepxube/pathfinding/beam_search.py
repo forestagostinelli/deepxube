@@ -3,9 +3,8 @@ from typing import List, Any, Type, Optional, TypeVar, Dict
 
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, ActsEnum, State, Goal
-from deepxube.base.pathfinding import (Instance, InstanceNodeStatic, InstanceEdgeStatic, Node, EdgeQ, PFNsT, PFNsHV_T, PFNsHQ_T, PathFind,
-                                       PathFindNodeStatic, PathFindEdgeStatic, PathFindActsPolicy, PathFindSetPolicy, PathFindSetHeurV, PathFindSetHeurQ,
-                                       PathFindActsEnum)
+from deepxube.base.pathfinding import (Instance, InstanceNode, InstanceEdge, Node, EdgeQ, PFNsT, PFNsHV_T, PFNsHQ_T, PathFind, PathFindNodeStatic,
+                                       PathFindEdgeStatic, PathFindActsPolicy, PathFindSetPolicy, PathFindSetHeurV, PathFindSetHeurQ, PathFindActsEnum)
 from deepxube.base.pathfind_fns import PFNsHeurV, PFNsHeurQ, PFNsPolicy, PFNsHeurVPolicy, PFNsHeurQPolicy
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.utils.misc_utils import boltzmann
@@ -97,11 +96,14 @@ class BeamSearch(PathFind[D, PFNsT, IBeam], ABC):
 
         return instances
 
+    def _set_node_contexts(self, nodes_by_inst: List[List[Node]], instances: List[IBeam]) -> None:
+        pass
+
     def __repr__(self) -> str:
         return f"{type(self).__name__}(beam_size={self.beam_size_default}, temp={self.temp_default}, eps={self.eps_default}, rollout={self.rollout})"
 
 
-class InstanceNodeBeam(InstanceNodeStatic, InstanceBeam):
+class InstanceNodeBeam(InstanceNode, InstanceBeam):
     def filter_expanded_nodes(self, nodes: List[Node]) -> List[Node]:
         return nodes
 
@@ -110,7 +112,7 @@ class InstanceNodeBeam(InstanceNodeStatic, InstanceBeam):
         return [nodes[idx] for idx in next_idxs]
 
 
-class InstanceEdgeBeam(InstanceEdgeStatic, InstanceBeam):
+class InstanceEdgeBeam(InstanceEdge, InstanceBeam):
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.beam_edges: List[EdgeQ] = []

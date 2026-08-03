@@ -158,7 +158,7 @@ def test_heur_nnet_par(heur_nnet_par: HeurNNetPar, states: List[State], goals: L
     # nnet format
     start_time = time.time()
     if isinstance(heur_nnet_par, HeurVNNetPar):
-        heur_nnet_par.process_inputs(states, goals)
+        heur_nnet_par.process_inputs(states, goals, [None for _ in states])
     elif isinstance(heur_nnet_par, HeurQNNetPar):
         heur_nnet_par.process_inputs(states, goals, [[action] for action in actions])
     else:

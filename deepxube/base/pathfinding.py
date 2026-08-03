@@ -16,7 +16,7 @@ import time
 
 class Node:
     __slots__ = ['state', 'goal', 'path_cost', 'heuristic', 'q_values', 'act_probs', 'is_solved', 'parent_action', 'parent_t_cost', 'parent',
-                 'edge_dict', 'backup_val']
+                 'edge_dict', 'backup_val', 'context']
 
     def __init__(self, state: State, goal: Goal, path_cost: float, heuristic: float, q_values: Optional[Tuple[List[Action], List[float]]],
                  is_solved: Optional[bool], parent_action: Optional[Action], parent_t_cost: Optional[float], parent: Optional['Node']):
@@ -32,6 +32,7 @@ class Node:
         self.parent: Optional[Node] = parent
         self.edge_dict: Dict[Action, Tuple[float, Node]] = dict()
         self.backup_val: float = np.inf
+        self.context: Any = None
 
     def add_edge(self, action: Action, t_cost: float, node_next: "Node") -> None:
         assert action not in self.edge_dict.keys()
@@ -296,6 +297,10 @@ class PathFind(Generic[D, PFNsT, I], ABC):
         self.times.record_time("is_solved", time.time() - start_time)
 
     @abstractmethod
+    def _set_node_contexts(self, nodes_by_inst: List[List[Node]], instances: List[I]) -> None:
+        pass
+
+    @abstractmethod
     def _set_node_vals(self, nodes_by_inst: List[List[Node]], instances: List[I]) -> None:
         pass
 
@@ -355,6 +360,9 @@ class PathFindNode(PathFind[D, PFNsT, I]):
 
         # expand
         nodes_exp_by_inst: List[List[Node]] = self._expand(instances, nodes_popped_by_inst)
+
+        # set node contexts
+        self._set_node_contexts(nodes_exp_by_inst, instances)
 
         # eval nodes
         self._set_node_vals(nodes_exp_by_inst, instances)
@@ -492,6 +500,9 @@ class PathFindEdge(PathFind[D, PFNsT, I]):  # TODO add nodes popped
         # get nodes of edges
         nodes_next_by_inst: List[List[Node]] = self._get_edge_nodes(instances, edges_next_by_inst)
 
+        # set node contexts
+        self._set_node_contexts(nodes_next_by_inst, instances)
+
         # eval nodes
         self._set_node_vals(nodes_next_by_inst, instances)
 
@@ -580,7 +591,7 @@ class PathFindEdge(PathFind[D, PFNsT, I]):  # TODO add nodes popped
         pass
 
 
-class InstanceNodeStatic(Instance, ABC):
+class InstanceNode(Instance, ABC):
     @abstractmethod
     def filter_expanded_nodes(self, nodes: List[Node]) -> List[Node]:
         pass
@@ -590,10 +601,10 @@ class InstanceNodeStatic(Instance, ABC):
         pass
 
 
-INodeS_T = TypeVar('INodeS_T', bound=InstanceNodeStatic)
+INode_T = TypeVar('INode_T', bound=InstanceNode)
 
 
-class InstanceEdgeStatic(Instance, ABC):
+class InstanceEdge(Instance, ABC):
     @abstractmethod
     def filter_popped_nodes(self, nodes: List[Node]) -> List[Node]:
         pass
@@ -603,15 +614,15 @@ class InstanceEdgeStatic(Instance, ABC):
         pass
 
 
-IEdgeS_T = TypeVar('IEdgeS_T', bound=InstanceEdgeStatic)
+IEdge_T = TypeVar('IEdge_T', bound=InstanceEdge)
 
 
-class PathFindNodeStatic(PathFindNode[D, PFNsT, INodeS_T]):
+class PathFindNodeStatic(PathFindNode[D, PFNsT, INode_T]):
     @abstractmethod
-    def _compute_costs(self, instances: List[INodeS_T], nodes_by_inst: List[List[Node]]) -> List[List[float]]:
+    def _compute_costs(self, instances: List[INode_T], nodes_by_inst: List[List[Node]]) -> List[List[float]]:
         pass
 
-    def _get_next_nodes(self, nodes_exp_by_inst: List[List[Node]], instances: List[INodeS_T]) -> List[List[Node]]:
+    def _get_next_nodes(self, nodes_exp_by_inst: List[List[Node]], instances: List[INode_T]) -> List[List[Node]]:
         # filter expanded nodes
         start_time = time.time()
         for inst_idx, instance in enumerate(instances):
@@ -631,12 +642,12 @@ class PathFindNodeStatic(PathFindNode[D, PFNsT, INodeS_T]):
         return nodes_next_by_inst
 
 
-class PathFindEdgeStatic(PathFindEdge[D, PFNsT, IEdgeS_T]):
+class PathFindEdgeStatic(PathFindEdge[D, PFNsT, IEdge_T]):
     @abstractmethod
-    def _compute_costs(self, instances: List[IEdgeS_T], edges_by_inst: List[List[EdgeQ]]) -> List[List[float]]:
+    def _compute_costs(self, instances: List[IEdge_T], edges_by_inst: List[List[EdgeQ]]) -> List[List[float]]:
         pass
 
-    def _get_next_edges(self, nodes_popped_by_inst: List[List[Node]], instances: List[IEdgeS_T]) -> List[List[EdgeQ]]:
+    def _get_next_edges(self, nodes_popped_by_inst: List[List[Node]], instances: List[IEdge_T]) -> List[List[EdgeQ]]:
         # filter popped nodes
         start_time = time.time()
         for inst_idx, instance in enumerate(instances):
@@ -692,11 +703,12 @@ class PathFindSetHeurV(PathFind[D, PFNsHV_T, I], ABC):
 
         states: List[State] = [node.state for node in nodes]
         goals: List[Goal] = [node.goal for node in nodes]
+        contexts: List[Any] = [node.context for node in nodes]
 
-        heuristics: List[float] = self.pathfind_fns.heurv(states, goals)
+        heuristics: List[float] = self.pathfind_fns.heurv(states, goals, contexts)
 
-        assert len(heuristics) == len(states) == len(goals), \
-            f"{len(heuristics)}, {len(states)}, {len(goals)}"
+        assert len(heuristics) == len(states) == len(goals) == len(contexts), \
+            f"{len(heuristics)}, {len(states)}, {len(goals)}, {len(contexts)}"
 
         for node, heuristic in zip(nodes, heuristics, strict=True):
             node.heuristic = heuristic

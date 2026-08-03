@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Any, Type, Optional, TypeVar, Generic, Tuple, Dict
 from deepxube.base.factory import Parser
 from deepxube.base.domain import Domain, ActsEnum, State, Goal
-from deepxube.base.pathfinding import (Instance, InstanceNodeStatic, InstanceEdgeStatic, Node, EdgeQ, PFNsT, PFNsHV_T, PFNsHQ_T, PathFind,
+from deepxube.base.pathfinding import (Instance, InstanceNode, InstanceEdge, Node, EdgeQ, PFNsT, PFNsHV_T, PFNsHQ_T, PathFind,
                                        PathFindNodeStatic, PathFindEdgeStatic, PathFindActsPolicy, PathFindSetHeurV, PathFindSetHeurQ, PathFindActsEnum)
 from deepxube.base.pathfind_fns import PFNsHeurV, PFNsHeurQ, PFNsHeurVPolicy, PFNsHeurQPolicy
 from deepxube.factories.pathfinding_factory import pathfinding_factory
@@ -108,11 +108,14 @@ class GraphSearch(PathFind[D, PFNsT, IGraph], ABC):
 
         return instances
 
+    def _set_node_contexts(self, nodes_by_inst: List[List[Node]], instances: List[IGraph]) -> None:
+        pass
+
     def __repr__(self) -> str:
         return f"{type(self).__name__}(batch_size={self.batch_size_default}, weight={self.weight_default}, eps={self.eps_default})"
 
 
-class InstanceNodeGraph(InstanceNodeStatic, InstanceGraph[Node]):
+class InstanceNodeGraph(InstanceNode, InstanceGraph[Node]):
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.closed_dict[self.root_node.state] = 0.0
@@ -125,7 +128,7 @@ class InstanceNodeGraph(InstanceNodeStatic, InstanceGraph[Node]):
         return self._pop_from_open()
 
 
-class InstanceEdgeGraph(InstanceEdgeStatic, InstanceGraph[EdgeQ]):
+class InstanceEdgeGraph(InstanceEdge, InstanceGraph[EdgeQ]):
     def filter_popped_nodes(self, nodes: List[Node]) -> List[Node]:
         return self._check_closed(nodes)
 

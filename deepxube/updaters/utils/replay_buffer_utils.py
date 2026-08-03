@@ -1,15 +1,15 @@
 from abc import ABC, abstractmethod
-from typing import Deque, Tuple, List, Optional, Generic, TypeVar
+from typing import Deque, Tuple, List, Optional, Generic, TypeVar, Any
 from collections import deque
 from deepxube.base.domain import State, Action, Goal
 import numpy as np
 
 
-ReplayVElem = Tuple[State, Goal, bool]
+ReplayVElem = Tuple[State, Goal, Any, bool]
 ReplayQElem = Tuple[State, Goal, bool, Action, float, State]
 ReplayPElem = Tuple[State, Goal, Action]
 
-ReplayVRet = Tuple[List[State], List[Goal], List[bool]]
+ReplayVRet = Tuple[List[State], List[Goal], List[Any], List[bool]]
 ReplayQRet = Tuple[List[State], List[Goal], List[bool], List[Action], List[float], List[State]]
 ReplayPRet = Tuple[List[State], List[Goal], List[Action]]
 
@@ -48,9 +48,10 @@ class ReplayBufferV(ReplayBuffer[ReplayVElem, ReplayVRet]):
     def _elems_to_ret(self, elems: List[ReplayVElem]) -> ReplayVRet:
         states: List[State] = [replay_q_elem[0] for replay_q_elem in elems]
         goals: List[Goal] = [replay_q_elem[1] for replay_q_elem in elems]
-        is_solved_l: List[bool] = [replay_q_elem[2] for replay_q_elem in elems]
+        contexts: List[Optional[Any]] = [replay_q_elem[2] for replay_q_elem in elems]
+        is_solved_l: List[bool] = [replay_q_elem[3] for replay_q_elem in elems]
 
-        return states, goals, is_solved_l
+        return states, goals, contexts, is_solved_l
 
 
 class ReplayBufferQ(ReplayBuffer[ReplayQElem, ReplayQRet]):

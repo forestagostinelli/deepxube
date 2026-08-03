@@ -1,6 +1,6 @@
 from typing import List, Any, Optional, Type, Tuple
 from deepxube.base.domain import Action, NodesLabelsSampleable, EdgesLabelsSampleable, EdgesSampleable
-from deepxube.base.pathfinding import Instance, InstanceNodeStatic, InstanceEdgeStatic, Node, EdgeQ, PathFindNodeStatic, PathFindEdgeStatic, PathFindSup
+from deepxube.base.pathfinding import Instance, InstanceNode, InstanceEdge, Node, EdgeQ, PathFindNodeStatic, PathFindEdgeStatic, PathFindSup
 from deepxube.factories.pathfinding_factory import pathfinding_factory
 import time
 
@@ -16,7 +16,7 @@ class InstanceSup(Instance):
         return self.itr > 0
 
 
-class InstanceNodeSup(InstanceNodeStatic, InstanceSup):
+class InstanceNodeSup(InstanceNode, InstanceSup):
     def __init__(self, *args: Any, path_cost_sup: Optional[float] = None, **kwargs: Any):
         super().__init__(*args, **kwargs)
         assert path_cost_sup is not None
@@ -29,7 +29,7 @@ class InstanceNodeSup(InstanceNodeStatic, InstanceSup):
         raise NotImplementedError
 
 
-class InstanceEdgeSup(InstanceEdgeStatic, InstanceSup):
+class InstanceEdgeSup(InstanceEdge, InstanceSup):
     def __init__(self, *args: Any, action: Optional[Action] = None, path_cost_sup: Optional[float] = None, **kwargs: Any):
         super().__init__(*args, **kwargs)
         assert action is not None
@@ -92,6 +92,9 @@ class PathFindNodeSup(PathFindNodeStatic[NodesLabelsSampleable, Any, InstanceNod
 
         return instances
 
+    def _set_node_contexts(self, nodes_by_inst: List[List[Node]], instances: List[InstanceNodeSup]) -> None:
+        pass
+
 
 @pathfinding_factory.register_class("sup_q")
 class PathFindEdgeSup(PathFindEdgeStatic[EdgesLabelsSampleable, Any, InstanceEdgeSup], PathFindSup[EdgesLabelsSampleable, InstanceEdgeSup]):
@@ -142,6 +145,9 @@ class PathFindEdgeSup(PathFindEdgeStatic[EdgesLabelsSampleable, Any, InstanceEdg
 
         return instances
 
+    def _set_node_contexts(self, nodes_by_inst: List[List[Node]], instances: List[InstanceEdgeSup]) -> None:
+        pass
+
 
 @pathfinding_factory.register_class("sup_p")
 class PathFindEdgeSamp(PathFindEdgeStatic[EdgesSampleable, Any, InstanceEdgeSup], PathFindSup[EdgesSampleable, InstanceEdgeSup]):
@@ -190,3 +196,6 @@ class PathFindEdgeSamp(PathFindEdgeStatic[EdgesSampleable, Any, InstanceEdgeSup]
         self.times.record_time("instances", time.time() - start_time)
 
         return instances
+
+    def _set_node_contexts(self, nodes_by_inst: List[List[Node]], instances: List[InstanceEdgeSup]) -> None:
+        pass

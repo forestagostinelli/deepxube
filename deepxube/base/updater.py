@@ -640,7 +640,7 @@ class UpdateHeur(Update[D, PFNsT, P, InstT, UFNsT], ABC):
 class UpdateHeurV(UpdateHeur[D, PFNsHV_T, P, InstT, UFNsHV_T], UpdateHasHeurV[D, PFNsHV_T, P, InstT, UFNsHV_T], ABC):
     def get_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.domain.sample_problem_instances([0])
-        inputs_nnet: List[NDArray[Any]] = self.get_heurv_nnet_par().process_inputs(states, goals).inputs_nnet
+        inputs_nnet: List[NDArray[Any]] = self.get_heurv_nnet_par().process_inputs(states, goals, [None for _ in states]).inputs_nnet
 
         shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = []
         for inputs_nnet_i in inputs_nnet:

@@ -20,7 +20,7 @@ from deepxube.pytorch.nnet_utils import NNetPar, NNF_T, PROCESSED_T, ProcessedIn
 @runtime_checkable
 class HeurVFn(Protocol):
     """ Maps states and goals to cost-to-go """
-    def __call__(self, states: List[State], goals: List[Goal]) -> List[float]:
+    def __call__(self, states: List[State], goals: List[Goal], contexts: List[Any]) -> List[float]:
         ...
 
 
@@ -205,7 +205,7 @@ class HeurVNNetPar(HeurNNetPar[HeurVFn, None, Domain, StateGoalIn], ABC):
 
     def get_default_fn(self) -> HeurVFn:
         class HeurZerosVFn(HeurVFn):
-            def __call__(self, states: List[State], goals: List[Goal]) -> List[float]:
+            def __call__(self, states: List[State], goals: List[Goal], contexts: List[Any]) -> List[float]:
                 return [0.0] * len(states)
 
         return HeurZerosVFn()
@@ -213,8 +213,8 @@ class HeurVNNetPar(HeurNNetPar[HeurVFn, None, Domain, StateGoalIn], ABC):
     def get_field_name(self) -> str:
         return "heurv"
 
-    def process_inputs(self, states: List[State], goals: List[Goal]) -> ProcessedInput[None]:
-        return ProcessedInput(self._get_nnet_input().to_np(states, goals), None)
+    def process_inputs(self, states: List[State], goals: List[Goal], context: List[Any]) -> ProcessedInput[None]:
+        return ProcessedInput(self._get_nnet_input().to_np_ctx_option(states, goals, context), None)
 
     def process_outputs(self, outs: List[NDArray], processed: None) -> List[float]:
         heurs: NDArray = outs[0]
