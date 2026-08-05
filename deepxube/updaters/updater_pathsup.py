@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import List, Type, TypeVar
+from typing import List, Type, TypeVar, Any
 
 from deepxube.base.domain import Domain, NodesLabelable, State, Goal
 from deepxube.base.pathfinding import PFNsHV_T, PathFindSetHeurV, Node, Instance
@@ -28,7 +28,8 @@ class UpdateHeurVPathSup(UpdateHeurVPathFind[D_NL_T, PFNsHV_T, PathFindSetHeurV,
         start_time = time.time()
         states: List[State] = [node.state for node in popped]
         goals: List[Goal] = [node.goal for node in popped]
-        labels: List[float] = self.domain.label_nodes(states, goals)
+        contexts: List[Any] = [node.context for node in popped]
+        labels: List[float] = self.domain.label_nodes(states, goals, contexts)
         times.record_time("label", time.time() - start_time)
 
         return labels

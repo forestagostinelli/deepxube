@@ -380,11 +380,12 @@ class EdgesSampleable(Domain[S, A, G]):
 
 class NodesLabelable(Domain[S, A, G]):
     @abstractmethod
-    def label_nodes(self, states: List[S], goals: List[G]) -> List[float]:
+    def label_nodes(self, states: List[S], goals: List[G], contexts: List[Any]) -> List[float]:
         """ Return an estimate of the cost-to-go of the given states and goals
 
         :param states: States
         :param goals: Goals
+        :param contexts: Additional context
         :return: labels
         """
         pass
@@ -392,12 +393,13 @@ class NodesLabelable(Domain[S, A, G]):
 
 class EdgesLabelable(Domain[S, A, G]):
     @abstractmethod
-    def label_edges(self, states: List[S], actions: List[A], goals: List[G]) -> List[float]:
+    def label_edges(self, states: List[S], actions: List[A], goals: List[G], contexts: List[Any]) -> List[float]:
         """ Return an estimate of the cost-to-go of the given states, goals, and actions
 
         :param states: States
         :param actions: Actions
         :param goals: Goals
+        :param contexts: Additional context
         :return: labels
         """
         pass
