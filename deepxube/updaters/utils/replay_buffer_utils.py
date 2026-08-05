@@ -9,6 +9,8 @@ ReplayVElem = Tuple[State, Goal, Any, bool]
 ReplayQElem = Tuple[State, Goal, Action, Any, bool, float, State]
 ReplayPElem = Tuple[State, Goal, Action, Any]
 
+ReplayVLabElem = Tuple[State, Goal, Any, float]
+
 InputV = Tuple[List[State], List[Goal], List[Any]]
 InputQ = Tuple[List[State], List[Goal], List[Action], List[Any]]
 InputP = Tuple[List[State], List[Goal], List[Action], List[Any]]
@@ -16,6 +18,8 @@ InputP = Tuple[List[State], List[Goal], List[Action], List[Any]]
 ReplayV = List[bool]
 ReplayQ = Tuple[List[bool], List[float], List[State]]
 ReplayP = Optional[None]
+
+ReplayVLab = List[float]
 
 Elem = TypeVar('Elem')
 ID_T = TypeVar('ID_T')
@@ -93,3 +97,17 @@ class ReplayBufferP(ReplayBuffer[ReplayPElem, InputP, ReplayP]):
         contexts: List[Any] = [replay_q_elem[3] for replay_q_elem in elems]
 
         return (states, goals, actions, contexts), None
+
+
+class ReplayBufferVLab(ReplayBuffer[ReplayVLabElem, InputV, ReplayVLab]):
+    def add(self, input_data: InputV, replay_data: ReplayVLab) -> None:
+        data: List[ReplayVLabElem] = list(zip(*input_data, replay_data, strict=True))
+        self.deque.extend(data)
+
+    def _elems_to_ret(self, elems: List[ReplayVLabElem]) -> Tuple[InputV, ReplayVLab]:
+        states: List[State] = [replay_q_elem[0] for replay_q_elem in elems]
+        goals: List[Goal] = [replay_q_elem[1] for replay_q_elem in elems]
+        contexts: List[Any] = [replay_q_elem[2] for replay_q_elem in elems]
+        labels: List[float] = [replay_q_elem[3] for replay_q_elem in elems]
+
+        return (states, goals, contexts), labels
