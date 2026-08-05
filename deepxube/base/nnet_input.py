@@ -76,11 +76,18 @@ class StateGoalIn(NNetInput[D], Generic[D, S, G]):
     def to_np(self, states: List[S], goals: List[G]) -> List[NDArray]:
         pass
 
-    def to_np_ctx(self, states: List[S], goals: List[G], contexts: Optional[List[Any]]) -> List[NDArray]:
+    def to_np_ctx(self, states: List[S], goals: List[G], contexts: List[Any]) -> List[NDArray]:
         raise NotImplementedError
 
 
 class StateGoalActFixIn(NNetInput[D], Generic[D, S, G, A]):
+    def to_np_ctx_option(self, states: List[S], goals: List[G], actions_l: List[List[A]], contexts: List[Any]) -> List[NDArray]:
+        if self.uses_context():
+            return self.to_np_ctx(states, goals, actions_l, contexts)
+        else:
+            assert all([context is None for context in contexts]), "Should not have been given context if uses_context is False"
+            return self.to_np(states, goals, actions_l)
+
     @abstractmethod
     def to_np(self, states: List[S], goals: List[G], actions_l: List[List[A]]) -> List[NDArray]:
         """
@@ -93,17 +100,47 @@ class StateGoalActFixIn(NNetInput[D], Generic[D, S, G, A]):
         """
         pass
 
+    def to_np_ctx(self, states: List[S], goals: List[G], actions_l: List[List[A]], contexts: List[Any]) -> List[NDArray]:
+        raise NotImplementedError
+
 
 class StateGoalActIn(NNetInput[D], Generic[D, S, G, A]):
+    def to_np_ctx_option(self, states: List[S], goals: List[G], actions: List[A], contexts: List[Any]) -> List[NDArray]:
+        if self.uses_context():
+            return self.to_np_ctx(states, goals, actions, contexts)
+        else:
+            assert all([context is None for context in contexts]), "Should not have been given context if uses_context is False"
+            return self.to_np(states, goals, actions)
+
     @abstractmethod
     def to_np(self, states: List[S], goals: List[G], actions: List[A]) -> List[NDArray]:
         pass
+
+    def to_np_ctx(self, states: List[S], goals: List[G], actions: List[A], contexts: List[Any]) -> List[NDArray]:
+        raise NotImplementedError
 
 
 class PolicyNNetIn(NNetInput[D], Generic[D, S, G, A]):
+    def to_np_ctx_option(self, states: List[S], goals: List[G], actions: List[A], contexts: List[Any]) -> List[NDArray]:
+        if self.uses_context():
+            return self.to_np_ctx(states, goals, actions, contexts)
+        else:
+            assert all([context is None for context in contexts]), "Should not have been given context if uses_context is False"
+            return self.to_np(states, goals, actions)
+
+    def to_np_fn_ctx_option(self, states: List[S], goals: List[G], contexts: List[Any]) -> List[NDArray]:
+        if self.uses_context():
+            return self.to_np_fn_ctx(states, goals, contexts)
+        else:
+            assert all([context is None for context in contexts]), "Should not have been given context if uses_context is False"
+            return self.to_np_fn(states, goals)
+
     @abstractmethod
     def to_np(self, states: List[S], goals: List[G], actions: List[A]) -> List[NDArray]:
         pass
+
+    def to_np_ctx(self, states: List[S], goals: List[G], actions: List[A], contexts: List[Any]) -> List[NDArray]:
+        raise NotImplementedError
 
     @abstractmethod
     def to_np_fn(self, states: List[S], goals: List[G]) -> List[NDArray]:
@@ -114,6 +151,9 @@ class PolicyNNetIn(NNetInput[D], Generic[D, S, G, A]):
         :return: List of numpy array representation for neural network
         """
         pass
+
+    def to_np_fn_ctx(self, states: List[S], goals: List[G], contexts: List[Any]) -> List[NDArray]:
+        raise NotImplementedError
 
     @abstractmethod
     def nnet_out_to_actions(self, nnet_out: List[NDArray[np.float64]]) -> List[A]:

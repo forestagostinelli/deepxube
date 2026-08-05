@@ -15,9 +15,11 @@ from deepxube.base.factory import DelimParser
 from deepxube.base.domain import Domain, State, Action, Goal, GoalSampleableFromState
 from deepxube.base.pathfind_fns import (PFNs, DeepXubeNNetPar, HeurVFn, HeurQFn, PolicyFn, HeurVNNetPar, HeurQNNetPar, PolicyNNetPar, UFNs,
                                         UFNsHeurV, UFNsHeurQ, UFNsPolicy)
-from deepxube.base.pathfinding import PFNsT, PFNsHV_T, PFNsHQ_T, PFNsP_T, PathFind, PathFindSup, Instance, get_path, Node
+from deepxube.base.pathfinding import PFNsT, PFNsHV_T, PFNsHQ_T, PFNsP_T, PathFind, PathFindSup, Instance, get_path, Node, EdgeQ
 from deepxube.factories.pathfinding_factory import pathfinding_factory, get_pathfind_name_kwargs, get_pathfind_from_arg
 from deepxube.pathfinding.utils.performance import PathFindPerf, print_pathfindperf
+
+from deepxube.updaters.utils.replay_buffer_utils import ReplayBuffer
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd, get_nowait_noerr
 from deepxube.utils.misc_utils import split_evenly, split_evenly_w_max
 from deepxube.utils.timing_utils import Times
@@ -474,7 +476,10 @@ class Update(Generic[D, PFNsT, P, InstT, UFNsT], ABC):
         return f"{type(self).__name__}, {self.up_args.__repr__()}"
 
 
-class UpdateHER(Update[GoalSampleableFromState, PFNsT, P, InstT, UFNsT], ABC):
+D_GS_T = TypeVar('D_GS_T', bound=GoalSampleableFromState)
+
+
+class UpdateHER(Update[D_GS_T, PFNsT, P, InstT, UFNsT], ABC):
     def _step_sync_main(self, pathfind: P, times: Times) -> List[NDArray]:
         raise NotImplementedError("Cannot train with sync_main if also doing hindsight experience replay (HER) since goal relabeling is done after search is "
                                   "complete.")
@@ -532,6 +537,60 @@ class UpdateHER(Update[GoalSampleableFromState, PFNsT, P, InstT, UFNsT], ABC):
             times.record_time("relabel", time.time() - start_time, path=["HER"])
 
         return instances_goalkeep + instances_relabel, goals_goalkeep + goals_relabel
+
+    def _get_her_node_data(self, instances: List[InstT], goals_inst_her: List[Goal], times: Times) -> Tuple[List[State], List[Goal], List[Any], List[bool]]:
+        # get states and goals
+        start_time = time.time()
+        states_her: List[State] = []
+        goals_her: List[Goal] = []
+        contexts_her: List[Any] = []
+        for instance, goal_her in zip(instances, goals_inst_her, strict=True):
+            nodes_popped_i: List[Node] = instance.get_nodes_popped()
+            states_inst: List[State] = [node.state for node in nodes_popped_i]
+            states_her.extend(states_inst)
+            goals_her.extend([goal_her] * len(states_inst))
+            contexts_her.extend([node.context for node in nodes_popped_i])
+
+        times.record_time("data", time.time() - start_time, path=["HER"])
+
+        # is solved
+        start_time = time.time()
+        is_solved_l_her: List[bool] = self.domain.is_solved(states_her, goals_her)
+        times.record_time("is_solved", time.time() - start_time, path=["HER"])
+
+        return states_her, goals_her, contexts_her, is_solved_l_her
+
+    def _get_her_edge_data(self, instances: List[InstT], goals_inst_her: List[Goal],
+                           times: Times) -> Tuple[List[State], List[Goal], List[Action], List[Any], List[bool], List[float], List[State]]:
+        # get states and goals
+        start_time = time.time()
+        states_her: List[State] = []
+        goals_her: List[Goal] = []
+        actions_her: List[Action] = []
+        contexts_her: List[Any] = []
+        tcs_her: List[float] = []
+        states_next_her: List[State] = []
+        for instance, goal_her in zip(instances, goals_inst_her, strict=True):
+            nodes: List[Node] = [edge.node for edge in instance.get_edges_popped()]
+            states_inst: List[State] = [node.state for node in nodes]
+            states_her.extend(states_inst)
+            goals_her.extend([goal_her] * len(states_inst))
+            actions_her.extend([edge.action for edge in instance.get_edges_popped()])
+            contexts_her.extend([node.context for node in nodes])
+
+            for edge, node in zip(instance.get_edges_popped(), nodes, strict=True):
+                tc, node_next = node.edge_dict[edge.action]
+                tcs_her.append(tc)
+                states_next_her.append(node_next.state)
+
+        times.record_time("data", time.time() - start_time, path=["HER"])
+
+        # is solved
+        start_time = time.time()
+        is_solved_l_her: List[bool] = self.domain.is_solved(states_her, goals_her)
+        times.record_time("is_solved", time.time() - start_time, path=["HER"])
+
+        return states_her, goals_her, actions_her, contexts_her, is_solved_l_her, tcs_her, states_next_her
 
 
 class UpdateHasHeurV(Update[D, PFNsT, P, InstT, UFNsHV_T], ABC):
@@ -637,6 +696,134 @@ class UpdateHeur(Update[D, PFNsT, P, InstT, UFNsT], ABC):
     pass
 
 
+SchOver_T = TypeVar("SchOver_T")
+InD_T = TypeVar("InD_T")
+R = TypeVar("R", bound=ReplayBuffer)
+RD_T = TypeVar("RD_T")
+
+
+class UpdatePathFind(Update[D, PFNsT, P, InstT, UFNsT], Generic[D, PFNsT, P, InstT, UFNsT, SchOver_T, InD_T, R, RD_T]):
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self.rb: R = self._get_rb(0)
+
+    @abstractmethod
+    def _get_rb(self, max_size: int) -> R:
+        pass
+
+    def _init_replay_buffer(self, max_size: int) -> None:
+        self.rb = self._get_rb(max_size)
+
+    @abstractmethod
+    def _pathfind_step(self, pathfind: P) -> List[SchOver_T]:
+        pass
+
+    @abstractmethod
+    def _get_input_data(self, popped: List[SchOver_T], times: Times) -> InD_T:
+        pass
+
+    @abstractmethod
+    def _get_rb_data(self, popped: List[SchOver_T], times: Times) -> RD_T:
+        pass
+
+    def _rb_add(self, input_data: InD_T, replay_data: RD_T, times: Times) -> None:
+        start_time = time.time()
+        self.rb.add(input_data, replay_data)
+        times.record_time("add", time.time() - start_time, path=["replay"])
+
+    def _rb_sample(self, num: int, times: Times) -> Tuple[InD_T, RD_T]:
+        # sample from replay buffer
+        start_time = time.time()
+        input_data, replay_data = self.rb.sample(num)
+        times.record_time("samp", time.time() - start_time, path=["replay"])
+
+        return input_data, replay_data
+
+    @abstractmethod
+    def _inputs_ctgs_to_np(self, input_data: InD_T, labels: List[float], times: Times) -> List[NDArray]:
+        pass
+
+    @abstractmethod
+    def _get_instance_schover(self, instances: List[InstT]) -> List[SchOver_T]:
+        pass
+
+    @abstractmethod
+    def _get_labels_rb(self, input_data: InD_T, replay_data: RD_T, times: Times) -> List[float]:
+        pass
+
+    @abstractmethod
+    def _get_labels_no_rb(self, popped: List[SchOver_T], instances: List[InstT], times: Times) -> List[float]:
+        pass
+
+    def _step(self, pathfind: P, times: Times) -> None:
+        self._pathfind_step(pathfind)
+
+    def _rb_add_sample_train_data(self, input_data: InD_T, replay_data: RD_T, num_samp: int, times: Times) -> List[NDArray]:
+        # add to replay buffer
+        self._rb_add(input_data, replay_data, times)
+
+        # get data from replay buffer
+        input_data, replay_data = self._rb_sample(num_samp, times)
+
+        # get labels
+        labels: List[float] = self._get_labels_rb(input_data, replay_data, times)
+
+        return self._inputs_ctgs_to_np(input_data, labels, times)
+
+
+class UpdatePathFindKeepGoal(UpdatePathFind[D, PFNsT, P, InstT, UFNsT, SchOver_T, InD_T, R, RD_T], ABC):
+    def _step_sync_main(self, pathfind: P, times: Times) -> List[NDArray]:
+        # take a step
+        popped: List[SchOver_T] = self._pathfind_step(pathfind)
+
+        # get input and rb data
+        input_data = self._get_input_data(popped, times)
+        replay_data = self._get_rb_data(popped, times)
+
+        return self._rb_add_sample_train_data(input_data, replay_data, len(popped), times)
+
+    def _get_instance_data_norb(self, instances: List[InstT], times: Times) -> List[NDArray]:
+        # get popped data
+        popped: List[SchOver_T] = self._get_instance_schover(instances)
+
+        # get input data
+        input_data: InD_T = self._get_input_data(popped, times)
+
+        # get labels
+        labels: List[float] = self._get_labels_no_rb(popped, instances, times)
+
+        return self._inputs_ctgs_to_np(input_data, labels, times)
+
+    def _get_instance_data_rb(self, instances: List[InstT], times: Times) -> List[NDArray]:
+        # get popped data
+        popped: List[SchOver_T] = self._get_instance_schover(instances)
+
+        # get input and rb data
+        input_data = self._get_input_data(popped, times)
+        replay_data = self._get_rb_data(popped, times)
+
+        return self._rb_add_sample_train_data(input_data, replay_data, len(popped), times)
+
+
+class UpdatePathFindHER(UpdatePathFind[D_GS_T, PFNsT, P, InstT, UFNsT, SchOver_T, InD_T, R, RD_T], UpdateHER[D_GS_T, PFNsT, P, InstT, UFNsT],
+                        Generic[D_GS_T, PFNsT, P, InstT, UFNsT, SchOver_T, InD_T, R, RD_T]):
+    @abstractmethod
+    def _get_her_data(self, instances: List[InstT], goals_inst_her: List[Goal], times: Times) -> Tuple[InD_T, RD_T, int]:
+        pass
+
+    def _get_labels_no_rb(self, popped: List[SchOver_T], instances: List[InstT], times: Times) -> List[float]:
+        raise NotImplementedError
+
+    def _get_instance_data_rb(self, instances: List[InstT], times: Times) -> List[NDArray]:
+        # get goals according to HER
+        instances, goals_inst_her = self._get_her_goals(instances, times)
+
+        # get HER data
+        input_data, replay_data, num_data = self._get_her_data(instances, goals_inst_her, times)
+
+        return self._rb_add_sample_train_data(input_data, replay_data, num_data, times)
+
+
 class UpdateHeurV(UpdateHeur[D, PFNsHV_T, P, InstT, UFNsHV_T], UpdateHasHeurV[D, PFNsHV_T, P, InstT, UFNsHV_T], ABC):
     def get_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.domain.sample_problem_instances([0])
@@ -664,7 +851,8 @@ class UpdateHeurQ(UpdateHeur[D, PFNsHQ_T, P, InstT, UFNsHQ_T], UpdateHasHeurQ[D,
     def get_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.domain.sample_problem_instances([0])
         actions: List[Action] = self.domain.sample_state_action(states)
-        inputs_nnet: List[NDArray[Any]] = self.get_heurq_nnet_par().process_inputs(states, goals, [[action] for action in actions]).inputs_nnet
+        inputs_nnet: List[NDArray[Any]] = self.get_heurq_nnet_par().process_inputs(states, goals, [[action] for action in actions],
+                                                                                   [None for _ in states]).inputs_nnet
 
         shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = []
         for inputs_nnet_i in inputs_nnet:
@@ -691,7 +879,7 @@ class UpdatePolicy(UpdateHasPolicy[D, PFNsP_T, P, InstT, UFNsP_T], ABC):
     def get_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.domain.sample_problem_instances([0])
         actions: List[Action] = self.domain.sample_state_action(states)
-        inputs_nnet: List[NDArray[Any]] = self.get_policy_nnet_par().to_np_train(states, goals, actions)
+        inputs_nnet: List[NDArray[Any]] = self.get_policy_nnet_par().to_np_train(states, goals, actions, [None for _ in states])
 
         shapes_dtypes: List[Tuple[Tuple[int, ...], np.dtype]] = []
         for inputs_nnet_i in inputs_nnet:
@@ -704,6 +892,90 @@ class UpdatePolicy(UpdateHasPolicy[D, PFNsP_T, P, InstT, UFNsP_T], ABC):
             return super().get_policy_fn()
         else:
             raise NotImplementedError("sync_main not yet implemented for policy_fn")
+
+
+InDataNode = Tuple[List[State], List[Goal], List[Any]]
+InDataEdge = Tuple[List[State], List[Goal], List[Action], List[Any]]
+
+
+class UpdateHeurVPathFind(UpdatePathFind[D, PFNsHV_T, P, InstT, UFNsHV_T, Node, InDataNode, R, RD_T], UpdateHeurV[D, PFNsHV_T, P, InstT, UFNsHV_T], ABC):
+    def _pathfind_step(self, pathfind: P) -> List[Node]:
+        nodes_popped: List[Node] = pathfind.step()[0]
+        assert len(nodes_popped) == len(pathfind.instances), f"Values were {len(nodes_popped)} and {len(pathfind.instances)}"
+
+        return nodes_popped
+
+    def _get_input_data(self, popped: List[Node], times: Times) -> InDataNode:
+        start_time = time.time()
+
+        states: List[State] = [node.state for node in popped]
+        goals: List[Goal] = [node.goal for node in popped]
+        contexts: List[Any] = [node.context for node in popped]
+
+        times.record_time("in_data", time.time() - start_time)
+
+        return states, goals, contexts
+
+    def _inputs_ctgs_to_np(self, input_data: InDataNode, labels: List[float], times: Times) -> List[NDArray]:
+        start_time = time.time()
+        inputs_np: List[NDArray] = self.get_heurv_nnet_par().process_inputs(input_data[0], input_data[1], input_data[2]).inputs_nnet
+        data_np: List[NDArray] = inputs_np + [np.array(labels)]
+        times.record_time("to_np", time.time() - start_time)
+
+        return data_np
+
+    def _get_instance_schover(self, instances: List[InstT]) -> List[Node]:
+        popped: List[Node] = []
+        for instance in instances:
+            popped.extend(instance.get_nodes_popped())
+
+        return popped
+
+
+class UpdateEdgePathFind(UpdatePathFind[D, PFNsT, P, InstT, UFNsT, EdgeQ, InDataEdge, R, RD_T], ABC):
+    def _pathfind_step(self, pathfind: P) -> List[EdgeQ]:
+        edges_popped: List[EdgeQ] = pathfind.step()[1]
+        assert len(edges_popped) == len(pathfind.instances), f"Values were {len(edges_popped)} and {len(pathfind.instances)}"
+
+        return edges_popped
+
+    def _get_input_data(self, popped: List[EdgeQ], times: Times) -> InDataEdge:
+        start_time = time.time()
+        nodes: List[Node] = [edge.node for edge in popped]
+        states: List[State] = [node.state for node in nodes]
+        goals: List[Goal] = [node.goal for node in nodes]
+        contexts: List[Any] = [node.context for node in nodes]
+        actions: List[Action] = [edge.action for edge in popped]
+
+        times.record_time("in_data", time.time() - start_time)
+
+        return states, goals, actions, contexts
+
+    def _get_instance_schover(self, instances: List[InstT]) -> List[EdgeQ]:
+        edges_popped: List[EdgeQ] = []
+        for instance in instances:
+            edges_popped.extend(instance.get_edges_popped())
+        return edges_popped
+
+
+class UpdateHeurQPathFind(UpdateEdgePathFind[D, PFNsHQ_T, P, InstT, UFNsHQ_T, R, RD_T], UpdateHeurQ[D, PFNsHQ_T, P, InstT, UFNsHQ_T], ABC):
+    def _inputs_ctgs_to_np(self, input_data: InDataEdge, labels: List[float], times: Times) -> List[NDArray]:
+        start_time = time.time()
+        inputs_np: List[NDArray] = self.get_heurq_nnet_par().process_inputs(input_data[0], input_data[1], [[action] for action in input_data[2]],
+                                                                            input_data[3]).inputs_nnet
+        data_np: List[NDArray] = inputs_np + [np.array(labels)]
+        times.record_time("to_np", time.time() - start_time)
+
+        return data_np
+
+
+class UpdatePolicyPathFind(UpdateEdgePathFind[D, PFNsP_T, P, InstT, UFNsP_T, R, RD_T], UpdatePolicy[D, PFNsP_T, P, InstT, UFNsP_T], ABC):
+    def _inputs_ctgs_to_np(self, input_data: InDataEdge, labels: List[float], times: Times) -> List[NDArray]:
+        start_time = time.time()
+        inputs_np: List[NDArray] = self.get_policy_nnet_par().to_np_train(input_data[0], input_data[1], input_data[2], input_data[3])
+        times.record_time("to_np", time.time() - start_time)
+
+        return inputs_np
 
 
 class UpdateParser(DelimParser):

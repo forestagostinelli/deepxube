@@ -243,11 +243,11 @@ class PathFind(Generic[D, PFNsT, I], ABC):
         self.instances.extend(instances)
 
     @abstractmethod
-    def expand_states(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
+    def expand_states(self, states: List[State], goals: List[Goal], contexts: List[Any]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
         pass
 
     @abstractmethod
-    def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
+    def get_state_actions(self, states: List[State], goals: List[Goal], contexts: List[Any]) -> List[List[Action]]:
         pass
 
     @abstractmethod
@@ -412,11 +412,12 @@ class PathFindNode(PathFind[D, PFNsT, I]):
         # Get children of nodes
         states: List[State] = [x.state for x in nodes]
         goals: List[Goal] = [x.goal for x in nodes]
+        contexts: List[Any] = [node.context for node in nodes]
 
         states_c_l: List[List[State]]
         actions: List[List[Action]]
         tcs: List[List[float]]
-        states_c_l, actions, tcs = self.expand_states(states, goals)
+        states_c_l, actions, tcs = self.expand_states(states, goals, contexts)
 
         goals_c: List[List[Goal]] = [[node.goal] * len(state_c) for node, state_c in zip(nodes, states_c_l, strict=True)]
         states_c_flat: List[State]
@@ -684,7 +685,8 @@ class PathFindSetPolicy(PathFind[D, PFNsP_T, I], ABC):
 
         states: List[State] = [node.state for node in nodes]
         goals: List[Goal] = [node.goal for node in nodes]
-        actions_l, probs_l = self.pathfind_fns.policy(states, goals)
+        contexts: List[Any] = [node.context for node in nodes]
+        actions_l, probs_l = self.pathfind_fns.policy(states, goals, contexts)
 
         assert len(actions_l) == len(probs_l) == len(states) == len(goals), \
             f"{len(actions_l)}, {len(probs_l)}, {len(states)}, {len(goals)}"
@@ -723,12 +725,13 @@ class PathFindSetHeurQ(PathFind[D, PFNsHQ_T, I], ABC):
 
         states: List[State] = [node.state for node in nodes]
         goals: List[Goal] = [node.goal for node in nodes]
-        actions_l: List[List[Action]] = self.get_state_actions(states, goals)
+        contexts: List[Any] = [node.context for node in nodes]
+        actions_l: List[List[Action]] = self.get_state_actions(states, goals, contexts)
 
         self.times.record_time("actions", time.time() - start_time)
 
         start_time = time.time()
-        qvals_l: List[List[float]] = self.pathfind_fns.heurq(states, goals, actions_l)
+        qvals_l: List[List[float]] = self.pathfind_fns.heurq(states, goals, actions_l, contexts)
         heuristics: List[float] = [min(x) for x in qvals_l]
 
         assert len(heuristics) == len(actions_l) == len(qvals_l) == len(states) == len(goals), \
@@ -747,10 +750,10 @@ DActsEnum = TypeVar('DActsEnum', bound=ActsEnum)
 
 
 class PathFindActsEnum(PathFind[DActsEnum, PFNsT, I], ABC):
-    def expand_states(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
+    def expand_states(self, states: List[State], goals: List[Goal], contexts: List[Any]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
         return self.domain.expand(states)
 
-    def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
+    def get_state_actions(self, states: List[State], goals: List[Goal], contexts: List[Any]) -> List[List[Action]]:
         return self.domain.get_state_actions(states)
 
 
@@ -759,8 +762,8 @@ class PathFindActsPolicy(PathFind[D, PFNsP_T, I], ABC):
         super().__init__(*args, **kwargs)
         self.num_rand_edges: int = num_rand_edges
 
-    def expand_states(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
-        actions_l: List[List[Action]] = self._get_actions(states, goals)
+    def expand_states(self, states: List[State], goals: List[Goal], contexts: List[Any]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
+        actions_l: List[List[Action]] = self._get_actions(states, goals, contexts)
 
         # repeat states according to actions
         actions_flat, split_idxs = misc_utils.flatten(actions_l)
@@ -780,11 +783,11 @@ class PathFindActsPolicy(PathFind[D, PFNsP_T, I], ABC):
 
         return states_exp, actions_l, tcs_l
 
-    def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
-        return self._get_actions(states, goals)
+    def get_state_actions(self, states: List[State], goals: List[Goal], contexts: List[Any]) -> List[List[Action]]:
+        return self._get_actions(states, goals, contexts)
 
-    def _get_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
-        actions_l: List[List[Action]] = self.pathfind_fns.policy(states, goals)[0]
+    def _get_actions(self, states: List[State], goals: List[Goal], contexts: List[Any]) -> List[List[Action]]:
+        actions_l: List[List[Action]] = self.pathfind_fns.policy(states, goals, contexts)[0]
 
         if self.num_rand_edges > 0:
             states_rep_l: List[List[State]] = [[state] * self.num_rand_edges for state in states]
@@ -813,10 +816,10 @@ class PathFindSup(PathFind[D, PFNs, I]):
     def make_instances(self, states: List[State], goals: List[Goal], inst_infos: Optional[List[Any]] = None, compute_root_vals: bool = True) -> List[I]:
         raise NotImplementedError
 
-    def expand_states(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
+    def expand_states(self, states: List[State], goals: List[Goal], contexts: List[Any]) -> Tuple[List[List[State]], List[List[Action]], List[List[float]]]:
         raise NotImplementedError
 
-    def get_state_actions(self, states: List[State], goals: List[Goal]) -> List[List[Action]]:
+    def get_state_actions(self, states: List[State], goals: List[Goal], contexts: List[Any]) -> List[List[Action]]:
         raise NotImplementedError
 
     @abstractmethod

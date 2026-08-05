@@ -1,4 +1,4 @@
-from typing import List, Type
+from typing import List, Type, Any
 
 from deepxube.utils import misc_utils
 from deepxube.pytorch.nnet_utils import ProcessedInput
@@ -71,9 +71,9 @@ class HeurQNNetParFixOut(HeurQNNetPar[QOutFixProcessed, ActsEnumFixed, StateGoal
     def _check_same_num_acts(actions_l: List[List[Action]]) -> None:
         assert len(set(len(actions) for actions in actions_l)) == 1, "num actions should be the same for all instances"
 
-    def process_inputs(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> ProcessedInput[QOutFixProcessed]:
+    def process_inputs(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]], contexts: List[Any]) -> ProcessedInput[QOutFixProcessed]:
         self._check_same_num_acts(actions_l)
-        return ProcessedInput(self._get_nnet_input().to_np(states, goals, actions_l), QOutFixProcessed(states))
+        return ProcessedInput(self._get_nnet_input().to_np_ctx_option(states, goals, actions_l, contexts), QOutFixProcessed(states))
 
     def process_outputs(self, outs: List[NDArray], processed: QOutFixProcessed) -> List[List[float]]:
         q_vals_np: NDArray = outs[0]
@@ -106,7 +106,7 @@ class HeurQNNetParIn(HeurQNNetPar[QInProcessed, Domain, StateGoalActIn]):
     def nnet_input_type() -> Type[StateGoalActIn]:
         return StateGoalActIn
 
-    def process_inputs(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> ProcessedInput[QInProcessed]:
+    def process_inputs(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]], contexts: List[Any]) -> ProcessedInput[QInProcessed]:
         actions_flat, split_idxs = misc_utils.flatten(actions_l)
         states_rep: List[State] = []
         goals_rep: List[Goal] = []
@@ -114,7 +114,7 @@ class HeurQNNetParIn(HeurQNNetPar[QInProcessed, Domain, StateGoalActIn]):
             states_rep.extend([state] * len(actions))
             goals_rep.extend([goal] * len(actions))
 
-        return ProcessedInput(self._get_nnet_input().to_np(states_rep, goals_rep, actions_flat), QInProcessed(states_rep, split_idxs))
+        return ProcessedInput(self._get_nnet_input().to_np_ctx_option(states_rep, goals_rep, actions_flat, contexts), QInProcessed(states_rep, split_idxs))
 
     def process_outputs(self, outs: List[NDArray], processed: QInProcessed) -> List[List[float]]:
         q_vals_np: NDArray = outs[0]

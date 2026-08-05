@@ -6,25 +6,31 @@ import numpy as np
 
 
 ReplayVElem = Tuple[State, Goal, Any, bool]
-ReplayQElem = Tuple[State, Goal, bool, Action, float, State]
-ReplayPElem = Tuple[State, Goal, Action]
+ReplayQElem = Tuple[State, Goal, Action, Any, bool, float, State]
+ReplayPElem = Tuple[State, Goal, Action, Any]
 
-ReplayVRet = Tuple[List[State], List[Goal], List[Any], List[bool]]
-ReplayQRet = Tuple[List[State], List[Goal], List[bool], List[Action], List[float], List[State]]
-ReplayPRet = Tuple[List[State], List[Goal], List[Action]]
+InputV = Tuple[List[State], List[Goal], List[Any]]
+InputQ = Tuple[List[State], List[Goal], List[Action], List[Any]]
+InputP = Tuple[List[State], List[Goal], List[Action], List[Any]]
+
+ReplayV = List[bool]
+ReplayQ = Tuple[List[bool], List[float], List[State]]
+ReplayP = Optional[None]
 
 Elem = TypeVar('Elem')
-SampRet = TypeVar('SampRet')
+ID_T = TypeVar('ID_T')
+RD_T = TypeVar('RD_T')
 
 
-class ReplayBuffer(Generic[Elem, SampRet], ABC):
+class ReplayBuffer(Generic[Elem, ID_T, RD_T], ABC):
     def __init__(self, max_size: int):
         self.deque: Deque[Elem] = deque([], max_size)
 
-    def add(self, data: List[Elem]) -> None:
-        self.deque.extend(data)
+    @abstractmethod
+    def add(self, input_data: ID_T, replay_data: RD_T) -> None:
+        pass
 
-    def sample(self, num: int) -> SampRet:
+    def sample(self, num: int) -> Tuple[ID_T, RD_T]:
         assert self.size() > 0, f"Replay buffer size should not be {self.size()}"
         idxs: List[int] = np.random.randint(0, len(self.deque), size=num).tolist()
         elems: List[Elem] = [self.deque[idx] for idx in idxs]
@@ -40,36 +46,50 @@ class ReplayBuffer(Generic[Elem, SampRet], ABC):
         return maxlen
 
     @abstractmethod
-    def _elems_to_ret(self, elems: List[Elem]) -> SampRet:
+    def _elems_to_ret(self, elems: List[Elem]) -> Tuple[ID_T, RD_T]:
         pass
 
 
-class ReplayBufferV(ReplayBuffer[ReplayVElem, ReplayVRet]):
-    def _elems_to_ret(self, elems: List[ReplayVElem]) -> ReplayVRet:
+class ReplayBufferV(ReplayBuffer[ReplayVElem, InputV, ReplayV]):
+    def add(self, input_data: InputV, replay_data: ReplayV) -> None:
+        data: List[ReplayVElem] = list(zip(*input_data, replay_data, strict=True))
+        self.deque.extend(data)
+
+    def _elems_to_ret(self, elems: List[ReplayVElem]) -> Tuple[InputV, ReplayV]:
         states: List[State] = [replay_q_elem[0] for replay_q_elem in elems]
         goals: List[Goal] = [replay_q_elem[1] for replay_q_elem in elems]
-        contexts: List[Optional[Any]] = [replay_q_elem[2] for replay_q_elem in elems]
+        contexts: List[Any] = [replay_q_elem[2] for replay_q_elem in elems]
         is_solved_l: List[bool] = [replay_q_elem[3] for replay_q_elem in elems]
 
-        return states, goals, contexts, is_solved_l
+        return (states, goals, contexts), is_solved_l
 
 
-class ReplayBufferQ(ReplayBuffer[ReplayQElem, ReplayQRet]):
-    def _elems_to_ret(self, elems: List[ReplayQElem]) -> ReplayQRet:
-        states: List[State] = [replay_q_elem[0] for replay_q_elem in elems]
-        goals: List[Goal] = [replay_q_elem[1] for replay_q_elem in elems]
-        is_solved_l: List[bool] = [replay_q_elem[2] for replay_q_elem in elems]
-        actions: List[Action] = [replay_q_elem[3] for replay_q_elem in elems]
-        tcs: List[float] = [replay_q_elem[4] for replay_q_elem in elems]
-        states_next: List[State] = [replay_q_elem[5] for replay_q_elem in elems]
+class ReplayBufferQ(ReplayBuffer[ReplayQElem, InputQ, ReplayQ]):
+    def add(self, input_data: InputQ, replay_data: ReplayQ) -> None:
+        data: List[ReplayQElem] = list(zip(*input_data, *replay_data, strict=True))
+        self.deque.extend(data)
 
-        return states, goals, is_solved_l, actions, tcs, states_next
-
-
-class ReplayBufferP(ReplayBuffer[ReplayPElem, ReplayPRet]):
-    def _elems_to_ret(self, elems: List[ReplayPElem]) -> ReplayPRet:
+    def _elems_to_ret(self, elems: List[ReplayQElem]) -> Tuple[InputQ, ReplayQ]:
         states: List[State] = [replay_q_elem[0] for replay_q_elem in elems]
         goals: List[Goal] = [replay_q_elem[1] for replay_q_elem in elems]
         actions: List[Action] = [replay_q_elem[2] for replay_q_elem in elems]
+        contexts: List[Any] = [replay_q_elem[3] for replay_q_elem in elems]
+        is_solved_l: List[bool] = [replay_q_elem[4] for replay_q_elem in elems]
+        tcs: List[float] = [replay_q_elem[5] for replay_q_elem in elems]
+        states_next: List[State] = [replay_q_elem[6] for replay_q_elem in elems]
 
-        return states, goals, actions
+        return (states, goals, actions, contexts), (is_solved_l, tcs, states_next)
+
+
+class ReplayBufferP(ReplayBuffer[ReplayPElem, InputP, ReplayP]):
+    def add(self, input_data: InputP, replay_data: ReplayP) -> None:
+        data: List[ReplayPElem] = list(zip(*input_data, strict=True))
+        self.deque.extend(data)
+
+    def _elems_to_ret(self, elems: List[ReplayPElem]) -> Tuple[InputP, ReplayP]:
+        states: List[State] = [replay_q_elem[0] for replay_q_elem in elems]
+        goals: List[Goal] = [replay_q_elem[1] for replay_q_elem in elems]
+        actions: List[Action] = [replay_q_elem[2] for replay_q_elem in elems]
+        contexts: List[Any] = [replay_q_elem[3] for replay_q_elem in elems]
+
+        return (states, goals, actions, contexts), None

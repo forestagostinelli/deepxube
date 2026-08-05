@@ -60,12 +60,14 @@ class UpdateHeurQSup(UpdateHeurQ[Domain, Any, PathFindEdgeSup, Instance, UFNsHeu
         for instance in instances:
             edges_popped.extend(instance.get_edges_popped())
 
-        states: List[State] = [edge.node.state for edge in edges_popped]
-        goals: List[Goal] = [edge.node.goal for edge in edges_popped]
+        nodes: List[Node] = [edge.node for edge in edges_popped]
+        states: List[State] = [node.state for node in nodes]
+        goals: List[Goal] = [node.goal for node in nodes]
+        contexts: List[Any] = [node.context for node in nodes]
         actions: List[Action] = [edge.action for edge in edges_popped]
 
         ctgs_backup: List[float] = [edge.q_val for edge in edges_popped]
-        inputs_np: List[NDArray] = self.get_heurq_nnet_par().process_inputs(states, goals, [[action] for action in actions]).inputs_nnet
+        inputs_np: List[NDArray] = self.get_heurq_nnet_par().process_inputs(states, goals, [[action] for action in actions], contexts).inputs_nnet
         return inputs_np + [np.array(ctgs_backup)]
 
 
@@ -89,11 +91,13 @@ class UpdatePolicySup(UpdatePolicy[Domain, Any, PathFindEdgeSamp, Instance, UFNs
         for instance in instances:
             edges_popped.extend(instance.get_edges_popped())
 
-        states: List[State] = [edge.node.state for edge in edges_popped]
-        goals: List[Goal] = [edge.node.goal for edge in edges_popped]
+        nodes: List[Node] = [edge.node for edge in edges_popped]
+        states: List[State] = [node.state for node in nodes]
+        goals: List[Goal] = [node.goal for node in nodes]
         actions: List[Action] = [edge.action for edge in edges_popped]
+        contexts: List[Any] = [node.context for node in nodes]
 
-        inputs_np: List[NDArray] = self.get_policy_nnet_par().to_np_train(states, goals, actions)
+        inputs_np: List[NDArray] = self.get_policy_nnet_par().to_np_train(states, goals, actions, contexts)
         return inputs_np
 
 

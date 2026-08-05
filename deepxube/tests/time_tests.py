@@ -147,9 +147,9 @@ def init_nnet(nnet_par: NNetPar) -> Tuple[nn.Module, torch.device]:
 def heur_fn_out(heur_nnet: HeurNNetPar, heur_fn: NNetCallable, states: List[State], goals: List[Goal],
                 actions: List[Action]) -> None:
     if isinstance(heur_nnet, HeurVNNetPar):
-        heur_fn(states, goals)
+        heur_fn(states, goals, [None for _ in states])
     elif isinstance(heur_nnet, HeurQNNetPar):
-        heur_fn(states, goals, [[action] for action in actions])
+        heur_fn(states, goals, [[action] for action in actions], [None for _ in states])
     else:
         raise ValueError(f"Unknown heur fn class {heur_fn}")
 
@@ -160,7 +160,7 @@ def test_heur_nnet_par(heur_nnet_par: HeurNNetPar, states: List[State], goals: L
     if isinstance(heur_nnet_par, HeurVNNetPar):
         heur_nnet_par.process_inputs(states, goals, [None for _ in states])
     elif isinstance(heur_nnet_par, HeurQNNetPar):
-        heur_nnet_par.process_inputs(states, goals, [[action] for action in actions])
+        heur_nnet_par.process_inputs(states, goals, [[action] for action in actions], [None for _ in states])
     else:
         raise ValueError(f"Unknown heur nnet class {heur_nnet_par}")
     elapsed_time = time.time() - start_time
@@ -186,7 +186,7 @@ def test_heur_nnet_par(heur_nnet_par: HeurNNetPar, states: List[State], goals: L
 def test_policy_nnet_par(policy_nnet_par: PolicyNNetPar, states: List[State], goals: List[Goal], actions: List[Action]) -> None:
     # nnet format
     start_time = time.time()
-    train_data_np: List[NDArray] = policy_nnet_par.to_np_train(states, goals, actions)
+    train_data_np: List[NDArray] = policy_nnet_par.to_np_train(states, goals, actions, [None for _ in states])
     elapsed_time = time.time() - start_time
     states_per_sec = len(states) / elapsed_time
     print("Converted %i states, goals, actions for training to nnet format in "
@@ -210,7 +210,7 @@ def test_policy_nnet_par(policy_nnet_par: PolicyNNetPar, states: List[State], go
 
     start_time = time.time()
     nnet.eval()
-    policy_nnet_par.process_inputs(states, goals)
+    policy_nnet_par.process_inputs(states, goals, [None for _ in states])
     elapsed_time = time.time() - start_time
     states_per_sec = len(states) / elapsed_time
     print("Converted %i states, goals for sampling to nnet format in "
@@ -218,11 +218,11 @@ def test_policy_nnet_par(policy_nnet_par: PolicyNNetPar, states: List[State], go
 
     policy_fn: PolicyFn = policy_nnet_par.get_nnet_fn(nnet, None, device)
 
-    policy_fn(states, goals)
+    policy_fn(states, goals, [None for _ in states])
 
     # nnet heuristic
     start_time = time.time()
-    policy_fn(states, goals)
+    policy_fn(states, goals, [None for _ in states])
 
     nnet_time = time.time() - start_time
     states_per_sec = len(states) / nnet_time

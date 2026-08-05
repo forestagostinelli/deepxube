@@ -27,7 +27,7 @@ class HeurVFn(Protocol):
 @runtime_checkable
 class HeurQFn(Protocol):
     """ Maps states, goals, and actions to transitions cost plus cost-to-go of resulting state """
-    def __call__(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> List[List[float]]:
+    def __call__(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]], contexts: List[Any]) -> List[List[float]]:
         ...
 
 
@@ -37,7 +37,7 @@ HeurFn = Union[HeurVFn, HeurQFn]
 @runtime_checkable
 class PolicyFn(Protocol):
     """ Samples actions and their corresponding log probabilities given states and goals """
-    def __call__(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[Action]], List[List[float]]]:
+    def __call__(self, states: List[State], goals: List[Goal], contexts: List[Any]) -> Tuple[List[List[Action]], List[List[float]]]:
         """ Map states and goals to sampled actions along with their probability (or log probability) densities
 
         """
@@ -213,8 +213,8 @@ class HeurVNNetPar(HeurNNetPar[HeurVFn, None, Domain, StateGoalIn], ABC):
     def get_field_name(self) -> str:
         return "heurv"
 
-    def process_inputs(self, states: List[State], goals: List[Goal], context: List[Any]) -> ProcessedInput[None]:
-        return ProcessedInput(self._get_nnet_input().to_np_ctx_option(states, goals, context), None)
+    def process_inputs(self, states: List[State], goals: List[Goal], contexts: List[Any]) -> ProcessedInput[None]:
+        return ProcessedInput(self._get_nnet_input().to_np_ctx_option(states, goals, contexts), None)
 
     def process_outputs(self, outs: List[NDArray], processed: None) -> List[float]:
         heurs: NDArray = outs[0]
@@ -230,12 +230,12 @@ class HeurVNNetPar(HeurNNetPar[HeurVFn, None, Domain, StateGoalIn], ABC):
 
 class HeurQNNetPar(HeurNNetPar[HeurQFn, PROCESSED_T, D, NNInP], ABC):
     @abstractmethod
-    def process_inputs(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]]) -> ProcessedInput[PROCESSED_T]:
+    def process_inputs(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]], contexts: List[Any]) -> ProcessedInput[PROCESSED_T]:
         pass
 
     def get_default_fn(self) -> HeurQFn:
         class HeurZerosQFn(HeurQFn):
-            def __call__(self, states_in: List[State], goals_in: List[Goal], actions_l_in: List[List[Action]]) -> List[List[float]]:
+            def __call__(self, states_in: List[State], goals_in: List[Goal], actions_l_in: List[List[Action]], contexts: List[Any]) -> List[List[float]]:
                 heur_vals_l: List[List[float]] = []
                 for actions_in in actions_l_in:
                     heur_vals_l.append([0.0] * len(actions_in))
@@ -295,7 +295,7 @@ class PolicyNNetPar(DeepXubeNNetPar[PolicyFn, PolicyProcessed, Domain, PolicyNNe
         num_samp: int = self.num_samp
 
         class PolicyFnRand(PolicyFn):
-            def __call__(self, states: List[State], goals: List[Goal]) -> Tuple[List[List[Action]], List[List[float]]]:
+            def __call__(self, states: List[State], goals: List[Goal], contexts: List[Any]) -> Tuple[List[List[Action]], List[List[float]]]:
                 return policy_fn_rand(domain, states, num_samp)
 
         return PolicyFnRand()
@@ -303,11 +303,11 @@ class PolicyNNetPar(DeepXubeNNetPar[PolicyFn, PolicyProcessed, Domain, PolicyNNe
     def get_field_name(self) -> str:
         return "policy"
 
-    def to_np_train(self, states: List[State], goals: List[Goal], actions: List[Action]) -> List[NDArray[Any]]:
-        return self._get_nnet_input().to_np(states, goals, actions)
+    def to_np_train(self, states: List[State], goals: List[Goal], actions: List[Action], contexts: List[Any]) -> List[NDArray[Any]]:
+        return self._get_nnet_input().to_np_ctx_option(states, goals, actions, contexts)
 
-    def process_inputs(self, states: List[State], goals: List[Goal]) -> ProcessedInput[PolicyProcessed]:
-        return ProcessedInput(self._get_nnet_input().to_np_fn(states, goals), PolicyProcessed(len(states)))
+    def process_inputs(self, states: List[State], goals: List[Goal], contexts: List[Any]) -> ProcessedInput[PolicyProcessed]:
+        return ProcessedInput(self._get_nnet_input().to_np_fn_ctx_option(states, goals, contexts), PolicyProcessed(len(states)))
 
     def process_outputs(self, outs: List[NDArray], processed: PolicyProcessed) -> Tuple[List[List[Action]], List[List[float]]]:
         actions_np: List[NDArray] = outs[0:-1]
