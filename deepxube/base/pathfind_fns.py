@@ -138,11 +138,19 @@ class DeepXubeNNetPar(NNetPar[NNF_T, PROCESSED_T], Generic[NNF_T, PROCESSED_T, D
     def get_field_name(self) -> str:
         pass
 
+    def get_nnet_input(self) -> NNInP:
+        if self.nnet_input is None:
+            assert self.nnet_input_name_args is not None
+            self.nnet_input = cast(NNInP, get_nnet_input_from_arg(self.domain, self.domain_name, self.nnet_input_name_args))
+
+        assert self.nnet_input is not None
+        return self.nnet_input
+
     def get_nnet(self) -> DXNNet:
         assert self.nnet_name_args is not None
         nnet_name, nnet_args = get_name_args(self.nnet_name_args)
         nnet_kwargs = deepxube_nnet_factory.get_kwargs(nnet_name, nnet_args)
-        nnet_kwargs['nnet_input'] = self._get_nnet_input()
+        nnet_kwargs['nnet_input'] = self.get_nnet_input()
 
         self._add_nnet_kwargs(nnet_kwargs)
         nnet: DeepXubeNNet = deepxube_nnet_factory.build_class(nnet_name, nnet_kwargs)
@@ -153,14 +161,6 @@ class DeepXubeNNetPar(NNetPar[NNF_T, PROCESSED_T], Generic[NNF_T, PROCESSED_T, D
     def _add_nnet_kwargs(self, nnet_kwargs: Dict) -> None:
         pass
 
-    def _get_nnet_input(self) -> NNInP:
-        if self.nnet_input is None:
-            assert self.nnet_input_name_args is not None
-            self.nnet_input = cast(NNInP, get_nnet_input_from_arg(self.domain, self.domain_name, self.nnet_input_name_args))
-
-        assert self.nnet_input is not None
-        return self.nnet_input
-
     def __getstate__(self) -> Dict:
         self.nnet_input = None
         return self.__dict__
@@ -169,8 +169,7 @@ class DeepXubeNNetPar(NNetPar[NNF_T, PROCESSED_T], Generic[NNF_T, PROCESSED_T, D
         if self.nnet_input_name_args is None:
             return f"{type(self).__name__}()"
         else:
-            nnet_input_name: str = get_name_args(self.nnet_input_name_args)[0]
-            return f"NNetInputType: {get_nnet_input_t(self.domain_name, nnet_input_name)} (name: {nnet_input_name})\n{super().__repr__()}"
+            return f"{self.get_nnet_input()} (name: {get_name_args(self.nnet_input_name_args)[0]})\n{super().__repr__()}"
 
 
 H = TypeVar('H', bound=HeurFn)
@@ -214,7 +213,7 @@ class HeurVNNetPar(HeurNNetPar[HeurVFn, None, Domain, StateGoalIn], ABC):
         return "heurv"
 
     def process_inputs(self, states: List[State], goals: List[Goal], contexts: List[Any]) -> ProcessedInput[None]:
-        return ProcessedInput(self._get_nnet_input().to_np_ctx_option(states, goals, contexts), None)
+        return ProcessedInput(self.get_nnet_input().to_np_ctx_option(states, goals, contexts), None)
 
     def process_outputs(self, outs: List[NDArray], processed: None) -> List[float]:
         heurs: NDArray = outs[0]
@@ -304,10 +303,10 @@ class PolicyNNetPar(DeepXubeNNetPar[PolicyFn, PolicyProcessed, Domain, PolicyNNe
         return "policy"
 
     def to_np_train(self, states: List[State], goals: List[Goal], actions: List[Action], contexts: List[Any]) -> List[NDArray[Any]]:
-        return self._get_nnet_input().to_np_ctx_option(states, goals, actions, contexts)
+        return self.get_nnet_input().to_np_ctx_option(states, goals, actions, contexts)
 
     def process_inputs(self, states: List[State], goals: List[Goal], contexts: List[Any]) -> ProcessedInput[PolicyProcessed]:
-        return ProcessedInput(self._get_nnet_input().to_np_fn_ctx_option(states, goals, contexts), PolicyProcessed(len(states)))
+        return ProcessedInput(self.get_nnet_input().to_np_fn_ctx_option(states, goals, contexts), PolicyProcessed(len(states)))
 
     def process_outputs(self, outs: List[NDArray], processed: PolicyProcessed) -> Tuple[List[List[Action]], List[List[float]]]:
         actions_np: List[NDArray] = outs[0:-1]
@@ -328,7 +327,7 @@ class PolicyNNetPar(DeepXubeNNetPar[PolicyFn, PolicyProcessed, Domain, PolicyNNe
             actions_np_state: List[NDArray[np.float64]] = [actions_np_i[state_idx] for actions_np_i in actions_np]
             pdfs_state: List[float] = pdfs_np[state_idx, :].tolist()
 
-            actions_l.append(self._get_nnet_input().nnet_out_to_actions(actions_np_state))
+            actions_l.append(self.get_nnet_input().nnet_out_to_actions(actions_np_state))
             pdfs_l.append(pdfs_state)
 
         return actions_l, pdfs_l

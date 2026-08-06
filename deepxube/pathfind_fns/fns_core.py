@@ -73,7 +73,7 @@ class HeurQNNetParFixOut(HeurQNNetPar[QOutFixProcessed, ActsEnumFixed, StateGoal
 
     def process_inputs(self, states: List[State], goals: List[Goal], actions_l: List[List[Action]], contexts: List[Any]) -> ProcessedInput[QOutFixProcessed]:
         self._check_same_num_acts(actions_l)
-        return ProcessedInput(self._get_nnet_input().to_np_ctx_option(states, goals, actions_l, contexts), QOutFixProcessed(states))
+        return ProcessedInput(self.get_nnet_input().to_np_ctx_option(states, goals, actions_l, contexts), QOutFixProcessed(states))
 
     def process_outputs(self, outs: List[NDArray], processed: QOutFixProcessed) -> List[List[float]]:
         q_vals_np: NDArray = outs[0]
@@ -114,7 +114,7 @@ class HeurQNNetParIn(HeurQNNetPar[QInProcessed, Domain, StateGoalActIn]):
             states_rep.extend([state] * len(actions))
             goals_rep.extend([goal] * len(actions))
 
-        return ProcessedInput(self._get_nnet_input().to_np_ctx_option(states_rep, goals_rep, actions_flat, contexts), QInProcessed(states_rep, split_idxs))
+        return ProcessedInput(self.get_nnet_input().to_np_ctx_option(states_rep, goals_rep, actions_flat, contexts), QInProcessed(states_rep, split_idxs))
 
     def process_outputs(self, outs: List[NDArray], processed: QInProcessed) -> List[List[float]]:
         q_vals_np: NDArray = outs[0]
