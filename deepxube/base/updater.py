@@ -10,7 +10,7 @@ import numpy as np
 import torch
 from numpy.typing import NDArray
 
-from deepxube.pytorch.nnet_utils import NNetParInfo
+from deepxube.pytorch.nnet_utils import NNetParInfo, NNetPar
 from deepxube.base.factory import DelimParser
 from deepxube.base.domain import Domain, State, Action, Goal, GoalSampleableFromState
 from deepxube.base.pathfind_fns import (PFNs, DeepXubeNNetPar, HeurVFn, HeurQFn, PolicyFn, HeurVNNetPar, HeurQNNetPar, PolicyNNetPar, UFNs,
@@ -144,19 +144,11 @@ class Update(Generic[D, PFNsT, P, InstT, UFNsT], ABC):
             raise TypeError(incompat_reason)
 
         self.up_fns: UFNsT = up_fns
+        self.domain_nnet_pars: Dict[str, NNetPar] = self.domain.get_nnet_par_dict()
 
         # kwargs
         self.up_args: UpArgs = UpArgs(procs=procs, step_max=step_max, search_itrs=search_itrs, up_itrs=up_itrs, up_gen_itrs=up_gen_itrs, rb=rb,
                                       up_batch_size=up_batch_size, nnet_batch_size=nnet_batch_size, sync_main=sync_main, v=v)
-
-        # nnet objects
-        # TODO redo domain nnet_pars
-        """
-        for nnet_name, (nnet_file, nnet_par) in domain.get_nnet_par_dict().items():
-            self.add_nnet_par(nnet_name, nnet_par)
-            self.set_nnet_file(nnet_name, nnet_file)
-        self.nnet_fn_dict: Dict[str, NNetCallable] = dict()
-        """
 
         # update objects
         self.targ_update_nums: Dict[str, int] = dict()
@@ -179,25 +171,26 @@ class Update(Generic[D, PFNsT, P, InstT, UFNsT], ABC):
         pass
 
     def set_nnet_par_info_l(self) -> None:
-        for up_fn in self.up_fns.get_up_fns():
-            up_fn.set_nnet_par_info_l(self.up_args.procs)
+        for nnet_par in self.up_fns.get_up_fns() + list(self.domain_nnet_pars.values()):
+            nnet_par.set_nnet_par_info_l(self.up_args.procs)
 
     def set_nnet_par_info(self, nnet_name: str, nnet_par_info: NNetParInfo) -> None:
         self.up_fns.get_up_fn(nnet_name).set_nnet_par_info(nnet_par_info)
 
+    def set_nnet_par_info_domain(self, nnet_par_name: str, nnet_par_info: NNetParInfo) -> None:
+        self.domain_nnet_pars[nnet_par_name].set_nnet_par_info(nnet_par_info)
+
     def start_nnet_runners(self, device: torch.device, on_gpu: bool) -> None:
-        for up_fn in self.up_fns.get_up_fns():
-            up_fn.start_nnet_runners(device, on_gpu, self.up_args.nnet_batch_size)
+        for nnet_par in self.up_fns.get_up_fns() + list(self.domain_nnet_pars.values()):
+            nnet_par.start_nnet_runners(device, on_gpu, self.up_args.nnet_batch_size)
 
     def init_nnet_fns(self) -> None:
-        for up_fn in self.up_fns.get_up_fns():
-            up_fn.init_nnet_par_fn()
-
-        # self.domain.set_nnet_fns(self.nnet_fn_dict)  # TODO set domain fns
+        for nnet_par in self.up_fns.get_up_fns() + list(self.domain_nnet_pars.values()):
+            nnet_par.init_nnet_par_fn()
 
     def clear_nnet_fns(self) -> None:
-        for up_fn in self.up_fns.get_up_fns():
-            up_fn.clear_nnet_fn()
+        for nnet_par in self.up_fns.get_up_fns() + list(self.domain_nnet_pars.values()):
+            nnet_par.clear_nnet_fn()
 
     def set_main_qs(self, to_main_q: Queue, from_main_q: Queue, q_id: int) -> None:
         self.to_main_q = to_main_q
@@ -220,8 +213,11 @@ class Update(Generic[D, PFNsT, P, InstT, UFNsT], ABC):
             from_main_q: Queue = ctx.Queue(1)
             self.from_main_qs.append(from_main_q)
             updater.set_main_qs(to_main_q, from_main_q, proc_idx)
+
             for field_name in self.up_fns.get_field_names():
                 updater.set_nnet_par_info(field_name, self.up_fns.get_up_fn(field_name).get_nnet_par_infos(proc_idx))
+            for nnet_par_name in self.domain_nnet_pars.keys():
+                updater.set_nnet_par_info_domain(nnet_par_name, self.domain_nnet_pars[nnet_par_name].get_nnet_par_infos(proc_idx))
 
         # get rb sizes
         rb_sizes_q: List[int] = [0] * len(updaters)
@@ -318,8 +314,8 @@ class Update(Generic[D, PFNsT, P, InstT, UFNsT], ABC):
             print_pathfindperf(step_to_pathperf)
 
         # clean up clean up everybody do your share
-        for up_fn in self.up_fns.get_up_fns():
-            up_fn.stop_nnet_runners()
+        for nnet_par in self.up_fns.get_up_fns() + list(self.domain_nnet_pars.values()):
+            nnet_par.stop_nnet_runners()
 
         self.num_generated = 0
 

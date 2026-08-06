@@ -79,8 +79,7 @@ class Domain(ABC, Generic[S, A, G]):
     """ The domain which generates problem instances and defines the relationship between states, actions, and goals
     """
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self.nnet_par_dict: Dict[str, Tuple[str, NNetPar]] = dict()
-        self.nnet_fn_dict: Dict[str, NNetCallable] = dict()
+        self.nnet_par_dict: Dict[str, NNetPar] = dict()
 
     @abstractmethod
     def sample_problem_instances(self, num_steps_l: List[int], times: Optional[Times] = None) -> Tuple[List[S], List[G]]:
@@ -164,51 +163,44 @@ class Domain(ABC, Generic[S, A, G]):
 
         return states_walk, actions_l, path_costs
 
-    def get_nnet_par_dict(self) -> Dict[str, Tuple[str, NNetPar]]:
+    def get_nnet_par_dict(self) -> Dict[str, NNetPar]:
         """
 
         :return: Copy of dict with names of nnets mapped to their file and NNetPar
         """
         return self.nnet_par_dict.copy()
 
-    def set_nnet_fns(self, nnet_fn_dict: Dict[str, NNetCallable]) -> None:
+    def get_nnet_fn(self, nnet_par_name: str) -> NNetCallable:
         """
 
-        :param nnet_fn_dict: A dictionary mapping nnet names to NNetCallable
-        :return: None
+        :param nnet_par_name: Name of NNetPar
+        :return: NNetCallable
         """
-        for nnet_name, nnet_fn in nnet_fn_dict.items():
-            if nnet_name in self.nnet_par_dict.keys():
-                self.nnet_fn_dict[nnet_name] = nnet_fn
+        nnet_par: NNetPar = self.nnet_par_dict[nnet_par_name]
 
-    def get_nnet_fn(self, nnet_fn_name: str) -> NNetCallable:
-        """
-
-        :param nnet_fn_name: Name of nnet
-        :return: NNetCallable obtained from self.nnet_fn_dict
-        """
-        nnet_fn: Optional[NNetCallable] = self.nnet_fn_dict.get(nnet_fn_name)
-        if nnet_fn is None:
+        nnet_fn: NNetCallable
+        if nnet_par.nnet_par_fn is None:
             device: torch.device = torch.device("cpu")
             if ('CUDA_VISIBLE_DEVICES' in os.environ) and torch.cuda.is_available():
                 device = torch.device("cuda:%i" % 0)
 
-            assert nnet_fn_name in self.nnet_par_dict.keys(), f"nnet_fn_name {nnet_fn_name} has not been added to nnet_par_dict"
-            nnet_file, nnet_par = self.nnet_par_dict[nnet_fn_name]
+            nnet_file: Optional[str] = nnet_par.nnet_file
+            assert nnet_file is not None
+
             nnet: nn.Module = nnet_par.get_nnet()
             nnet = load_nnet(nnet_file, nnet, device=device)
             nnet.to(device)
 
             nnet_fn = nnet_par.get_nnet_fn(nnet, None, device)
+        else:
+            nnet_fn = nnet_par.get_nnet_par_fn()
 
-        assert nnet_fn is not None
         return nnet_fn
 
-    def _add_nnet_par(self, nnet_name: str, nnet_file: str, nnet_par: NNetPar) -> None:
-        self.nnet_par_dict[nnet_name] = (nnet_file, nnet_par)
+    def _add_nnet_par(self, nnet_name: str, nnet_par: NNetPar) -> None:
+        self.nnet_par_dict[nnet_name] = nnet_par
 
     def __getstate__(self) -> Dict:
-        self.nnet_fn_dict = dict()
         return self.__dict__
 
     def __repr__(self) -> str:
