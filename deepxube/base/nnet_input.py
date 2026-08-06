@@ -41,6 +41,9 @@ class NNetInput(ABC, Generic[D]):
         """
         pass
 
+    def __repr__(self):
+        return f"{type(self).__name__}"
+
 
 class FlatIn(NNetInput[D]):
     @abstractmethod
