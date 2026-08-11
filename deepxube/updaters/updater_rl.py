@@ -12,8 +12,8 @@ from deepxube.base.pathfind_fns import (PFNsHeurV, PFNsHeurVPolicy, PFNsHeurQ, P
 from deepxube.base.updater import (UpdateHasPolicy, UpdateHasHeurV, UpdateHasHeurQ, UpdateHeurVPathFind, UpdateHeurQPathFind, UpdatePolicyPathFind,
                                    UpdatePathFindHER, UpdatePathFindKeepGoal, UpdateRL, D, UpdateRLParser, UFNsHV_T, UFNsHQ_T, UFNsP_T, InDataNode, InDataEdge)
 from deepxube.factories.updater_factory import updater_factory
+from deepxube.updaters.utils.rl_utils import vi_backup
 from deepxube.updaters.utils.replay_buffer_utils import ReplayBufferV, ReplayBufferQ, ReplayBufferP, ReplayV, ReplayQ, ReplayP
-from deepxube.utils import misc_utils
 from deepxube.utils.timing_utils import Times
 
 import time
@@ -48,23 +48,9 @@ class UpdateHeurVRL(UpdateHeurVPathFind[D, PFNsHV_T, PathFindSetHeurV, Instance,
         states_exp, _, tcs_l = self.get_pathfind().expand_states(states, goals, contexts)
         times.record_time("vi_expand", time.time() - start_time, path=["replay"])
 
+        # get vi backup
         start_time = time.time()
-        # get cost-to-go of expanded states
-        states_exp_flat, split_idxs = misc_utils.flatten(states_exp)
-        goals_flat: List[Goal] = []
-        contexts_flat: List[Any] = []
-        for goal, context, state_exp in zip(goals, contexts, states_exp, strict=True):
-            goals_flat.extend([goal] * len(state_exp))
-            contexts_flat.extend([context] * len(state_exp))
-
-        ctg_next: List[float] = self._get_targ_heurv_fn()(states_exp_flat, goals_flat, contexts_flat)
-
-        # backup cost-to-go
-        ctg_next_p_tc: NDArray = np.concatenate(tcs_l, axis=0) + np.array(ctg_next)
-        ctg_next_p_tc_l: List[NDArray] = np.split(ctg_next_p_tc, split_idxs)
-
-        ctgs_backup = np.array([np.min(x) for x in ctg_next_p_tc_l]) * np.logical_not(replay_data)
-        ctgs_backup_l: List[float] = cast(List[float], ctgs_backup.tolist())
+        ctgs_backup_l: List[float] = vi_backup(replay_data, goals, contexts, states_exp, tcs_l, self._get_targ_heurv_fn())
         times.record_time("vi_targ", time.time() - start_time, path=["replay"])
 
         return ctgs_backup_l
