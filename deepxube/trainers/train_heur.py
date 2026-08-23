@@ -5,7 +5,7 @@ from deepxube.base.nnet import HeurNNet
 from deepxube.base.updater import UpdateHeur
 from deepxube.base.trainer import Train, update_optimizer, TrainParser
 from deepxube.utils.timing_utils import Times
-from deepxube.trainers.utils.train_utils import train_nnet_step, ctgs_summary
+from deepxube.utils.train_utils import train_nnet_step, ctgs_summary
 from deepxube.factories.trainer_factory import trainer_factory
 
 import numpy as np

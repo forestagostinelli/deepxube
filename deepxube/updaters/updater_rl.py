@@ -12,8 +12,8 @@ from deepxube.base.pathfind_fns import (PFNsHeurV, PFNsHeurVPolicy, PFNsHeurQ, P
 from deepxube.base.updater import (UpdateHasPolicy, UpdateHasHeurV, UpdateHasHeurQ, UpdateHeurVPathFind, UpdateHeurQPathFind, UpdatePolicyPathFind,
                                    UpdatePathFindHER, UpdatePathFindKeepGoal, UpdateRL, D, UpdateRLParser, UFNsHV_T, UFNsHQ_T, UFNsP_T, InDataNode, InDataEdge)
 from deepxube.factories.updater_factory import updater_factory
-from deepxube.updaters.utils.rl_utils import vi_backup
-from deepxube.updaters.utils.replay_buffer_utils import ReplayBufferV, ReplayBufferQ, ReplayBufferP, ReplayV, ReplayQ, ReplayP
+from deepxube.utils.rl_utils import vi_backup
+from deepxube.utils.replay_buffer_utils import ReplayBufferV, ReplayBufferQ, ReplayBufferP, ReplayV, ReplayQ, ReplayP
 from deepxube.utils.timing_utils import Times
 
 import time

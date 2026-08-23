@@ -13,7 +13,7 @@ from deepxube.pathfinding.beam_search import BeamSearch
 from deepxube.factories.domain_factory import get_domain_from_arg
 from deepxube.utils import data_utils, misc_utils
 from deepxube.utils.command_line_utils import print_command
-from deepxube.pathfinding.utils.performance import is_valid_soln
+from deepxube.utils.pathfind_perf import is_valid_soln
 import numpy as np
 
 import pickle

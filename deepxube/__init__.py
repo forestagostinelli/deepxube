@@ -10,7 +10,7 @@ from . import updaters  # noqa: F401
 from . import trainers  # noqa: F401
 
 from deepxube.factories.nnet_input_factory import register_nnet_input_dynamic
-from deepxube.factories.utils.import_modules import import_local_modules
+from deepxube.utils.import_modules import import_local_modules
 import sys
 from pathlib import Path
 

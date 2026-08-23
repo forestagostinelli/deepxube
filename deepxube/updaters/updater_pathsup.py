@@ -6,7 +6,7 @@ from deepxube.base.pathfinding import PFNsHV_T, PathFindSetHeurV, Node, Instance
 from deepxube.base.pathfind_fns import PFNsHeurV, PFNsHeurVPolicy, UFNsHeurV, UFNsHeurVPolicy
 from deepxube.base.updater import UpdateHasPolicy, UpdateHeurVPathFind, UpdatePathFindKeepGoal, UpdateRL, UFNsHV_T, InDataNode, UpdateParser
 from deepxube.factories.updater_factory import updater_factory
-from deepxube.updaters.utils.replay_buffer_utils import ReplayBufferVLab, ReplayVLab
+from deepxube.utils.replay_buffer_utils import ReplayBufferVLab, ReplayVLab
 from deepxube.utils.timing_utils import Times
 
 import time
