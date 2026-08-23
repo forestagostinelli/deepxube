@@ -20,6 +20,12 @@ see on the left hand side if you are on the main branch:
 <img src="../_static/images/main_branch.png" alt="" width="20%">
 </div>
 
+```{warning}
+Make sure the directory from which you do the tutorial is NOT the parent 
+directory of the deepxube directory as this will lead to confusion as to which 
+directory to examine when importing deepxube modules
+```
+
 
 ## Packages
 - Deep reinforcement learning: torch>=2.0, numpy
