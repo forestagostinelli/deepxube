@@ -6,15 +6,6 @@
 .. autodoc2-docstring:: deepxube.factories
    :allowtitles:
 
-Subpackages
------------
-
-.. toctree::
-   :titlesonly:
-   :maxdepth: 3
-
-   deepxube.factories.utils
-
 Submodules
 ----------
 

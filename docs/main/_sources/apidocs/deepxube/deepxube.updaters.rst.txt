@@ -6,15 +6,6 @@
 .. autodoc2-docstring:: deepxube.updaters
    :allowtitles:
 
-Subpackages
------------
-
-.. toctree::
-   :titlesonly:
-   :maxdepth: 3
-
-   deepxube.updaters.utils
-
 Submodules
 ----------
 
@@ -23,6 +14,5 @@ Submodules
    :maxdepth: 1
 
    deepxube.updaters.updater_sup
-   deepxube.updaters.updater_rl_v
-   deepxube.updaters.updater_rl_p
-   deepxube.updaters.updater_rl_q
+   deepxube.updaters.updater_rl
+   deepxube.updaters.updater_pathsup

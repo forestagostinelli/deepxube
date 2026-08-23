@@ -132,13 +132,18 @@ API
 
       .. autodoc2-docstring:: deepxube.pathfinding.graph_search.GraphSearch._construct_instances
 
+   .. py:method:: _set_node_contexts(nodes_by_inst: typing.List[typing.List[deepxube.base.pathfinding.Node]], instances: typing.List[deepxube.pathfinding.graph_search.IGraph]) -> None
+      :canonical: deepxube.pathfinding.graph_search.GraphSearch._set_node_contexts
+
+      .. autodoc2-docstring:: deepxube.pathfinding.graph_search.GraphSearch._set_node_contexts
+
    .. py:method:: __repr__() -> str
       :canonical: deepxube.pathfinding.graph_search.GraphSearch.__repr__
 
 .. py:class:: InstanceNodeGraph(*args: typing.Any, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.graph_search.InstanceNodeGraph
 
-   Bases: :py:obj:`deepxube.base.pathfinding.InstanceNodeStatic`, :py:obj:`deepxube.pathfinding.graph_search.InstanceGraph`\ [\ :py:obj:`deepxube.base.pathfinding.Node`\ ]
+   Bases: :py:obj:`deepxube.base.pathfinding.InstanceNode`, :py:obj:`deepxube.pathfinding.graph_search.InstanceGraph`\ [\ :py:obj:`deepxube.base.pathfinding.Node`\ ]
 
    .. py:method:: filter_expanded_nodes(nodes: typing.List[deepxube.base.pathfinding.Node]) -> typing.List[deepxube.base.pathfinding.Node]
       :canonical: deepxube.pathfinding.graph_search.InstanceNodeGraph.filter_expanded_nodes
@@ -153,7 +158,7 @@ API
 .. py:class:: InstanceEdgeGraph(root_node: deepxube.base.pathfinding.Node, inst_info: typing.Any, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.graph_search.InstanceEdgeGraph
 
-   Bases: :py:obj:`deepxube.base.pathfinding.InstanceEdgeStatic`, :py:obj:`deepxube.pathfinding.graph_search.InstanceGraph`\ [\ :py:obj:`deepxube.base.pathfinding.EdgeQ`\ ]
+   Bases: :py:obj:`deepxube.base.pathfinding.InstanceEdge`, :py:obj:`deepxube.pathfinding.graph_search.InstanceGraph`\ [\ :py:obj:`deepxube.base.pathfinding.EdgeQ`\ ]
 
    .. py:method:: filter_popped_nodes(nodes: typing.List[deepxube.base.pathfinding.Node]) -> typing.List[deepxube.base.pathfinding.Node]
       :canonical: deepxube.pathfinding.graph_search.InstanceEdgeGraph.filter_popped_nodes

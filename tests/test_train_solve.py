@@ -2,7 +2,7 @@ from typing import List, Optional
 import pytest  # type: ignore
 
 from deepxube.base.pathfinding import Node, Instance, get_path
-from deepxube.pathfinding.utils.performance import is_valid_soln, PathFindPerf
+from deepxube.utils.pathfind_perf import is_valid_soln, PathFindPerf
 from deepxube.factories.domain_factory import get_domain_from_arg
 from deepxube.factories.pathfind_fns_factory import get_path_up_fns, get_path_fns_nnet_par_dict
 from deepxube.factories.pathfinding_factory import get_pathfind_from_arg

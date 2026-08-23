@@ -12,18 +12,18 @@ We will experiment with the 6x6 sliding tile puzzle (i.e. the 35-puzzle) when tr
 
 ## Without Balancing
 
-`deepxube train --domain npuzzle.6 --fn heurv,resnet_fc.200H_2B_bn --pathfind graph --up up_rl.10000sm_100up_100sitrs_lhbl_2p --tr tr_h.200bs_5000maxit --dir tutorial/npuzzle6/10000sm/`
+`deepxube train --domain npuzzle.6 --fn heurv,resnet_fc.200H_2B_bn --pathfind graph --up up_rl.10000sm_100up_100sitrs_lhbl_2p --tr tr_h.200bs_5000maxit --dir results/npuzzle6/10000sm/`
 
-```{literalinclude} ../../tutorial/npuzzle6/10000sm/output.txt
+```{literalinclude} ../../tutorial/results/npuzzle6/10000sm/output.txt
 :language: none
 :class: scroll-code
 ```
 
 Note how there is rarely an instance that is solved, the cost-to-go continues to increase, and the percentage solved does not improve.
 
-`deepxube train_summary --dir tutorial/npuzzle6/10000sm/`
+`deepxube train_summary --dir results/npuzzle6/10000sm/`
 
-```{image} ../../tutorial/npuzzle6/10000sm/train_summary.gif
+```{image} ../../tutorial/results/npuzzle6/10000sm/train_summary.gif
 :alt: Search demo animation no balancing
 :width: 600px
 :align: center
@@ -31,20 +31,20 @@ Note how there is rarely an instance that is solved, the cost-to-go continues to
 
 ## With Balancing
 
-`deepxube train --domain npuzzle.6 --fn heurv,resnet_fc.200H_2B_bn --pathfind graph --up up_rl.10000sm_100up_100sitrs_lhbl_2p --tr tr_h.200bs_5000maxit_bal --dir tutorial/npuzzle6/10000sm_bal/`
+`deepxube train --domain npuzzle.6 --fn heurv,resnet_fc.200H_2B_bn --pathfind graph --up up_rl.10000sm_100up_100sitrs_lhbl_2p --tr tr_h.200bs_5000maxit_bal --dir results/npuzzle6/10000sm_bal/`
 
 - `_bal` to balance training data
 
-```{literalinclude} ../../tutorial/npuzzle6/10000sm_bal/output.txt
+```{literalinclude} ../../tutorial/results/npuzzle6/10000sm_bal/output.txt
 :language: none
 :class: scroll-code
 ```
 
 There are significantly more solved instances seen during training and search success and percentage solved increases over training time.
 
-`deepxube train_summary --dir tutorial/npuzzle6/10000sm_bal/`
+`deepxube train_summary --dir results/npuzzle6/10000sm_bal/`
 
-```{image} ../../tutorial/npuzzle6/10000sm_bal/train_summary.gif
+```{image} ../../tutorial/results/npuzzle6/10000sm_bal/train_summary.gif
 :alt: Search demo animation with balancing
 :width: 600px
 :align: center

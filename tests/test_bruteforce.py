@@ -4,7 +4,7 @@ import pytest  # type: ignore
 from deepxube.base.domain import Domain, State, Goal
 from deepxube.domains.cube3 import Cube3, Cube3State, Cube3Goal
 from deepxube.base.pathfinding import Node, Instance, get_path
-from deepxube.pathfinding.utils.performance import is_valid_soln, PathFindPerf
+from deepxube.utils.pathfind_perf import is_valid_soln, PathFindPerf
 from deepxube.factories.pathfind_fns_factory import get_path_fns_nnet_par_dict
 from deepxube.factories.pathfinding_factory import get_pathfind_from_arg
 from deepxube.pytorch import nnet_utils

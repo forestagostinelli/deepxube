@@ -6,15 +6,6 @@
 .. autodoc2-docstring:: deepxube.trainers
    :allowtitles:
 
-Subpackages
------------
-
-.. toctree::
-   :titlesonly:
-   :maxdepth: 3
-
-   deepxube.trainers.utils
-
 Submodules
 ----------
 

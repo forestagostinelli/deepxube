@@ -17,8 +17,7 @@ Classes
    :align: left
 
    * - :py:obj:`NNetInput <deepxube.base.nnet_input.NNetInput>`
-     - .. autodoc2-docstring:: deepxube.base.nnet_input.NNetInput
-          :summary:
+     -
    * - :py:obj:`FlatIn <deepxube.base.nnet_input.FlatIn>`
      -
    * - :py:obj:`TwoDIn <deepxube.base.nnet_input.TwoDIn>`
@@ -102,11 +101,11 @@ API
 
    Bases: :py:obj:`abc.ABC`, :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.base.nnet_input.D`\ ]
 
-   .. autodoc2-docstring:: deepxube.base.nnet_input.NNetInput
+   .. py:method:: uses_context() -> bool
+      :canonical: deepxube.base.nnet_input.NNetInput.uses_context
+      :staticmethod:
 
-   .. rubric:: Initialization
-
-   .. autodoc2-docstring:: deepxube.base.nnet_input.NNetInput.__init__
+      .. autodoc2-docstring:: deepxube.base.nnet_input.NNetInput.uses_context
 
    .. py:method:: get_input_info() -> typing.Any
       :canonical: deepxube.base.nnet_input.NNetInput.get_input_info
@@ -119,6 +118,9 @@ API
       :abstractmethod:
 
       .. autodoc2-docstring:: deepxube.base.nnet_input.NNetInput.to_np
+
+   .. py:method:: __repr__() -> str
+      :canonical: deepxube.base.nnet_input.NNetInput.__repr__
 
 .. py:class:: FlatIn(domain: deepxube.base.nnet_input.D)
    :canonical: deepxube.base.nnet_input.FlatIn
@@ -147,14 +149,30 @@ API
 
    Bases: :py:obj:`deepxube.base.nnet_input.NNetInput`\ [\ :py:obj:`deepxube.base.nnet_input.D`\ ], :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.base.nnet_input.D`\ , :py:obj:`deepxube.base.nnet_input.S`\ , :py:obj:`deepxube.base.nnet_input.G`\ ]
 
+   .. py:method:: to_np_ctx_option(states: typing.List[deepxube.base.nnet_input.S], goals: typing.List[deepxube.base.nnet_input.G], contexts: typing.List[typing.Any]) -> typing.List[numpy.typing.NDArray]
+      :canonical: deepxube.base.nnet_input.StateGoalIn.to_np_ctx_option
+
+      .. autodoc2-docstring:: deepxube.base.nnet_input.StateGoalIn.to_np_ctx_option
+
    .. py:method:: to_np(states: typing.List[deepxube.base.nnet_input.S], goals: typing.List[deepxube.base.nnet_input.G]) -> typing.List[numpy.typing.NDArray]
       :canonical: deepxube.base.nnet_input.StateGoalIn.to_np
       :abstractmethod:
+
+   .. py:method:: to_np_ctx(states: typing.List[deepxube.base.nnet_input.S], goals: typing.List[deepxube.base.nnet_input.G], contexts: typing.List[typing.Any]) -> typing.List[numpy.typing.NDArray]
+      :canonical: deepxube.base.nnet_input.StateGoalIn.to_np_ctx
+      :abstractmethod:
+
+      .. autodoc2-docstring:: deepxube.base.nnet_input.StateGoalIn.to_np_ctx
 
 .. py:class:: StateGoalActFixIn(domain: deepxube.base.nnet_input.D)
    :canonical: deepxube.base.nnet_input.StateGoalActFixIn
 
    Bases: :py:obj:`deepxube.base.nnet_input.NNetInput`\ [\ :py:obj:`deepxube.base.nnet_input.D`\ ], :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.base.nnet_input.D`\ , :py:obj:`deepxube.base.nnet_input.S`\ , :py:obj:`deepxube.base.nnet_input.G`\ , :py:obj:`deepxube.base.nnet_input.A`\ ]
+
+   .. py:method:: to_np_ctx_option(states: typing.List[deepxube.base.nnet_input.S], goals: typing.List[deepxube.base.nnet_input.G], actions_l: typing.List[typing.List[deepxube.base.nnet_input.A]], contexts: typing.List[typing.Any]) -> typing.List[numpy.typing.NDArray]
+      :canonical: deepxube.base.nnet_input.StateGoalActFixIn.to_np_ctx_option
+
+      .. autodoc2-docstring:: deepxube.base.nnet_input.StateGoalActFixIn.to_np_ctx_option
 
    .. py:method:: to_np(states: typing.List[deepxube.base.nnet_input.S], goals: typing.List[deepxube.base.nnet_input.G], actions_l: typing.List[typing.List[deepxube.base.nnet_input.A]]) -> typing.List[numpy.typing.NDArray]
       :canonical: deepxube.base.nnet_input.StateGoalActFixIn.to_np
@@ -162,29 +180,68 @@ API
 
       .. autodoc2-docstring:: deepxube.base.nnet_input.StateGoalActFixIn.to_np
 
+   .. py:method:: to_np_ctx(states: typing.List[deepxube.base.nnet_input.S], goals: typing.List[deepxube.base.nnet_input.G], actions_l: typing.List[typing.List[deepxube.base.nnet_input.A]], contexts: typing.List[typing.Any]) -> typing.List[numpy.typing.NDArray]
+      :canonical: deepxube.base.nnet_input.StateGoalActFixIn.to_np_ctx
+      :abstractmethod:
+
+      .. autodoc2-docstring:: deepxube.base.nnet_input.StateGoalActFixIn.to_np_ctx
+
 .. py:class:: StateGoalActIn(domain: deepxube.base.nnet_input.D)
    :canonical: deepxube.base.nnet_input.StateGoalActIn
 
    Bases: :py:obj:`deepxube.base.nnet_input.NNetInput`\ [\ :py:obj:`deepxube.base.nnet_input.D`\ ], :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.base.nnet_input.D`\ , :py:obj:`deepxube.base.nnet_input.S`\ , :py:obj:`deepxube.base.nnet_input.G`\ , :py:obj:`deepxube.base.nnet_input.A`\ ]
 
+   .. py:method:: to_np_ctx_option(states: typing.List[deepxube.base.nnet_input.S], goals: typing.List[deepxube.base.nnet_input.G], actions: typing.List[deepxube.base.nnet_input.A], contexts: typing.List[typing.Any]) -> typing.List[numpy.typing.NDArray]
+      :canonical: deepxube.base.nnet_input.StateGoalActIn.to_np_ctx_option
+
+      .. autodoc2-docstring:: deepxube.base.nnet_input.StateGoalActIn.to_np_ctx_option
+
    .. py:method:: to_np(states: typing.List[deepxube.base.nnet_input.S], goals: typing.List[deepxube.base.nnet_input.G], actions: typing.List[deepxube.base.nnet_input.A]) -> typing.List[numpy.typing.NDArray]
       :canonical: deepxube.base.nnet_input.StateGoalActIn.to_np
       :abstractmethod:
+
+   .. py:method:: to_np_ctx(states: typing.List[deepxube.base.nnet_input.S], goals: typing.List[deepxube.base.nnet_input.G], actions: typing.List[deepxube.base.nnet_input.A], contexts: typing.List[typing.Any]) -> typing.List[numpy.typing.NDArray]
+      :canonical: deepxube.base.nnet_input.StateGoalActIn.to_np_ctx
+      :abstractmethod:
+
+      .. autodoc2-docstring:: deepxube.base.nnet_input.StateGoalActIn.to_np_ctx
 
 .. py:class:: PolicyNNetIn(domain: deepxube.base.nnet_input.D)
    :canonical: deepxube.base.nnet_input.PolicyNNetIn
 
    Bases: :py:obj:`deepxube.base.nnet_input.NNetInput`\ [\ :py:obj:`deepxube.base.nnet_input.D`\ ], :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.base.nnet_input.D`\ , :py:obj:`deepxube.base.nnet_input.S`\ , :py:obj:`deepxube.base.nnet_input.G`\ , :py:obj:`deepxube.base.nnet_input.A`\ ]
 
+   .. py:method:: to_np_ctx_option(states: typing.List[deepxube.base.nnet_input.S], goals: typing.List[deepxube.base.nnet_input.G], actions: typing.List[deepxube.base.nnet_input.A], contexts: typing.List[typing.Any]) -> typing.List[numpy.typing.NDArray]
+      :canonical: deepxube.base.nnet_input.PolicyNNetIn.to_np_ctx_option
+
+      .. autodoc2-docstring:: deepxube.base.nnet_input.PolicyNNetIn.to_np_ctx_option
+
+   .. py:method:: to_np_fn_ctx_option(states: typing.List[deepxube.base.nnet_input.S], goals: typing.List[deepxube.base.nnet_input.G], contexts: typing.List[typing.Any]) -> typing.List[numpy.typing.NDArray]
+      :canonical: deepxube.base.nnet_input.PolicyNNetIn.to_np_fn_ctx_option
+
+      .. autodoc2-docstring:: deepxube.base.nnet_input.PolicyNNetIn.to_np_fn_ctx_option
+
    .. py:method:: to_np(states: typing.List[deepxube.base.nnet_input.S], goals: typing.List[deepxube.base.nnet_input.G], actions: typing.List[deepxube.base.nnet_input.A]) -> typing.List[numpy.typing.NDArray]
       :canonical: deepxube.base.nnet_input.PolicyNNetIn.to_np
       :abstractmethod:
+
+   .. py:method:: to_np_ctx(states: typing.List[deepxube.base.nnet_input.S], goals: typing.List[deepxube.base.nnet_input.G], actions: typing.List[deepxube.base.nnet_input.A], contexts: typing.List[typing.Any]) -> typing.List[numpy.typing.NDArray]
+      :canonical: deepxube.base.nnet_input.PolicyNNetIn.to_np_ctx
+      :abstractmethod:
+
+      .. autodoc2-docstring:: deepxube.base.nnet_input.PolicyNNetIn.to_np_ctx
 
    .. py:method:: to_np_fn(states: typing.List[deepxube.base.nnet_input.S], goals: typing.List[deepxube.base.nnet_input.G]) -> typing.List[numpy.typing.NDArray]
       :canonical: deepxube.base.nnet_input.PolicyNNetIn.to_np_fn
       :abstractmethod:
 
       .. autodoc2-docstring:: deepxube.base.nnet_input.PolicyNNetIn.to_np_fn
+
+   .. py:method:: to_np_fn_ctx(states: typing.List[deepxube.base.nnet_input.S], goals: typing.List[deepxube.base.nnet_input.G], contexts: typing.List[typing.Any]) -> typing.List[numpy.typing.NDArray]
+      :canonical: deepxube.base.nnet_input.PolicyNNetIn.to_np_fn_ctx
+      :abstractmethod:
+
+      .. autodoc2-docstring:: deepxube.base.nnet_input.PolicyNNetIn.to_np_fn_ctx
 
    .. py:method:: nnet_out_to_actions(nnet_out: typing.List[numpy.typing.NDArray[numpy.float64]]) -> typing.List[deepxube.base.nnet_input.A]
       :canonical: deepxube.base.nnet_input.PolicyNNetIn.nnet_out_to_actions

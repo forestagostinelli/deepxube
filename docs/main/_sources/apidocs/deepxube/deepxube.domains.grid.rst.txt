@@ -34,6 +34,8 @@ Classes
      -
    * - :py:obj:`GridNNetInput <deepxube.domains.grid.GridNNetInput>`
      -
+   * - :py:obj:`GridNNetInput2 <deepxube.domains.grid.GridNNetInput2>`
+     -
    * - :py:obj:`GridNet <deepxube.domains.grid.GridNet>`
      -
    * - :py:obj:`GridNetParser <deepxube.domains.grid.GridNetParser>`
@@ -162,6 +164,17 @@ API
 
    .. py:method:: to_np(states: typing.List[deepxube.domains.grid.GridState], goals: typing.List[deepxube.domains.grid.GridGoal]) -> typing.List[numpy.typing.NDArray]
       :canonical: deepxube.domains.grid.GridNNetInput.to_np
+
+.. py:class:: GridNNetInput2(domain: deepxube.base.nnet_input.D)
+   :canonical: deepxube.domains.grid.GridNNetInput2
+
+   Bases: :py:obj:`deepxube.domains.grid.GridNNetInput`
+
+   .. py:method:: get_input_info() -> int
+      :canonical: deepxube.domains.grid.GridNNetInput2.get_input_info
+
+   .. py:method:: to_np(states: typing.List[deepxube.domains.grid.GridState], goals: typing.List[deepxube.domains.grid.GridGoal]) -> typing.List[numpy.typing.NDArray]
+      :canonical: deepxube.domains.grid.GridNNetInput2.to_np
 
 .. py:class:: GridNet(nnet_input: deepxube.domains.grid.GridNNetInput, out_dim: int, q_fix: bool, chan_size: int = 8, fc_size: int = 100)
    :canonical: deepxube.domains.grid.GridNet

@@ -57,7 +57,7 @@ API
 .. py:class:: InstanceNodeSup(*args: typing.Any, path_cost_sup: typing.Optional[float] = None, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.supervised.InstanceNodeSup
 
-   Bases: :py:obj:`deepxube.base.pathfinding.InstanceNodeStatic`, :py:obj:`deepxube.pathfinding.supervised.InstanceSup`
+   Bases: :py:obj:`deepxube.base.pathfinding.InstanceNode`, :py:obj:`deepxube.pathfinding.supervised.InstanceSup`
 
    .. py:method:: filter_expanded_nodes(nodes: typing.List[deepxube.base.pathfinding.Node]) -> typing.List[deepxube.base.pathfinding.Node]
       :canonical: deepxube.pathfinding.supervised.InstanceNodeSup.filter_expanded_nodes
@@ -74,7 +74,7 @@ API
 .. py:class:: InstanceEdgeSup(*args: typing.Any, action: typing.Optional[deepxube.base.domain.Action] = None, path_cost_sup: typing.Optional[float] = None, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.supervised.InstanceEdgeSup
 
-   Bases: :py:obj:`deepxube.base.pathfinding.InstanceEdgeStatic`, :py:obj:`deepxube.pathfinding.supervised.InstanceSup`
+   Bases: :py:obj:`deepxube.base.pathfinding.InstanceEdge`, :py:obj:`deepxube.pathfinding.supervised.InstanceSup`
 
    .. py:method:: filter_popped_nodes(nodes: typing.List[deepxube.base.pathfinding.Node]) -> typing.List[deepxube.base.pathfinding.Node]
       :canonical: deepxube.pathfinding.supervised.InstanceEdgeSup.filter_popped_nodes
@@ -91,9 +91,9 @@ API
 .. py:class:: PathFindNodeSup(domain: deepxube.base.pathfinding.D, pathfind_fns: deepxube.base.pathfinding.PFNsT)
    :canonical: deepxube.pathfinding.supervised.PathFindNodeSup
 
-   Bases: :py:obj:`deepxube.base.pathfinding.PathFindNodeStatic`\ [\ :py:obj:`deepxube.base.domain.NodesSupervisable`\ , :py:obj:`typing.Any`\ , :py:obj:`deepxube.pathfinding.supervised.InstanceNodeSup`\ ], :py:obj:`deepxube.base.pathfinding.PathFindSup`\ [\ :py:obj:`deepxube.base.domain.NodesSupervisable`\ , :py:obj:`deepxube.pathfinding.supervised.InstanceNodeSup`\ ]
+   Bases: :py:obj:`deepxube.base.pathfinding.PathFindNodeStatic`\ [\ :py:obj:`deepxube.base.domain.NodesLabelsSampleable`\ , :py:obj:`typing.Any`\ , :py:obj:`deepxube.pathfinding.supervised.InstanceNodeSup`\ ], :py:obj:`deepxube.base.pathfinding.PathFindSup`\ [\ :py:obj:`deepxube.base.domain.NodesLabelsSampleable`\ , :py:obj:`deepxube.pathfinding.supervised.InstanceNodeSup`\ ]
 
-   .. py:method:: domain_type() -> typing.Type[deepxube.base.domain.NodesSupervisable]
+   .. py:method:: domain_type() -> typing.Type[deepxube.base.domain.NodesLabelsSampleable]
       :canonical: deepxube.pathfinding.supervised.PathFindNodeSup.domain_type
       :staticmethod:
 
@@ -119,12 +119,17 @@ API
    .. py:method:: make_instances_sup(steps_gen: typing.List[int], inst_infos: typing.Optional[typing.List[typing.Any]]) -> typing.List[deepxube.pathfinding.supervised.InstanceNodeSup]
       :canonical: deepxube.pathfinding.supervised.PathFindNodeSup.make_instances_sup
 
+   .. py:method:: _set_node_contexts(nodes_by_inst: typing.List[typing.List[deepxube.base.pathfinding.Node]], instances: typing.List[deepxube.pathfinding.supervised.InstanceNodeSup]) -> None
+      :canonical: deepxube.pathfinding.supervised.PathFindNodeSup._set_node_contexts
+
+      .. autodoc2-docstring:: deepxube.pathfinding.supervised.PathFindNodeSup._set_node_contexts
+
 .. py:class:: PathFindEdgeSup(domain: deepxube.base.pathfinding.D, pathfind_fns: deepxube.base.pathfinding.PFNsT)
    :canonical: deepxube.pathfinding.supervised.PathFindEdgeSup
 
-   Bases: :py:obj:`deepxube.base.pathfinding.PathFindEdgeStatic`\ [\ :py:obj:`deepxube.base.domain.EdgesSupervisable`\ , :py:obj:`typing.Any`\ , :py:obj:`deepxube.pathfinding.supervised.InstanceEdgeSup`\ ], :py:obj:`deepxube.base.pathfinding.PathFindSup`\ [\ :py:obj:`deepxube.base.domain.EdgesSupervisable`\ , :py:obj:`deepxube.pathfinding.supervised.InstanceEdgeSup`\ ]
+   Bases: :py:obj:`deepxube.base.pathfinding.PathFindEdgeStatic`\ [\ :py:obj:`deepxube.base.domain.EdgesLabelsSampleable`\ , :py:obj:`typing.Any`\ , :py:obj:`deepxube.pathfinding.supervised.InstanceEdgeSup`\ ], :py:obj:`deepxube.base.pathfinding.PathFindSup`\ [\ :py:obj:`deepxube.base.domain.EdgesLabelsSampleable`\ , :py:obj:`deepxube.pathfinding.supervised.InstanceEdgeSup`\ ]
 
-   .. py:method:: domain_type() -> typing.Type[deepxube.base.domain.EdgesSupervisable]
+   .. py:method:: domain_type() -> typing.Type[deepxube.base.domain.EdgesLabelsSampleable]
       :canonical: deepxube.pathfinding.supervised.PathFindEdgeSup.domain_type
       :staticmethod:
 
@@ -149,6 +154,11 @@ API
 
    .. py:method:: make_instances_sup(steps_gen: typing.List[int], inst_infos: typing.Optional[typing.List[typing.Any]]) -> typing.List[deepxube.pathfinding.supervised.InstanceEdgeSup]
       :canonical: deepxube.pathfinding.supervised.PathFindEdgeSup.make_instances_sup
+
+   .. py:method:: _set_node_contexts(nodes_by_inst: typing.List[typing.List[deepxube.base.pathfinding.Node]], instances: typing.List[deepxube.pathfinding.supervised.InstanceEdgeSup]) -> None
+      :canonical: deepxube.pathfinding.supervised.PathFindEdgeSup._set_node_contexts
+
+      .. autodoc2-docstring:: deepxube.pathfinding.supervised.PathFindEdgeSup._set_node_contexts
 
 .. py:class:: PathFindEdgeSamp(domain: deepxube.base.pathfinding.D, pathfind_fns: deepxube.base.pathfinding.PFNsT)
    :canonical: deepxube.pathfinding.supervised.PathFindEdgeSamp
@@ -180,3 +190,8 @@ API
 
    .. py:method:: make_instances_sup(steps_gen: typing.List[int], inst_infos: typing.Optional[typing.List[typing.Any]]) -> typing.List[deepxube.pathfinding.supervised.InstanceEdgeSup]
       :canonical: deepxube.pathfinding.supervised.PathFindEdgeSamp.make_instances_sup
+
+   .. py:method:: _set_node_contexts(nodes_by_inst: typing.List[typing.List[deepxube.base.pathfinding.Node]], instances: typing.List[deepxube.pathfinding.supervised.InstanceEdgeSup]) -> None
+      :canonical: deepxube.pathfinding.supervised.PathFindEdgeSamp._set_node_contexts
+
+      .. autodoc2-docstring:: deepxube.pathfinding.supervised.PathFindEdgeSamp._set_node_contexts

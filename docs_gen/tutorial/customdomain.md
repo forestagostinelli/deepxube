@@ -8,7 +8,7 @@ our own custom neural network.
 In the directory in which you run deepxube, copy the code below to the `domains/grid_tutorial.py` file. 
 DeepXube automatically looks in the `domains/` folder to see what is registered. This file will be explained part-by-part.
 
-```{literalinclude} ../../domains/grid_tutorial.py
+```{literalinclude} ../../tutorial/domains/grid_tutorial.py
 :language: python
 :class: scroll-code
 ```
@@ -26,7 +26,7 @@ More specific information can be obtained about the domain with
 To faciliate using states with Python dictionary objects and re-identifying states during search, all State objects must implement
 `__hash__` and `__eq__`. This must also be done for Action objects.
 
-```{literalinclude} ../../domains/grid_tutorial.py
+```{literalinclude} ../../tutorial/domains/grid_tutorial.py
 :language: python
 :class: scroll-code
 :start-after: start sag
@@ -50,7 +50,7 @@ and using the terminal state to sample a goal.We will also use the {class}`deepx
 and {class}`deepxube.base.domain.StringToAct` to interact with the domain using `deepxube viz`. 
 The domain will be given an argument for its dimensionality.
 
-```{literalinclude} ../../domains/grid_tutorial.py
+```{literalinclude} ../../tutorial/domains/grid_tutorial.py
 :language: python
 :class: scroll-code
 :start-after: start def
@@ -68,7 +68,7 @@ mixins are {meth}`deepxube.base.domain.Domain.is_solved` and
 location of the agent is at the goal x and y location and `next_state` moves the agent 
 in the corresponding direction with a transition cost of 1 for all actions.
 
-```{literalinclude} ../../domains/grid_tutorial.py
+```{literalinclude} ../../tutorial/domains/grid_tutorial.py
 :language: python
 :class: scroll-code
 :start-after: start domain methods
@@ -81,7 +81,7 @@ in the corresponding direction with a transition cost of 1 for all actions.
 {meth}`deepxube.base.domain.ActsEnumFixed.get_actions_fixed`. This is implemented by 
 simply returning a copy of the list created in the `__init__` method containing all actions.
 
-```{literalinclude} ../../domains/grid_tutorial.py
+```{literalinclude} ../../tutorial/domains/grid_tutorial.py
 :language: python
 :class: scroll-code
 :start-after: start actsenumfixed methods
@@ -97,7 +97,7 @@ simply returning a copy of the list created in the `__init__` method containing 
 `sample_goal_from_state` is implemented by using the x, y of the agent's location as the
 desired goal.
 
-```{literalinclude} ../../domains/grid_tutorial.py
+```{literalinclude} ../../tutorial/domains/grid_tutorial.py
 :language: python
 :class: scroll-code
 :start-after: start startgoalwalkable methods
@@ -110,7 +110,7 @@ instances and interaction with them using the terminal. A simple grid is created
 the agent and goal, respectively.
 
 
-```{literalinclude} ../../domains/grid_tutorial.py
+```{literalinclude} ../../tutorial/domains/grid_tutorial.py
 :language: python
 :class: scroll-code
 :start-after: start viz methods
@@ -119,7 +119,7 @@ the agent and goal, respectively.
 
 ### Representation Method
 
-```{literalinclude} ../../domains/grid_tutorial.py
+```{literalinclude} ../../tutorial/domains/grid_tutorial.py
 :language: python
 :class: scroll-code
 :start-after: start repr methods
@@ -138,7 +138,7 @@ To allow the user to set parameters of the domain via the command line, one can 
 class and register it with the same name as the domain. The {class}`deepxube.base.factory.DelimParser` is a subclass that makes it
 easy to define parsing and help messages.
 
-```{literalinclude} ../../domains/grid_tutorial.py
+```{literalinclude} ../../tutorial/domains/grid_tutorial.py
 :language: python
 :class: scroll-code
 :start-after: start domain parser
@@ -160,7 +160,7 @@ to a one-dimensional representation. It is then converted to a one-hot
 representation on the GPU with depth equal to the dimensionality of the
 domain.
 
-```{literalinclude} ../../domains/grid_tutorial.py
+```{literalinclude} ../../tutorial/domains/grid_tutorial.py
 :language: python
 :class: scroll-code
 :start-after: start gridflatin definition
@@ -186,9 +186,9 @@ We can now train a heuristic function that takes a flat input for the
 grid domain. It should learn to solve over 95% of problem instances with 
 20 iterations of A* search during training.
 
-`deepxube train --domain grid_tut.7d --fn heurv,resnet_fc.100H_1B_bn --pathfind graph --up up_rl.100sm_100up_20sitrs_lhbl_2p --tr tr_h.200bs_1000maxit --dir tutorial/grid_tut/flatin_v/`
+`deepxube train --domain grid_tut.7d --fn heurv,resnet_fc.100H_1B_bn --pathfind graph --up up_rl.100sm_100up_20sitrs_lhbl_2p --tr tr_h.200bs_1000maxit --dir results/grid_tut/flatin_v/`
 
-```{literalinclude} ../../tutorial/grid_tut/flatin_v/output.txt
+```{literalinclude} ../../tutorial/results/grid_tut/flatin_v/output.txt
 :language: none
 :class: scroll-code
 ```
@@ -200,7 +200,7 @@ and outputs a vector that corresponds to the transition cost plus
 cost-to-go of the resulting state for every possible 
 action {cite}`mnih2015human`.
 
-```{literalinclude} ../../domains/grid_tutorial.py
+```{literalinclude} ../../tutorial/domains/grid_tutorial.py
 :language: python
 :class: scroll-code
 :start-after: start gridflatinqfix definition
@@ -219,9 +219,9 @@ be the index of the output that corresponds to each action in `actions_l`.
 We can now train a deep Q-network that takes a flat input for the
 grid domain.
 
-`deepxube train --domain grid_tut.7d --fn heurq_fixout,resnet_fc.100H_1B_bn --pathfind graph --up up_rl.100sm_100up_20sitrs_lhbl_2p --tr tr_h.200bs_1000maxit --dir tutorial/grid_tut/flatin_qfix/`
+`deepxube train --domain grid_tut.7d --fn heurq_fixout,resnet_fc.100H_1B_bn --pathfind graph --up up_rl.100sm_100up_20sitrs_lhbl_2p --tr tr_h.200bs_1000maxit --dir results/grid_tut/flatin_qfix/`
 
-```{literalinclude} ../../tutorial/grid_tut/flatin_qfix/output.txt
+```{literalinclude} ../../tutorial/results/grid_tut/flatin_qfix/output.txt
 :language: none
 :class: scroll-code
 ```
@@ -241,7 +241,7 @@ compute since, when used with Q* search {cite}`agostinelli2024q`, the
 number of calls to the transition function is constant with respect to the
 number of applicable actions.
 
-```{literalinclude} ../../domains/grid_tutorial.py
+```{literalinclude} ../../tutorial/domains/grid_tutorial.py
 :language: python
 :class: scroll-code
 :start-after: start gridflatinactin definition
@@ -251,9 +251,9 @@ number of applicable actions.
 We can now train a deep Q-network that takes the action as in input and a 
 flat input for the grid domain.
 
-`deepxube train --domain grid_tut.7d --fn heurq_in,resnet_fc.100H_1B_bn --pathfind graph --up up_rl.100sm_100up_20sitrs_lhbl_2p --tr tr_h.200bs_1000maxit --dir tutorial/grid_tut/flatin_qin/`
+`deepxube train --domain grid_tut.7d --fn heurq_in,resnet_fc.100H_1B_bn --pathfind graph --up up_rl.100sm_100up_20sitrs_lhbl_2p --tr tr_h.200bs_1000maxit --dir results/grid_tut/flatin_qin/`
 
-```{literalinclude} ../../tutorial/grid_tut/flatin_qin/output.txt
+```{literalinclude} ../../tutorial/results/grid_tut/flatin_qin/output.txt
 :language: none
 :class: scroll-code
 ```
@@ -275,7 +275,7 @@ grid. The state and goal will be converted to two 2D NxN grids with an indicator
 in one grid for the location of the agent and in the other grid for the 
 location of the goal.
 
-```{literalinclude} ../../domains/grid_tutorial.py
+```{literalinclude} ../../tutorial/domains/grid_tutorial.py
 :language: python
 :class: scroll-code
 :start-after: start grid nnet input definition
@@ -286,7 +286,7 @@ location of the goal.
 While the neural network uses DeepXube modules to implement convolutional layers followed by a fully connected layer, arbitrary PyTorch code 
 can be used to implement neural networks. The user implements {mod}`deepxube.base.nnet.HeurNNet._forward`, which is used by superclass.
 
-```{literalinclude} ../../domains/grid_tutorial.py
+```{literalinclude} ../../tutorial/domains/grid_tutorial.py
 :language: python
 :class: scroll-code
 :start-after: start grid nnet definition
@@ -321,7 +321,7 @@ The custom neural network can be seen with `deepxube nnet_info` and more specifi
 
 A parser for the custom neural network can be implemented to allow for setting hyperparameters via the command-line.
 
-```{literalinclude} ../../domains/grid_tutorial.py
+```{literalinclude} ../../tutorial/domains/grid_tutorial.py
 :language: python
 :class: scroll-code
 :start-after: start grid nnet parser definition
@@ -330,9 +330,9 @@ A parser for the custom neural network can be implemented to allow for setting h
 
 We can now train a network with 16 channels and a fully connected layer of size 100:
 
-`deepxube train --domain grid_tut.7d --fn heurv,gridnet_tut.16ch_100fc --pathfind graph --up up_rl.100sm_100up_20sitrs_lhbl_2p --tr tr_h.200bs_1000maxit --dir tutorial/grid_tut/gridnet_v/`
+`deepxube train --domain grid_tut.7d --fn heurv,gridnet_tut.16ch_100fc --pathfind graph --up up_rl.100sm_100up_20sitrs_lhbl_2p --tr tr_h.200bs_1000maxit --dir results/grid_tut/gridnet_v/`
 
-```{literalinclude} ../../tutorial/grid_tut/gridnet_v/output.txt
+```{literalinclude} ../../tutorial/results/grid_tut/gridnet_v/output.txt
 :language: none
 :class: scroll-code
 ```
@@ -342,7 +342,7 @@ We can now train a network with 16 channels and a fully connected layer of size 
 To specify certain problem instances to solve with DeepXube, save a dictionary with a key for the states and a key for the goals.
 Run the script below to save these custom problem instances.
 
-```{literalinclude} ../../make_gridtut_prob_insts.py
+```{literalinclude} ../../tutorial/make_gridtut_prob_insts.py
 :language: python
 :class: scroll-code
 ```
@@ -350,9 +350,9 @@ Run the script below to save these custom problem instances.
 ```{tip}
 The two problem instances can be visualized:
 
-`deepxube viz --domain grid_tut.7d --file tutorial/grid_tut/custom_insts.pkl --idx 0`
+`deepxube viz --domain grid_tut.7d --file results/grid_tut/custom_insts.pkl --idx 0`
 
-`deepxube viz --domain grid_tut.7d --file tutorial/grid_tut/custom_insts.pkl --idx 1`
+`deepxube viz --domain grid_tut.7d --file results/grid_tut/custom_insts.pkl --idx 1`
 ```
 
 | ![Instance 0](../_static/grid_tut_inst0.png) | ![Instance 1](../_static/grid_tut_inst1.png) |
@@ -362,9 +362,9 @@ The two problem instances can be visualized:
 The problem instances can then be solved with the trained custom neural
 network:
 
-`deepxube solve --domain grid_tut.7d --fn heurv,gridnet_tut.16ch_100fc,tutorial/grid_tut/gridnet_v/heur.pt --pathfind graph.1B_1.0W --file tutorial/grid_tut/custom_insts.pkl --results tutorial/grid_tut/results_custom_insts/ --redo`
+`deepxube solve --domain grid_tut.7d --fn heurv,gridnet_tut.16ch_100fc,results/grid_tut/gridnet_v/heur.pt --pathfind graph.1B_1.0W --file results/grid_tut/custom_insts.pkl --results results/grid_tut/results_custom_insts/ --redo`
 
-```{literalinclude} ../../tutorial/grid_tut/results_custom_insts/output.txt
+```{literalinclude} ../../tutorial/results/grid_tut/results_custom_insts/output.txt
 :language: none
 :class: scroll-code
 ```

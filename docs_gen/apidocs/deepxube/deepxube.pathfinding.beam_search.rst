@@ -123,13 +123,18 @@ API
 
       .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearch._construct_instances
 
+   .. py:method:: _set_node_contexts(nodes_by_inst: typing.List[typing.List[deepxube.base.pathfinding.Node]], instances: typing.List[deepxube.pathfinding.beam_search.IBeam]) -> None
+      :canonical: deepxube.pathfinding.beam_search.BeamSearch._set_node_contexts
+
+      .. autodoc2-docstring:: deepxube.pathfinding.beam_search.BeamSearch._set_node_contexts
+
    .. py:method:: __repr__() -> str
       :canonical: deepxube.pathfinding.beam_search.BeamSearch.__repr__
 
 .. py:class:: InstanceNodeBeam(root_node: deepxube.base.pathfinding.Node, inst_info: typing.Any, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.beam_search.InstanceNodeBeam
 
-   Bases: :py:obj:`deepxube.base.pathfinding.InstanceNodeStatic`, :py:obj:`deepxube.pathfinding.beam_search.InstanceBeam`
+   Bases: :py:obj:`deepxube.base.pathfinding.InstanceNode`, :py:obj:`deepxube.pathfinding.beam_search.InstanceBeam`
 
    .. py:method:: filter_expanded_nodes(nodes: typing.List[deepxube.base.pathfinding.Node]) -> typing.List[deepxube.base.pathfinding.Node]
       :canonical: deepxube.pathfinding.beam_search.InstanceNodeBeam.filter_expanded_nodes
@@ -144,7 +149,7 @@ API
 .. py:class:: InstanceEdgeBeam(*args: typing.Any, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.beam_search.InstanceEdgeBeam
 
-   Bases: :py:obj:`deepxube.base.pathfinding.InstanceEdgeStatic`, :py:obj:`deepxube.pathfinding.beam_search.InstanceBeam`
+   Bases: :py:obj:`deepxube.base.pathfinding.InstanceEdge`, :py:obj:`deepxube.pathfinding.beam_search.InstanceBeam`
 
    .. py:method:: filter_popped_nodes(nodes: typing.List[deepxube.base.pathfinding.Node]) -> typing.List[deepxube.base.pathfinding.Node]
       :canonical: deepxube.pathfinding.beam_search.InstanceEdgeBeam.filter_popped_nodes

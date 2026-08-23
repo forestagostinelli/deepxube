@@ -8,7 +8,7 @@ In the directory in which you run deepxube, create a `nnets/resnet_fc_tut.py` fi
 DeepXube automatically looks in the `nnets/` folder to see what is registered. This file will be explained part-by-part.
 
 
-```{literalinclude} ../../nnets/resnet_fc_tut.py
+```{literalinclude} ../../tutorial/nnets/resnet_fc_tut.py
 :language: python
 :class: scroll-code
 ```
@@ -32,7 +32,7 @@ More specific information can be obtained about the heuristic with
 The heuristic function takes one-dimensional data, applies the specified one-hot transformation to it, and feeds this data to a fully-connected 
 residual neural network.
 
-```{literalinclude} ../../nnets/resnet_fc_tut.py
+```{literalinclude} ../../tutorial/nnets/resnet_fc_tut.py
 :language: python
 :class: scroll-code
 :start-after: start registration
@@ -50,7 +50,7 @@ Instead of using the default Adam optimizer, we implement stochastic gradient de
 exponential learning rate decay, we implement a step decay. This is done by overriding {mod}`deepxube.base.nnet.DeepXubeNNet.get_optimizer`
 and {mod}`deepxube.base.nnet.DeepXubeNNet.update_optimizer`.
 
-```{literalinclude} ../../nnets/resnet_fc_tut.py
+```{literalinclude} ../../tutorial/nnets/resnet_fc_tut.py
 :language: python
 :class: scroll-code
 :start-after: start optim
@@ -63,7 +63,7 @@ and {mod}`deepxube.base.nnet.DeepXubeNNet.update_optimizer`.
 By overriding {mod}`deepxube.base.nnet.HeurNNet.get_loss_and_info`, an asymmetric loss can be implemented. Custom information that 
 periodically gets printed to the screen can also be 
 
-```{literalinclude} ../../nnets/resnet_fc_tut.py
+```{literalinclude} ../../tutorial/nnets/resnet_fc_tut.py
 :language: python
 :class: scroll-code
 :start-after: start loss
@@ -75,7 +75,7 @@ periodically gets printed to the screen can also be
 Since the overestimation amount is a parameter given to the class constructor, we can modify the `__repr__` function to also print this 
 information.
 
-```{literalinclude} ../../nnets/resnet_fc_tut.py
+```{literalinclude} ../../tutorial/nnets/resnet_fc_tut.py
 :language: python
 :class: scroll-code
 :start-after: start repr
@@ -92,7 +92,7 @@ across different runs.
 The parser parses the overestimation penalty along with the dimensionality of the residual network, number of blocks, and whether or not to
 perform batch normalization.
 
-```{literalinclude} ../../nnets/resnet_fc_tut.py
+```{literalinclude} ../../tutorial/nnets/resnet_fc_tut.py
 :language: python
 :class: scroll-code
 :start-after: start parser
@@ -101,18 +101,18 @@ perform batch normalization.
 
 ## Training
 
-`deepxube train --domain cube3 --fn heurv,resnet_fc_asym.200H_2B_bn_20o --pathfind graph --up up_rl.100sm_100up_50sitrs_lhbl_2p --tr tr_h.200bs_5000maxit_50disp --dir tutorial/heur_asym_loss/models/`
+`deepxube train --domain cube3 --fn heurv,resnet_fc_asym.200H_2B_bn_20o --pathfind graph --up up_rl.100sm_100up_50sitrs_lhbl_2p --tr tr_h.200bs_5000maxit_50disp --dir results/heur_asym_loss/models/`
 
 `_20o`: To have a penalty of coefficient of 20 for the overestimation penalty.
 
 `_50disp`: to display the neural network training information implemented in `get_loss_and_info` every 50 iterations.
 
-```{literalinclude} ../../tutorial/heur_asym_loss/models/output.txt
+```{literalinclude} ../../tutorial/results/heur_asym_loss/models/output.txt
 :language: none
 :class: scroll-code
 ```
 
-Using `deepxube train_summary --dir tutorial/heur_asym_loss/models/` we can see that the neural network output is below the target 
+Using `deepxube train_summary --dir results/heur_asym_loss/models/` we can see that the neural network output is below the target 
 the majority of the time and the mean cost-to-go is lower than that of the previous Rubik's cube example ({ref}`rubiks_cube_example`).
 
 <div style="text-align: center;">

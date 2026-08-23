@@ -15,10 +15,10 @@ Subpackages
 
    deepxube.domains
    deepxube.pathfinding
-   deepxube.tests
    deepxube.logic
    deepxube.utils
    deepxube.trainers
+   deepxube.tests_cli
    deepxube.factories
    deepxube.updaters
    deepxube.pathfind_fns

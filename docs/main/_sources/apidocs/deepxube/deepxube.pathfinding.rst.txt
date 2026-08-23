@@ -6,15 +6,6 @@
 .. autodoc2-docstring:: deepxube.pathfinding
    :allowtitles:
 
-Subpackages
------------
-
-.. toctree::
-   :titlesonly:
-   :maxdepth: 3
-
-   deepxube.pathfinding.utils
-
 Submodules
 ----------
 

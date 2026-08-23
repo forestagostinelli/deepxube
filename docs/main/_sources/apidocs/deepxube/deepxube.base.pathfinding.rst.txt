@@ -30,9 +30,9 @@ Classes
      -
    * - :py:obj:`PathFindEdge <deepxube.base.pathfinding.PathFindEdge>`
      -
-   * - :py:obj:`InstanceNodeStatic <deepxube.base.pathfinding.InstanceNodeStatic>`
+   * - :py:obj:`InstanceNode <deepxube.base.pathfinding.InstanceNode>`
      -
-   * - :py:obj:`InstanceEdgeStatic <deepxube.base.pathfinding.InstanceEdgeStatic>`
+   * - :py:obj:`InstanceEdge <deepxube.base.pathfinding.InstanceEdge>`
      -
    * - :py:obj:`PathFindNodeStatic <deepxube.base.pathfinding.PathFindNodeStatic>`
      -
@@ -79,11 +79,11 @@ Data
    * - :py:obj:`PFNsT <deepxube.base.pathfinding.PFNsT>`
      - .. autodoc2-docstring:: deepxube.base.pathfinding.PFNsT
           :summary:
-   * - :py:obj:`INodeS_T <deepxube.base.pathfinding.INodeS_T>`
-     - .. autodoc2-docstring:: deepxube.base.pathfinding.INodeS_T
+   * - :py:obj:`INode_T <deepxube.base.pathfinding.INode_T>`
+     - .. autodoc2-docstring:: deepxube.base.pathfinding.INode_T
           :summary:
-   * - :py:obj:`IEdgeS_T <deepxube.base.pathfinding.IEdgeS_T>`
-     - .. autodoc2-docstring:: deepxube.base.pathfinding.IEdgeS_T
+   * - :py:obj:`IEdge_T <deepxube.base.pathfinding.IEdge_T>`
+     - .. autodoc2-docstring:: deepxube.base.pathfinding.IEdge_T
           :summary:
    * - :py:obj:`PFNsP_T <deepxube.base.pathfinding.PFNsP_T>`
      - .. autodoc2-docstring:: deepxube.base.pathfinding.PFNsP_T
@@ -290,13 +290,13 @@ API
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFind.add_instances
 
-   .. py:method:: expand_states(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal]) -> typing.Tuple[typing.List[typing.List[deepxube.base.domain.State]], typing.List[typing.List[deepxube.base.domain.Action]], typing.List[typing.List[float]]]
+   .. py:method:: expand_states(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], contexts: typing.List[typing.Any]) -> typing.Tuple[typing.List[typing.List[deepxube.base.domain.State]], typing.List[typing.List[deepxube.base.domain.Action]], typing.List[typing.List[float]]]
       :canonical: deepxube.base.pathfinding.PathFind.expand_states
       :abstractmethod:
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFind.expand_states
 
-   .. py:method:: get_state_actions(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal]) -> typing.List[typing.List[deepxube.base.domain.Action]]
+   .. py:method:: get_state_actions(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], contexts: typing.List[typing.Any]) -> typing.List[typing.List[deepxube.base.domain.Action]]
       :canonical: deepxube.base.pathfinding.PathFind.get_state_actions
       :abstractmethod:
 
@@ -323,13 +323,19 @@ API
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFind.set_is_solved
 
+   .. py:method:: _set_node_contexts(nodes_by_inst: typing.List[typing.List[deepxube.base.pathfinding.Node]], instances: typing.List[deepxube.base.pathfinding.I]) -> None
+      :canonical: deepxube.base.pathfinding.PathFind._set_node_contexts
+      :abstractmethod:
+
+      .. autodoc2-docstring:: deepxube.base.pathfinding.PathFind._set_node_contexts
+
    .. py:method:: _set_node_vals(nodes_by_inst: typing.List[typing.List[deepxube.base.pathfinding.Node]], instances: typing.List[deepxube.base.pathfinding.I]) -> None
       :canonical: deepxube.base.pathfinding.PathFind._set_node_vals
       :abstractmethod:
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFind._set_node_vals
 
-   .. py:method:: _create_root_nodes(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal]) -> typing.List[deepxube.base.pathfinding.Node]
+   .. py:method:: _create_root_nodes(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], contexts: typing.Optional[typing.List[typing.Any]] = None) -> typing.List[deepxube.base.pathfinding.Node]
       :canonical: deepxube.base.pathfinding.PathFind._create_root_nodes
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFind._create_root_nodes
@@ -386,64 +392,64 @@ API
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindEdge._get_next_edges
 
-.. py:class:: InstanceNodeStatic(root_node: deepxube.base.pathfinding.Node, inst_info: typing.Any, **kwargs: typing.Any)
-   :canonical: deepxube.base.pathfinding.InstanceNodeStatic
+.. py:class:: InstanceNode(root_node: deepxube.base.pathfinding.Node, inst_info: typing.Any, **kwargs: typing.Any)
+   :canonical: deepxube.base.pathfinding.InstanceNode
 
    Bases: :py:obj:`deepxube.base.pathfinding.Instance`, :py:obj:`abc.ABC`
 
    .. py:method:: filter_expanded_nodes(nodes: typing.List[deepxube.base.pathfinding.Node]) -> typing.List[deepxube.base.pathfinding.Node]
-      :canonical: deepxube.base.pathfinding.InstanceNodeStatic.filter_expanded_nodes
+      :canonical: deepxube.base.pathfinding.InstanceNode.filter_expanded_nodes
       :abstractmethod:
 
-      .. autodoc2-docstring:: deepxube.base.pathfinding.InstanceNodeStatic.filter_expanded_nodes
+      .. autodoc2-docstring:: deepxube.base.pathfinding.InstanceNode.filter_expanded_nodes
 
    .. py:method:: push_pop_nodes(nodes: typing.List[deepxube.base.pathfinding.Node], costs: typing.List[float]) -> typing.List[deepxube.base.pathfinding.Node]
-      :canonical: deepxube.base.pathfinding.InstanceNodeStatic.push_pop_nodes
+      :canonical: deepxube.base.pathfinding.InstanceNode.push_pop_nodes
       :abstractmethod:
 
-      .. autodoc2-docstring:: deepxube.base.pathfinding.InstanceNodeStatic.push_pop_nodes
+      .. autodoc2-docstring:: deepxube.base.pathfinding.InstanceNode.push_pop_nodes
 
-.. py:data:: INodeS_T
-   :canonical: deepxube.base.pathfinding.INodeS_T
+.. py:data:: INode_T
+   :canonical: deepxube.base.pathfinding.INode_T
    :value: 'TypeVar(...)'
 
-   .. autodoc2-docstring:: deepxube.base.pathfinding.INodeS_T
+   .. autodoc2-docstring:: deepxube.base.pathfinding.INode_T
 
-.. py:class:: InstanceEdgeStatic(root_node: deepxube.base.pathfinding.Node, inst_info: typing.Any, **kwargs: typing.Any)
-   :canonical: deepxube.base.pathfinding.InstanceEdgeStatic
+.. py:class:: InstanceEdge(root_node: deepxube.base.pathfinding.Node, inst_info: typing.Any, **kwargs: typing.Any)
+   :canonical: deepxube.base.pathfinding.InstanceEdge
 
    Bases: :py:obj:`deepxube.base.pathfinding.Instance`, :py:obj:`abc.ABC`
 
    .. py:method:: filter_popped_nodes(nodes: typing.List[deepxube.base.pathfinding.Node]) -> typing.List[deepxube.base.pathfinding.Node]
-      :canonical: deepxube.base.pathfinding.InstanceEdgeStatic.filter_popped_nodes
+      :canonical: deepxube.base.pathfinding.InstanceEdge.filter_popped_nodes
       :abstractmethod:
 
-      .. autodoc2-docstring:: deepxube.base.pathfinding.InstanceEdgeStatic.filter_popped_nodes
+      .. autodoc2-docstring:: deepxube.base.pathfinding.InstanceEdge.filter_popped_nodes
 
    .. py:method:: push_pop_edges(edges: typing.List[deepxube.base.pathfinding.EdgeQ], costs: typing.List[float]) -> typing.List[deepxube.base.pathfinding.EdgeQ]
-      :canonical: deepxube.base.pathfinding.InstanceEdgeStatic.push_pop_edges
+      :canonical: deepxube.base.pathfinding.InstanceEdge.push_pop_edges
       :abstractmethod:
 
-      .. autodoc2-docstring:: deepxube.base.pathfinding.InstanceEdgeStatic.push_pop_edges
+      .. autodoc2-docstring:: deepxube.base.pathfinding.InstanceEdge.push_pop_edges
 
-.. py:data:: IEdgeS_T
-   :canonical: deepxube.base.pathfinding.IEdgeS_T
+.. py:data:: IEdge_T
+   :canonical: deepxube.base.pathfinding.IEdge_T
    :value: 'TypeVar(...)'
 
-   .. autodoc2-docstring:: deepxube.base.pathfinding.IEdgeS_T
+   .. autodoc2-docstring:: deepxube.base.pathfinding.IEdge_T
 
 .. py:class:: PathFindNodeStatic(domain: deepxube.base.pathfinding.D, pathfind_fns: deepxube.base.pathfinding.PFNsT)
    :canonical: deepxube.base.pathfinding.PathFindNodeStatic
 
-   Bases: :py:obj:`deepxube.base.pathfinding.PathFindNode`\ [\ :py:obj:`deepxube.base.pathfinding.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.pathfinding.INodeS_T`\ ]
+   Bases: :py:obj:`deepxube.base.pathfinding.PathFindNode`\ [\ :py:obj:`deepxube.base.pathfinding.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.pathfinding.INode_T`\ ]
 
-   .. py:method:: _compute_costs(instances: typing.List[deepxube.base.pathfinding.INodeS_T], nodes_by_inst: typing.List[typing.List[deepxube.base.pathfinding.Node]]) -> typing.List[typing.List[float]]
+   .. py:method:: _compute_costs(instances: typing.List[deepxube.base.pathfinding.INode_T], nodes_by_inst: typing.List[typing.List[deepxube.base.pathfinding.Node]]) -> typing.List[typing.List[float]]
       :canonical: deepxube.base.pathfinding.PathFindNodeStatic._compute_costs
       :abstractmethod:
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindNodeStatic._compute_costs
 
-   .. py:method:: _get_next_nodes(nodes_exp_by_inst: typing.List[typing.List[deepxube.base.pathfinding.Node]], instances: typing.List[deepxube.base.pathfinding.INodeS_T]) -> typing.List[typing.List[deepxube.base.pathfinding.Node]]
+   .. py:method:: _get_next_nodes(nodes_exp_by_inst: typing.List[typing.List[deepxube.base.pathfinding.Node]], instances: typing.List[deepxube.base.pathfinding.INode_T]) -> typing.List[typing.List[deepxube.base.pathfinding.Node]]
       :canonical: deepxube.base.pathfinding.PathFindNodeStatic._get_next_nodes
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindNodeStatic._get_next_nodes
@@ -451,15 +457,15 @@ API
 .. py:class:: PathFindEdgeStatic(domain: deepxube.base.pathfinding.D, pathfind_fns: deepxube.base.pathfinding.PFNsT)
    :canonical: deepxube.base.pathfinding.PathFindEdgeStatic
 
-   Bases: :py:obj:`deepxube.base.pathfinding.PathFindEdge`\ [\ :py:obj:`deepxube.base.pathfinding.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.pathfinding.IEdgeS_T`\ ]
+   Bases: :py:obj:`deepxube.base.pathfinding.PathFindEdge`\ [\ :py:obj:`deepxube.base.pathfinding.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.pathfinding.IEdge_T`\ ]
 
-   .. py:method:: _compute_costs(instances: typing.List[deepxube.base.pathfinding.IEdgeS_T], edges_by_inst: typing.List[typing.List[deepxube.base.pathfinding.EdgeQ]]) -> typing.List[typing.List[float]]
+   .. py:method:: _compute_costs(instances: typing.List[deepxube.base.pathfinding.IEdge_T], edges_by_inst: typing.List[typing.List[deepxube.base.pathfinding.EdgeQ]]) -> typing.List[typing.List[float]]
       :canonical: deepxube.base.pathfinding.PathFindEdgeStatic._compute_costs
       :abstractmethod:
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindEdgeStatic._compute_costs
 
-   .. py:method:: _get_next_edges(nodes_popped_by_inst: typing.List[typing.List[deepxube.base.pathfinding.Node]], instances: typing.List[deepxube.base.pathfinding.IEdgeS_T]) -> typing.List[typing.List[deepxube.base.pathfinding.EdgeQ]]
+   .. py:method:: _get_next_edges(nodes_popped_by_inst: typing.List[typing.List[deepxube.base.pathfinding.Node]], instances: typing.List[deepxube.base.pathfinding.IEdge_T]) -> typing.List[typing.List[deepxube.base.pathfinding.EdgeQ]]
       :canonical: deepxube.base.pathfinding.PathFindEdgeStatic._get_next_edges
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindEdgeStatic._get_next_edges
@@ -523,12 +529,12 @@ API
 
    Bases: :py:obj:`deepxube.base.pathfinding.PathFind`\ [\ :py:obj:`deepxube.base.pathfinding.DActsEnum`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.pathfinding.I`\ ], :py:obj:`abc.ABC`
 
-   .. py:method:: expand_states(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal]) -> typing.Tuple[typing.List[typing.List[deepxube.base.domain.State]], typing.List[typing.List[deepxube.base.domain.Action]], typing.List[typing.List[float]]]
+   .. py:method:: expand_states(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], contexts: typing.List[typing.Any]) -> typing.Tuple[typing.List[typing.List[deepxube.base.domain.State]], typing.List[typing.List[deepxube.base.domain.Action]], typing.List[typing.List[float]]]
       :canonical: deepxube.base.pathfinding.PathFindActsEnum.expand_states
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindActsEnum.expand_states
 
-   .. py:method:: get_state_actions(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal]) -> typing.List[typing.List[deepxube.base.domain.Action]]
+   .. py:method:: get_state_actions(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], contexts: typing.List[typing.Any]) -> typing.List[typing.List[deepxube.base.domain.Action]]
       :canonical: deepxube.base.pathfinding.PathFindActsEnum.get_state_actions
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindActsEnum.get_state_actions
@@ -538,17 +544,17 @@ API
 
    Bases: :py:obj:`deepxube.base.pathfinding.PathFind`\ [\ :py:obj:`deepxube.base.pathfinding.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsP_T`\ , :py:obj:`deepxube.base.pathfinding.I`\ ], :py:obj:`abc.ABC`
 
-   .. py:method:: expand_states(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal]) -> typing.Tuple[typing.List[typing.List[deepxube.base.domain.State]], typing.List[typing.List[deepxube.base.domain.Action]], typing.List[typing.List[float]]]
+   .. py:method:: expand_states(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], contexts: typing.List[typing.Any]) -> typing.Tuple[typing.List[typing.List[deepxube.base.domain.State]], typing.List[typing.List[deepxube.base.domain.Action]], typing.List[typing.List[float]]]
       :canonical: deepxube.base.pathfinding.PathFindActsPolicy.expand_states
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindActsPolicy.expand_states
 
-   .. py:method:: get_state_actions(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal]) -> typing.List[typing.List[deepxube.base.domain.Action]]
+   .. py:method:: get_state_actions(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], contexts: typing.List[typing.Any]) -> typing.List[typing.List[deepxube.base.domain.Action]]
       :canonical: deepxube.base.pathfinding.PathFindActsPolicy.get_state_actions
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindActsPolicy.get_state_actions
 
-   .. py:method:: _get_actions(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal]) -> typing.List[typing.List[deepxube.base.domain.Action]]
+   .. py:method:: _get_actions(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], contexts: typing.List[typing.Any]) -> typing.List[typing.List[deepxube.base.domain.Action]]
       :canonical: deepxube.base.pathfinding.PathFindActsPolicy._get_actions
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindActsPolicy._get_actions
@@ -574,13 +580,13 @@ API
       :canonical: deepxube.base.pathfinding.PathFindSup.make_instances
       :abstractmethod:
 
-   .. py:method:: expand_states(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal]) -> typing.Tuple[typing.List[typing.List[deepxube.base.domain.State]], typing.List[typing.List[deepxube.base.domain.Action]], typing.List[typing.List[float]]]
+   .. py:method:: expand_states(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], contexts: typing.List[typing.Any]) -> typing.Tuple[typing.List[typing.List[deepxube.base.domain.State]], typing.List[typing.List[deepxube.base.domain.Action]], typing.List[typing.List[float]]]
       :canonical: deepxube.base.pathfinding.PathFindSup.expand_states
       :abstractmethod:
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.PathFindSup.expand_states
 
-   .. py:method:: get_state_actions(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal]) -> typing.List[typing.List[deepxube.base.domain.Action]]
+   .. py:method:: get_state_actions(states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], contexts: typing.List[typing.Any]) -> typing.List[typing.List[deepxube.base.domain.Action]]
       :canonical: deepxube.base.pathfinding.PathFindSup.get_state_actions
       :abstractmethod:
 

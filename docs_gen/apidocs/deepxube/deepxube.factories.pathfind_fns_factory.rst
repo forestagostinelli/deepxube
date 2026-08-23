@@ -16,6 +16,9 @@ Functions
    :class: autosummary longtable
    :align: left
 
+   * - :py:obj:`get_compat_nnet_input_name <deepxube.factories.pathfind_fns_factory.get_compat_nnet_input_name>`
+     - .. autodoc2-docstring:: deepxube.factories.pathfind_fns_factory.get_compat_nnet_input_name
+          :summary:
    * - :py:obj:`get_dx_nnet_par <deepxube.factories.pathfind_fns_factory.get_dx_nnet_par>`
      - .. autodoc2-docstring:: deepxube.factories.pathfind_fns_factory.get_dx_nnet_par
           :summary:
@@ -67,7 +70,12 @@ API
 
    .. autodoc2-docstring:: deepxube.factories.pathfind_fns_factory.updater_fns_factory
 
-.. py:function:: get_dx_nnet_par(domain: deepxube.base.domain.Domain, domain_name: str, nnet_par_name_args: str, nnet_name_args: typing.Optional[str]) -> typing.Tuple[deepxube.base.pathfind_fns.DeepXubeNNetPar, str]
+.. py:function:: get_compat_nnet_input_name(domain: deepxube.base.domain.Domain, domain_name: str, nnet_par_t: typing.Type[deepxube.base.pathfind_fns.DeepXubeNNetPar], nnet_name_args: str, nnet_par_name_args: str) -> str
+   :canonical: deepxube.factories.pathfind_fns_factory.get_compat_nnet_input_name
+
+   .. autodoc2-docstring:: deepxube.factories.pathfind_fns_factory.get_compat_nnet_input_name
+
+.. py:function:: get_dx_nnet_par(domain: deepxube.base.domain.Domain, domain_name: str, nnet_input_name_args: typing.Optional[str], nnet_par_name_args: str, nnet_name_args: typing.Optional[str]) -> typing.Tuple[deepxube.base.pathfind_fns.DeepXubeNNetPar, str]
    :canonical: deepxube.factories.pathfind_fns_factory.get_dx_nnet_par
 
    .. autodoc2-docstring:: deepxube.factories.pathfind_fns_factory.get_dx_nnet_par

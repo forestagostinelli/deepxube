@@ -43,19 +43,19 @@ With 12 actions for each state, in the worst case, a brute force search would re
 Therefore, we will create "easy" problem instances for brute-force search and "hard" 
 problem instances for deep reinforcement learning and batch-weighted A* search.
 
-`mkdir tutorial`
+`mkdir results`
 
-`mkdir tutorial/cube3/`
+`mkdir results/cube3/`
 
-`deepxube problem_inst --domain cube3 --step_min 2 --step_max 3 --num 10 --file tutorial/cube3/easy.pkl --redo`
+`deepxube problem_inst --domain cube3 --step_min 2 --step_max 3 --num 10 --file results/cube3/easy.pkl --redo`
 
-`deepxube problem_inst --domain cube3 --step_min 1000 --step_max 10000 --num 10 --file tutorial/cube3/hard.pkl --redo`
+`deepxube problem_inst --domain cube3 --step_min 1000 --step_max 10000 --num 10 --file results/cube3/hard.pkl --redo`
 
 ### Visualizing Generated Problem Instances
 
 To visualize and interact with the generated problem instances, use:
 
-`deepxube viz --domain cube3 --file tutorial/cube3/easy.pkl --idx 5`
+`deepxube viz --domain cube3 --file results/cube3/easy.pkl --idx 5`
 
 `--idx` is the index of the problem instance in the file.
 
@@ -75,7 +75,7 @@ We can achieve this by performing A* search with a heuristic function that is al
 By not giving any file for the heuristic function, DeepXube automatically uses this always-zero 
 heuristic function.
 
-`deepxube solve --domain cube3 --fn heurv --pathfind graph.1B_1.0W --file tutorial/cube3/easy.pkl --results tutorial/cube3/results_brute_easy/ --redo`
+`deepxube solve --domain cube3 --fn heurv --pathfind graph.1B_1.0W --file results/cube3/easy.pkl --results results/cube3/results_brute_easy/ --redo`
 
 ```{tip}
 While the exact pathfind name is "graph_v", given the "heurv" function and "graph" prefix, DeepXube, finds the name of 
@@ -83,7 +83,7 @@ pathfinding algorithm that has "graph" as the prefix and uses the heurv function
 ```
 
 This should result in solving all 10 instances with an average path cost of about 2.5 and an average solve time of about 0.1 seconds:
-```{literalinclude} ../../tutorial/cube3/results_brute_easy/output.txt
+```{literalinclude} ../../tutorial/results/cube3/results_brute_easy/output.txt
 :language: none
 :class: scroll-code
 ```
@@ -97,11 +97,11 @@ Trying to solve the hard instances with brute force search will most likely resu
 your computer will running out of memory.
 To set a time limit so this does not happen:
 
-`deepxube solve --domain cube3 --fn heurv --pathfind graph.1B_1.0W --file tutorial/cube3/hard.pkl --results tutorial/cube3/results_brute_hard/ --redo --time_limit 10`
+`deepxube solve --domain cube3 --fn heurv --pathfind graph.1B_1.0W --file results/cube3/hard.pkl --results results/cube3/results_brute_hard/ --redo --time_limit 10`
 
 This should result in no instances being solved:
 
-```{literalinclude} ../../tutorial/cube3/results_brute_hard/output.txt
+```{literalinclude} ../../tutorial/results/cube3/results_brute_hard/output.txt
 :language: none
 :class: scroll-code
 ```
@@ -110,7 +110,7 @@ This should result in no instances being solved:
 For the problem instances that were solved, visualizations of the solution can be obtained
 from the results file. The solution can be manually or automatically stepped through. 
 
-`deepxube viz --domain cube3 --file tutorial/cube3/results_brute_easy/results.pkl --idx 5 --soln`
+`deepxube viz --domain cube3 --file results/cube3/results_brute_easy/results.pkl --idx 5 --soln`
 
 <div style="text-align: center;">
 <img src="../_static/gifs/cube3_easy_viz_soln.gif" alt="Scrambled Rubik's Cube solution (easy)" width="50%">
@@ -136,7 +136,7 @@ approximate value iteration {cite:p}`bellman1957dynamic,bertsekas1996neuro`, the
 will be trained with limited-horizon Bellman-based learning (LHBL) {cite:p}`hadar2025beyond`.
 Two parallel processes will be used to generate data.
 
-`deepxube train --domain cube3 --fn heurv,resnet_fc.200H_2B_bn --pathfind graph --up up_rl.100sm_50sitrs_100up_lhbl_2p --tr tr_h.200bs_5000maxit --dir tutorial/cube3/models/`
+`deepxube train --domain cube3 --fn heurv,resnet_fc.200H_2B_bn --pathfind graph --up up_rl.100sm_50sitrs_100up_lhbl_2p --tr tr_h.200bs_5000maxit --dir results/cube3/models/`
 
 - `up_rl.100sm_50sitrs_100up_lhbl_2p` Generates training data
   - Uses 100 steps to generate problem instances. In the Rubik's Cube domain, this starts from the goal and 
@@ -169,7 +169,7 @@ of functions and pathfinding algorithms.
 
 Training should result in a heuristic function that goes from solving about 3% to about 10% of problem instances during training.
 
-```{literalinclude} ../../tutorial/cube3/models/output.txt
+```{literalinclude} ../../tutorial/results/cube3/models/output.txt
 :language: none
 :class: scroll-code
 ```
@@ -182,7 +182,7 @@ An output file is saved in output.txt in the training directory.
 ### Monitoring Training
 
 An interactive visualization of training can be obtained during or after training with:
-`deepxube train_summary --dir tutorial/cube3/models/`.
+`deepxube train_summary --dir results/cube3/models/`.
 
 This shows the percentage solves, path costs of solutions, search iterations of solved instances, cost-to-go targets, and 
 number of instances created as a function of the number of steps used to generate problem instances. It also shows the 
@@ -211,18 +211,18 @@ To improve solution rate without improving the heuristic function we can search 
 batch weighted A* search (BWAS) {cite:p}`pohl1970heuristic,agostinelli2019solving,li2022optimal`. To perform BWAS
 with a batch size of 100 and a weight of 0.1 on the path cost with the trained heuristic function:
 
-`deepxube solve --domain cube3 --fn heurv,resnet_fc.200H_2B_bn,tutorial/cube3/models/heur.pt --pathfind graph.100B_0.1W --file tutorial/cube3/hard.pkl --results tutorial/cube3/results_heur_hard/ --redo`
+`deepxube solve --domain cube3 --fn heurv,resnet_fc.200H_2B_bn,results/cube3/models/heur.pt --pathfind graph.100B_0.1W --file results/cube3/hard.pkl --results results/cube3/results_heur_hard/ --redo`
 
 This should result in solving all of the hard instances with an average path cost of around 50-60 and 
 an average solve time of around a few seconds seconds.
-```{literalinclude} ../../tutorial/cube3/results_heur_hard/output.txt
+```{literalinclude} ../../tutorial/results/cube3/results_heur_hard/output.txt
 :language: none
 :class: scroll-code
 ```
 
 Visualizations of these solutions can also be obtained:
 
-`deepxube viz --domain cube3 --file tutorial/cube3/results_heur_hard/results.pkl --idx 5 --soln`
+`deepxube viz --domain cube3 --file results/cube3/results_heur_hard/results.pkl --idx 5 --soln`
 
 <div style="text-align: center;">
 <img src="../_static/gifs/cube3_hard_viz_soln.gif" alt="Scrambled Rubik's Cube solution (easy)" width="50%">

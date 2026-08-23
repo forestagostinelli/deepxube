@@ -43,11 +43,15 @@ Classes
      -
    * - :py:obj:`ActsEnumFixed <deepxube.base.domain.ActsEnumFixed>`
      -
-   * - :py:obj:`NodesSupervisable <deepxube.base.domain.NodesSupervisable>`
+   * - :py:obj:`NodesLabelsSampleable <deepxube.base.domain.NodesLabelsSampleable>`
      -
-   * - :py:obj:`EdgesSupervisable <deepxube.base.domain.EdgesSupervisable>`
+   * - :py:obj:`EdgesLabelsSampleable <deepxube.base.domain.EdgesLabelsSampleable>`
      -
    * - :py:obj:`EdgesSampleable <deepxube.base.domain.EdgesSampleable>`
+     -
+   * - :py:obj:`NodesLabelable <deepxube.base.domain.NodesLabelable>`
+     -
+   * - :py:obj:`EdgesLabelable <deepxube.base.domain.EdgesLabelable>`
      -
    * - :py:obj:`GoalSampleable <deepxube.base.domain.GoalSampleable>`
      - .. autodoc2-docstring:: deepxube.base.domain.GoalSampleable
@@ -218,22 +222,17 @@ API
 
       .. autodoc2-docstring:: deepxube.base.domain.Domain.random_walk
 
-   .. py:method:: get_nnet_par_dict() -> typing.Dict[str, typing.Tuple[str, deepxube.pytorch.nnet_utils.NNetPar]]
+   .. py:method:: get_nnet_par_dict() -> typing.Dict[str, deepxube.pytorch.nnet_utils.NNetPar]
       :canonical: deepxube.base.domain.Domain.get_nnet_par_dict
 
       .. autodoc2-docstring:: deepxube.base.domain.Domain.get_nnet_par_dict
 
-   .. py:method:: set_nnet_fns(nnet_fn_dict: typing.Dict[str, deepxube.pytorch.nnet_utils.NNetCallable]) -> None
-      :canonical: deepxube.base.domain.Domain.set_nnet_fns
-
-      .. autodoc2-docstring:: deepxube.base.domain.Domain.set_nnet_fns
-
-   .. py:method:: get_nnet_fn(nnet_fn_name: str) -> deepxube.pytorch.nnet_utils.NNetCallable
+   .. py:method:: get_nnet_fn(nnet_par_name: str) -> deepxube.pytorch.nnet_utils.NNetCallable
       :canonical: deepxube.base.domain.Domain.get_nnet_fn
 
       .. autodoc2-docstring:: deepxube.base.domain.Domain.get_nnet_fn
 
-   .. py:method:: _add_nnet_par(nnet_name: str, nnet_file: str, nnet_par: deepxube.pytorch.nnet_utils.NNetPar) -> None
+   .. py:method:: _add_nnet_par(nnet_name: str, nnet_par: deepxube.pytorch.nnet_utils.NNetPar) -> None
       :canonical: deepxube.base.domain.Domain._add_nnet_par
 
       .. autodoc2-docstring:: deepxube.base.domain.Domain._add_nnet_par
@@ -358,38 +357,60 @@ API
 
       .. autodoc2-docstring:: deepxube.base.domain.ActsEnumFixed.get_num_acts
 
-.. py:class:: NodesSupervisable(*args: typing.Any, **kwargs: typing.Any)
-   :canonical: deepxube.base.domain.NodesSupervisable
+.. py:class:: NodesLabelsSampleable(*args: typing.Any, **kwargs: typing.Any)
+   :canonical: deepxube.base.domain.NodesLabelsSampleable
 
    Bases: :py:obj:`deepxube.base.domain.Domain`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ]
 
-   .. py:method:: samp_nodes_and_labels(steps_gen: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G], typing.List[float]]
-      :canonical: deepxube.base.domain.NodesSupervisable.samp_nodes_and_labels
+   .. py:method:: samp_nodes_and_labels(steps_gen: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G], typing.List[typing.Any], typing.List[float]]
+      :canonical: deepxube.base.domain.NodesLabelsSampleable.samp_nodes_and_labels
       :abstractmethod:
 
-      .. autodoc2-docstring:: deepxube.base.domain.NodesSupervisable.samp_nodes_and_labels
+      .. autodoc2-docstring:: deepxube.base.domain.NodesLabelsSampleable.samp_nodes_and_labels
 
-.. py:class:: EdgesSupervisable(*args: typing.Any, **kwargs: typing.Any)
-   :canonical: deepxube.base.domain.EdgesSupervisable
+.. py:class:: EdgesLabelsSampleable(*args: typing.Any, **kwargs: typing.Any)
+   :canonical: deepxube.base.domain.EdgesLabelsSampleable
 
    Bases: :py:obj:`deepxube.base.domain.Domain`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ]
 
-   .. py:method:: samp_edges_and_labels(steps_gen: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G], typing.List[deepxube.base.domain.A], typing.List[float]]
-      :canonical: deepxube.base.domain.EdgesSupervisable.samp_edges_and_labels
+   .. py:method:: samp_edges_and_labels(steps_gen: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G], typing.List[deepxube.base.domain.A], typing.List[typing.Any], typing.List[float]]
+      :canonical: deepxube.base.domain.EdgesLabelsSampleable.samp_edges_and_labels
       :abstractmethod:
 
-      .. autodoc2-docstring:: deepxube.base.domain.EdgesSupervisable.samp_edges_and_labels
+      .. autodoc2-docstring:: deepxube.base.domain.EdgesLabelsSampleable.samp_edges_and_labels
 
 .. py:class:: EdgesSampleable(*args: typing.Any, **kwargs: typing.Any)
    :canonical: deepxube.base.domain.EdgesSampleable
 
    Bases: :py:obj:`deepxube.base.domain.Domain`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ]
 
-   .. py:method:: samp_edges(steps_gen: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G], typing.List[deepxube.base.domain.A]]
+   .. py:method:: samp_edges(steps_gen: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G], typing.List[deepxube.base.domain.A], typing.List[typing.Any]]
       :canonical: deepxube.base.domain.EdgesSampleable.samp_edges
       :abstractmethod:
 
       .. autodoc2-docstring:: deepxube.base.domain.EdgesSampleable.samp_edges
+
+.. py:class:: NodesLabelable(*args: typing.Any, **kwargs: typing.Any)
+   :canonical: deepxube.base.domain.NodesLabelable
+
+   Bases: :py:obj:`deepxube.base.domain.Domain`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ]
+
+   .. py:method:: label_nodes(states: typing.List[deepxube.base.domain.S], goals: typing.List[deepxube.base.domain.G], contexts: typing.List[typing.Any]) -> typing.List[float]
+      :canonical: deepxube.base.domain.NodesLabelable.label_nodes
+      :abstractmethod:
+
+      .. autodoc2-docstring:: deepxube.base.domain.NodesLabelable.label_nodes
+
+.. py:class:: EdgesLabelable(*args: typing.Any, **kwargs: typing.Any)
+   :canonical: deepxube.base.domain.EdgesLabelable
+
+   Bases: :py:obj:`deepxube.base.domain.Domain`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ]
+
+   .. py:method:: label_edges(states: typing.List[deepxube.base.domain.S], goals: typing.List[deepxube.base.domain.G], actions: typing.List[deepxube.base.domain.A], contexts: typing.List[typing.Any]) -> typing.List[float]
+      :canonical: deepxube.base.domain.EdgesLabelable.label_edges
+      :abstractmethod:
+
+      .. autodoc2-docstring:: deepxube.base.domain.EdgesLabelable.label_edges
 
 .. py:class:: GoalSampleable(*args: typing.Any, **kwargs: typing.Any)
    :canonical: deepxube.base.domain.GoalSampleable
@@ -521,7 +542,7 @@ API
 .. py:class:: StartGoalWalkable(*args: typing.Any, **kwargs: typing.Any)
    :canonical: deepxube.base.domain.StartGoalWalkable
 
-   Bases: :py:obj:`deepxube.base.domain.GoalSampleableFromState`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ], :py:obj:`deepxube.base.domain.NodesSupervisable`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ], :py:obj:`deepxube.base.domain.EdgesSupervisable`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ], :py:obj:`deepxube.base.domain.EdgesSampleable`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ]
+   Bases: :py:obj:`deepxube.base.domain.GoalSampleableFromState`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ], :py:obj:`deepxube.base.domain.NodesLabelsSampleable`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ], :py:obj:`deepxube.base.domain.EdgesLabelsSampleable`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ], :py:obj:`deepxube.base.domain.EdgesSampleable`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ]
 
    .. autodoc2-docstring:: deepxube.base.domain.StartGoalWalkable
 
@@ -538,13 +559,13 @@ API
    .. py:method:: sample_problem_instances(num_steps_l: typing.List[int], times: typing.Optional[deepxube.utils.timing_utils.Times] = None) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G]]
       :canonical: deepxube.base.domain.StartGoalWalkable.sample_problem_instances
 
-   .. py:method:: samp_nodes_and_labels(steps_gen: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G], typing.List[float]]
+   .. py:method:: samp_nodes_and_labels(steps_gen: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G], typing.List[typing.Any], typing.List[float]]
       :canonical: deepxube.base.domain.StartGoalWalkable.samp_nodes_and_labels
 
-   .. py:method:: samp_edges_and_labels(steps_gen: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G], typing.List[deepxube.base.domain.A], typing.List[float]]
+   .. py:method:: samp_edges_and_labels(steps_gen: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G], typing.List[deepxube.base.domain.A], typing.List[typing.Any], typing.List[float]]
       :canonical: deepxube.base.domain.StartGoalWalkable.samp_edges_and_labels
 
-   .. py:method:: samp_edges(steps_gen: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G], typing.List[deepxube.base.domain.A]]
+   .. py:method:: samp_edges(steps_gen: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G], typing.List[deepxube.base.domain.A], typing.List[typing.Any]]
       :canonical: deepxube.base.domain.StartGoalWalkable.samp_edges
 
    .. py:method:: _get_edges_and_labels(steps_gen: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G], typing.List[deepxube.base.domain.A], typing.List[float]]
@@ -569,7 +590,7 @@ API
 .. py:class:: GoalStartRevWalkableActsRev(*args: typing.Any, **kwargs: typing.Any)
    :canonical: deepxube.base.domain.GoalStartRevWalkableActsRev
 
-   Bases: :py:obj:`deepxube.base.domain.GoalStartRevWalkable`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ], :py:obj:`deepxube.base.domain.ActsRev`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ], :py:obj:`deepxube.base.domain.NodesSupervisable`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ], :py:obj:`deepxube.base.domain.EdgesSupervisable`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ], :py:obj:`deepxube.base.domain.EdgesSampleable`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.base.domain.GoalStartRevWalkable`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ], :py:obj:`deepxube.base.domain.ActsRev`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ], :py:obj:`deepxube.base.domain.NodesLabelsSampleable`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ], :py:obj:`deepxube.base.domain.EdgesLabelsSampleable`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ], :py:obj:`deepxube.base.domain.EdgesSampleable`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ], :py:obj:`abc.ABC`
 
    .. py:method:: random_walk_rev_no_path_cost(states: typing.List[deepxube.base.domain.S], num_steps_l: typing.List[int]) -> typing.List[deepxube.base.domain.S]
       :canonical: deepxube.base.domain.GoalStartRevWalkableActsRev.random_walk_rev_no_path_cost
@@ -579,13 +600,13 @@ API
 
       .. autodoc2-docstring:: deepxube.base.domain.GoalStartRevWalkableActsRev.random_walk_rev
 
-   .. py:method:: samp_nodes_and_labels(steps_gen: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G], typing.List[float]]
+   .. py:method:: samp_nodes_and_labels(steps_gen: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G], typing.List[typing.Any], typing.List[float]]
       :canonical: deepxube.base.domain.GoalStartRevWalkableActsRev.samp_nodes_and_labels
 
-   .. py:method:: samp_edges_and_labels(steps_gen: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G], typing.List[deepxube.base.domain.A], typing.List[float]]
+   .. py:method:: samp_edges_and_labels(steps_gen: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G], typing.List[deepxube.base.domain.A], typing.List[typing.Any], typing.List[float]]
       :canonical: deepxube.base.domain.GoalStartRevWalkableActsRev.samp_edges_and_labels
 
-   .. py:method:: samp_edges(steps_gen: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G], typing.List[deepxube.base.domain.A]]
+   .. py:method:: samp_edges(steps_gen: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G], typing.List[deepxube.base.domain.A], typing.List[typing.Any]]
       :canonical: deepxube.base.domain.GoalStartRevWalkableActsRev.samp_edges
 
    .. py:method:: _get_edges_and_labels(steps_gen: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G], typing.List[deepxube.base.domain.A], typing.List[float]]

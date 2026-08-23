@@ -158,7 +158,7 @@ API
 
    .. autodoc2-docstring:: deepxube.base.trainer.Status.__init__
 
-   .. py:method:: update_step_probs(step_to_search_perf: typing.Dict[int, deepxube.pathfinding.utils.performance.PathFindPerf]) -> None
+   .. py:method:: update_step_probs(step_to_search_perf: typing.Dict[int, deepxube.utils.pathfind_perf.PathFindPerf]) -> None
       :canonical: deepxube.base.trainer.Status.update_step_probs
 
       .. autodoc2-docstring:: deepxube.base.trainer.Status.update_step_probs
@@ -172,7 +172,7 @@ API
 
    .. autodoc2-docstring:: deepxube.base.trainer.TrainSummary.__init__
 
-   .. py:method:: update_pathfindstats(step_to_pathfindperf: typing.Dict[int, deepxube.pathfinding.utils.performance.PathFindPerf], itr: int) -> None
+   .. py:method:: update_pathfindstats(step_to_pathfindperf: typing.Dict[int, deepxube.utils.pathfind_perf.PathFindPerf], itr: int) -> None
       :canonical: deepxube.base.trainer.TrainSummary.update_pathfindstats
 
       .. autodoc2-docstring:: deepxube.base.trainer.TrainSummary.update_pathfindstats
