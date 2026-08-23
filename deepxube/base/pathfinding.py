@@ -304,12 +304,15 @@ class PathFind(Generic[D, PFNsT, I], ABC):
     def _set_node_vals(self, nodes_by_inst: List[List[Node]], instances: List[I]) -> None:
         pass
 
-    def _create_root_nodes(self, states: List[State], goals: List[Goal]) -> List[Node]:
+    def _create_root_nodes(self, states: List[State], goals: List[Goal], contexts: Optional[List[Any]] = None) -> List[Node]:
         start_time = time.time()
+        if contexts is None:
+            contexts = [None] * len(states)
 
         root_nodes: List[Node] = []
-        for state, goal in zip(states, goals, strict=True):
+        for state, goal, context in zip(states, goals, contexts, strict=True):
             root_node: Node = Node(state, goal, 0.0, 0.0, None, None, None, None, None)
+            root_node.context = context
             root_nodes.append(root_node)
 
         self.times.record_time("root", time.time() - start_time)

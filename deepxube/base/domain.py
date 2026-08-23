@@ -339,33 +339,33 @@ class ActsEnumFixed(ActsEnum[S, A, G], ActsFixed[S, A, G]):
 # supervised data generation
 class NodesLabelsSampleable(Domain[S, A, G]):
     @abstractmethod
-    def samp_nodes_and_labels(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[float]]:
+    def samp_nodes_and_labels(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[Any], List[float]]:
         """ Return states and goals with a supervised label for the cost-to-go. This label need not be the true cost-to-go.
 
         :param steps_gen: Number of actions to take to sample nodes. Labels are the number of actions taken
-        :return: States, goals, labels
+        :return: States, goals, contexts, labels
         """
         pass
 
 
 class EdgesLabelsSampleable(Domain[S, A, G]):
     @abstractmethod
-    def samp_edges_and_labels(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[A], List[float]]:
+    def samp_edges_and_labels(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[A], List[Any], List[float]]:
         """ Return states, goals, and actions with a supervised label for the cost-to-go. This label need not be the true cost-to-go.
 
         :param steps_gen: Number of actions to take to sample nodes. Labels are the number of actions taken
-        :return: States, goals, actions, labels
+        :return: States, goals, actions, contexts, labels
         """
         pass
 
 
 class EdgesSampleable(Domain[S, A, G]):
     @abstractmethod
-    def samp_edges(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[A]]:
+    def samp_edges(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[A], List[Any]]:
         """ Sample edges that are on a path to a goal.
 
         :param steps_gen: Number of steps to take between start state and goal
-        :return: States, goals, actions taken from states that lead to goal
+        :return: States, goals, actions taken from states that lead to goal, contexts
         """
         pass
 
@@ -385,12 +385,12 @@ class NodesLabelable(Domain[S, A, G]):
 
 class EdgesLabelable(Domain[S, A, G]):
     @abstractmethod
-    def label_edges(self, states: List[S], actions: List[A], goals: List[G], contexts: List[Any]) -> List[float]:
+    def label_edges(self, states: List[S], goals: List[G], actions: List[A], contexts: List[Any]) -> List[float]:
         """ Return an estimate of the cost-to-go of the given states, goals, and actions
 
         :param states: States
-        :param actions: Actions
         :param goals: Goals
+        :param actions: Actions
         :param contexts: Additional context
         :return: labels
         """
@@ -519,19 +519,20 @@ class StartGoalWalkable(GoalSampleableFromState[S, A, G], NodesLabelsSampleable[
 
         return states_start, goals
 
-    def samp_nodes_and_labels(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[float]]:
+    def samp_nodes_and_labels(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[Any], List[float]]:
         states_start: List[S] = self.sample_start_states(len(steps_gen))
         states_goal, _, path_costs = self.random_walk(states_start, steps_gen)
         goals: List[G] = self.sample_goal_from_state(states_start, states_goal)
 
-        return states_start, goals, path_costs
+        return states_start, goals, [None] * len(states_start), path_costs
 
-    def samp_edges_and_labels(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[A], List[float]]:
-        return self._get_edges_and_labels(steps_gen)
+    def samp_edges_and_labels(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[A], List[Any], List[float]]:
+        states, goals, actions, path_costs = self._get_edges_and_labels(steps_gen)
+        return states, goals, actions, [None] * len(states), path_costs
 
-    def samp_edges(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[A]]:
+    def samp_edges(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[A], List[Any]]:
         states, goals, actions, _ = self._get_edges_and_labels(steps_gen)
-        return states, goals, actions
+        return states, goals, actions, [None] * len(states)
 
     def _get_edges_and_labels(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[A], List[float]]:
         # start states
@@ -622,18 +623,19 @@ class GoalStartRevWalkableActsRev(GoalStartRevWalkable[S, A, G], ActsRev[S, A, G
 
         return states_walk, actions_rev_l, path_costs
 
-    def samp_nodes_and_labels(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[float]]:
+    def samp_nodes_and_labels(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[Any], List[float]]:
         states_goal, goals = self.sample_goalstate_goal_pairs(len(steps_gen))
         states_start, _, path_costs = self.random_walk_rev(states_goal, steps_gen)
 
-        return states_start, goals, path_costs
+        return states_start, goals, [None] * len(states_start), path_costs
 
-    def samp_edges_and_labels(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[A], List[float]]:
-        return self._get_edges_and_labels(steps_gen)
+    def samp_edges_and_labels(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[A], List[Any], List[float]]:
+        states, goals, actions, path_costs = self._get_edges_and_labels(steps_gen)
+        return states, goals, actions, [None] * len(states), path_costs
 
-    def samp_edges(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[A]]:
+    def samp_edges(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[A], List[Any]]:
         states, goals, actions, _ = self._get_edges_and_labels(steps_gen)
-        return states, goals, actions
+        return states, goals, actions, [None] * len(states)
 
     def _get_edges_and_labels(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[A], List[float]]:
         # samp_goal_state_goal
