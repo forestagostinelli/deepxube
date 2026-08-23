@@ -22,7 +22,7 @@ from deepxube.factories.pathfinding_factory import pathfinding_factory
 from deepxube.factories.updater_factory import updater_factory
 from deepxube.factories.trainer_factory import trainer_factory
 from deepxube.base.trainer import TrainSummary
-from deepxube.tests.time_tests import time_test
+from deepxube.tests_cli.time_tests import time_test
 
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
