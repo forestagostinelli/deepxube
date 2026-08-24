@@ -195,31 +195,8 @@
 </a><div class="version-selector">
   <select onchange="window.location.href = this.value">
     
-    <option value="../../v0.3.1/index.html"
-            >
-      v0.3.1
-    </option>
-    
-    <option value="../../v0.3.2/index.html"
-            >
-      v0.3.2
-    </option>
-    
-    <option value="customdomain.html"
-            selected>
-      main
-    </option>
-    
   </select>
-</div>
-<div class="admonition warning">
-  <p class="admonition-title">Not Stable Version</p>
-  <p>
-    You're viewing documentation for version main.
-    <a href="../../v0.3.2/index.html">View stable version (v0.3.2)</a>
-  </p>
-</div>
-<form class="sidebar-search-container" method="get" action="../search.html" role="search">
+</div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
   <input type="hidden" name="area" value="default">
@@ -1536,7 +1513,7 @@ Run the script below to save these custom problem instances.</p>
     <span class="n">data</span><span class="p">[</span><span class="s1">&#39;states&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">GridState</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">GridState</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)]</span>
     <span class="n">data</span><span class="p">[</span><span class="s1">&#39;goals&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">GridGoal</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="mi">6</span><span class="p">),</span> <span class="n">GridGoal</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span><span class="mi">5</span><span class="p">)]</span>
 
-    <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;tutorial/grid_tut/custom_insts.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">),</span> <span class="n">protocol</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;results/grid_tut/custom_insts.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">),</span> <span class="n">protocol</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
 
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
