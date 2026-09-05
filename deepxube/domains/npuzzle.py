@@ -167,7 +167,7 @@ class NPuzzle(ActsEnumFixed[NPState, NPAction, NPGoal], GoalStartRevWalkable[NPS
         return [np.stack([x.tiles for x in states], axis=0).astype(self.dtype)]
 
     def visualize_state_goal(self, state: NPState, goal: NPGoal, fig: Figure) -> None:
-        ax = fig.add_axes([0, 0, 1, 1])
+        ax = fig.add_axes((0, 0, 1, 1))
 
         # fig = plt.figure(figsize=(.64, .64))
         # ax = fig.gca()
