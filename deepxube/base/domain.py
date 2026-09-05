@@ -1,6 +1,6 @@
 """ Definition of State, Action, Goal, and Domain """
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Optional, Set, TypeVar, Generic, Dict, Any
+from typing import List, Tuple, Optional, Set, TypeVar, Generic, Dict, Any, Protocol, runtime_checkable
 
 import torch
 from torch import nn
@@ -366,33 +366,6 @@ class EdgesSampleable(Domain[S, A, G]):
 
         :param steps_gen: Number of steps to take between start state and goal
         :return: States, goals, actions taken from states that lead to goal, contexts
-        """
-        pass
-
-
-class NodesLabelable(Domain[S, A, G]):
-    @abstractmethod
-    def label_nodes(self, states: List[S], goals: List[G], contexts: List[Any]) -> List[float]:
-        """ Return an estimate of the cost-to-go of the given states and goals
-
-        :param states: States
-        :param goals: Goals
-        :param contexts: Additional context
-        :return: labels
-        """
-        pass
-
-
-class EdgesLabelable(Domain[S, A, G]):
-    @abstractmethod
-    def label_edges(self, states: List[S], goals: List[G], actions: List[A], contexts: List[Any]) -> List[float]:
-        """ Return an estimate of the cost-to-go of the given states, goals, and actions
-
-        :param states: States
-        :param goals: Goals
-        :param actions: Actions
-        :param contexts: Additional context
-        :return: labels
         """
         pass
 
@@ -865,3 +838,31 @@ class GoalGrndAtoms(GoalSampleableFromState[S, A, G]):
         :return:
         """
         pass
+
+
+# Protocols
+@runtime_checkable
+class NodesLabelable(Protocol[S, G]):
+    def label_nodes(self, states: List[S], goals: List[G], contexts: List[Any]) -> List[float]:
+        """ Return an estimate of the cost-to-go of the given states and goals
+
+        :param states: States
+        :param goals: Goals
+        :param contexts: Additional context
+        :return: labels
+        """
+        ...
+
+
+@runtime_checkable
+class EdgesLabelable(Protocol[S, A, G]):
+    def label_edges(self, states: List[S], goals: List[G], actions: List[A], contexts: List[Any]) -> List[float]:
+        """ Return an estimate of the cost-to-go of the given states, goals, and actions
+
+        :param states: States
+        :param goals: Goals
+        :param actions: Actions
+        :param contexts: Additional context
+        :return: labels
+        """
+        ...

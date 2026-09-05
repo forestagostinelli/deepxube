@@ -50,6 +50,9 @@ class NPAction(Action):
             return self.action == other.action
         return NotImplemented
 
+    def __repr__(self) -> str:
+        return ['UP', 'DOWN', 'LEFT', 'RIGHT'][self.action]
+
 
 @domain_factory.register_class("npuzzle")
 class NPuzzle(ActsEnumFixed[NPState, NPAction, NPGoal], GoalStartRevWalkable[NPState, NPAction, NPGoal], HasFlatSGIn[NPState, NPAction, NPGoal],
@@ -164,7 +167,8 @@ class NPuzzle(ActsEnumFixed[NPState, NPAction, NPGoal], GoalStartRevWalkable[NPS
         return [np.stack([x.tiles for x in states], axis=0).astype(self.dtype)]
 
     def visualize_state_goal(self, state: NPState, goal: NPGoal, fig: Figure) -> None:
-        ax = fig.add_subplot(111)
+        ax = fig.add_axes([0, 0, 1, 1])
+
         # fig = plt.figure(figsize=(.64, .64))
         # ax = fig.gca()
         # fig.add_axes(ax)
@@ -193,6 +197,8 @@ class NPuzzle(ActsEnumFixed[NPState, NPAction, NPGoal], GoalStartRevWalkable[NPS
                 ax.text(0.5 * (left + right), 0.5 * (bottom + top), sqr_txt, horizontalalignment='center',
                         verticalalignment='center', fontsize=12, color='black', transform=ax.transAxes)
 
+        ax.set_xticks([])
+        ax.set_yticks([])
         fig.canvas.draw()
 
     def string_to_action(self, act_str: str) -> Optional[NPAction]:
