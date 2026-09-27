@@ -5,11 +5,9 @@ import numpy as np
 from numpy.typing import NDArray
 
 from deepxube.base.domain import Domain, GoalSampleableFromState, State, Goal, Action
-from deepxube.base.pathfinding import (PFNsHV_T, PFNsHQ_T, PFNsP_T, PathFindSetHeurV, PathFindSetHeurQ, PathFindSetPolicy, PathFindActsPolicy, Node, EdgeQ,
-                                       Instance)
-from deepxube.base.pathfind_fns import (PFNsHeurV, PFNsHeurVPolicy, PFNsHeurQ, PFNsHeurQPolicy, PFNsPolicy, UFNsHeurV, UFNsHeurVPolicy, UFNsHeurQ,
-                                        UFNsHeurQPolicy, UFNsPolicy)
-from deepxube.base.updater import (UpdateHasPolicy, UpdateHasHeurV, UpdateHasHeurQ, UpdateHeurVPathFind, UpdateHeurQPathFind, UpdatePolicyPathFind,
+from deepxube.base.pathfinding import PathFindSetHeurV, PathFindSetHeurQ, PathFindSetPolicy, Node, EdgeQ, Instance
+from deepxube.base.pathfind_fns import UFNsHeurV, UFNsHeurQ, UFNsPolicy
+from deepxube.base.updater import (UpdateHeurVPathFind, UpdateHeurQPathFind, UpdatePolicyPathFind,
                                    UpdatePathFindHER, UpdatePathFindKeepGoal, UpdateRL, D, UpdateRLParser, UFNsHV_T, UFNsHQ_T, UFNsP_T, InDataNode, InDataEdge)
 from deepxube.factories.updater_factory import updater_factory
 from deepxube.utils.rl_utils import vi_backup
@@ -19,8 +17,8 @@ from deepxube.utils.timing_utils import Times
 import time
 
 
-class UpdateHeurVRL(UpdateHeurVPathFind[D, PFNsHV_T, PathFindSetHeurV, Instance, UFNsHV_T, ReplayBufferV, ReplayV],
-                    UpdateRL[D, PFNsHV_T, PathFindSetHeurV, Instance, UFNsHV_T], ABC):
+class UpdateHeurVRL(UpdateHeurVPathFind[D, PathFindSetHeurV, Instance, UFNsHV_T, ReplayBufferV, ReplayV],
+                    UpdateRL[D, PathFindSetHeurV, Instance, UFNsHV_T], ABC):
     @staticmethod
     def pathfind_type() -> Type[PathFindSetHeurV]:
         return PathFindSetHeurV
@@ -56,8 +54,8 @@ class UpdateHeurVRL(UpdateHeurVPathFind[D, PFNsHV_T, PathFindSetHeurV, Instance,
         return ctgs_backup_l
 
 
-class UpdateHeurQRL(UpdateHeurQPathFind[D, PFNsHQ_T, PathFindSetHeurQ, Instance, UFNsHQ_T, ReplayBufferQ, ReplayQ],
-                    UpdateRL[D, PFNsHQ_T, PathFindSetHeurQ, Instance, UFNsHQ_T], ABC):
+class UpdateHeurQRL(UpdateHeurQPathFind[D, PathFindSetHeurQ, Instance, UFNsHQ_T, ReplayBufferQ, ReplayQ],
+                    UpdateRL[D, PathFindSetHeurQ, Instance, UFNsHQ_T], ABC):
     @staticmethod
     def pathfind_type() -> Type[PathFindSetHeurQ]:
         return PathFindSetHeurQ
@@ -104,8 +102,8 @@ class UpdateHeurQRL(UpdateHeurQPathFind[D, PFNsHQ_T, PathFindSetHeurQ, Instance,
         return cast(List[float], ctg_backups.tolist())
 
 
-class UpdatePolicyRL(UpdatePolicyPathFind[D, PFNsP_T, PathFindSetPolicy, Instance, UFNsP_T, ReplayBufferP, ReplayP],
-                     UpdateRL[D, PFNsP_T, PathFindSetPolicy, Instance, UFNsP_T], ABC):
+class UpdatePolicyRL(UpdatePolicyPathFind[D, PathFindSetPolicy, Instance, UFNsP_T, ReplayBufferP, ReplayP],
+                     UpdateRL[D, PathFindSetPolicy, Instance, UFNsP_T], ABC):
     @staticmethod
     def pathfind_type() -> Type[PathFindSetPolicy]:
         return PathFindSetPolicy
@@ -120,8 +118,8 @@ class UpdatePolicyRL(UpdatePolicyPathFind[D, PFNsP_T, PathFindSetPolicy, Instanc
         return []
 
 
-class UpdateHeurVRLKeepGoalABC(UpdateHeurVRL[Domain, PFNsHV_T, UFNsHV_T],
-                               UpdatePathFindKeepGoal[Domain, PFNsHV_T, PathFindSetHeurV, Instance, UFNsHV_T, Node, InDataNode, ReplayBufferV, ReplayV], ABC):
+class UpdateHeurVRLKeepGoalABC(UpdateHeurVRL[Domain, UFNsHV_T],
+                               UpdatePathFindKeepGoal[Domain, PathFindSetHeurV, Instance, UFNsHV_T, Node, InDataNode, ReplayBufferV, ReplayV], ABC):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -146,8 +144,8 @@ class UpdateHeurVRLKeepGoalABC(UpdateHeurVRL[Domain, PFNsHV_T, UFNsHV_T],
         return ctgs_backup
 
 
-class UpdateHeurQRLKeepGoalABC(UpdateHeurQRL[Domain, PFNsHQ_T, UFNsHQ_T],
-                               UpdatePathFindKeepGoal[Domain, PFNsHQ_T, PathFindSetHeurQ, Instance, UFNsHQ_T, EdgeQ, InDataEdge, ReplayBufferQ, ReplayQ], ABC):
+class UpdateHeurQRLKeepGoalABC(UpdateHeurQRL[Domain, UFNsHQ_T],
+                               UpdatePathFindKeepGoal[Domain, PathFindSetHeurQ, Instance, UFNsHQ_T, EdgeQ, InDataEdge, ReplayBufferQ, ReplayQ], ABC):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -176,8 +174,8 @@ class UpdateHeurQRLKeepGoalABC(UpdateHeurQRL[Domain, PFNsHQ_T, UFNsHQ_T],
         return ctgs_backup
 
 
-class UpdatePolicyRLKeepGoalABC(UpdatePolicyRL[Domain, PFNsP_T, UFNsP_T],
-                                UpdatePathFindKeepGoal[Domain, PFNsP_T, PathFindSetPolicy, Instance, UFNsP_T, EdgeQ, InDataEdge, ReplayBufferP, ReplayP], ABC):
+class UpdatePolicyRLKeepGoalABC(UpdatePolicyRL[Domain, UFNsP_T],
+                                UpdatePathFindKeepGoal[Domain, PathFindSetPolicy, Instance, UFNsP_T, EdgeQ, InDataEdge, ReplayBufferP, ReplayP], ABC):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -186,8 +184,8 @@ class UpdatePolicyRLKeepGoalABC(UpdatePolicyRL[Domain, PFNsP_T, UFNsP_T],
         return []
 
 
-class UpdateHeurVRLHERABC(UpdateHeurVRL[GoalSampleableFromState, PFNsHV_T, UFNsHV_T],
-                          UpdatePathFindHER[GoalSampleableFromState, PFNsHV_T, PathFindSetHeurV, Instance, UFNsHV_T, Node, InDataNode, ReplayBufferV, ReplayV],
+class UpdateHeurVRLHERABC(UpdateHeurVRL[GoalSampleableFromState, UFNsHV_T],
+                          UpdatePathFindHER[GoalSampleableFromState, PathFindSetHeurV, Instance, UFNsHV_T, Node, InDataNode, ReplayBufferV, ReplayV],
                           ABC):
     @staticmethod
     def domain_type() -> Type[GoalSampleableFromState]:
@@ -198,8 +196,8 @@ class UpdateHeurVRLHERABC(UpdateHeurVRL[GoalSampleableFromState, PFNsHV_T, UFNsH
         return (states, goals, contexts), is_solved_l, len(states)
 
 
-class UpdateHeurQRLHERABC(UpdateHeurQRL[GoalSampleableFromState, PFNsHQ_T, UFNsHQ_T],
-                          UpdatePathFindHER[GoalSampleableFromState, PFNsHQ_T, PathFindSetHeurQ, Instance, UFNsHQ_T, EdgeQ, InDataEdge, ReplayBufferQ, ReplayQ],
+class UpdateHeurQRLHERABC(UpdateHeurQRL[GoalSampleableFromState, UFNsHQ_T],
+                          UpdatePathFindHER[GoalSampleableFromState, PathFindSetHeurQ, Instance, UFNsHQ_T, EdgeQ, InDataEdge, ReplayBufferQ, ReplayQ],
                           ABC):
     @staticmethod
     def domain_type() -> Type[GoalSampleableFromState]:
@@ -210,8 +208,8 @@ class UpdateHeurQRLHERABC(UpdateHeurQRL[GoalSampleableFromState, PFNsHQ_T, UFNsH
         return (states, goals, actions, contexts), (is_solved_l, tcs, states_next), len(states)
 
 
-class UpdatePolicyRLHERABC(UpdatePolicyRL[GoalSampleableFromState, PFNsP_T, UFNsP_T],
-                           UpdatePathFindHER[GoalSampleableFromState, PFNsP_T, PathFindSetPolicy, Instance, UFNsP_T, EdgeQ, InDataEdge, ReplayBufferP, ReplayP],
+class UpdatePolicyRLHERABC(UpdatePolicyRL[GoalSampleableFromState, UFNsP_T],
+                           UpdatePathFindHER[GoalSampleableFromState, PathFindSetPolicy, Instance, UFNsP_T, EdgeQ, InDataEdge, ReplayBufferP, ReplayP],
                            ABC):
     @staticmethod
     def domain_type() -> Type[GoalSampleableFromState]:
@@ -223,207 +221,45 @@ class UpdatePolicyRLHERABC(UpdatePolicyRL[GoalSampleableFromState, PFNsP_T, UFNs
 
 
 @updater_factory.register_class("up_rl_v")
-class UpdateHeurVRLKeepGoal(UpdateHeurVRLKeepGoalABC[PFNsHeurV, UFNsHeurV]):
-    @staticmethod
-    def pathfind_functions_type() -> Type[PFNsHeurV]:
-        return PFNsHeurV
-
+class UpdateHeurVRLKeepGoal(UpdateHeurVRLKeepGoalABC[UFNsHeurV]):
     @staticmethod
     def updater_functions_type() -> Type[UFNsHeurV]:
         return UFNsHeurV
-
-    def _get_pathfind_functions(self) -> PFNsHeurV:
-        return PFNsHeurV(self.get_heurv_fn())
 
 
 @updater_factory.register_class("up_her_v")
-class UpdateHeurVRLHER(UpdateHeurVRLHERABC[PFNsHeurV, UFNsHeurV]):
-    @staticmethod
-    def pathfind_functions_type() -> Type[PFNsHeurV]:
-        return PFNsHeurV
-
+class UpdateHeurVRLHER(UpdateHeurVRLHERABC[UFNsHeurV]):
     @staticmethod
     def updater_functions_type() -> Type[UFNsHeurV]:
         return UFNsHeurV
 
-    def _get_pathfind_functions(self) -> PFNsHeurV:
-        return PFNsHeurV(self.get_heurv_fn())
-
-
-@updater_factory.register_class("up_rl_v_p")
-class UpdateHeurVRLKeepGoalPolicy(UpdateHeurVRLKeepGoalABC[PFNsHeurVPolicy, UFNsHeurVPolicy],
-                                  UpdateHasPolicy[Domain, PFNsHeurVPolicy, PathFindSetHeurV, Instance, UFNsHeurVPolicy]):
-    @staticmethod
-    def pathfind_functions_type() -> Type[PFNsHeurVPolicy]:
-        return PFNsHeurVPolicy
-
-    @staticmethod
-    def updater_functions_type() -> Type[UFNsHeurVPolicy]:
-        return UFNsHeurVPolicy
-
-    def _get_pathfind_functions(self) -> PFNsHeurVPolicy:
-        return PFNsHeurVPolicy(self.get_heurv_fn(), self.get_policy_fn())
-
-
-@updater_factory.register_class("up_her_v_p")
-class UpdateHeurVRLHERPolicy(UpdateHeurVRLHERABC[PFNsHeurVPolicy, UFNsHeurVPolicy],
-                             UpdateHasPolicy[Domain, PFNsHeurVPolicy, PathFindSetHeurV, Instance, UFNsHeurVPolicy]):
-    @staticmethod
-    def pathfind_functions_type() -> Type[PFNsHeurVPolicy]:
-        return PFNsHeurVPolicy
-
-    @staticmethod
-    def updater_functions_type() -> Type[UFNsHeurVPolicy]:
-        return UFNsHeurVPolicy
-
-    def _get_pathfind_functions(self) -> PFNsHeurVPolicy:
-        return PFNsHeurVPolicy(self.get_heurv_fn(), self.get_policy_fn())
-
 
 @updater_factory.register_class("up_rl_q")
-class UpdateHeurQRLKeepGoal(UpdateHeurQRLKeepGoalABC[PFNsHeurQ, UFNsHeurQ]):
-    @staticmethod
-    def pathfind_functions_type() -> Type[PFNsHeurQ]:
-        return PFNsHeurQ
-
+class UpdateHeurQRLKeepGoal(UpdateHeurQRLKeepGoalABC[UFNsHeurQ]):
     @staticmethod
     def updater_functions_type() -> Type[UFNsHeurQ]:
         return UFNsHeurQ
-
-    def _get_pathfind_functions(self) -> PFNsHeurQ:
-        return PFNsHeurQ(self.get_heurq_fn())
 
 
 @updater_factory.register_class("up_her_q")
-class UpdateHeurQRLHER(UpdateHeurQRLHERABC[PFNsHeurQ, UFNsHeurQ]):
-    @staticmethod
-    def pathfind_functions_type() -> Type[PFNsHeurQ]:
-        return PFNsHeurQ
-
+class UpdateHeurQRLHER(UpdateHeurQRLHERABC[UFNsHeurQ]):
     @staticmethod
     def updater_functions_type() -> Type[UFNsHeurQ]:
         return UFNsHeurQ
 
-    def _get_pathfind_functions(self) -> PFNsHeurQ:
-        return PFNsHeurQ(self.get_heurq_fn())
-
-
-@updater_factory.register_class("up_rl_q_p")
-class UpdateHeurQRLKeepGoalPolicy(UpdateHeurQRLKeepGoalABC[PFNsHeurQPolicy, UFNsHeurQPolicy],
-                                  UpdateHasPolicy[Domain, PFNsHeurQPolicy, PathFindSetHeurQ, Instance, UFNsHeurQPolicy]):
-    @staticmethod
-    def pathfind_functions_type() -> Type[PFNsHeurQPolicy]:
-        return PFNsHeurQPolicy
-
-    @staticmethod
-    def updater_functions_type() -> Type[UFNsHeurQPolicy]:
-        return UFNsHeurQPolicy
-
-    def _get_pathfind_functions(self) -> PFNsHeurQPolicy:
-        return PFNsHeurQPolicy(self.get_heurq_fn(), self.get_policy_fn())
-
-
-@updater_factory.register_class("up_her_q_p")
-class UpdateHeurQRLHERPolicy(UpdateHeurQRLHERABC[PFNsHeurQPolicy, UFNsHeurQPolicy],
-                             UpdateHasPolicy[Domain, PFNsHeurQPolicy, PathFindSetHeurQ, Instance, UFNsHeurQPolicy]):
-    @staticmethod
-    def pathfind_functions_type() -> Type[PFNsHeurQPolicy]:
-        return PFNsHeurQPolicy
-
-    @staticmethod
-    def updater_functions_type() -> Type[UFNsHeurQPolicy]:
-        return UFNsHeurQPolicy
-
-    def _get_pathfind_functions(self) -> PFNsHeurQPolicy:
-        return PFNsHeurQPolicy(self.get_heurq_fn(), self.get_policy_fn())
-
 
 @updater_factory.register_class("up_rl_p")
-class UpdatePolicyRLKeepGoal(UpdatePolicyRLKeepGoalABC[PFNsPolicy, UFNsPolicy]):
-    @staticmethod
-    def pathfind_functions_type() -> Type[PFNsPolicy]:
-        return PFNsPolicy
-
+class UpdatePolicyRLKeepGoal(UpdatePolicyRLKeepGoalABC[UFNsPolicy]):
     @staticmethod
     def updater_functions_type() -> Type[UFNsPolicy]:
         return UFNsPolicy
-
-    def _get_pathfind_functions(self) -> PFNsPolicy:
-        return PFNsPolicy(self.get_policy_fn())
 
 
 @updater_factory.register_class("up_her_p")
-class UpdatePolicyRLHER(UpdatePolicyRLHERABC[PFNsPolicy, UFNsPolicy]):
-    @staticmethod
-    def pathfind_functions_type() -> Type[PFNsPolicy]:
-        return PFNsPolicy
-
+class UpdatePolicyRLHER(UpdatePolicyRLHERABC[UFNsPolicy]):
     @staticmethod
     def updater_functions_type() -> Type[UFNsPolicy]:
         return UFNsPolicy
-
-    def _get_pathfind_functions(self) -> PFNsPolicy:
-        return PFNsPolicy(self.get_policy_fn())
-
-
-@updater_factory.register_class("up_rl_p_v")
-class UpdatePolicyRLKeepGoalHeurV(UpdatePolicyRLKeepGoalABC[PFNsHeurVPolicy, UFNsHeurVPolicy],
-                                  UpdateHasHeurV[Domain, PFNsHeurVPolicy, PathFindActsPolicy, Instance, UFNsHeurVPolicy]):
-    @staticmethod
-    def pathfind_functions_type() -> Type[PFNsHeurVPolicy]:
-        return PFNsHeurVPolicy
-
-    @staticmethod
-    def updater_functions_type() -> Type[UFNsHeurVPolicy]:
-        return UFNsHeurVPolicy
-
-    def _get_pathfind_functions(self) -> PFNsHeurVPolicy:
-        return PFNsHeurVPolicy(self.get_heurv_fn(), self.get_policy_fn())
-
-
-@updater_factory.register_class("up_her_p_v")
-class UpdatePolicyRLHERHeurV(UpdatePolicyRLHERABC[PFNsHeurVPolicy, UFNsHeurVPolicy],
-                             UpdateHasHeurV[Domain, PFNsHeurVPolicy, PathFindActsPolicy, Instance, UFNsHeurVPolicy]):
-    @staticmethod
-    def pathfind_functions_type() -> Type[PFNsHeurVPolicy]:
-        return PFNsHeurVPolicy
-
-    @staticmethod
-    def updater_functions_type() -> Type[UFNsHeurVPolicy]:
-        return UFNsHeurVPolicy
-
-    def _get_pathfind_functions(self) -> PFNsHeurVPolicy:
-        return PFNsHeurVPolicy(self.get_heurv_fn(), self.get_policy_fn())
-
-
-@updater_factory.register_class("up_rl_p_q")
-class UpdatePolicyRLKeepGoalHeurQ(UpdatePolicyRLKeepGoalABC[PFNsHeurQPolicy, UFNsHeurQPolicy],
-                                  UpdateHasHeurQ[Domain, PFNsHeurQPolicy, PathFindActsPolicy, Instance, UFNsHeurQPolicy]):
-    @staticmethod
-    def pathfind_functions_type() -> Type[PFNsHeurQPolicy]:
-        return PFNsHeurQPolicy
-
-    @staticmethod
-    def updater_functions_type() -> Type[UFNsHeurQPolicy]:
-        return UFNsHeurQPolicy
-
-    def _get_pathfind_functions(self) -> PFNsHeurQPolicy:
-        return PFNsHeurQPolicy(self.get_heurq_fn(), self.get_policy_fn())
-
-
-@updater_factory.register_class("up_her_p_q")
-class UpdatePolicyRLHERHeurQ(UpdatePolicyRLHERABC[PFNsHeurQPolicy, UFNsHeurQPolicy],
-                             UpdateHasHeurQ[Domain, PFNsHeurQPolicy, PathFindActsPolicy, Instance, UFNsHeurQPolicy]):
-    @staticmethod
-    def pathfind_functions_type() -> Type[PFNsHeurQPolicy]:
-        return PFNsHeurQPolicy
-
-    @staticmethod
-    def updater_functions_type() -> Type[UFNsHeurQPolicy]:
-        return UFNsHeurQPolicy
-
-    def _get_pathfind_functions(self) -> PFNsHeurQPolicy:
-        return PFNsHeurQPolicy(self.get_heurq_fn(), self.get_policy_fn())
 
 
 @updater_factory.register_parser("up_rl_v")
@@ -433,16 +269,6 @@ class UpdateVRL(UpdateRLParser):
 
 @updater_factory.register_parser("up_her_v")
 class UpdateVRLHER(UpdateRLParser):
-    pass
-
-
-@updater_factory.register_parser("up_rl_v_p")
-class UpdateVPRL(UpdateRLParser):
-    pass
-
-
-@updater_factory.register_parser("up_her_v_p")
-class UpdateVPRLHER(UpdateRLParser):
     pass
 
 
@@ -456,16 +282,6 @@ class UpdateQRLHER(UpdateRLParser):
     pass
 
 
-@updater_factory.register_parser("up_rl_q_p")
-class UpdateQPRL(UpdateRLParser):
-    pass
-
-
-@updater_factory.register_parser("up_her_q_p")
-class UpdateQPRLHER(UpdateRLParser):
-    pass
-
-
 @updater_factory.register_parser("up_rl_p")
 class UpdatePRL(UpdateRLParser):
     pass
@@ -473,24 +289,4 @@ class UpdatePRL(UpdateRLParser):
 
 @updater_factory.register_parser("up_her_p")
 class UpdatePRLHER(UpdateRLParser):
-    pass
-
-
-@updater_factory.register_parser("up_rl_p_q")
-class UpdatePQRL(UpdateRLParser):
-    pass
-
-
-@updater_factory.register_parser("up_her_p_q")
-class UpdatePQRLHER(UpdateRLParser):
-    pass
-
-
-@updater_factory.register_parser("up_rl_p_v")
-class UpdatePVRL(UpdateRLParser):
-    pass
-
-
-@updater_factory.register_parser("up_her_p_v")
-class UpdatePVRLHER(UpdateRLParser):
     pass

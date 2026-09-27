@@ -198,7 +198,6 @@ def updater_info(args: argparse.Namespace) -> None:
         mixin_str: str = ', '.join([f"{x.__qualname__}" for x in get_immediate_mixins(up_t, Update)])
         print(f"Mixins: {mixin_str}", '\t')
         print(f"Expected Domain type: {up_t.domain_type().__qualname__}", '\t')
-        print(f"Expected PathFind type: {up_t.pathfind_type().__qualname__} with functions {up_t.pathfind_functions_type().__qualname__}", '\t')
         print(f"Expected Updater functions type: {up_t.updater_functions_type()}", '\t')
 
         parser: Optional[Parser] = updater_factory.get_parser(name)

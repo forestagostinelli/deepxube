@@ -10,13 +10,14 @@ import numpy as np
 import torch
 from numpy.typing import NDArray
 
-from deepxube.pytorch.nnet_utils import NNetParInfo, NNetPar
+from deepxube.pytorch.nnet_utils import NNetParInfo, NNetPar, NNetCallable
 from deepxube.base.factory import DelimParser
 from deepxube.base.domain import Domain, State, Action, Goal, GoalSampleableFromState
 from deepxube.base.pathfind_fns import (PFNs, DeepXubeNNetPar, HeurVFn, HeurQFn, PolicyFn, HeurVNNetPar, HeurQNNetPar, PolicyNNetPar, UFNs,
                                         UFNsHeurV, UFNsHeurQ, UFNsPolicy)
-from deepxube.base.pathfinding import PFNsT, PFNsHV_T, PFNsHQ_T, PFNsP_T, PathFind, PathFindSup, Instance, get_path, Node, EdgeQ
+from deepxube.base.pathfinding import PathFind, PathFindSup, Instance, get_path, Node, EdgeQ
 from deepxube.factories.pathfinding_factory import pathfinding_factory, get_pathfind_name_kwargs, get_pathfind_from_arg
+from deepxube.factories.pathfind_fns_factory import pathfind_fns_factory
 from deepxube.utils.pathfind_perf import PathFindPerf, print_pathfindperf
 
 from deepxube.utils.replay_buffer_utils import ReplayBuffer
@@ -89,15 +90,10 @@ UFNsHQ_T = TypeVar("UFNsHQ_T", bound=UFNsHeurQ)
 UFNsP_T = TypeVar("UFNsP_T", bound=UFNsPolicy)
 
 
-class Update(Generic[D, PFNsT, P, InstT, UFNsT], ABC):
+class Update(Generic[D, P, InstT, UFNsT], ABC):
     @staticmethod
     @abstractmethod
     def domain_type() -> Type[D]:
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def pathfind_functions_type() -> Type[PFNsT]:
         pass
 
     @staticmethod
@@ -111,11 +107,9 @@ class Update(Generic[D, PFNsT, P, InstT, UFNsT], ABC):
         pass
 
     @classmethod
-    def get_incompat_reason(cls, domain: Domain, pathfind_fns_t: Type[PFNs], pathfind_t: Type[PathFind], updater_fns_t: Type[UFNs]) -> Optional[str]:
+    def get_incompat_reason(cls, domain: Domain, pathfind_t: Type[PathFind], updater_fns_t: Type[UFNs]) -> Optional[str]:
         if not isinstance(domain, cls.domain_type()):
             return f"Domain {domain} is not an instance of {cls.domain_type()}"
-        elif not issubclass(pathfind_fns_t, cls.pathfind_functions_type()):
-            return f"PathFind functions type {pathfind_fns_t} is not a subclass of {cls.pathfind_functions_type()}"
         elif not issubclass(pathfind_t, cls.pathfind_type()):
             return f"PathFind type {pathfind_t} is not a subclass of {cls.pathfind_type()}"
         elif not issubclass(updater_fns_t, cls.updater_functions_type()):
@@ -139,10 +133,11 @@ class Update(Generic[D, PFNsT, P, InstT, UFNsT], ABC):
         self.pathfind_name_args: str = pathfind_name_args
         pathfind_t: Type[PathFind] = pathfinding_factory.get_type(get_pathfind_name_kwargs(pathfind_name_args)[0])
 
-        incompat_reason: Optional[str] = self.get_incompat_reason(domain, pathfind_t.pathfind_functions_type(), pathfind_t, type(up_fns))
+        incompat_reason: Optional[str] = self.get_incompat_reason(domain, pathfind_t, type(up_fns))
         if incompat_reason is not None:
             raise TypeError(incompat_reason)
 
+        self.pathfind_fns: Optional[PFNs] = None
         self.up_fns: UFNsT = up_fns
         self.domain_nnet_pars: Dict[str, NNetPar] = self.domain.get_nnet_par_dict()
 
@@ -335,7 +330,8 @@ class Update(Generic[D, PFNsT, P, InstT, UFNsT], ABC):
         self.from_q = None
 
     def get_pathfind(self) -> P:
-        return cast(P, get_pathfind_from_arg(self.domain, self._get_pathfind_functions(), self.pathfind_name_args)[0])
+        assert self.pathfind_fns is not None
+        return cast(P, get_pathfind_from_arg(self.domain, self.pathfind_fns, self.pathfind_name_args)[0])
 
     def set_targ_update_num(self, nnet_name: str, targ_update_num: int) -> None:
         self.targ_update_nums[nnet_name] = targ_update_num
@@ -355,6 +351,14 @@ class Update(Generic[D, PFNsT, P, InstT, UFNsT], ABC):
             step_probs, targ_update_nums = data_q
             self.targ_update_nums = targ_update_nums.copy()
             self.init_nnet_fns()
+
+            # init pathfind fns
+            pathfind_fn_dict: Dict[str, NNetCallable] = dict()
+            for field_name in self.up_fns.get_field_names():
+                pathfind_fn_dict[field_name] = self.up_fns.get_up_fn(field_name).get_nnet_par_fn()
+            self._modify_pathfind_fns(pathfind_fn_dict)
+
+            self.pathfind_fns = pathfind_fns_factory.build_class(pathfind_fn_dict)
 
             step_to_pathperf: Dict[int, PathFindPerf] = dict()
             while True:
@@ -443,7 +447,7 @@ class Update(Generic[D, PFNsT, P, InstT, UFNsT], ABC):
         pass
 
     @abstractmethod
-    def _get_pathfind_functions(self) -> PFNsT:
+    def _modify_pathfind_fns(self, pathfind_fn_dict: Dict[str, NNetCallable]) -> None:
         pass
 
     def _get_instance_data(self, instances: List[InstT], rb_size: int, times: Times) -> List[NDArray]:
@@ -475,7 +479,7 @@ class Update(Generic[D, PFNsT, P, InstT, UFNsT], ABC):
 D_GS_T = TypeVar('D_GS_T', bound=GoalSampleableFromState)
 
 
-class UpdateHER(Update[D_GS_T, PFNsT, P, InstT, UFNsT], ABC):
+class UpdateHER(Update[D_GS_T, P, InstT, UFNsT], ABC):
     def _step_sync_main(self, pathfind: P, times: Times) -> List[NDArray]:
         raise NotImplementedError("Cannot train with sync_main if also doing hindsight experience replay (HER) since goal relabeling is done after search is "
                                   "complete.")
@@ -589,68 +593,12 @@ class UpdateHER(Update[D_GS_T, PFNsT, P, InstT, UFNsT], ABC):
         return states_her, goals_her, actions_her, contexts_her, is_solved_l_her, tcs_her, states_next_her
 
 
-class UpdateHasHeurV(Update[D, PFNsT, P, InstT, UFNsHV_T], ABC):
-    def get_heurv_nnet_par(self) -> HeurVNNetPar:
-        return self.up_fns.heurv
-
-    def get_heurv_fn(self) -> HeurVFn:
-        return self._get_targ_heurv_fn()
-
-    def _get_targ_heurv_fn(self) -> HeurVFn:
-        heurv_nnet_par: HeurVNNetPar = self.get_heurv_nnet_par()
-        update_num: int = self.targ_update_nums[heurv_nnet_par.get_field_name()]
-        if update_num == 0:
-            return heurv_nnet_par.get_default_fn()
-        else:
-            return heurv_nnet_par.get_nnet_par_fn()
-
-
-class UpdateHasHeurQ(Update[D, PFNsT, P, InstT, UFNsHQ_T], ABC):
-    def get_heurq_nnet_par(self) -> HeurQNNetPar:
-        return self.up_fns.heurq
-
-    def get_heurq_fn(self) -> HeurQFn:
-        return self._get_targ_heurq_fn()
-
-    def _get_targ_heurq_fn(self) -> HeurQFn:
-        heurq_nnet_par: HeurQNNetPar = self.get_heurq_nnet_par()
-        update_num: int = self.targ_update_nums[heurq_nnet_par.get_field_name()]
-        if update_num == 0:
-            return heurq_nnet_par.get_default_fn()
-        else:
-            return heurq_nnet_par.get_nnet_par_fn()
-
-
-class UpdateHasPolicy(Update[D, PFNsP_T, P, InstT, UFNsP_T], ABC):
-    def get_policy_nnet_par(self) -> PolicyNNetPar:
-        return self.up_fns.policy
-
-    def get_policy_fn(self) -> PolicyFn:
-        return self._get_targ_policy_fn()
-
-    def _get_targ_policy_fn(self) -> PolicyFn:
-        policy_nnet_par: PolicyNNetPar = self.get_policy_nnet_par()
-        update_num: int = self.targ_update_nums[policy_nnet_par.get_field_name()]
-
-        if update_num == 0:
-            return policy_nnet_par.get_default_fn()
-        else:
-            return policy_nnet_par.get_nnet_par_fn()
-
-
 PS = TypeVar('PS', bound=PathFindSup)
 
 
-class UpdateSup(Update[D, PFNs, PS, InstT, UFNsT], ABC):
-    @staticmethod
-    def pathfind_functions_type() -> Type[PFNs]:
-        return PFNs
-
+class UpdateSup(Update[D, PS, InstT, UFNsT], ABC):
     def _step(self, pathfind: PS, times: Times) -> None:
         pathfind.step()
-
-    def _get_pathfind_functions(self) -> PFNs:
-        return PFNs()
 
     def _make_instances(self, pathfind: PS, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[InstT]:
         return pathfind.make_instances_sup(steps_gen, inst_infos)
@@ -671,7 +619,7 @@ class UpRLArgs:
     lhbl: bool = False
 
 
-class UpdateRL(Update[D, PFNsT, P, InstT, UFNsT], ABC):
+class UpdateRL(Update[D, P, InstT, UFNsT], ABC):
     def __init__(self, *args: Any, ub_heur_solns: bool = False, lhbl: bool = False, **kwargs: Any):
         self.up_rl_args: UpRLArgs = UpRLArgs(ub_heur_solns=ub_heur_solns, lhbl=lhbl)
         super().__init__(*args, **kwargs)
@@ -688,7 +636,7 @@ class UpdateRL(Update[D, PFNsT, P, InstT, UFNsT], ABC):
         return f"{super().__repr__()}, {self.up_rl_args.__repr__()}"
 
 
-class UpdateHeur(Update[D, PFNsT, P, InstT, UFNsT], ABC):
+class UpdateHeur(Update[D, P, InstT, UFNsT], ABC):
     pass
 
 
@@ -698,7 +646,7 @@ R = TypeVar("R", bound=ReplayBuffer)
 RD_T = TypeVar("RD_T")
 
 
-class UpdatePathFind(Update[D, PFNsT, P, InstT, UFNsT], Generic[D, PFNsT, P, InstT, UFNsT, SchOver_T, InD_T, R, RD_T]):
+class UpdatePathFind(Update[D, P, InstT, UFNsT], Generic[D, P, InstT, UFNsT, SchOver_T, InD_T, R, RD_T]):
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.rb: R = self._get_rb(0)
@@ -767,7 +715,7 @@ class UpdatePathFind(Update[D, PFNsT, P, InstT, UFNsT], Generic[D, PFNsT, P, Ins
         return self._inputs_ctgs_to_np(input_data, labels, times)
 
 
-class UpdatePathFindKeepGoal(UpdatePathFind[D, PFNsT, P, InstT, UFNsT, SchOver_T, InD_T, R, RD_T], ABC):
+class UpdatePathFindKeepGoal(UpdatePathFind[D, P, InstT, UFNsT, SchOver_T, InD_T, R, RD_T], ABC):
     def _step_sync_main(self, pathfind: P, times: Times) -> List[NDArray]:
         # take a step
         popped: List[SchOver_T] = self._pathfind_step(pathfind)
@@ -801,8 +749,8 @@ class UpdatePathFindKeepGoal(UpdatePathFind[D, PFNsT, P, InstT, UFNsT, SchOver_T
         return self._rb_add_sample_train_data(input_data, replay_data, len(popped), times)
 
 
-class UpdatePathFindHER(UpdatePathFind[D_GS_T, PFNsT, P, InstT, UFNsT, SchOver_T, InD_T, R, RD_T], UpdateHER[D_GS_T, PFNsT, P, InstT, UFNsT],
-                        Generic[D_GS_T, PFNsT, P, InstT, UFNsT, SchOver_T, InD_T, R, RD_T]):
+class UpdatePathFindHER(UpdatePathFind[D_GS_T, P, InstT, UFNsT, SchOver_T, InD_T, R, RD_T], UpdateHER[D_GS_T, P, InstT, UFNsT],
+                        Generic[D_GS_T, P, InstT, UFNsT, SchOver_T, InD_T, R, RD_T]):
     @abstractmethod
     def _get_her_data(self, instances: List[InstT], goals_inst_her: List[Goal], times: Times) -> Tuple[InD_T, RD_T, int]:
         pass
@@ -820,7 +768,10 @@ class UpdatePathFindHER(UpdatePathFind[D_GS_T, PFNsT, P, InstT, UFNsT, SchOver_T
         return self._rb_add_sample_train_data(input_data, replay_data, num_data, times)
 
 
-class UpdateHeurV(UpdateHeur[D, PFNsHV_T, P, InstT, UFNsHV_T], UpdateHasHeurV[D, PFNsHV_T, P, InstT, UFNsHV_T], ABC):
+class UpdateHeurV(UpdateHeur[D, P, InstT, UFNsHV_T], ABC):
+    def get_heurv_nnet_par(self) -> HeurVNNetPar:
+        return self.up_fns.heurv
+
     def get_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.domain.sample_problem_instances([0])
         inputs_nnet: List[NDArray[Any]] = self.get_heurv_nnet_par().process_inputs(states, goals, [None for _ in states]).inputs_nnet
@@ -835,15 +786,28 @@ class UpdateHeurV(UpdateHeur[D, PFNsHV_T, P, InstT, UFNsHV_T], UpdateHasHeurV[D,
     def get_train_nnet_par(self) -> DeepXubeNNetPar:
         return self.get_heurv_nnet_par()
 
-    def get_heurv_fn(self) -> HeurVFn:
+    def _modify_pathfind_fns(self, pathfind_fn_dict: Dict[str, NNetCallable]) -> None:
+        field_name: str = "heurv"
+        assert field_name in pathfind_fn_dict.keys()
         if not self.up_args.sync_main:
-            return super().get_heurv_fn()
+            pathfind_fn_dict[field_name] = self._get_targ_heurv_fn()
         else:
             assert self.nnet_par_info_main is not None
-            return self.get_heurv_nnet_par().get_nnet_par_fn_w_info(self.nnet_par_info_main)
+            pathfind_fn_dict[field_name] = self.get_heurv_nnet_par().get_nnet_par_fn_w_info(self.nnet_par_info_main)
+
+    def _get_targ_heurv_fn(self) -> HeurVFn:
+        heurv_nnet_par: HeurVNNetPar = self.get_heurv_nnet_par()
+        update_num: int = self.targ_update_nums[heurv_nnet_par.get_field_name()]
+        if update_num == 0:
+            return heurv_nnet_par.get_default_fn()
+        else:
+            return heurv_nnet_par.get_nnet_par_fn()
 
 
-class UpdateHeurQ(UpdateHeur[D, PFNsHQ_T, P, InstT, UFNsHQ_T], UpdateHasHeurQ[D, PFNsHQ_T, P, InstT, UFNsHQ_T], ABC):
+class UpdateHeurQ(UpdateHeur[D, P, InstT, UFNsHQ_T], ABC):
+    def get_heurq_nnet_par(self) -> HeurQNNetPar:
+        return self.up_fns.heurq
+
     def get_train_shapes_dtypes(self) -> List[Tuple[Tuple[int, ...], np.dtype]]:
         states, goals = self.domain.sample_problem_instances([0])
         actions: List[Action] = self.domain.sample_state_action(states)
@@ -860,15 +824,28 @@ class UpdateHeurQ(UpdateHeur[D, PFNsHQ_T, P, InstT, UFNsHQ_T], UpdateHasHeurQ[D,
     def get_train_nnet_par(self) -> DeepXubeNNetPar:
         return self.get_heurq_nnet_par()
 
-    def get_heurq_fn(self) -> HeurQFn:
+    def _modify_pathfind_fns(self, pathfind_fn_dict: Dict[str, NNetCallable]) -> None:
+        field_name: str = "heurq"
+        assert field_name in pathfind_fn_dict.keys()
         if not self.up_args.sync_main:
-            return super().get_heurq_fn()
+            pathfind_fn_dict[field_name] = self._get_targ_heurq_fn()
         else:
             assert self.nnet_par_info_main is not None
-            return self.get_heurq_nnet_par().get_nnet_par_fn_w_info(self.nnet_par_info_main)
+            pathfind_fn_dict[field_name] = self.get_heurq_nnet_par().get_nnet_par_fn_w_info(self.nnet_par_info_main)
+
+    def _get_targ_heurq_fn(self) -> HeurQFn:
+        heurq_nnet_par: HeurQNNetPar = self.get_heurq_nnet_par()
+        update_num: int = self.targ_update_nums[heurq_nnet_par.get_field_name()]
+        if update_num == 0:
+            return heurq_nnet_par.get_default_fn()
+        else:
+            return heurq_nnet_par.get_nnet_par_fn()
 
 
-class UpdatePolicy(UpdateHasPolicy[D, PFNsP_T, P, InstT, UFNsP_T], ABC):
+class UpdatePolicy(Update[D, P, InstT, UFNsP_T], ABC):
+    def get_policy_nnet_par(self) -> PolicyNNetPar:
+        return self.up_fns.policy
+
     def get_train_nnet_par(self) -> DeepXubeNNetPar:
         return self.get_policy_nnet_par()
 
@@ -883,18 +860,29 @@ class UpdatePolicy(UpdateHasPolicy[D, PFNsP_T, P, InstT, UFNsP_T], ABC):
 
         return shapes_dtypes
 
-    def get_policy_fn(self) -> PolicyFn:
+    def _modify_pathfind_fns(self, pathfind_fn_dict: Dict[str, NNetCallable]) -> None:
+        field_name: str = "policy"
+        assert field_name in pathfind_fn_dict.keys()
         if not self.up_args.sync_main:
-            return super().get_policy_fn()
+            pathfind_fn_dict[field_name] = self._get_targ_policy_fn()
         else:
-            raise NotImplementedError("sync_main not yet implemented for policy_fn")
+            assert self.nnet_par_info_main is not None
+            pathfind_fn_dict[field_name] = self.get_policy_nnet_par().get_nnet_par_fn_w_info(self.nnet_par_info_main)
+
+    def _get_targ_policy_fn(self) -> PolicyFn:
+        policy_nnet_par: PolicyNNetPar = self.get_policy_nnet_par()
+        update_num: int = self.targ_update_nums[policy_nnet_par.get_field_name()]
+        if update_num == 0:
+            return policy_nnet_par.get_default_fn()
+        else:
+            return policy_nnet_par.get_nnet_par_fn()
 
 
 InDataNode = Tuple[List[State], List[Goal], List[Any]]
 InDataEdge = Tuple[List[State], List[Goal], List[Action], List[Any]]
 
 
-class UpdateHeurVPathFind(UpdatePathFind[D, PFNsHV_T, P, InstT, UFNsHV_T, Node, InDataNode, R, RD_T], UpdateHeurV[D, PFNsHV_T, P, InstT, UFNsHV_T], ABC):
+class UpdateHeurVPathFind(UpdatePathFind[D, P, InstT, UFNsHV_T, Node, InDataNode, R, RD_T], UpdateHeurV[D, P, InstT, UFNsHV_T], ABC):
     def _pathfind_step(self, pathfind: P) -> List[Node]:
         nodes_popped: List[Node] = pathfind.step()[0]
         assert len(nodes_popped) == len(pathfind.instances), f"Values were {len(nodes_popped)} and {len(pathfind.instances)}"
@@ -928,7 +916,7 @@ class UpdateHeurVPathFind(UpdatePathFind[D, PFNsHV_T, P, InstT, UFNsHV_T, Node, 
         return popped
 
 
-class UpdateEdgePathFind(UpdatePathFind[D, PFNsT, P, InstT, UFNsT, EdgeQ, InDataEdge, R, RD_T], ABC):
+class UpdateEdgePathFind(UpdatePathFind[D, P, InstT, UFNsT, EdgeQ, InDataEdge, R, RD_T], ABC):
     def _pathfind_step(self, pathfind: P) -> List[EdgeQ]:
         edges_popped: List[EdgeQ] = pathfind.step()[1]
         assert len(edges_popped) == len(pathfind.instances), f"Values were {len(edges_popped)} and {len(pathfind.instances)}"
@@ -954,7 +942,7 @@ class UpdateEdgePathFind(UpdatePathFind[D, PFNsT, P, InstT, UFNsT, EdgeQ, InData
         return edges_popped
 
 
-class UpdateHeurQPathFind(UpdateEdgePathFind[D, PFNsHQ_T, P, InstT, UFNsHQ_T, R, RD_T], UpdateHeurQ[D, PFNsHQ_T, P, InstT, UFNsHQ_T], ABC):
+class UpdateHeurQPathFind(UpdateEdgePathFind[D, P, InstT, UFNsHQ_T, R, RD_T], UpdateHeurQ[D, P, InstT, UFNsHQ_T], ABC):
     def _inputs_ctgs_to_np(self, input_data: InDataEdge, labels: List[float], times: Times) -> List[NDArray]:
         start_time = time.time()
         inputs_np: List[NDArray] = self.get_heurq_nnet_par().process_inputs(input_data[0], input_data[1], [[action] for action in input_data[2]],
@@ -965,7 +953,7 @@ class UpdateHeurQPathFind(UpdateEdgePathFind[D, PFNsHQ_T, P, InstT, UFNsHQ_T, R,
         return data_np
 
 
-class UpdatePolicyPathFind(UpdateEdgePathFind[D, PFNsP_T, P, InstT, UFNsP_T, R, RD_T], UpdatePolicy[D, PFNsP_T, P, InstT, UFNsP_T], ABC):
+class UpdatePolicyPathFind(UpdateEdgePathFind[D, P, InstT, UFNsP_T, R, RD_T], UpdatePolicy[D, P, InstT, UFNsP_T], ABC):
     def _inputs_ctgs_to_np(self, input_data: InDataEdge, labels: List[float], times: Times) -> List[NDArray]:
         start_time = time.time()
         inputs_np: List[NDArray] = self.get_policy_nnet_par().to_np_train(input_data[0], input_data[1], input_data[2], input_data[3])

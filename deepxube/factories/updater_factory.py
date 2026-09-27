@@ -2,7 +2,7 @@ from typing import Type, List, Tuple, Dict, Any, Optional
 
 from deepxube.utils.command_line_utils import get_name_args
 from deepxube.base.domain import Domain
-from deepxube.base.pathfind_fns import PFNs, UFNs
+from deepxube.base.pathfind_fns import UFNs
 from deepxube.base.pathfinding import PathFind
 from deepxube.base.updater import Update
 from deepxube.base.factory import Factory
@@ -24,7 +24,7 @@ def get_pathfind_compat_updater_names(pathfind_t: Type[PathFind]) -> List[str]:
     names: List[str] = []
     for name in updater_factory.get_all_class_names():
         class_t: Type[Update] = updater_factory.get_type(name)
-        if issubclass(pathfind_t, class_t.pathfind_type()) and (pathfind_t.pathfind_functions_type() is class_t.pathfind_functions_type()):
+        if issubclass(pathfind_t, class_t.pathfind_type()):
             names.append(name)
 
     return names
@@ -33,7 +33,6 @@ def get_pathfind_compat_updater_names(pathfind_t: Type[PathFind]) -> List[str]:
 def get_updater_from_args(domain: Domain, pathfind: PathFind, pathfind_name_args: str, updater_fns: UFNs, updater_name_args: str) -> Tuple[Update, str]:
     updater_name_pre, args_str = get_name_args(updater_name_args)
     pathfind_t: Type[PathFind] = type(pathfind)
-    pathfind_fns_t: Type[PFNs] = pathfind.pathfind_functions_type()
     updater_fns_t: Type[UFNs] = type(updater_fns)
 
     names: List[str] = updater_factory.get_all_class_names()
@@ -43,7 +42,7 @@ def get_updater_from_args(domain: Domain, pathfind: PathFind, pathfind_name_args
         if not name.startswith(updater_name_pre):
             continue
 
-        incompat_reason: Optional[str] = updater_factory.get_type(name).get_incompat_reason(domain, pathfind_fns_t, pathfind_t, updater_fns_t)
+        incompat_reason: Optional[str] = updater_factory.get_type(name).get_incompat_reason(domain, pathfind_t, updater_fns_t)
         if incompat_reason is not None:
             incompat_reasons.append(incompat_reason + f" (Updater name: {name})")
         else:
@@ -51,13 +50,13 @@ def get_updater_from_args(domain: Domain, pathfind: PathFind, pathfind_name_args
 
     if len(compat_names) == 0:
         incompat_reasons_str: str = '\n'.join(incompat_reasons)
-        raise ValueError(f"Could not find any compatable Updater for Domain {domain}, Functions type {pathfind_fns_t}, PathFind {pathfind} for Updater "
+        raise ValueError(f"Could not find any compatable Updater for Domain {domain}, PathFind {pathfind} for Updater "
                          f"name: {updater_name_pre}.\nIncompatibility reasons:\n{incompat_reasons_str}")
 
     # TODO if > 1 find more specific one in terms of function and pathfind
 
     if len(compat_names) > 1:
-        raise ValueError(f"More then 1 compatable Updater for Domain {domain}, Functions type {pathfind_fns_t}, PathFind {pathfind} for Updater "
+        raise ValueError(f"More then 1 compatable Updater for Domain {domain}, PathFind {pathfind} for Updater "
                          f"name: {updater_name_pre}: {compat_names}.")
 
     assert len(compat_names) == 1

@@ -14,7 +14,7 @@ import numpy as np
 
 
 @updater_factory.register_class("up_sup_v")
-class UpdateHeurVSup(UpdateHeurV[Domain, Any, PathFindNodeSup, Instance, UFNsHeurV], UpdateSup[Domain, PathFindNodeSup, Instance, UFNsHeurV]):
+class UpdateHeurVSup(UpdateHeurV[Domain, PathFindNodeSup, Instance, UFNsHeurV], UpdateSup[Domain, PathFindNodeSup, Instance, UFNsHeurV]):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -42,7 +42,7 @@ class UpdateHeurVSup(UpdateHeurV[Domain, Any, PathFindNodeSup, Instance, UFNsHeu
 
 
 @updater_factory.register_class("up_sup_q")
-class UpdateHeurQSup(UpdateHeurQ[Domain, Any, PathFindEdgeSup, Instance, UFNsHeurQ], UpdateSup[Domain, PathFindEdgeSup, Instance, UFNsHeurQ]):
+class UpdateHeurQSup(UpdateHeurQ[Domain, PathFindEdgeSup, Instance, UFNsHeurQ], UpdateSup[Domain, PathFindEdgeSup, Instance, UFNsHeurQ]):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -72,7 +72,7 @@ class UpdateHeurQSup(UpdateHeurQ[Domain, Any, PathFindEdgeSup, Instance, UFNsHeu
 
 
 @updater_factory.register_class("up_sup_p")
-class UpdatePolicySup(UpdatePolicy[Domain, Any, PathFindEdgeSamp, Instance, UFNsPolicy],
+class UpdatePolicySup(UpdatePolicy[Domain, PathFindEdgeSamp, Instance, UFNsPolicy],
                       UpdateSup[Domain, PathFindEdgeSamp, Instance, UFNsPolicy]):
     @staticmethod
     def domain_type() -> Type[Domain]:

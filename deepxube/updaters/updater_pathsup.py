@@ -2,9 +2,9 @@ from abc import ABC
 from typing import List, Type, Any
 
 from deepxube.base.domain import Domain, NodesLabelable, State, Goal
-from deepxube.base.pathfinding import PFNsHV_T, PathFindSetHeurV, Node, Instance
-from deepxube.base.pathfind_fns import PFNsHeurV, PFNsHeurVPolicy, UFNsHeurV, UFNsHeurVPolicy
-from deepxube.base.updater import UpdateHasPolicy, UpdateHeurVPathFind, UpdatePathFindKeepGoal, UpdateRL, UFNsHV_T, InDataNode, UpdateParser
+from deepxube.base.pathfinding import PathFindSetHeurV, Node, Instance
+from deepxube.base.pathfind_fns import UFNsHeurV
+from deepxube.base.updater import UpdateHeurVPathFind, UpdatePathFindKeepGoal, UpdateRL, UFNsHV_T, InDataNode, UpdateParser
 from deepxube.factories.updater_factory import updater_factory
 from deepxube.utils.replay_buffer_utils import ReplayBufferVLab, ReplayVLab
 from deepxube.utils.timing_utils import Times
@@ -12,8 +12,8 @@ from deepxube.utils.timing_utils import Times
 import time
 
 
-class UpdateHeurVPathSup(UpdateHeurVPathFind[Domain, PFNsHV_T, PathFindSetHeurV, Instance, UFNsHV_T, ReplayBufferVLab, ReplayVLab],
-                         UpdateRL[Domain, PFNsHV_T, PathFindSetHeurV, Instance, UFNsHV_T], ABC):
+class UpdateHeurVPathSup(UpdateHeurVPathFind[Domain, PathFindSetHeurV, Instance, UFNsHV_T, ReplayBufferVLab, ReplayVLab],
+                         UpdateRL[Domain, PathFindSetHeurV, Instance, UFNsHV_T], ABC):
     @staticmethod
     def pathfind_type() -> Type[PathFindSetHeurV]:
         return PathFindSetHeurV
@@ -38,9 +38,8 @@ class UpdateHeurVPathSup(UpdateHeurVPathFind[Domain, PFNsHV_T, PathFindSetHeurV,
         return replay_data
 
 
-class UpdateHeurVPathSupKeepGoalABC(UpdateHeurVPathSup[PFNsHV_T, UFNsHV_T],
-                                    UpdatePathFindKeepGoal[Domain, PFNsHV_T, PathFindSetHeurV, Instance, UFNsHV_T, Node, InDataNode, ReplayBufferVLab,
-                                    ReplayVLab], ABC):
+class UpdateHeurVPathSupKeepGoalABC(UpdateHeurVPathSup[UFNsHV_T],
+                                    UpdatePathFindKeepGoal[Domain, PathFindSetHeurV, Instance, UFNsHV_T, Node, InDataNode, ReplayBufferVLab, ReplayVLab], ABC):
     @staticmethod
     def domain_type() -> Type[Domain]:
         return Domain
@@ -50,39 +49,12 @@ class UpdateHeurVPathSupKeepGoalABC(UpdateHeurVPathSup[PFNsHV_T, UFNsHV_T],
 
 
 @updater_factory.register_class("up_pathsup_v")
-class UpdateHeurVPathSupKeepGoal(UpdateHeurVPathSupKeepGoalABC[PFNsHeurV, UFNsHeurV]):
-    @staticmethod
-    def pathfind_functions_type() -> Type[PFNsHeurV]:
-        return PFNsHeurV
-
+class UpdateHeurVPathSupKeepGoal(UpdateHeurVPathSupKeepGoalABC[UFNsHeurV]):
     @staticmethod
     def updater_functions_type() -> Type[UFNsHeurV]:
         return UFNsHeurV
 
-    def _get_pathfind_functions(self) -> PFNsHeurV:
-        return PFNsHeurV(self.get_heurv_fn())
-
-
-@updater_factory.register_class("up_pathsup_v_p")
-class UpdateHeurVRLKeepGoalPolicy(UpdateHeurVPathSupKeepGoalABC[PFNsHeurVPolicy, UFNsHeurVPolicy],
-                                  UpdateHasPolicy[Domain, PFNsHeurVPolicy, PathFindSetHeurV, Instance, UFNsHeurVPolicy]):
-    @staticmethod
-    def pathfind_functions_type() -> Type[PFNsHeurVPolicy]:
-        return PFNsHeurVPolicy
-
-    @staticmethod
-    def updater_functions_type() -> Type[UFNsHeurVPolicy]:
-        return UFNsHeurVPolicy
-
-    def _get_pathfind_functions(self) -> PFNsHeurVPolicy:
-        return PFNsHeurVPolicy(self.get_heurv_fn(), self.get_policy_fn())
-
 
 @updater_factory.register_parser("up_pathsup_v")
 class UpdateVPathSupParser(UpdateParser):
-    pass
-
-
-@updater_factory.register_parser("up_pathsup_v_p")
-class UpdateVPPathSupParser(UpdateParser):
     pass
