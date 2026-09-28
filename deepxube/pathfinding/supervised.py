@@ -192,7 +192,7 @@ class PathFindEdgeSamp(PathFindEdgeStatic[EdgesSampleable, Any, InstanceEdgeSup]
 
         instances: List[InstanceEdgeSup] = []
         for node_root, action_init, inst_info in zip(nodes_root, actions_init, inst_infos, strict=True):
-            instances.append(InstanceEdgeSup(node_root, action_init, 0.0, inst_info))
+            instances.append(InstanceEdgeSup(node_root, inst_info, action=action_init, path_cost_sup=0.0))
         self.times.record_time("instances", time.time() - start_time)
 
         return instances

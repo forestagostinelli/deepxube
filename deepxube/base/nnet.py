@@ -174,6 +174,7 @@ class PolicyVAE(PolicyNNet[PNNetIn]):
         self.kl_weight: float = kl_weight
 
     def get_loss_and_info(self, fwd_tr_tensors: List[Tensor], get_info: bool) -> Tuple[Tensor, Optional[str]]:
+        assert fwd_tr_tensors[0].size() == fwd_tr_tensors[1].size(), f"{[x.size() for x in fwd_tr_tensors]}"
         loss_recon_mean: Tensor = torch.mean(fwd_tr_tensors[0], dim=0)
         loss_kl_mean: Tensor = torch.mean(fwd_tr_tensors[1], dim=0)
 
