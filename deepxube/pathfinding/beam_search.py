@@ -25,15 +25,11 @@ class InstanceBeam(Instance, ABC):
         return len(self._nodes_curr)
 
     def record_goal(self, nodes: List[Node]) -> None:
-        if self.rollout:
-            assert len(nodes) == 1
-            self.goal_node = nodes[0]
-        else:
-            for node in nodes:
-                assert node.is_solved is not None
-                if node.is_solved:
-                    if (self.goal_node is None) or (self.goal_node.path_cost > node.path_cost):
-                        self.goal_node = node
+        for node in nodes:
+            assert node.is_solved is not None
+            if node.is_solved:
+                if (self.goal_node is None) or (self.goal_node.path_cost > node.path_cost):
+                    self.goal_node = node
 
     def select_idxs_from_logits(self, logits: List[float]) -> List[int]:
         num_logits: int = len(logits)
@@ -362,6 +358,10 @@ class BeamSearchEdgeHasPolicyParser(BeamSearchHasPolicyParser):
 
 @pathfinding_factory.register_class("rollout_p")
 class RolloutPolicy(BeamSearchPolicy):
+    def __init__(self, *args: Any, **kwargs: Any):
+        kwargs["beam_size"] = 1
+        kwargs["rollout"] = True
+        super().__init__(*args, **kwargs)
     @staticmethod
     def description() -> str:
         return "Rollout policy put do not terminate if a goal is seen"
@@ -380,8 +380,6 @@ class RolloutParser(Parser, ABC):
                 kwargs["eps"] = float(eps_re.group(1))
             else:
                 raise ValueError(f"Unexpected argument {args_str_i!r}")
-        kwargs["beam_size"] = 1
-        kwargs["rollout"] = True
         return kwargs
 
     def help(self) -> str:

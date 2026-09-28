@@ -170,25 +170,24 @@ def solve_cli(args: argparse.Namespace) -> None:
         goal_node: Optional[Node] = pathfind.instances[0].goal_node
 
         is_rollout: bool = isinstance(pathfind, BeamSearch) and pathfind.rollout  # special case
-        if goal_node is not None:
-            path_states, path_actions, tcs, path_cost = get_path(goal_node)
-            assert (path_states is not None) and (path_actions is not None)
-            if is_rollout:
-                # see if any state on path is solved, if so, modify path to end at solved state
-                is_sovled_path: List[bool] = domain.is_solved(path_states, [goal] * len(path_states))
-                if any(is_sovled_path):
-                    solved = True
-                    solved_idx: int = is_sovled_path.index(True)
-                    path_states = path_states[:(solved_idx + 1)]
-                    path_actions = path_actions[:solved_idx]
-                    tcs = tcs[:solved_idx]
-                    path_cost = sum(tcs)
+        if is_rollout:
+            if goal_node is not None:
+                path_states, path_actions, tcs, path_cost = get_path(goal_node)
+                assert (path_states is not None) and (path_actions is not None)
+                solved = True
             else:
+                node_curr: Node = pathfind.instances[0].get_nodes()[0]
+                path_states, path_actions, tcs, path_cost = get_path(node_curr)
+                assert (path_states is not None) and (path_actions is not None)
+        else:
+            if goal_node is not None:
+                path_states, path_actions, tcs, path_cost = get_path(goal_node)
+                assert (path_states is not None) and (path_actions is not None)
                 solved = True
 
-            if solved:
-                assert path_actions is not None
-                assert is_valid_soln(state, goal, path_actions, domain)
+        if solved:
+            assert path_actions is not None
+            assert is_valid_soln(state, goal, path_actions, domain)
 
         results["actions"].append(path_actions)
         results["states_on_path"].append(path_states)
