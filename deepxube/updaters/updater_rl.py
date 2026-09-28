@@ -220,73 +220,73 @@ class UpdatePolicyRLHERABC(UpdatePolicyRL[GoalSampleableFromState, UFNsP_T],
         return (states, goals, actions, contexts), None, len(states)
 
 
-@updater_factory.register_class("up_rl_v")
+@updater_factory.register_class("path_rl_v")
 class UpdateHeurVRLKeepGoal(UpdateHeurVRLKeepGoalABC[UFNsHeurV]):
     @staticmethod
     def updater_functions_type() -> Type[UFNsHeurV]:
         return UFNsHeurV
 
 
-@updater_factory.register_class("up_her_v")
+@updater_factory.register_class("path_her_rl_v")
 class UpdateHeurVRLHER(UpdateHeurVRLHERABC[UFNsHeurV]):
     @staticmethod
     def updater_functions_type() -> Type[UFNsHeurV]:
         return UFNsHeurV
 
 
-@updater_factory.register_class("up_rl_q")
+@updater_factory.register_class("path_rl_q")
 class UpdateHeurQRLKeepGoal(UpdateHeurQRLKeepGoalABC[UFNsHeurQ]):
     @staticmethod
     def updater_functions_type() -> Type[UFNsHeurQ]:
         return UFNsHeurQ
 
 
-@updater_factory.register_class("up_her_q")
+@updater_factory.register_class("path_her_rl_q")
 class UpdateHeurQRLHER(UpdateHeurQRLHERABC[UFNsHeurQ]):
     @staticmethod
     def updater_functions_type() -> Type[UFNsHeurQ]:
         return UFNsHeurQ
 
 
-@updater_factory.register_class("up_rl_p")
+@updater_factory.register_class("path_rl_p")
 class UpdatePolicyRLKeepGoal(UpdatePolicyRLKeepGoalABC[UFNsPolicy]):
     @staticmethod
     def updater_functions_type() -> Type[UFNsPolicy]:
         return UFNsPolicy
 
 
-@updater_factory.register_class("up_her_p")
+@updater_factory.register_class("path_her_rl_p")
 class UpdatePolicyRLHER(UpdatePolicyRLHERABC[UFNsPolicy]):
     @staticmethod
     def updater_functions_type() -> Type[UFNsPolicy]:
         return UFNsPolicy
 
 
-@updater_factory.register_parser("up_rl_v")
+@updater_factory.register_parser("path_rl_v")
 class UpdateVRL(UpdateRLParser):
     pass
 
 
-@updater_factory.register_parser("up_her_v")
+@updater_factory.register_parser("path_her_rl_v")
 class UpdateVRLHER(UpdateRLParser):
     pass
 
 
-@updater_factory.register_parser("up_rl_q")
+@updater_factory.register_parser("path_rl_q")
 class UpdateQRL(UpdateRLParser):
     pass
 
 
-@updater_factory.register_parser("up_her_q")
+@updater_factory.register_parser("path_her_rl_q")
 class UpdateQRLHER(UpdateRLParser):
     pass
 
 
-@updater_factory.register_parser("up_rl_p")
+@updater_factory.register_parser("path_rl_p")
 class UpdatePRL(UpdateRLParser):
     pass
 
 
-@updater_factory.register_parser("up_her_p")
+@updater_factory.register_parser("path_her_rl_p")
 class UpdatePRLHER(UpdateRLParser):
     pass

@@ -13,7 +13,7 @@ from deepxube.pathfinding.supervised import PathFindNodeSup, PathFindEdgeSup, Pa
 import numpy as np
 
 
-@updater_factory.register_class("up_sup_v")
+@updater_factory.register_class("sup_v")
 class UpdateHeurVSup(UpdateHeurV[Domain, PathFindNodeSup, Instance, UFNsHeurV], UpdateSup[Domain, PathFindNodeSup, Instance, UFNsHeurV]):
     @staticmethod
     def domain_type() -> Type[Domain]:
@@ -41,7 +41,7 @@ class UpdateHeurVSup(UpdateHeurV[Domain, PathFindNodeSup, Instance, UFNsHeurV], 
         return inputs_np + [np.array(ctgs_backup)]
 
 
-@updater_factory.register_class("up_sup_q")
+@updater_factory.register_class("sup_q")
 class UpdateHeurQSup(UpdateHeurQ[Domain, PathFindEdgeSup, Instance, UFNsHeurQ], UpdateSup[Domain, PathFindEdgeSup, Instance, UFNsHeurQ]):
     @staticmethod
     def domain_type() -> Type[Domain]:
@@ -71,7 +71,7 @@ class UpdateHeurQSup(UpdateHeurQ[Domain, PathFindEdgeSup, Instance, UFNsHeurQ], 
         return inputs_np + [np.array(ctgs_backup)]
 
 
-@updater_factory.register_class("up_sup_p")
+@updater_factory.register_class("sup_p")
 class UpdatePolicySup(UpdatePolicy[Domain, PathFindEdgeSamp, Instance, UFNsPolicy],
                       UpdateSup[Domain, PathFindEdgeSamp, Instance, UFNsPolicy]):
     @staticmethod
@@ -101,16 +101,16 @@ class UpdatePolicySup(UpdatePolicy[Domain, PathFindEdgeSamp, Instance, UFNsPolic
         return inputs_np
 
 
-@updater_factory.register_parser("up_sup_v")
+@updater_factory.register_parser("sup_v")
 class UpdateVSup(UpdateParser):
     pass
 
 
-@updater_factory.register_parser("up_sup_q")
+@updater_factory.register_parser("sup_q")
 class UpdateQSup(UpdateParser):
     pass
 
 
-@updater_factory.register_parser("up_sup_p")
+@updater_factory.register_parser("sup_p")
 class UpdatePSup(UpdateParser):
     pass
