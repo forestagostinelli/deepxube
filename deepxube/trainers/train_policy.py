@@ -1,19 +1,33 @@
-from typing import List
+from typing import List, Type
 
 from deepxube.base.nnet import PolicyNNet
 from deepxube.base.updater import UpdatePolicy
-from deepxube.base.trainer import Train, update_optimizer
+from deepxube.base.trainer import Train, update_optimizer, TrainParser
 from deepxube.utils.train_utils import train_nnet_step
 from deepxube.utils.timing_utils import Times
+from deepxube.factories.trainer_factory import trainer_factory
 
 from numpy.typing import NDArray
 import time
 
 
+@trainer_factory.register_class("tr_p")
 class TrainPolicy(Train[PolicyNNet, UpdatePolicy]):
     @staticmethod
     def data_parallel() -> bool:
         return True
+
+    @staticmethod
+    def nnet_type() -> Type[PolicyNNet]:
+        return PolicyNNet
+
+    @staticmethod
+    def updater_type() -> Type[UpdatePolicy]:
+        return UpdatePolicy
+
+    @staticmethod
+    def get_nnet_name() -> str:
+        return "policy"
 
     def _train_itr(self, batch: List[NDArray], first_itr_in_update: bool, times: Times) -> float:
         start_time = time.time()
@@ -28,3 +42,8 @@ class TrainPolicy(Train[PolicyNNet, UpdatePolicy]):
 
     def _add_post_up_info(self) -> List[str]:
         return []
+
+
+@trainer_factory.register_parser("tr_p")
+class TrainHeurParser(TrainParser):
+    pass
