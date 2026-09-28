@@ -1,6 +1,7 @@
 from typing import List, Type, Any
 
 from deepxube.utils import misc_utils
+from deepxube.base.factory import DelimParser
 from deepxube.pytorch.nnet_utils import ProcessedInput
 from deepxube.base.domain import Domain, State, Action, Goal, ActsEnumFixed
 from deepxube.base.nnet_input import StateGoalActFixIn, StateGoalActIn
@@ -136,6 +137,17 @@ class HeurQNNetParIn(HeurQNNetPar[QInProcessed, Domain, StateGoalActIn]):
 @deepxube_nnet_par_factory.register_class("policy")
 class PolicyNNetParC(PolicyNNetPar):
     pass
+
+
+@deepxube_nnet_par_factory.register_parser("policy")
+class GridParser(DelimParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.add_argument("samp", "num_samp", int, "number of actions to sample")
+
+    @property
+    def delim(self) -> str:
+        return "_"
 
 
 @updater_fns_factory.register

@@ -160,14 +160,15 @@ class PolicyVAE(PolicyNNet[PNNetIn]):
     @staticmethod
     def _compute_recon_loss(action_proc: List[Tensor], actions_recon: List[Tensor]) -> Tensor:
         loss_recons: List[Tensor] = []
-        for actions_proc_i, actions_recon_i in zip(action_proc, actions_recon):
+        for actions_proc_i, actions_recon_i in zip(action_proc, actions_recon, strict=True):
             mean_dims: Tuple[int, ...] = tuple(range(1, len(actions_proc_i.shape)))
+            assert actions_recon_i.size() == actions_proc_i.size(), f"{actions_recon_i.size()}, {actions_proc_i.size()}"
             loss_recon_i: Tensor = torch.mean((actions_recon_i - actions_proc_i) ** 2, dim=mean_dims)
             loss_recons.append(loss_recon_i)
 
         return torch.stack(loss_recons, dim=0).mean(dim=0)
 
-    def __init__(self, nnet_input: PNNetIn, num_samp: int, kl_weight: float, **kwargs: Any):
+    def __init__(self, nnet_input: PNNetIn, num_samp: int, kl_weight: float = 0.1, **kwargs: Any):
         super().__init__(nnet_input, num_samp)
         self.norm_dist = torch.distributions.Normal(0, 1)
         self.kl_weight: float = kl_weight
