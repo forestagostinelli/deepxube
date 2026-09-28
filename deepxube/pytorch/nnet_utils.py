@@ -34,6 +34,9 @@ def get_device() -> Tuple[torch.device, List[int], bool]:
         devices = [int(x) for x in os.environ['CUDA_VISIBLE_DEVICES'].split(",")]
         on_gpu = True
         torch.set_num_threads(1)
+    elif (('NO_MPS' not in os.environ) or (('NO_MPS' in os.environ) and (os.environ['NO_MPS'] == '0'))) and torch.backends.mps.is_available():
+        device = torch.device("mps")
+        torch.set_num_threads(1)
     else:
         torch.set_num_threads(8)
 

@@ -9,3 +9,5 @@ looked at before self.ctl_rand.solve()
 * Context is not explicitly typed, so user must be careful to ensure nnet_input 
 and pathfinding match
 * Node context is overwritten if node values set multiple times
+* MPS (Metal Performance Shaders on Apple silicon) does not support all torch operations. Set NO_MPS=1 if running into issues. Otherwise, 
+remove NO_MPS environment variable or set NO_MPS=0.
