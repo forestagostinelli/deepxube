@@ -271,7 +271,10 @@ class Train(Generic[NNet, Up], ABC):
 
     def train_loop(self) -> None:
         # start procs
+        print("Starting updater processes")
+        start_time = time.time()
         to_main_q, from_main_qs = self.updater.start_procs(self.updater.up_args.rb * self.train_args.batch_size * self.updater.up_args.get_up_gen_itrs())
+        print("Time: ", time.time() - start_time)
 
         # train loop
         while self.status.itr < self.train_args.max_itrs:
