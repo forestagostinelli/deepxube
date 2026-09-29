@@ -362,6 +362,7 @@ class RolloutPolicy(BeamSearchPolicy):
         kwargs["beam_size"] = 1
         kwargs["rollout"] = True
         super().__init__(*args, **kwargs)
+
     @staticmethod
     def description() -> str:
         return "Rollout policy put do not terminate if a goal is seen"

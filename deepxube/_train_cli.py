@@ -1,4 +1,4 @@
-from typing import cast
+from typing import cast, List, Optional
 import argparse
 from argparse import ArgumentParser
 
@@ -74,7 +74,18 @@ def train_cli(args: argparse.Namespace) -> None:
     domain, domain_name = get_domain_from_arg(args.domain)
 
     # parse nnet fn args
-    pathfind_fns, updater_fns = get_path_up_fns(domain, domain_name, args.fn, device)
+    nnet_files: List[Optional[str]] = []
+    fns: List[str] = []
+    for fn in args.fn:
+        fns_split: List[str] = fn.split(",")
+        if fns_split[-1][:5] == "file:":
+            fns.append(",".join(fns_split[:-1]))
+            nnet_files.append(fns_split[-1][5:])
+        else:
+            fns.append(fn)
+            nnet_files.append(None)
+
+    pathfind_fns, updater_fns = get_path_up_fns(domain, domain_name, fns, device, nnet_files=nnet_files)
     for field in fields(updater_fns):
         nnet_par: DeepXubeNNetPar = cast(DeepXubeNNetPar, getattr(updater_fns, field.name))
         print(nnet_par)
