@@ -116,6 +116,8 @@ def get_act_fn(act: str) -> nn.Module:
         return nn.ReLU()
     if act == "RELU2":
         return ReLU2()
+    elif act == "SILU":
+        return nn.modules.activation.SiLU()
     elif act == "ELU":
         return nn.ELU()
     elif act == "SIGMOID":
@@ -162,7 +164,8 @@ class ResnetModel(nn.Module):
 
 class FullyConnectedModel(nn.Module):
     def __init__(self, input_dim: int, dims: List[int], acts: List[str], batch_norms: Optional[List[bool]] = None,
-                 weight_norms: Optional[List[bool]] = None, group_norms: Optional[List[int]] = None):
+                 weight_norms: Optional[List[bool]] = None, group_norms: Optional[List[int]] = None, pre: bool = False):
+        # not pre: weight -> norm -> act; pre: norm -> act -> weight
         super().__init__()
         if batch_norms is None:
             batch_norms = [False] * len(dims)
@@ -177,13 +180,7 @@ class FullyConnectedModel(nn.Module):
                                                                  strict=True):
             module_list = nn.ModuleList()
 
-            # linear
-            if weight_norm:
-                module_list.append(nn.utils.parametrizations.weight_norm(nn.Linear(input_dim, dim)))
-            else:
-                module_list.append(nn.Linear(input_dim, dim))
-
-            # batch norm
+            # norms
             if batch_norm:
                 module_list.append(nn.BatchNorm1d(dim))
 
@@ -193,6 +190,17 @@ class FullyConnectedModel(nn.Module):
 
             # activation
             module_list.append(get_act_fn(act))
+
+            # linear
+            module_linear: nn.Module = nn.Linear(input_dim, dim)
+            if weight_norm:
+                module_linear: nn.Module = nn.utils.parametrizations.weight_norm(module_linear)
+
+            if pre:
+                module_list.append(module_linear)
+            else:
+                module_list.insert(0, module_linear)
+
             self.layers.append(module_list)
 
             input_dim = dim
@@ -212,8 +220,9 @@ class FullyConnectedModel(nn.Module):
 class Conv2dModel(nn.Module):
     def __init__(self, chan_in: int, channel_sizes: List[int], kernel_sizes: List[int], paddings: List[int],
                  layer_acts: List[str], batch_norms: Optional[List[bool]] = None, strides: Optional[List[int]] = None,
-                 transpose: bool = False, weight_norms: Optional[List[bool]] = None,
-                 dropouts: Optional[List[float]] = None):
+                 transpose: bool = False, weight_norms: Optional[List[bool]] = None, group_norms: Optional[List[int]] = None,
+                 dropouts: Optional[List[float]] = None, pre: bool = False):
+        # not pre: weight -> norm -> act; pre: norm -> act -> weight
         super().__init__()
         self.layers: nn.ModuleList = nn.ModuleList()
         if strides is None:
@@ -221,19 +230,34 @@ class Conv2dModel(nn.Module):
 
         if batch_norms is None:
             batch_norms = [False] * len(channel_sizes)
-
         if weight_norms is None:
             weight_norms = [False] * len(channel_sizes)
+        if group_norms is None:
+            group_norms = [-1] * len(channel_sizes)
 
         if dropouts is None:
             dropouts = [0.0] * len(channel_sizes)
 
         # layers
-        for chan_out, kernel_size, padding, batch_norm, act, stride, weight_norm, dropout in \
-                zip(channel_sizes, kernel_sizes, paddings, batch_norms, layer_acts, strides, weight_norms,
+        for chan_out, kernel_size, padding, batch_norm, act, stride, weight_norm, group_norm, dropout in \
+                zip(channel_sizes, kernel_sizes, paddings, batch_norms, layer_acts, strides, weight_norms, group_norms,
                     dropouts, strict=True):
 
             module_list = nn.ModuleList()
+
+            # norms
+            if batch_norm:
+                module_list.append(nn.BatchNorm2d(chan_out))
+
+            if group_norm > 0:
+                module_list.append(nn.GroupNorm(group_norm, chan_out))
+
+            # activation
+            module_list.append(get_act_fn(act))
+
+            # dropout
+            if dropout > 0.0:
+                module_list.append(nn.Dropout(dropout))
 
             # linear
             conv_layer: Union[nn.Conv2d, nn.ConvTranspose2d]
@@ -245,18 +269,10 @@ class Conv2dModel(nn.Module):
             if weight_norm:
                 conv_layer = parametrizations.weight_norm(conv_layer)
 
-            module_list.append(conv_layer)
-
-            # batch norm
-            if batch_norm:
-                module_list.append(nn.BatchNorm2d(chan_out))
-
-            # activation
-            module_list.append(get_act_fn(act))
-
-            # dropout
-            if dropout > 0.0:
-                module_list.append(nn.Dropout(dropout))
+            if pre:
+                module_list.append(conv_layer)
+            else:
+                module_list.insert(0, conv_layer)
 
             self.layers.append(module_list)
 
