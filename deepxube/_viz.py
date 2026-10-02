@@ -8,6 +8,7 @@ from argparse import ArgumentParser
 from numpy.typing import NDArray
 import matplotlib.pyplot as plt
 from PIL import Image
+import numpy as np
 
 import pickle
 
@@ -65,7 +66,7 @@ def viz_step(domain: StateGoalVizable, data: Dict, idx: int, state_idx: int, sta
     return state, state_idx
 
 
-def viz_instance(domain: StateGoalVizable, fig: Figure, file: str, idx: int, v_time: float):
+def viz_instance(domain: StateGoalVizable, fig: Figure, file: str, idx: int, v_time: float) -> None:
     data = pickle.load(open(file, "rb"))
     instances: List[Optional[Instance]] = data["instances"]
     instance: Optional[Instance] = instances[idx]
@@ -95,7 +96,7 @@ def viz_instance(domain: StateGoalVizable, fig: Figure, file: str, idx: int, v_t
                     plt.pause(v_time)
             else:
                 if act_str.upper() == "N":
-                    node_idx: int = min(node_idx + 1, node_idx_max)
+                    node_idx = min(node_idx + 1, node_idx_max)
                 elif act_str.upper() == "P":
                     node_idx = max(node_idx - 1, 0)
                 else:

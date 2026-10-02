@@ -5,7 +5,7 @@ from torch import Tensor
 import torch.nn as nn
 from torch.multiprocessing import Queue, get_context
 
-from deepxube.base.domain import Domain, ActsEnum, StartGoalWalkable, State, Goal, Action
+from deepxube.base.domain import Domain, ActsEnum, StartGoalWalkable, State, Goal, Action, NodesLabelsSampleable
 from deepxube.pytorch.nnet_utils import NNetPar
 from deepxube.base.nnet import PolicyNNet
 from deepxube.base.pathfind_fns import PolicyFn, HeurNNetPar, HeurVNNetPar, HeurQNNetPar, PolicyNNetPar, DeepXubeNNetPar
@@ -32,7 +32,8 @@ def test_env(env: Domain, num_states: int, step_min: int, step_max: int) -> Tupl
     # get data
     start_time = time.time()
     sg_times: Times = Times()
-    states, goals = env.sample_problem_instances(list(np.random.randint(step_min, step_max + 1, size=num_states)), times=sg_times)
+    num_steps_l: List[int] = np.asarray(np.random.randint(step_min, step_max + 1, size=num_states)).tolist()
+    states, goals = env.sample_problem_instances(num_steps_l, times=sg_times)
     assert len(states) == len(goals), f"state({len(states)}) and goal({len(goals)}) pairs not same length"
 
     elapsed_time = time.time() - start_time
@@ -125,6 +126,21 @@ def test_envenumerableacts(env: ActsEnum, states: List[State]) -> None:
     states_per_sec = len(states) / elapsed_time
     print(f"Expanded %i states, mean #next/tc: ({ave_next_states:.2f}/{ave_tc:.2f}), "
           f"in %s seconds (%.2f/second)" % (len(states), elapsed_time, states_per_sec))
+
+
+def test_nodeslabelssampleable(domain: NodesLabelsSampleable, num_states: int, step_min: int, step_max: int) -> None:
+    print("\n---Testing NodesLabelsSampleable---")
+    torch.set_num_threads(1)
+
+    # expand
+    start_time = time.time()
+    steps: List[int] = np.asarray(np.random.randint(step_min, step_max + 1, size=num_states)).tolist()
+    states, goals, ctxs, labels = domain.samp_nodes_and_labels(steps)
+    assert len(states) == len(goals) == len(ctxs) == len(labels)
+
+    elapsed_time = time.time() - start_time
+    states_per_sec = len(states) / elapsed_time
+    print(f"Sampled {len(states)} labeled nodes in %s seconds (%.2f/second)" % (elapsed_time, states_per_sec))
 
 
 def init_nnet(nnet_par: NNetPar) -> Tuple[nn.Module, torch.device]:
@@ -235,6 +251,8 @@ def time_test(domain: Domain, dx_nnet_par_l: Optional[List[DeepXubeNNetPar]], nu
         test_envstartgoalrw(domain, num_states)
     if isinstance(domain, ActsEnum):
         test_envenumerableacts(domain, states)
+    if isinstance(domain, NodesLabelsSampleable):
+        test_nodeslabelssampleable(domain, num_states, step_min, step_max)
 
     if dx_nnet_par_l is not None:
         for dx_nnet_par in dx_nnet_par_l:

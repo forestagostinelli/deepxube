@@ -194,7 +194,7 @@ class FullyConnectedModel(nn.Module):
             # linear
             module_linear: nn.Module = nn.Linear(input_dim, dim)
             if weight_norm:
-                module_linear: nn.Module = nn.utils.parametrizations.weight_norm(module_linear)
+                module_linear = nn.utils.parametrizations.weight_norm(module_linear)
 
             if pre:
                 module_list.append(module_linear)

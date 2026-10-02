@@ -89,12 +89,12 @@ class Node:
             descendants.append(descendant)
         return descendants
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict:
         self.parent = None
         self.edge_dict = dict()
         return {name: getattr(self, name) for name in self.__slots__ if hasattr(self, name)}
 
-    def __setstate__(self, d):
+    def __setstate__(self, d: Dict) -> None:
         for k, v in d.items():
             setattr(self, k, v)
 
