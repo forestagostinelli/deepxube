@@ -59,6 +59,7 @@ def parse_solve(parser: ArgumentParser) -> None:
     parser.add_argument('--file', type=str, required=True, help="File containing problem instances to solve")
     parser.add_argument('--results', type=str, required=True, help="Directory to save results. Saves results after every instance.")
     parser.add_argument('--start_idx', type=int, default=None, help="Index of instance at which to start. Useful for debugging.")
+    parser.add_argument('--save_inst', action='store_true', default=False, help="Set to save instances")
 
     parser.add_argument('--redo', action='store_true', default=False, help="Set to redo already completed instances")
     parser.add_argument('--verbose', action='store_true', default=False, help="Set for verbose")
@@ -89,7 +90,7 @@ def solve_cli(args: argparse.Namespace) -> None:
             sys.stdout = data_utils.Logger(output_file, "a")
     else:
         results = {"states": states, "goals": goals, "actions": [], "states_on_path": [], "path_costs": [], "iterations": [], "times": [], "itrs/sec": [],
-                   "num_nodes_generated": [], "solved": []}
+                   "num_nodes_generated": [], "solved": [], "instances": []}
         if not args.debug:
             sys.stdout = data_utils.Logger(output_file, "w")
 
@@ -197,6 +198,10 @@ def solve_cli(args: argparse.Namespace) -> None:
         results["times"].append(solve_time)
         results["num_nodes_generated"].append(num_nodes_gen_idx)
         results["solved"].append(solved)
+        if args.save_inst:
+            results["instances"].append(pathfind.instances[0])
+        else:
+            results["instances"].append(None)
 
         # print to screen
         print(f"State: %i, SolnCost: %.2f, # Nodes Gen: %s, Itrs: %i, Itrs/sec: %.2f, Solved: {solved}, "
