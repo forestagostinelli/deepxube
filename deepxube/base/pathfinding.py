@@ -89,6 +89,15 @@ class Node:
             descendants.append(descendant)
         return descendants
 
+    def __getstate__(self):
+        self.parent = None
+        self.edge_dict = dict()
+        return {name: getattr(self, name) for name in self.__slots__ if hasattr(self, name)}
+
+    def __setstate__(self, d):
+        for k, v in d.items():
+            setattr(self, k, v)
+
 
 def get_path(node: Node) -> Tuple[List[State], List[Action], List[float], float]:
     """ Gets path from the start state to the goal state associated with the input node
@@ -132,7 +141,7 @@ class EdgeQ:
 class Instance(ABC):
     def __init__(self, root_node: Node, inst_info: Any, **kwargs: Any):
         self.root_node: Node = root_node
-        self.itr: int = 0  # updater with every pathfinding iteration
+        self.itr: int = 0  # update with every pathfinding iteration
         self.num_nodes_generated: int = 0
         self.inst_info: Any = inst_info
         self.goal_node: Optional[Node] = None

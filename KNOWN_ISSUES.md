@@ -11,3 +11,4 @@ and pathfinding match
 * Node context is overwritten if node values set multiple times
 * MPS (Metal Performance Shaders on Apple silicon) does not support all torch operations. Set NO_MPS=1 if running into issues. Otherwise, 
 remove NO_MPS environment variable or set NO_MPS=0.
+* When pickling nodes, pointers to other Node objects are removed to prevent this error: RecursionError: maximum recursion depth exceeded while calling a Python object
