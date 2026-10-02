@@ -432,13 +432,14 @@ class Train(Generic[NNet, Up], ABC):
             self.status.update_step_probs(step_to_search_perf)
 
         per_solved_ave, path_costs_ave, search_itrs_ave = get_eq_weighted_perf(step_to_search_perf)
+        num_instances: int = sum([len(step_to_search_perf_i.is_solved_l) for step_to_search_perf_i in step_to_search_perf.values()])
 
         self.writer.add_scalar("train/pathfind/solved", per_solved_ave, self.status.itr)
         self.writer.add_scalar("train/pathfind/path_cost", path_costs_ave, self.status.itr)
         self.writer.add_scalar("train/pathfind/search_itrs", search_itrs_ave, self.status.itr)
 
         post_up_info_l: List[str] = [f"%solved: {per_solved_ave:.2f}", f"path_costs: {path_costs_ave:.3f}",
-                                     f"search_itrs: {search_itrs_ave:.3f}"] + self._add_post_up_info()
+                                     f"search_itrs: {search_itrs_ave:.3f}", f"num_inst: {format(num_instances, ',')}"] + self._add_post_up_info()
 
         print(f"Data - {', '.join(post_up_info_l)}")
 
