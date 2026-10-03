@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Any, Type, Optional, TypeVar, Dict
 
-from deepxube.base.factory import Parser
+from deepxube.base.factory import Parser, DelimParser
 from deepxube.base.domain import Domain, ActsEnum, State, Goal
 from deepxube.base.pathfinding import (Instance, InstanceNode, InstanceEdge, Node, EdgeQ, PFNsT, PFNsHV_T, PFNsHQ_T, PathFind, PathFindNodeStatic,
                                        PathFindEdgeStatic, PathFindActsPolicy, PathFindSetPolicy, PathFindSetHeurV, PathFindSetHeurQ, PathFindActsEnum)
@@ -14,11 +14,13 @@ import re
 
 
 class InstanceBeam(Instance, ABC):
-    def __init__(self, *args: Any, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False, **kwargs: Any):
+    def __init__(self, *args: Any, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, finished_heur_thresh: Optional[float] = None,
+                 rollout: bool = False, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.beam_size: int = beam_size
         self.temp: float = temp
         self.eps: float = eps
+        self.finished_heur_thresh: Optional[float] = finished_heur_thresh
         self.rollout: bool = rollout
 
     def frontier_size(self) -> int:
@@ -59,8 +61,14 @@ class InstanceBeam(Instance, ABC):
     def finished(self) -> bool:
         if self.rollout:
             return False
+        elif self.has_soln():
+            return True
         else:
-            return self.has_soln()
+            if (self.finished_heur_thresh is not None) and (len(self._nodes_popped) > 1):
+                # check len nodes_popped > 1 to avoid false positive case where init heur is not computed
+                return self._nodes_popped[-1].heuristic < self.finished_heur_thresh
+            else:
+                return False
 
 
 D = TypeVar('D', bound=Domain)
@@ -68,10 +76,12 @@ IBeam = TypeVar('IBeam', bound=InstanceBeam)
 
 
 class BeamSearch(PathFind[D, PFNsT, IBeam], ABC):
-    def __init__(self, *args: Any, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, rollout: bool = False, **kwargs: Any):
+    def __init__(self, *args: Any, beam_size: int = 1, temp: float = 0.0, eps: float = 0.0, finished_heur_thresh: Optional[float] = None, rollout: bool = False,
+                 **kwargs: Any):
         self.beam_size_default: int = beam_size
         self.temp_default: float = temp
         self.eps_default: float = eps
+        self.finished_heur_thresh: Optional[float] = finished_heur_thresh
         self.rollout: bool = rollout
         super().__init__(*args, **kwargs)
 
@@ -84,7 +94,8 @@ class BeamSearch(PathFind[D, PFNsT, IBeam], ABC):
         temp_inst: float = temp if temp is not None else self.temp_default
         eps_inst: float = eps if eps is not None else self.eps_default
 
-        instances: List[IBeam] = [inst_cls(node_root, inst_info, beam_size=beam_size_inst, temp=temp_inst, eps=eps_inst, rollout=self.rollout)
+        instances: List[IBeam] = [inst_cls(node_root, inst_info, beam_size=beam_size_inst, temp=temp_inst, eps=eps_inst,
+                                           finished_heur_thresh=self.finished_heur_thresh, rollout=self.rollout)
                                   for node_root, inst_info in zip(nodes_root, inst_infos, strict=True)]
 
         if compute_root_vals:
@@ -96,7 +107,8 @@ class BeamSearch(PathFind[D, PFNsT, IBeam], ABC):
         pass
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}(beam_size={self.beam_size_default}, temp={self.temp_default}, eps={self.eps_default}, rollout={self.rollout})"
+        return (f"{type(self).__name__}(beam_size={self.beam_size_default}, temp={self.temp_default}, eps={self.eps_default}, "
+                f"finished_heur_thresh={self.finished_heur_thresh}, rollout={self.rollout})")
 
 
 class InstanceNodeBeam(InstanceNode, InstanceBeam):
@@ -241,8 +253,8 @@ class BeamSearchHeurNodeActsPolicy(BeamSearchHeurNode[Domain, PFNsHeurVPolicy], 
         return "Beam search with heuristic that prioritizes nodes and policy that samples edges"
 
     def __repr__(self) -> str:
-        return (f"{type(self).__name__}(beam_size={self.beam_size_default}, temp={self.temp_default}, eps={self.eps_default}, rollout={self.rollout}, "
-                f"num_rand_edges={self.num_rand_edges})")
+        return (f"{type(self).__name__}(beam_size={self.beam_size_default}, temp={self.temp_default}, eps={self.eps_default}, "
+                f"finished_heur_thresh={self.finished_heur_thresh}, rollout={self.rollout}, num_rand_edges={self.num_rand_edges})")
 
 
 @pathfinding_factory.register_class("beam_q_p")
@@ -260,98 +272,53 @@ class BeamSearchHeurEdgeActsPolicy(BeamSearchHeurEdge[Domain, PFNsHeurQPolicy], 
         return "Beam search with heuristic that prioritizes edges and policy that samples edges"
 
     def __repr__(self) -> str:
-        return (f"{type(self).__name__}(beam_size={self.beam_size_default}, temp={self.temp_default}, eps={self.eps_default}, rollout={self.rollout}, "
-                f"num_rand_edges={self.num_rand_edges})")
+        return (f"{type(self).__name__}(beam_size={self.beam_size_default}, temp={self.temp_default}, eps={self.eps_default}, "
+                f"finished_heur_thresh={self.finished_heur_thresh}, rollout={self.rollout}, num_rand_edges={self.num_rand_edges})")
 
 
-class BeamSearchParser(Parser, ABC):
-    def parse(self, args_str: str) -> Dict[str, Any]:
-        args_str_l: List[str] = args_str.split("_")
-        kwargs: Dict[str, Any] = dict()
-        for args_str_i in args_str_l:
-            beam_re = re.search(r"^(\S+)B$", args_str_i)
-            temp_re = re.search(r"^(\S+)T", args_str_i)
-            eps_re = re.search(r"^(\S+)E", args_str_i)
-            if beam_re is not None:
-                kwargs["beam_size"] = int(beam_re.group(1))
-            elif temp_re is not None:
-                kwargs["temp"] = float(temp_re.group(1))
-            elif eps_re is not None:
-                kwargs["eps"] = float(eps_re.group(1))
-            else:
-                raise ValueError(f"Unexpected argument {args_str_i!r}")
-        kwargs["rollout"] = False
-        return kwargs
+class BeamSearchParser(DelimParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.add_argument("B", "beam_size", int, "Beam size")
+        self.add_argument("T", "temp", float, "Temperature")
+        self.add_argument("E", "eps", float, "Probability of randomly selecting a node from the beam")
+        self.add_argument("F", "finished_heur_thresh", float, "Heuristic value threshold for popped nodes (excluding root) below which search finishes, "
+                                                              "even if not solved.")
 
-    def help(self) -> str:
-        return ("<int>B (beam size), <float>T (temperature for Boltzmann distribution), <float>E (epsilon for chance to randomly select node).\n"
-                f"E.g. {self._alg_name()}.10B_1.0T_0.1E")
-
-    @abstractmethod
-    def _alg_name(self) -> str:
-        pass
+    @property
+    def delim(self) -> str:
+        return "_"
 
 
 @pathfinding_factory.register_parser("beam_p")
 class BeamSearchPolicyParser(BeamSearchParser):
-    def _alg_name(self) -> str:
-        return "beam_p"
+    pass
 
 
 @pathfinding_factory.register_parser("beam_v")
 class BeamSearchNodeParser(BeamSearchParser):
-    def _alg_name(self) -> str:
-        return "beam_v"
+    pass
 
 
 @pathfinding_factory.register_parser("beam_q")
 class BeamSearchEdgeParser(BeamSearchParser):
-    def _alg_name(self) -> str:
-        return "beam_q"
+    pass
 
 
-class BeamSearchHasPolicyParser(Parser, ABC):
-    def parse(self, args_str: str) -> Dict[str, Any]:
-        args_str_l: List[str] = args_str.split("_")
-        kwargs: Dict[str, Any] = dict()
-        for args_str_i in args_str_l:
-            beam_re = re.search(r"^(\S+)B$", args_str_i)
-            temp_re = re.search(r"^(\S+)T", args_str_i)
-            eps_re = re.search(r"^(\S+)E", args_str_i)
-            num_rand_edges = re.search(r"^(\S+)R", args_str_i)
-            if beam_re is not None:
-                kwargs["beam_size"] = int(beam_re.group(1))
-            elif temp_re is not None:
-                kwargs["temp"] = float(temp_re.group(1))
-            elif eps_re is not None:
-                kwargs["eps"] = float(eps_re.group(1))
-            elif num_rand_edges is not None:
-                kwargs["num_rand_edges"] = int(num_rand_edges.group(1))
-            else:
-                raise ValueError(f"Unexpected argument {args_str_i!r}")
-        kwargs["rollout"] = False
-        return kwargs
-
-    def help(self) -> str:
-        return ("<int>B (beam size), <float>T (temperature for Boltzmann distribution), <float>E (epsilon for chance to randomly select node), "
-                "<int>R (num rand edges).\n"
-                f"E.g. {self._alg_name()}.10B_1.0T_0.1E_5R")
-
-    @abstractmethod
-    def _alg_name(self) -> str:
-        pass
+class BeamSearchHasPolicyParser(BeamSearchParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.add_argument("R", "num_rand_edges", int, "Number of random edges to add to actions")
 
 
 @pathfinding_factory.register_parser("beam_v_p")
 class BeamSearchNodeHasPolicyParser(BeamSearchHasPolicyParser):
-    def _alg_name(self) -> str:
-        return "beam_v_p"
+    pass
 
 
 @pathfinding_factory.register_parser("beam_q_p")
 class BeamSearchEdgeHasPolicyParser(BeamSearchHasPolicyParser):
-    def _alg_name(self) -> str:
-        return "beam_q_p"
+    pass
 
 
 # Rollout - special case of beam search where no goal test is done
