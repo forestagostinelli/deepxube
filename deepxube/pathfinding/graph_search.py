@@ -1,6 +1,6 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import List, Any, Type, Optional, TypeVar, Generic, Tuple, Dict
-from deepxube.base.factory import Parser
+from deepxube.base.factory import DelimParser
 from deepxube.base.domain import Domain, ActsEnum, State, Goal
 from deepxube.base.pathfinding import (Instance, InstanceNode, InstanceEdge, Node, EdgeQ, PFNsT, PFNsHV_T, PFNsHQ_T, PathFind,
                                        PathFindNodeStatic, PathFindEdgeStatic, PathFindActsPolicy, PathFindSetHeurV, PathFindSetHeurQ, PathFindActsEnum)
@@ -11,14 +11,14 @@ from heapq import heappush, heappop, heapify
 import numpy as np
 import random
 import time
-import re
 
 
 SchOver = TypeVar("SchOver")
 
 
 class InstanceGraph(Instance, Generic[SchOver]):
-    def __init__(self, *args: Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, **kwargs: Any):
+    def __init__(self, *args: Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, finished_heur_thresh: Optional[float] = None,
+                 **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.open_set: List[Tuple[float, int, SchOver]] = []
         self.heappush_count: int = 0
@@ -28,6 +28,7 @@ class InstanceGraph(Instance, Generic[SchOver]):
         self.batch_size: int = batch_size
         self.weight: float = weight
         self.eps: float = eps
+        self.finished_heur_thresh: Optional[float] = finished_heur_thresh
 
     def frontier_size(self) -> int:
         return len(self.open_set)
@@ -43,7 +44,14 @@ class InstanceGraph(Instance, Generic[SchOver]):
     def finished(self) -> bool:
         case1: bool = (self.goal_node is not None) and (self.lb >= (self.weight * self.ub))
         case2: bool = (self.itr > 0) and (len(self._nodes_curr) == 0)
-        return case1 or case2
+        if case1 or case2:
+            return True
+
+        if (self.finished_heur_thresh is not None) and (len(self._nodes_popped) > 1):
+            # check len nodes_popped > 1 to avoid false positive case where init heur is not computed
+            return self._nodes_popped[-1].heuristic < self.finished_heur_thresh
+        else:
+            return False
 
     def _push_to_open(self, sch_over_l: List[SchOver], costs: List[float]) -> None:
         for sch_over, cost in zip(sch_over_l, costs, strict=True):
@@ -85,10 +93,11 @@ IGraph = TypeVar('IGraph', bound=InstanceGraph)
 
 
 class GraphSearch(PathFind[D, PFNsT, IGraph], ABC):
-    def __init__(self, *args: Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, **kwargs: Any):
+    def __init__(self, *args: Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, finished_heur_thresh: Optional[float] = None, **kwargs: Any):
         self.batch_size_default: int = batch_size
         self.weight_default: float = weight
         self.eps_default: float = eps
+        self.finished_heur_thresh: Optional[float] = finished_heur_thresh
         super().__init__(*args, **kwargs)
 
     def _construct_instances(self, inst_cls: type[IGraph], nodes_root: List[Node], inst_infos: Optional[List[Any]], batch_size: Optional[int],
@@ -100,7 +109,8 @@ class GraphSearch(PathFind[D, PFNsT, IGraph], ABC):
         weight_inst: float = weight if weight is not None else self.weight_default
         eps_inst: float = eps if eps is not None else self.eps_default
 
-        instances: List[IGraph] = [inst_cls(node_root, inst_info, batch_size=batch_size_inst, weight=weight_inst, eps=eps_inst)
+        instances: List[IGraph] = [inst_cls(node_root, inst_info, batch_size=batch_size_inst, weight=weight_inst, eps=eps_inst,
+                                            finished_heur_thresh=self.finished_heur_thresh)
                                    for node_root, inst_info in zip(nodes_root, inst_infos, strict=True)]
 
         if compute_root_vals:
@@ -112,7 +122,8 @@ class GraphSearch(PathFind[D, PFNsT, IGraph], ABC):
         pass
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}(batch_size={self.batch_size_default}, weight={self.weight_default}, eps={self.eps_default})"
+        return (f"{type(self).__name__}(batch_size={self.batch_size_default}, weight={self.weight_default}, eps={self.eps_default}, "
+                f"finished_heur_thresh={self.finished_heur_thresh})")
 
 
 class InstanceNodeGraph(InstanceNode, InstanceGraph[Node]):
@@ -225,7 +236,7 @@ class GraphSearchHeurNodeActsPolicy(GraphSearchHeurNode[Domain, PFNsHeurVPolicy]
 
     def __repr__(self) -> str:
         return (f"{type(self).__name__}(batch_size={self.batch_size_default}, weight={self.weight_default}, eps={self.eps_default}, "
-                f"num_rand_edges={self.num_rand_edges})")
+                f"finished_heur_thresh={self.finished_heur_thresh}, num_rand_edges={self.num_rand_edges})")
 
 
 @pathfinding_factory.register_class("graph_q_p")
@@ -244,85 +255,44 @@ class GraphSearchHeurEdgeActsPolicy(GraphSearchHeurEdge[Domain, PFNsHeurQPolicy]
 
     def __repr__(self) -> str:
         return (f"{type(self).__name__}(batch_size={self.batch_size_default}, weight={self.weight_default}, eps={self.eps_default}, "
-                f"num_rand_edges={self.num_rand_edges})")
+                f"finished_heur_thresh={self.finished_heur_thresh}, num_rand_edges={self.num_rand_edges})")
 
 
-class GraphSearchParser(Parser, ABC):
-    def parse(self, args_str: str) -> Dict[str, Any]:
-        args_str_l: List[str] = args_str.split("_")
-        kwargs: Dict[str, Any] = dict()
-        for args_str_i in args_str_l:
-            batch_size_re = re.search(r"^(\S+)B$", args_str_i)
-            weight_re = re.search(r"^(\S+)W", args_str_i)
-            eps_re = re.search(r"^(\S+)E", args_str_i)
-            if batch_size_re is not None:
-                kwargs["batch_size"] = int(batch_size_re.group(1))
-            elif weight_re is not None:
-                kwargs["weight"] = float(weight_re.group(1))
-            elif eps_re is not None:
-                kwargs["eps"] = float(eps_re.group(1))
-            else:
-                raise ValueError(f"Unexpected argument {args_str_i!r}")
-        return kwargs
+class GraphSearchParser(DelimParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.add_argument("B", "batch_size", int, "Batch size")
+        self.add_argument("W", "weight", float, "Weight on path cost")
+        self.add_argument("E", "eps", float, "Probability of randomly expanding a node")
+        self.add_argument("F", "finished_heur_thresh", float, "Heuristic value threshold for popped nodes (excluding root) below which search finishes, "
+                                                              "even if not solved.")
 
-    def help(self) -> str:
-        return ("<int>B (batch size), <float>W (weight), <float>E (epsilon for chance to randomly pop node).\n"
-                f"E.g. {self._alg_name()}.10B_0.5W_0.1E")
-
-    @abstractmethod
-    def _alg_name(self) -> str:
-        pass
+    @property
+    def delim(self) -> str:
+        return "_"
 
 
 @pathfinding_factory.register_parser("graph_v")
 class GraphSearchNodeParser(GraphSearchParser):
-    def _alg_name(self) -> str:
-        return "graph_v"
+    pass
 
 
 @pathfinding_factory.register_parser("graph_q")
 class GraphSearchEdgeParser(GraphSearchParser):
-    def _alg_name(self) -> str:
-        return "graph_q"
+    pass
 
 
-class GraphSearchHasPolicyParser(Parser, ABC):
-    def parse(self, args_str: str) -> Dict[str, Any]:
-        args_str_l: List[str] = args_str.split("_")
-        kwargs: Dict[str, Any] = dict()
-        for args_str_i in args_str_l:
-            batch_size_re = re.search(r"^(\S+)B$", args_str_i)
-            weight_re = re.search(r"^(\S+)W", args_str_i)
-            eps_re = re.search(r"^(\S+)E", args_str_i)
-            num_rand_edges = re.search(r"^(\S+)R", args_str_i)
-            if batch_size_re is not None:
-                kwargs["batch_size"] = int(batch_size_re.group(1))
-            elif weight_re is not None:
-                kwargs["weight"] = float(weight_re.group(1))
-            elif eps_re is not None:
-                kwargs["eps"] = float(eps_re.group(1))
-            elif num_rand_edges is not None:
-                kwargs["num_rand_edges"] = int(num_rand_edges.group(1))
-            else:
-                raise ValueError(f"Unexpected argument {args_str_i!r}")
-        return kwargs
-
-    def help(self) -> str:
-        return ("<int>B (batch size), <float>W (weight), <float>E (epsilon for chance to randomly pop node), <int>R (num rand edges).\n"
-                f"E.g. {self._alg_name()}.10B_0.5W_0.1E_5R")
-
-    @abstractmethod
-    def _alg_name(self) -> str:
-        pass
+class GraphSearchHasPolicyParser(GraphSearchParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.add_argument("R", "num_rand_edges", int, "Number of random edges to add to actions")
 
 
 @pathfinding_factory.register_parser("graph_v_p")
 class GraphSearchNodeHasPolicyParser(GraphSearchHasPolicyParser):
-    def _alg_name(self) -> str:
-        return "graph_v_p"
+    pass
 
 
 @pathfinding_factory.register_parser("graph_q_p")
 class GraphSearchEdgeHasPolicyParser(GraphSearchHasPolicyParser):
-    def _alg_name(self) -> str:
-        return "graph_q_p"
+    pass
