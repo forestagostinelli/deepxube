@@ -116,7 +116,7 @@ def train_cli(args: argparse.Namespace) -> None:
     """
 
     # trainer
-    trainer, trainer_name = get_trainer_from_args(args.dir, updater, device, on_gpu, args.tr)
+    trainer, trainer_name = get_trainer_from_args(domain, args.dir, updater, device, on_gpu, args.tr)
     print(trainer, f"(name: {trainer_name})")
 
     trainer.train_loop()
