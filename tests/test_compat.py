@@ -33,6 +33,6 @@ def test_train_compat(fn_str: str, pathfind_str: str, up_str: str, tr_str: str) 
     pathfind_fns, updater_fns = get_path_up_fns(domain, domain_name, [f"{fn_str},{nnet_name_args}"], device)
     pathfind, pathfind_name, pathfind_name_args_full = get_pathfind_from_arg(domain, pathfind_fns, pathfind_str)
     updater, updater_name = get_updater_from_args(domain, pathfind, pathfind_name_args_full, updater_fns, up_str)
-    trainer, trainer_name = get_trainer_from_args(save_dir, updater, device, on_gpu, tr_str)
+    trainer, trainer_name = get_trainer_from_args(domain, save_dir, updater, device, on_gpu, tr_str)
 
     assert (trainer is not None) and (trainer_name is not None)

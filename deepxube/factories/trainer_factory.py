@@ -2,6 +2,7 @@ from typing import Tuple, Dict, Any, List, Optional
 
 import torch
 
+from deepxube.base.domain import Domain
 from deepxube.utils.command_line_utils import get_name_args
 from deepxube.base.updater import Update
 from deepxube.base.trainer import Train
@@ -10,7 +11,7 @@ from deepxube.base.factory import Factory
 trainer_factory: Factory[Train] = Factory[Train]("Train")
 
 
-def get_trainer_from_args(nnet_dir: str, updater: Update, device: torch.device, on_gpu: bool, trainer_name_args: str) -> Tuple[Train, str]:
+def get_trainer_from_args(domain: Domain, nnet_dir: str, updater: Update, device: torch.device, on_gpu: bool, trainer_name_args: str) -> Tuple[Train, str]:
     trainer_name_pre, args_str = get_name_args(trainer_name_args)
 
     names: List[str] = trainer_factory.get_all_class_names()
@@ -38,6 +39,7 @@ def get_trainer_from_args(nnet_dir: str, updater: Update, device: torch.device, 
     trainer_name: str = compat_names[0]
 
     trainer_kwargs: Dict[str, Any] = trainer_factory.get_kwargs(trainer_name, args_str)
+    trainer_kwargs["domain"] = domain
     trainer_kwargs["nnet_dir"] = nnet_dir
     trainer_kwargs["updater"] = updater
     trainer_kwargs["device"] = device

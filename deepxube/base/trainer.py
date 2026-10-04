@@ -10,6 +10,7 @@ from torch.optim import Optimizer
 
 from deepxube.base.factory import DelimParser
 from deepxube.base.nnet import DeepXubeNNet
+from deepxube.base.domain import Domain
 from deepxube.base.pathfind_fns import DeepXubeNNetPar
 from deepxube.base.updater import Update
 from deepxube.utils.pathfind_perf import PathFindPerf, get_eq_weighted_perf
@@ -125,7 +126,7 @@ class Status:
         self.step_probs = np.zeros(self.step_max + 1)
         self.step_probs[np.arange(0, self.step_max_curr + 1)] = 1 / (self.step_max_curr + 1)
 
-    def update_step_max(self, step_max: int, balance_steps: bool):
+    def update_step_max(self, step_max: int, balance_steps: bool) -> None:
         self.step_max = step_max
         self.step_max_curr = min(self.step_max_curr, step_max)
         self.init_step_probs(balance_steps)
@@ -194,13 +195,14 @@ class Train(Generic[NNet, Up], ABC):
     def get_nnet_name() -> str:
         pass
 
-    def __init__(self, nnet_dir: str, updater: Up, device: torch.device, on_gpu: bool, batch_size: int = 100, max_itrs: int = 100000,
+    def __init__(self, domain: Domain, nnet_dir: str, updater: Up, device: torch.device, on_gpu: bool, batch_size: int = 100, max_itrs: int = 100000,
                  balance_steps: bool = False, loss_thresh: float = np.inf, checkpoint: int = 0, grad_accum: int = 1, display: int = 100) -> None:
         incompat_reason: Optional[str] = self.get_incompat_reason(updater)
         if incompat_reason is not None:
             raise TypeError(incompat_reason)
 
         # make directories and writers
+        self.domain: Domain = domain
         self.nnet_dir: str = nnet_dir
         if not os.path.exists(self.nnet_dir):
             os.makedirs(self.nnet_dir)
@@ -315,7 +317,12 @@ class Train(Generic[NNet, Up], ABC):
 
         # start updater
         start_time = time.time()
-        self.updater.start_update(self.status.step_probs.tolist(), num_gen, self.train_args.batch_size, self.device, self.on_gpu)
+        step_probs: Optional[List[float]] = self.domain.get_step_probs(self.status.step_max)
+        if step_probs is None:
+            step_probs = self.status.step_probs.tolist()
+        assert step_probs is not None
+
+        self.updater.start_update(step_probs, num_gen, self.train_args.batch_size, self.device, self.on_gpu)
         times.record_time("up_start", time.time() - start_time)
 
         # do training

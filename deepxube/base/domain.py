@@ -197,6 +197,11 @@ class Domain(ABC, Generic[S, A, G]):
 
         return nnet_fn
 
+    # noinspection PyMethodMayBeStatic
+    def get_step_probs(self, step_max: int) -> Optional[List[float]]:
+        assert step_max >= 0
+        return None
+
     def _add_nnet_par(self, nnet_name: str, nnet_par: NNetPar) -> None:
         self.nnet_par_dict[nnet_name] = nnet_par
 

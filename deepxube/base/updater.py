@@ -232,7 +232,7 @@ class Update(Generic[D, P, InstT, UFNsT], ABC):
 
         return to_main_q, self.from_main_qs
 
-    def start_update(self, step_probs: List[int], num_gen: int, train_batch_size: int,
+    def start_update(self, step_probs: List[float], num_gen: int, train_batch_size: int,
                      device: torch.device, on_gpu: bool) -> None:
         # start parallel nnet runners
         self.start_nnet_runners(device, on_gpu)
@@ -343,7 +343,7 @@ class Update(Generic[D, P, InstT, UFNsT], ABC):
 
         while True:
             assert self.from_main_q is not None
-            data_q: Optional[Tuple[List[int], Dict[str, int]]] = self.from_main_q.get()
+            data_q: Optional[Tuple[List[float], Dict[str, int]]] = self.from_main_q.get()
             if data_q is None:
                 break
             times: Times = Times()
@@ -414,7 +414,7 @@ class Update(Generic[D, P, InstT, UFNsT], ABC):
         self.from_main_q = None
         self.nnet_par_info_main = None
 
-    def _add_instances(self, pathfind: P, insts_rem: List[InstT], batch_size: int, step_probs: List[int],
+    def _add_instances(self, pathfind: P, insts_rem: List[InstT], batch_size: int, step_probs: List[float],
                        times: Times) -> None:
         if (len(pathfind.instances) == 0) or (len(insts_rem) > 0):
             # get steps generate
