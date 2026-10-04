@@ -110,14 +110,10 @@ class Status:
         self.update_num: int = 0
         self.targ_update_num: int = 0
         self.step_max: int = step_max
-        self.step_probs: NDArray
         self.step_max_curr: int = 1
-        if balance_steps:
-            self.step_probs = np.zeros(self.step_max + 1)
-            self.step_probs[0:2] = 0.5
-            self.step_probs[2:] = 0
-        else:
-            self.step_probs = np.ones(self.step_max + 1)/(self.step_max + 1)
+        self.step_probs: NDArray = np.empty(0)
+        self.init_step_probs(balance_steps)
+
         self.per_solved_best: float = 0.0
 
     def update_step_probs(self, step_to_search_perf: Dict[int, PathFindPerf]) -> None:
@@ -128,6 +124,19 @@ class Status:
 
         self.step_probs = np.zeros(self.step_max + 1)
         self.step_probs[np.arange(0, self.step_max_curr + 1)] = 1 / (self.step_max_curr + 1)
+
+    def update_step_max(self, step_max: int, balance_steps: bool):
+        self.step_max = step_max
+        self.step_max_curr = min(self.step_max_curr, step_max)
+        self.init_step_probs(balance_steps)
+
+    def init_step_probs(self, balance_steps: bool) -> None:
+        if balance_steps:
+            self.step_probs = np.zeros(self.step_max + 1)
+            self.step_probs[0:2] = 0.5
+            self.step_probs[2:] = 0
+        else:
+            self.step_probs = np.array(np.ones(self.step_max + 1) / (self.step_max + 1))
 
 
 class TrainSummary:
@@ -227,6 +236,8 @@ class Train(Generic[NNet, Up], ABC):
         self.status: Status
         if os.path.isfile(self.status_file):
             self.status = pickle.load(open(self.status_file, "rb"))
+            if self.status.step_probs.shape[0] != (self.updater.up_args.step_max + 1):
+                self.status.update_step_max(self.updater.up_args.step_max, self.train_args.balance_steps)
             print(f"Loaded with itr: {self.status.itr}, update_num: {self.status.update_num}, targ_update_num: {self.status.targ_update_num}")
         else:
             self.status = Status(self.updater.up_args.step_max, self.train_args.balance_steps)
