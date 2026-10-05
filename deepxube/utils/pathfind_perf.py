@@ -23,7 +23,7 @@ class PathFindPerf:
         self.is_solved_l.append(instance.has_soln())
         self.is_finished_l.append(instance.finished())
         self.ctgs.append(instance.root_node.heuristic)
-        self.ctgs_bkup.append(instance.root_node.backup_val)
+        self.ctgs_bkup.append(instance.root_node.bellman_backup())
         if instance.has_soln():
             self.path_costs.append(instance.path_cost())
             self.search_itrs_l.append(instance.itr)

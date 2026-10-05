@@ -303,10 +303,12 @@ class Update(Generic[D, P, InstT, UFNsT], ABC):
                 step_to_pathperf[step_num_perf] = step_to_pathperf[step_num_perf].comb_perf(pathperf)
 
         # print
-        print(f"Times - {times_up.get_time_str()}")
         if self.up_args.v:
+            start_time = time.time()
             print(f"Generated {format(self.num_generated, ',')} training instances")
             print_pathfindperf(step_to_pathperf)
+            times_up.record_time("verb", time.time() - start_time)
+        print(f"Times - {times_up.get_time_str()}")
 
         # clean up clean up everybody do your share
         for nnet_par in self.up_fns.get_up_fns() + list(self.domain_nnet_pars.values()):
