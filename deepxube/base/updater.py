@@ -638,6 +638,16 @@ class UpdateRL(Update[D, P, InstT, UFNsT], ABC):
         return f"{super().__repr__()}, {self.up_rl_args.__repr__()}"
 
 
+class UpdateLabel(Update[D, P, InstT, UFNsT], ABC):
+    def _make_instances(self, pathfind: P, steps_gen: List[int], inst_infos: List[Any], times: Times) -> List[InstT]:
+        # get states/goals
+        times_states: Times = Times()
+        states_gen, goals_gen = self.domain.sample_problem_instances(steps_gen, times=times_states)
+        times.add_times(times_states, ["get_states"])
+
+        return pathfind.make_instances(states_gen, goals_gen, inst_infos=inst_infos, compute_root_vals=False)
+
+
 class UpdateHeur(Update[D, P, InstT, UFNsT], ABC):
     pass
 
