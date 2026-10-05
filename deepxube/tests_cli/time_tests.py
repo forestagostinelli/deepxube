@@ -5,7 +5,7 @@ from torch import Tensor
 import torch.nn as nn
 from torch.multiprocessing import Queue, get_context
 
-from deepxube.base.domain import Domain, ActsEnum, StartGoalWalkable, State, Goal, Action, NodesLabelsSampleable
+from deepxube.base.domain import Domain, ActsEnum, StartGoalWalkable, State, Goal, Action, NodesLabelsSampleable, NodesLabelable
 from deepxube.pytorch.nnet_utils import NNetPar
 from deepxube.base.nnet import PolicyNNet
 from deepxube.base.pathfind_fns import PolicyFn, HeurNNetPar, HeurVNNetPar, HeurQNNetPar, PolicyNNetPar, DeepXubeNNetPar
@@ -143,6 +143,20 @@ def test_nodeslabelssampleable(domain: NodesLabelsSampleable, num_states: int, s
     print(f"Sampled {len(states)} labeled nodes in %s seconds (%.2f/second)" % (elapsed_time, states_per_sec))
 
 
+def test_nodeslabelable(domain: NodesLabelable, states: List[State], goals: List[Goal]) -> None:
+    print("\n---Testing NodesLabelable---")
+    torch.set_num_threads(1)
+
+    # expand
+    start_time = time.time()
+    labels: List[float] = domain.label_nodes(states, goals, [None] * len(states))
+    assert len(states) == len(goals) == len(labels)
+
+    elapsed_time = time.time() - start_time
+    states_per_sec = len(states) / elapsed_time
+    print(f"Labeled {len(states)} nodes in %s seconds (%.2f/second)" % (elapsed_time, states_per_sec))
+
+
 def init_nnet(nnet_par: NNetPar) -> Tuple[nn.Module, torch.device]:
     on_gpu: bool
     device: torch.device
@@ -253,6 +267,8 @@ def time_test(domain: Domain, dx_nnet_par_l: Optional[List[DeepXubeNNetPar]], nu
         test_envenumerableacts(domain, states)
     if isinstance(domain, NodesLabelsSampleable):
         test_nodeslabelssampleable(domain, num_states, step_min, step_max)
+    if isinstance(domain, NodesLabelable):
+        test_nodeslabelable(domain, states, goals)
 
     if dx_nnet_par_l is not None:
         for dx_nnet_par in dx_nnet_par_l:
