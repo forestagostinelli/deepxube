@@ -94,11 +94,13 @@ def print_pathfindperf(step_to_pathfindperf: Dict[int, PathFindPerf]) -> None:
         pathfindperf: PathFindPerf = step_to_pathfindperf[step_show]
 
         is_solved: NDArray[np.bool_] = np.array(pathfindperf.is_solved_l)
+        is_finished: NDArray[np.bool_] = np.array(pathfindperf.is_finished_l)
         # ctgs: NDArray[np.float64] = np.array(pathfindperf.ctgs)
         ctgs_bkup: NDArray[np.float64] = np.array(pathfindperf.ctgs_bkup)
 
         # Get stats
         per_solved = 100 * float(sum(is_solved)) / float(len(is_solved))
+        per_finished = 100 * float(sum(is_finished)) / float(len(is_finished))
         path_costs: NDArray
         solve_itrs: NDArray
         if per_solved > 0.0:
@@ -109,8 +111,8 @@ def print_pathfindperf(step_to_pathfindperf: Dict[int, PathFindPerf]) -> None:
             solve_itrs = np.zeros(1)
 
         # Print results
-        print(f"Steps: {step_show}, %%Solved: {per_solved:.2f}, itrs: {scalar_stats(solve_itrs)}, path_costs: {scalar_stats(path_costs)}, "
-              f"CTG_Backup: {scalar_stats(ctgs_bkup)}, Num: {ctgs_bkup.shape[0]}")
+        print(f"Steps: {step_show}, %%Solved: {per_solved:.2f}, %%Finished: {per_finished:.2f}, itrs: {scalar_stats(solve_itrs)}, "
+              f"path_costs: {scalar_stats(path_costs)}, CTG_Backup: {scalar_stats(ctgs_bkup)}, Num: {ctgs_bkup.shape[0]}")
 
 
 def is_valid_soln(state: State, goal: Goal, soln: List[Action], domain: Domain) -> bool:
