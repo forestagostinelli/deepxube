@@ -385,7 +385,7 @@ class Update(Generic[D, P, InstT, UFNsT], ABC):
 
                     # remove instances
                     insts_rem_last_itr = pathfind.remove_finished_instances(self.up_args.search_itrs)
-                    if len(insts_rem_last_itr) > 0:
+                    if (len(insts_rem_last_itr) > 0) and (not self.up_args.sync_main):
                         put_from_q.append(self._get_instance_data(insts_rem_last_itr, rb_size, times))
 
                     # performance
