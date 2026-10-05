@@ -285,7 +285,7 @@ class Update(Generic[D, P, InstT, UFNsT], ABC):
 
         return data_l
 
-    def end_update(self) -> Dict[int, PathFindPerf]:
+    def end_update(self) -> Tuple[Dict[int, PathFindPerf], int, int]:
         assert (self.to_q is not None) and (self.from_q is not None)
         # sending stop signal
         for _ in self.procs:
@@ -293,14 +293,18 @@ class Update(Generic[D, P, InstT, UFNsT], ABC):
 
         # get summary from processes
         step_to_pathperf: Dict[int, PathFindPerf] = dict()
+        rb_size: int = 0
+        rb_max_size: int = 0
         times_up: Times = Times()
         for _ in self.procs:
-            times_up_i, step_to_pathperf_i = self.from_q.get()
+            times_up_i, step_to_pathperf_i, rb_size_i, rb_max_size_i = self.from_q.get()
             times_up.add_times(times_up_i)
             for step_num_perf, pathperf in step_to_pathperf_i.items():
                 if step_num_perf not in step_to_pathperf.keys():
                     step_to_pathperf[step_num_perf] = PathFindPerf()
                 step_to_pathperf[step_num_perf] = step_to_pathperf[step_num_perf].comb_perf(pathperf)
+            rb_size += rb_size_i
+            rb_max_size += rb_max_size_i
 
         # print
         if self.up_args.v:
@@ -316,7 +320,7 @@ class Update(Generic[D, P, InstT, UFNsT], ABC):
 
         self.num_generated = 0
 
-        return step_to_pathperf
+        return step_to_pathperf, rb_size, rb_max_size
 
     def stop_procs(self) -> None:
         # sending stop signal
@@ -410,11 +414,19 @@ class Update(Generic[D, P, InstT, UFNsT], ABC):
                 gc.collect()
                 times.record_time("gc", time.time() - start_time)
 
-            from_q.put((times, step_to_pathperf))
+            from_q.put((times, step_to_pathperf, self.get_rb_size(), self.get_rb_max_size()))
             self.clear_nnet_fns()
         self.to_main_q = None
         self.from_main_q = None
         self.nnet_par_info_main = None
+
+    @abstractmethod
+    def get_rb_size(self) -> int:
+        pass
+
+    @abstractmethod
+    def get_rb_max_size(self) -> int:
+        pass
 
     def _add_instances(self, pathfind: P, insts_rem: List[InstT], batch_size: int, step_probs: List[float],
                        times: Times) -> None:
@@ -599,6 +611,12 @@ PS = TypeVar('PS', bound=PathFindSup)
 
 
 class UpdateSup(Update[D, PS, InstT, UFNsT], ABC):
+    def get_rb_size(self) -> int:
+        return 0
+
+    def get_rb_max_size(self) -> int:
+        return 0
+
     def _step(self, pathfind: PS, times: Times) -> None:
         pathfind.step()
 
@@ -662,6 +680,12 @@ class UpdatePathFind(Update[D, P, InstT, UFNsT], Generic[D, P, InstT, UFNsT, Sch
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.rb: R = self._get_rb(0)
+
+    def get_rb_size(self) -> int:
+        return self.rb.size()
+
+    def get_rb_max_size(self) -> int:
+        return self.rb.max_size()
 
     @abstractmethod
     def _get_rb(self, max_size: int) -> R:

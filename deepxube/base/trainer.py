@@ -444,7 +444,9 @@ class Train(Generic[NNet, Up], ABC):
 
     def _end_update(self, itr_init: int, times: Times) -> None:
         start_time = time.time()
-        step_to_search_perf: Dict[int, PathFindPerf] = self.updater.end_update()
+        end_update_data: Tuple[Dict[int, PathFindPerf], int, int] = self.updater.end_update()
+        step_to_search_perf: Dict[int, PathFindPerf] = end_update_data[0]
+        rb_size, rb_max_size = end_update_data[1], end_update_data[2]
         self.train_summary.update_pathfindstats(step_to_search_perf, itr_init)
         if self.train_args.balance_steps:
             self.status.update_step_probs(step_to_search_perf)
@@ -458,7 +460,8 @@ class Train(Generic[NNet, Up], ABC):
 
         post_up_info_l: List[str] = [f"%solved: {per_solved_ave:.2f}", f"path_costs: {path_costs_ave:.3f}",
                                      f"search_itrs: {search_itrs_ave:.3f}", f"%finished: {per_finished_ave:.2f}",
-                                     f"num_inst: {format(num_instances, ',')}"] + self._add_post_up_info()
+                                     f"num_inst: {format(num_instances, ',')}",
+                                     f"rb size/max_size: {format(rb_size, ',')}/{format(rb_max_size, ',')}"] + self._add_post_up_info()
 
         print(f"Data - {', '.join(post_up_info_l)}")
 
