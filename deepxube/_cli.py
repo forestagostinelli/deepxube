@@ -269,10 +269,15 @@ def train_summary(args: argparse.Namespace) -> None:
     itr_to_in_out: Dict[int, Tuple[NDArray, NDArray]] = train_summ.itr_to_in_out
     itr_to_steps_to_pathfindperf: Dict[int, Dict[int, Dict]] = train_summ.itr_to_steps_to_pathfindstats
     itrs: List[int] = sorted(itr_to_in_out.keys())
-    fig, axs_np = plt.subplots(3, 2)
-    axs: List[Axes] = axs_np.flatten().tolist()
-    plt.subplots_adjust(bottom=0.2)
-    axstep = fig.add_axes((0.2, 0.01, 0.65, 0.03))
+    fig = plt.figure(layout="constrained")
+    gs = fig.add_gridspec(4, 2, height_ratios=[1, 1, 1, 0.08])
+    axs: List[Axes] = [fig.add_subplot(gs[r, c]) for r in range(3) for c in range(2)]
+    axstep = fig.add_subplot(gs[3, :])  # slider spans both columns
+
+    # fig, axs_np = plt.subplots(3, 2)
+    # axs: List[Axes] = axs_np.flatten().tolist()
+    # plt.subplots_adjust(bottom=0.2)
+    # axstep = fig.add_axes((0.2, 0.01, 0.65, 0.03))
     step_slider: Slider = Slider(
         ax=axstep,
         label='',
@@ -292,7 +297,7 @@ def train_summary(args: argparse.Namespace) -> None:
         plot_itr_data(axs, step_slider, itr, itr_to_in_out, itr_to_steps_to_pathfindperf)
         fig.canvas.draw()
 
-    fig.tight_layout()
+    # fig.tight_layout()
 
     if args.o is not None:
         rgba_l: List = []

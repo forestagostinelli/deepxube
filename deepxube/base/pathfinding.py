@@ -59,7 +59,16 @@ class Node:
             if len(self.edge_dict) == 0:
                 self.backup_val = max(self.heuristic, 0.0)
             else:
-                self.backup_val = min(tc + node_c.tree_backup() for tc, node_c in self.edge_dict.values())
+                if self.q_values is not None:
+                    self.backup_val = np.inf
+                    for action, q_value in zip(self.q_values[0], self.q_values[1], strict=True):
+                        if action in self.edge_dict.keys():
+                            tc, node_c = self.edge_dict[action]
+                            self.backup_val = min(self.backup_val, tc + node_c.tree_backup())
+                        else:
+                            self.backup_val = min(self.backup_val, q_value)
+                else:
+                    self.backup_val = min(tc + node_c.tree_backup() for tc, node_c in self.edge_dict.values())
 
         return self.backup_val
 
