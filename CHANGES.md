@@ -13,6 +13,7 @@
 * Add ability to add name of NNetInput to command line and add arguments
 * Updater no longer needs to be generic in PFNs
 * Add MPS support
+* Add option to end Beam of Graph search based on heuristic value going below specified threshold
 
 ## 0.3.1
 * Save .gif file of train_summary option

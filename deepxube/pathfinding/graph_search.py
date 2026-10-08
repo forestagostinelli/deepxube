@@ -49,7 +49,7 @@ class InstanceGraph(Instance, Generic[SchOver]):
 
         if (self.finished_heur_thresh is not None) and (len(self._nodes_popped) > 1):
             # check len nodes_popped > 1 to avoid false positive case where init heur is not computed
-            return self._nodes_popped[-1].heuristic < self.finished_heur_thresh
+            return any(node.heuristic < self.finished_heur_thresh for node in self._nodes_popped)
         else:
             return False
 
