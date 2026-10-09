@@ -16,6 +16,7 @@
 * Add option to end Beam of Graph search based on heuristic value going below specified threshold
 * Add class for getting step probabilities functionality
 * Add %finished and step_probs to train_summary
+* Save optimizer
 
 ## 0.3.1
 * Save .gif file of train_summary option

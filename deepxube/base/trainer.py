@@ -218,6 +218,7 @@ class Train(Generic[NNet, Up], ABC):
         if not os.path.exists(self.nnet_dir):
             os.makedirs(self.nnet_dir)
         self.nnet_name: str = self.get_nnet_name()
+        self.optim_name: str = f"{self.nnet_name}_optim"
 
         summ_write_dir: str = f"{self.nnet_dir}/{self.nnet_name}_tboard/"
         if not os.path.exists(summ_write_dir):
@@ -236,6 +237,8 @@ class Train(Generic[NNet, Up], ABC):
 
         self.nnet_file: str = f"{self.nnet_dir}/{self.nnet_name}.pt"
         self.nnet_targ_file: str = f"{self.nnet_dir}/{self.nnet_name}_targ.pt"
+        self.optim_file: str = f"{self.nnet_dir}/{self.optim_name}.pt"
+        self.optim_file_temp: str = f"{self.nnet_dir}/{self.optim_name}_tmp.pt"
 
         nnet_par: DeepXubeNNetPar = self.updater.get_train_nnet_par()
         self.nnet: NNet = nnet_par.get_nnet()
@@ -248,11 +251,13 @@ class Train(Generic[NNet, Up], ABC):
         self.status_file: str = f"{self.nnet_dir}/{self.nnet_name}_status.pkl"
         self.status: Status
         if os.path.isfile(self.status_file):
+            print("Loading Status")
             self.status = pickle.load(open(self.status_file, "rb"))
             if self.status.step_probs.shape[0] != (self.updater.up_args.step_max + 1):
                 self.status.update_step_max(self.updater.up_args.step_max, self.train_args.balance_steps)
             print(f"Loaded with itr: {self.status.itr}, update_num: {self.status.update_num}, targ_update_num: {self.status.targ_update_num}")
         else:
+            print("Initializing Status")
             self.status = Status(self.updater.up_args.step_max, self.train_args.balance_steps)
             # noinspection PyTypeChecker
             pickle.dump(self.status, open(self.status_file, "wb"), protocol=-1)
@@ -262,25 +267,38 @@ class Train(Generic[NNet, Up], ABC):
         self.train_summary_file: str = f"{self.nnet_dir}/{self.nnet_name}_train_summary.pkl"
         self.train_summary: TrainSummary
         if os.path.isfile(self.train_summary_file):
+            print("Loading Train Summary")
             self.train_summary = pickle.load(open(self.train_summary_file, "rb"))
         else:
+            print("Initializing Train Summary")
             self.train_summary = TrainSummary()
             # noinspection PyTypeChecker
             pickle.dump(self.status, open(self.status_file, "wb"), protocol=-1)
 
         # load nnet
         if os.path.isfile(self.nnet_file):
+            print("Loading NNet")
             self.nnet = cast(NNet, nnet_utils.load_nnet(self.nnet_file, self.nnet))
         else:
+            print("Initializing NNet")
             torch.save(self.nnet.state_dict(), self.nnet_file)
             if (self.train_args.checkpoint > 0) and (self.status.update_num == 0):
                 self._save_checkpoint()
 
         if not os.path.isfile(self.nnet_targ_file):
             torch.save(self.nnet.state_dict(), self.nnet_targ_file)
-        self.optimizer: Optimizer = self.nnet.get_optimizer()
 
         self.nnet.to(self.device)
+
+        # load optimizer
+        self.optimizer: Optimizer = self.nnet.get_optimizer()
+        if os.path.isfile(self.optim_file):
+            print("Loading Optimizer")
+            self.optimizer.load_state_dict(torch.load(self.optim_file, map_location=self.device, weights_only=True))
+        else:
+            print("Initializing Optimizer")
+
+        # data parallel
         if self.data_parallel():
             self.nnet = cast(NNet, nn.DataParallel(self.nnet))
 
@@ -354,6 +372,8 @@ class Train(Generic[NNet, Up], ABC):
         # save nnet
         start_time = time.time()
         torch.save(self.nnet.state_dict(), self.nnet_file)
+        torch.save(self.optimizer.state_dict(), self.optim_file_temp)
+        os.replace(self.optim_file_temp, self.optim_file)
         if (self.train_args.checkpoint > 0) and (self.status.update_num % self.train_args.checkpoint == 0):
             self._save_checkpoint()
         times.record_time("save_net", time.time() - start_time)
