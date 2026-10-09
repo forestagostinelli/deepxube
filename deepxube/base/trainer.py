@@ -31,6 +31,12 @@ import time
 import re
 
 
+class StepProbsGettable(ABC):
+    @abstractmethod
+    def get_step_probs(self, step_max: int, itr_to_steps_to_pathfindstats: Dict[int, Dict[int, Dict]]) -> List[float]:
+        pass
+
+
 @dataclass
 class TrainArgs:
     """
@@ -144,6 +150,7 @@ class TrainSummary:
     def __init__(self) -> None:
         self.itr_to_in_out: Dict[int, Tuple[NDArray, NDArray]] = dict()
         self.itr_to_steps_to_pathfindstats: Dict[int, Dict[int, Dict]] = dict()
+        self.itr_to_step_probs: Dict[int, List[float]] = dict()
 
     def update_pathfindstats(self, step_to_pathfindperf: Dict[int, PathFindPerf], itr: int) -> None:
         self.itr_to_steps_to_pathfindstats[itr] = dict()
@@ -154,6 +161,10 @@ class TrainSummary:
             self.itr_to_steps_to_pathfindstats[itr][step]["search_itrs"] = pathfindperf.stats()[2]
             self.itr_to_steps_to_pathfindstats[itr][step]["ctgs_backup"] = float(np.mean(pathfindperf.ctgs_bkup))
             self.itr_to_steps_to_pathfindstats[itr][step]["num_instances"] = len(pathfindperf.ctgs_bkup)
+            self.itr_to_steps_to_pathfindstats[itr][step]["per_finished"] = pathfindperf.per_finished()
+
+    def update_itr_to_step_probs_stats(self, step_probs_l: List[float], itr: int) -> None:
+        self.itr_to_step_probs[itr] = step_probs_l.copy()
 
 
 NNet = TypeVar('NNet', bound=DeepXubeNNet)
@@ -317,12 +328,16 @@ class Train(Generic[NNet, Up], ABC):
 
         # start updater
         start_time = time.time()
-        step_probs: Optional[List[float]] = self.domain.get_step_probs(self.status.step_max)
-        if step_probs is None:
-            step_probs = self.status.step_probs.tolist()
-        assert step_probs is not None
+        step_probs_l: List[float]
+        if isinstance(self.domain, StepProbsGettable):
+            step_probs_l = self.domain.get_step_probs(self.status.step_max, self.train_summary.itr_to_steps_to_pathfindstats)
+        else:
+            step_probs_l = self.status.step_probs.tolist()
 
-        self.updater.start_update(step_probs, num_gen, self.train_args.batch_size, self.device, self.on_gpu)
+        assert step_probs_l is not None
+
+        self.train_summary.update_itr_to_step_probs_stats(step_probs_l, self.status.itr)
+        self.updater.start_update(step_probs_l, num_gen, self.train_args.batch_size, self.device, self.on_gpu)
         times.record_time("up_start", time.time() - start_time)
 
         # do training
@@ -374,11 +389,11 @@ class Train(Generic[NNet, Up], ABC):
         loss: float = np.inf
         first_itr_in_update: bool = True
         sel_idx_start: int = 0
-        sel_idxs_rand_order: NDArray = np.random.choice(self.db.size(), size=self.db.size(), replace=False)
+        sel_idxs_rand_order: NDArray = np.asarray(np.random.choice(self.db.size(), size=self.db.size(), replace=False))
         for _ in range(self.updater.up_args.up_itrs):
             # sample data
             start_time = time.time()
-            sel_idxs: NDArray = np.arange(sel_idx_start, sel_idx_start + self.train_args.batch_size) % self.db.size()
+            sel_idxs: NDArray = np.asarray(np.arange(sel_idx_start, sel_idx_start + self.train_args.batch_size) % self.db.size())
 
             batch: List[NDArray] = self.db.sample(sel_idxs_rand_order[sel_idxs])
             times.record_time("data_samp", time.time() - start_time)
@@ -391,7 +406,7 @@ class Train(Generic[NNet, Up], ABC):
             # update sel_idx
             if sel_idxs.max() == (self.db.size() - 1):
                 sel_idx_start = 0
-                sel_idxs_rand_order = np.random.choice(self.db.size(), size=self.db.size(), replace=False)
+                sel_idxs_rand_order = np.asarray(np.random.choice(self.db.size(), size=self.db.size(), replace=False))
             else:
                 sel_idx_start = int(sel_idxs[-1]) + 1
 
@@ -406,7 +421,7 @@ class Train(Generic[NNet, Up], ABC):
             start_time = time.time()
             sel_idxs: NDArray
             if self.db.size() == num_gen:
-                sel_idxs = np.random.randint(self.db.size(), size=self.train_args.batch_size)
+                sel_idxs = np.asarray(np.random.randint(self.db.size(), size=self.train_args.batch_size))
             else:
                 # compute heuristic values for ongoing search and get data
                 self.nnet.eval()

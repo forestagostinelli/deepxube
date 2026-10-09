@@ -14,6 +14,8 @@
 * Updater no longer needs to be generic in PFNs
 * Add MPS support
 * Add option to end Beam of Graph search based on heuristic value going below specified threshold
+* Add class for getting step probabilities functionality
+* Add %finished and step_probs to train_summary
 
 ## 0.3.1
 * Save .gif file of train_summary option

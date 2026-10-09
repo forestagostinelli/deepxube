@@ -245,21 +245,27 @@ def time_test_args(args: argparse.Namespace) -> None:
     time_test(domain, dx_nnet_par_l, args.num_insts, args.step_min, args.step_max)
 
 
-def plot_itr_data(axs: List[Axes], step_slider: Slider, itr: int, itr_to_in_out: Dict[int, Tuple[NDArray, NDArray]],
-                  itr_to_steps_to_pathfindstats: Dict[int, Dict[int, Dict]]) -> None:
+def plot_itr_data(axs: List[Axes], step_slider: Slider, itr: int, train_summ: TrainSummary) -> None:
+    itr_to_in_out: Dict[int, Tuple[NDArray, NDArray]] = train_summ.itr_to_in_out
+    itr_to_steps_to_pathfindstats: Dict[int, Dict[int, Dict]] = train_summ.itr_to_steps_to_pathfindstats
+
     steps_to_pathfindperf: Dict[int, Dict] = itr_to_steps_to_pathfindstats[itr]
     steps_at_itr: List[int] = sorted(steps_to_pathfindperf.keys())
     per_solved: List[float] = [steps_to_pathfindperf[step]["per_solved"] for step in steps_at_itr]
     path_costs: List[float] = [steps_to_pathfindperf[step]["path_costs"] for step in steps_at_itr]
     search_itrs: List[float] = [steps_to_pathfindperf[step]["search_itrs"] for step in steps_at_itr]
-    targets: List[float] = [np.mean(steps_to_pathfindperf[step]["ctgs_backup"]) for step in steps_at_itr]
+    targets: List[float] = [float(np.mean(steps_to_pathfindperf[step]["ctgs_backup"])) for step in steps_at_itr]
     num_instances: List[int] = [steps_to_pathfindperf[step]["num_instances"] for step in steps_at_itr]
-    plot_scatter(axs[0], steps_at_itr, per_solved, "Step", "Percent Solved", False)
-    plot_scatter(axs[1], steps_at_itr, path_costs, "Step", "Path Costs", False)
-    plot_scatter(axs[2], steps_at_itr, search_itrs, "Step", "Search Iterations", False)
-    plot_scatter(axs[3], steps_at_itr, targets, "Step", "Cost-to-Go Targets", False)
-    plot_scatter(axs[4], steps_at_itr, num_instances, "Step", "# Instances", False)
-    plot_scatter(axs[5], itr_to_in_out[itr][0], itr_to_in_out[itr][1], "Target", "Prediction", True, alpha=0.2)
+    per_finished: List[float] = [steps_to_pathfindperf[step]["per_finished"] for step in steps_at_itr]
+    step_probs: List[float] = train_summ.itr_to_step_probs[itr]
+    plot_scatter(axs[0], steps_at_itr, per_finished, "Step", "Percent Finished", False)
+    plot_scatter(axs[1], np.arange(len(step_probs)), step_probs, "Step", "Step Probabilities", False)
+    plot_scatter(axs[2], steps_at_itr, per_solved, "Step", "Percent Solved", False)
+    plot_scatter(axs[3], steps_at_itr, path_costs, "Step", "Path Costs", False)
+    plot_scatter(axs[4], steps_at_itr, search_itrs, "Step", "Search Iterations", False)
+    plot_scatter(axs[5], steps_at_itr, targets, "Step", "Cost-to-Go Targets", False)
+    plot_scatter(axs[6], steps_at_itr, num_instances, "Step", "# Instances", False)
+    plot_scatter(axs[7], itr_to_in_out[itr][0], itr_to_in_out[itr][1], "Target", "Prediction", True, alpha=0.2)
     step_slider.valtext.set_text(f"Iteration {itr}")
 
 
@@ -267,12 +273,11 @@ def train_summary(args: argparse.Namespace) -> None:
     status_file: str = f"{args.dir}/{args.type}_train_summary.pkl"
     train_summ: TrainSummary = pickle.load(open(status_file, "rb"))
     itr_to_in_out: Dict[int, Tuple[NDArray, NDArray]] = train_summ.itr_to_in_out
-    itr_to_steps_to_pathfindperf: Dict[int, Dict[int, Dict]] = train_summ.itr_to_steps_to_pathfindstats
     itrs: List[int] = sorted(itr_to_in_out.keys())
     fig = plt.figure(layout="constrained")
-    gs = fig.add_gridspec(4, 2, height_ratios=[1, 1, 1, 0.08])
-    axs: List[Axes] = [fig.add_subplot(gs[r, c]) for r in range(3) for c in range(2)]
-    axstep = fig.add_subplot(gs[3, :])  # slider spans both columns
+    gs = fig.add_gridspec(5, 2, height_ratios=[1, 1, 1, 1, 0.08])
+    axs: List[Axes] = [fig.add_subplot(gs[r, c]) for r in range(4) for c in range(2)]
+    axstep = fig.add_subplot(gs[4, :])  # slider spans both columns
 
     # fig, axs_np = plt.subplots(3, 2)
     # axs: List[Axes] = axs_np.flatten().tolist()
@@ -288,13 +293,13 @@ def train_summary(args: argparse.Namespace) -> None:
     )
 
     itr_init: int = min(itrs)
-    plot_itr_data(axs, step_slider, itr_init, itr_to_in_out, itr_to_steps_to_pathfindperf)
+    plot_itr_data(axs, step_slider, itr_init, train_summ)
 
     def update(idx: float) -> None:
         itr: int = itrs[int(idx)]
         for ax in axs:
             ax.cla()
-        plot_itr_data(axs, step_slider, itr, itr_to_in_out, itr_to_steps_to_pathfindperf)
+        plot_itr_data(axs, step_slider, itr, train_summ)
         fig.canvas.draw()
 
     # fig.tight_layout()
