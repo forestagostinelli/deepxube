@@ -251,13 +251,14 @@ def plot_itr_data(axs: List[Axes], step_slider: Slider, itr: int, train_summ: Tr
 
     steps_to_pathfindperf: Dict[int, Dict] = itr_to_steps_to_pathfindstats[itr]
     steps_at_itr: List[int] = sorted(steps_to_pathfindperf.keys())
+    per_finished: List[float] = [steps_to_pathfindperf[step]["per_finished"] for step in steps_at_itr]
+    step_probs: List[float] = train_summ.itr_to_step_probs[itr]
     per_solved: List[float] = [steps_to_pathfindperf[step]["per_solved"] for step in steps_at_itr]
     path_costs: List[float] = [steps_to_pathfindperf[step]["path_costs"] for step in steps_at_itr]
     search_itrs: List[float] = [steps_to_pathfindperf[step]["search_itrs"] for step in steps_at_itr]
     targets: List[float] = [float(np.mean(steps_to_pathfindperf[step]["ctgs_backup"])) for step in steps_at_itr]
     num_instances: List[int] = [steps_to_pathfindperf[step]["num_instances"] for step in steps_at_itr]
-    per_finished: List[float] = [steps_to_pathfindperf[step]["per_finished"] for step in steps_at_itr]
-    step_probs: List[float] = train_summ.itr_to_step_probs[itr]
+
     plot_scatter(axs[0], steps_at_itr, per_finished, "Step", "Percent Finished", False)
     plot_scatter(axs[1], np.arange(len(step_probs)), step_probs, "Step", "Step Probabilities", False)
     plot_scatter(axs[2], steps_at_itr, per_solved, "Step", "Percent Solved", False)

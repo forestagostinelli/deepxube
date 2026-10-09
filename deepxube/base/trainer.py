@@ -523,8 +523,8 @@ class TrainParser(DelimParser):
         self.add_argument("bal", "balance_steps", None, "If true, steps are balanced based on solve percentage.")
         self.add_argument("lt", "loss_thresh", float, "Loss threshold for updating.", default=np.inf)
         self.add_argument("chkpt", "checkpoint", int, "Save checkpoint file of network being trained at initialization and at every given number of update "
-                                                      "checks. Checkpoint number given is training iteration, not update number. If 0 then checkpointing is "
-                                                      "not done.", default=0)
+                                                      "checks. If 0, then checkpointing is not done. Note, the checkpoint file name denotes the training "
+                                                      "iteration, not update number.", default=0)
         self.add_argument("accum", "grad_accum", int, "Number of times to split batch into sub-batches for gradient accumulation.", default=1)
         self.add_argument("disp", "display", int, "Number of iterations to display progress when training nnet. No display if 0.", default=0)
 
