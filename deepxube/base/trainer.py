@@ -33,7 +33,7 @@ import re
 
 class StepProbsGettable(ABC):
     @abstractmethod
-    def get_step_probs(self, step_max: int, itr_to_steps_to_pathfindstats: Dict[int, Dict[int, Dict]]) -> List[float]:
+    def get_step_probs(self, step_max: int, itr_to_steps_to_pathfindstats: Dict[int, Dict[int, Dict]]) -> Optional[List[float]]:
         pass
 
 
@@ -346,10 +346,13 @@ class Train(Generic[NNet, Up], ABC):
 
         # start updater
         start_time = time.time()
-        step_probs_l: List[float]
+        step_probs_l: List[float] = []
         if isinstance(self.domain, StepProbsGettable):
-            step_probs_l = self.domain.get_step_probs(self.status.step_max, self.train_summary.itr_to_steps_to_pathfindstats)
-        else:
+            step_probs_l_domain = self.domain.get_step_probs(self.status.step_max, self.train_summary.itr_to_steps_to_pathfindstats)
+            if step_probs_l_domain is not None:
+                step_probs_l = step_probs_l_domain
+
+        if len(step_probs_l) == 0:
             step_probs_l = self.status.step_probs.tolist()
 
         assert step_probs_l is not None
