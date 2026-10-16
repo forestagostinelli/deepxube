@@ -31,12 +31,6 @@ import time
 import re
 
 
-class StepProbsGettable(ABC):
-    @abstractmethod
-    def get_step_probs(self, step_max: int, itr_to_steps_to_pathfindstats: Dict[int, Dict[int, Dict]]) -> Optional[List[float]]:
-        pass
-
-
 @dataclass
 class TrainArgs:
     """
@@ -112,16 +106,14 @@ class DataBuffer:
 
 
 class Status:
-    def __init__(self, step_max: int, balance_steps: bool):
+    def __init__(self, step_max: int):
         self.itr: int = 0
         self.update_num: int = 0
         self.targ_update_num: int = 0
         self.step_max: int = step_max
-        self.step_max_curr: int = 1
-        self.step_probs: NDArray = np.empty(0)
-        self.init_step_probs(balance_steps)
+        self.step_max_curr = 1
 
-        self.per_solved_best: float = 0.0
+        self.step_probs: List[float] = []
 
     def update_step_probs(self, step_to_search_perf: Dict[int, PathFindPerf]) -> None:
         ave_solve: float = float(np.mean([step_to_search_perf[step].per_solved()
@@ -129,21 +121,31 @@ class Status:
         if ave_solve >= 50.0:
             self.step_max_curr = min(self.step_max_curr * 2, self.step_max)
 
-        self.step_probs = np.zeros(self.step_max + 1)
-        self.step_probs[np.arange(0, self.step_max_curr + 1)] = 1 / (self.step_max_curr + 1)
+        self.step_probs = [0] * (self.step_max + 1)
+        for idx in range(0, self.step_max_curr + 1):
+            self.step_probs[idx] = 1.0 / (self.step_max_curr + 1)
 
-    def update_step_max(self, step_max: int, balance_steps: bool) -> None:
+    def init_step_probs(self, step_max: int, balance_steps: bool) -> None:
         self.step_max = step_max
-        self.step_max_curr = min(self.step_max_curr, step_max)
-        self.init_step_probs(balance_steps)
+        self.step_max_curr = min(self.step_max_curr, self.step_max)
 
-    def init_step_probs(self, balance_steps: bool) -> None:
         if balance_steps:
-            self.step_probs = np.zeros(self.step_max + 1)
-            self.step_probs[0:2] = 0.5
-            self.step_probs[2:] = 0
+            self.step_probs = [0] * (self.step_max + 1)
+            for idx in range(0, self.step_max_curr + 1):
+                self.step_probs[idx] = 1.0 / (self.step_max_curr + 1)
         else:
-            self.step_probs = np.array(np.ones(self.step_max + 1) / (self.step_max + 1))
+            self.step_max_curr = self.step_max
+            self.step_probs = [1.0 / (self.step_max + 1)] * (self.step_max + 1)
+
+
+class StepsBalanceable(ABC):
+    @abstractmethod
+    def init_step_probs(self, status: Status) -> None:
+        pass
+
+    @abstractmethod
+    def balance_steps(self, status: Status, step_to_search_perf: Dict[int, PathFindPerf]) -> None:
+        pass
 
 
 class TrainSummary:
@@ -253,14 +255,19 @@ class Train(Generic[NNet, Up], ABC):
         if os.path.isfile(self.status_file):
             print("Loading Status")
             self.status = pickle.load(open(self.status_file, "rb"))
-            if self.status.step_probs.shape[0] != (self.updater.up_args.step_max + 1):
-                self.status.update_step_max(self.updater.up_args.step_max, self.train_args.balance_steps)
             print(f"Loaded with itr: {self.status.itr}, update_num: {self.status.update_num}, targ_update_num: {self.status.targ_update_num}")
         else:
             print("Initializing Status")
-            self.status = Status(self.updater.up_args.step_max, self.train_args.balance_steps)
+            self.status = Status(self.updater.up_args.step_max)
+
+        self.status.init_step_probs(self.updater.up_args.step_max, self.train_args.balance_steps)
+        if isinstance(self.domain, StepsBalanceable):
+            self.domain.init_step_probs(self.status)
+
+        if not os.path.isfile(self.status_file):
             # noinspection PyTypeChecker
             pickle.dump(self.status, open(self.status_file, "wb"), protocol=-1)
+
         self.updater.set_targ_update_num(self.nnet_field_name, self.status.targ_update_num)
 
         # load summary
@@ -273,7 +280,7 @@ class Train(Generic[NNet, Up], ABC):
             print("Initializing Train Summary")
             self.train_summary = TrainSummary()
             # noinspection PyTypeChecker
-            pickle.dump(self.status, open(self.status_file, "wb"), protocol=-1)
+            pickle.dump(self.train_summary, open(self.train_summary_file, "wb"), protocol=-1)
 
         # load nnet
         if os.path.isfile(self.nnet_file):
@@ -339,26 +346,16 @@ class Train(Generic[NNet, Up], ABC):
 
         num_gen: int = self.train_args.batch_size * self.updater.up_args.get_up_gen_itrs()
         start_info_l.append(f"num_gen: {format(num_gen, ',')}")
-        if self.train_args.balance_steps:
-            start_info_l.append(f"step max (curr): {self.status.step_max_curr}")
+        start_info_l.append(f"step max (curr): {self.status.step_max_curr}")
         print(f"\nGetting Data - {', '.join(start_info_l)}")
         times: Times = Times()
 
         # start updater
         start_time = time.time()
-        step_probs_l: List[float] = []
-        if isinstance(self.domain, StepProbsGettable):
-            step_probs_l_domain = self.domain.get_step_probs(self.status.step_max, self.train_summary.itr_to_steps_to_pathfindstats)
-            if step_probs_l_domain is not None:
-                step_probs_l = step_probs_l_domain
 
-        if len(step_probs_l) == 0:
-            step_probs_l = self.status.step_probs.tolist()
-
-        assert step_probs_l is not None
-
-        self.train_summary.update_itr_to_step_probs_stats(step_probs_l, self.status.itr)
-        self.updater.start_update(step_probs_l, num_gen, self.train_args.batch_size, self.device, self.on_gpu)
+        step_probs: List[float] = self.status.step_probs.copy()
+        self.train_summary.update_itr_to_step_probs_stats(step_probs, self.status.itr)
+        self.updater.start_update(step_probs, num_gen, self.train_args.batch_size, self.device, self.on_gpu)
         times.record_time("up_start", time.time() - start_time)
 
         # do training
@@ -486,7 +483,10 @@ class Train(Generic[NNet, Up], ABC):
         step_to_search_perf: Dict[int, PathFindPerf] = end_update_data[0]
         rb_size, rb_max_size = end_update_data[1], end_update_data[2]
         self.train_summary.update_pathfindstats(step_to_search_perf, itr_init)
-        if self.train_args.balance_steps:
+
+        if isinstance(self.domain, StepsBalanceable):
+            self.domain.balance_steps(self.status, step_to_search_perf)
+        elif self.train_args.balance_steps:
             self.status.update_step_probs(step_to_search_perf)
 
         per_solved_ave, path_costs_ave, search_itrs_ave, per_finished_ave = get_eq_weighted_perf(step_to_search_perf)
