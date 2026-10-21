@@ -589,9 +589,6 @@ class GoalStartRevWalkable(GoalStateGoalPairSampleable[S, A, G]):
 
 class GoalStartRevWalkableActsRev(GoalStartRevWalkable[S, A, G], ActsRev[S, A, G], NodesLabelsSampleable[S, A, G], EdgesLabelsSampleable[S, A, G],
                                   EdgesSampleable[S, A, G], ABC):
-    def random_walk_rev_no_path_cost(self, states: List[S], num_steps_l: List[int]) -> List[S]:
-        return self.random_walk(states, num_steps_l)[0]
-
     def random_walk_rev(self, states: List[S], num_steps_l: List[int]) -> Tuple[List[S], List[List[A]], List[float]]:
         """ Start from given states and take random walks using reverse actions
 
@@ -623,6 +620,9 @@ class GoalStartRevWalkableActsRev(GoalStartRevWalkable[S, A, G], ActsRev[S, A, G
             steps_lt[idxs] = num_steps_curr[idxs] < num_steps[idxs]
 
         return states_walk, actions_rev_l, path_costs
+
+    def random_walk_rev_no_path_cost(self, states: List[S], num_steps_l: List[int]) -> List[S]:
+        return self.random_walk_rev(states, num_steps_l)[0]
 
     def samp_nodes_and_labels(self, steps_gen: List[int]) -> Tuple[List[S], List[G], List[Any], List[float]]:
         states_goal, goals = self.sample_goalstate_goal_pairs(len(steps_gen))

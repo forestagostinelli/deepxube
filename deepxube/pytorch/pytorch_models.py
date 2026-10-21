@@ -134,6 +134,18 @@ def get_act_fn(act: str) -> nn.Module:
         raise ValueError("Un-defined activation type %s" % act)
 
 
+class UpsampleConv(nn.Module):
+    def __init__(self, in_channels: int, out_channels: int, mode: str = "nearest"):
+        super().__init__()
+        self.mode: str = mode
+        self.conv: nn.Module = Conv2dModel(in_channels, [out_channels], [3], [1], ["LINEAR"])
+
+    def forward(self, x: Tensor) -> Tensor:
+        x = nn.functional.interpolate(x, scale_factor=2, mode=self.mode)
+        x = self.conv(x)
+        return x
+
+
 class ResnetModel(nn.Module):
     def __init__(self, block_init: Callable[[], nn.Module], num_resnet_blocks: int, act_fn: str):
         super().__init__()

@@ -261,7 +261,7 @@ class Train(Generic[NNet, Up], ABC):
             self.status = Status(self.updater.up_args.step_max)
 
         self.status.init_step_probs(self.updater.up_args.step_max, self.train_args.balance_steps)
-        if isinstance(self.domain, StepsBalanceable):
+        if self.train_args.balance_steps and isinstance(self.domain, StepsBalanceable):
             self.domain.init_step_probs(self.status)
 
         if not os.path.isfile(self.status_file):
@@ -484,10 +484,11 @@ class Train(Generic[NNet, Up], ABC):
         rb_size, rb_max_size = end_update_data[1], end_update_data[2]
         self.train_summary.update_pathfindstats(step_to_search_perf, itr_init)
 
-        if isinstance(self.domain, StepsBalanceable):
-            self.domain.balance_steps(self.status, step_to_search_perf)
-        elif self.train_args.balance_steps:
-            self.status.update_step_probs(step_to_search_perf)
+        if self.train_args.balance_steps:
+            if isinstance(self.domain, StepsBalanceable):
+                self.domain.balance_steps(self.status, step_to_search_perf)
+            else:
+                self.status.update_step_probs(step_to_search_perf)
 
         per_solved_ave, path_costs_ave, search_itrs_ave, per_finished_ave = get_eq_weighted_perf(step_to_search_perf)
         num_instances: int = sum([len(step_to_search_perf_i.is_solved_l) for step_to_search_perf_i in step_to_search_perf.values()])
