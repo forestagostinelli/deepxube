@@ -264,7 +264,7 @@ def plot_itr_data(axs: List[Axes], step_slider: Slider, itr: int, train_summ: Tr
     plot_scatter(axs[2], steps_at_itr, per_solved, "Step", "Percent Solved", False)
     plot_scatter(axs[3], steps_at_itr, path_costs, "Step", "Path Costs", False)
     plot_scatter(axs[4], steps_at_itr, search_itrs, "Step", "Search Iterations", False)
-    plot_scatter(axs[5], steps_at_itr, targets, "Step", "Cost-to-Go Targets", False)
+    plot_scatter(axs[5], steps_at_itr, targets, "Step", "Cost-to-Go Backups", False)
     plot_scatter(axs[6], steps_at_itr, num_instances, "Step", "# Instances", False)
     plot_scatter(axs[7], itr_to_in_out[itr][0], itr_to_in_out[itr][1], "Target", "Prediction", True, alpha=0.2)
     step_slider.valtext.set_text(f"Iteration {itr}")
