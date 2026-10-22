@@ -233,7 +233,7 @@ class Conv2dModel(nn.Module):
     def __init__(self, chan_in: int, channel_sizes: List[int], kernel_sizes: List[int], paddings: List[int],
                  layer_acts: List[str], batch_norms: Optional[List[bool]] = None, strides: Optional[List[int]] = None,
                  transpose: bool = False, weight_norms: Optional[List[bool]] = None, group_norms: Optional[List[int]] = None,
-                 dropouts: Optional[List[float]] = None, pre: bool = False):
+                 dropouts: Optional[List[float]] = None, zero_inits: Optional[List[bool]] = None, pre: bool = False):
         # not pre: weight -> norm -> act; pre: norm -> act -> weight
         super().__init__()
         self.layers: nn.ModuleList = nn.ModuleList()
@@ -250,10 +250,13 @@ class Conv2dModel(nn.Module):
         if dropouts is None:
             dropouts = [0.0] * len(channel_sizes)
 
+        if zero_inits is None:
+            zero_inits = [False] * len(channel_sizes)
+
         # layers
-        for chan_out, kernel_size, padding, batch_norm, act, stride, weight_norm, group_norm, dropout in \
+        for chan_out, kernel_size, padding, batch_norm, act, stride, weight_norm, group_norm, dropout, zero_init in \
                 zip(channel_sizes, kernel_sizes, paddings, batch_norms, layer_acts, strides, weight_norms, group_norms,
-                    dropouts, strict=True):
+                    dropouts, zero_inits, strict=True):
 
             module_list = nn.ModuleList()
 
@@ -277,6 +280,11 @@ class Conv2dModel(nn.Module):
                 conv_layer = nn.ConvTranspose2d(chan_in, chan_out, kernel_size, padding=padding, stride=stride)
             else:
                 conv_layer = nn.Conv2d(chan_in, chan_out, kernel_size, padding=padding, stride=stride)
+
+            if zero_init:
+                nn.init.zeros_(conv_layer.weight)
+                if conv_layer.bias is not None:
+                    nn.init.zeros_(conv_layer.bias)
 
             if weight_norm:
                 conv_layer = parametrizations.weight_norm(conv_layer)
