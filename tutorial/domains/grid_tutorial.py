@@ -183,7 +183,7 @@ class GridNNetInput(StateGoalIn[Grid, GridState, GridGoal]):
         return self.domain.dim
 
     def to_np(self, states: List[GridState], goals: List[GridGoal]) -> List[NDArray]:
-        np_rep: NDArray = np.zeros((len(states), 2, self.domain.dim, self.domain.dim))
+        np_rep: NDArray = np.zeros((len(states), 2, self.domain.dim, self.domain.dim)).astype(np.float32)
         for idx, (state, goal) in enumerate(zip(states, goals)):
             np_rep[idx, 0, state.robot_x, state.robot_y] = 1
             np_rep[idx, 1, goal.robot_x, goal.robot_y] = 1
