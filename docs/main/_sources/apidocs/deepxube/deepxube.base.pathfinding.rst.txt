@@ -146,6 +146,16 @@ API
 
       .. autodoc2-docstring:: deepxube.base.pathfinding.Node.get_all_descendants
 
+   .. py:method:: __getstate__() -> typing.Dict
+      :canonical: deepxube.base.pathfinding.Node.__getstate__
+
+      .. autodoc2-docstring:: deepxube.base.pathfinding.Node.__getstate__
+
+   .. py:method:: __setstate__(d: typing.Dict) -> None
+      :canonical: deepxube.base.pathfinding.Node.__setstate__
+
+      .. autodoc2-docstring:: deepxube.base.pathfinding.Node.__setstate__
+
 .. py:function:: get_path(node: deepxube.base.pathfinding.Node) -> typing.Tuple[typing.List[deepxube.base.domain.State], typing.List[deepxube.base.domain.Action], typing.List[float], float]
    :canonical: deepxube.base.pathfinding.get_path
 

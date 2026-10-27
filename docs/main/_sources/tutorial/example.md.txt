@@ -136,12 +136,12 @@ approximate value iteration {cite:p}`bellman1957dynamic,bertsekas1996neuro`, the
 will be trained with limited-horizon Bellman-based learning (LHBL) {cite:p}`hadar2025beyond`.
 Two parallel processes will be used to generate data.
 
-`deepxube train --domain cube3 --fn heurv,resnet_fc.200H_2B_bn --pathfind graph --up up_rl.100sm_50sitrs_100up_lhbl_2p --tr tr_h.200bs_5000maxit --dir results/cube3/models/`
+`deepxube train --domain cube3 --fn heurv,resnet_fc.200H_2B_bn --pathfind graph --up path_rl.100sm_50sitrs_100up_lhbl_2p --tr tr_h.200bs_5000maxit --dir results/cube3/models/`
 
-- `up_rl.100sm_50sitrs_100up_lhbl_2p` Generates training data
+- `path_rl.100sm_50sitrs_100up_lhbl_2p` Generates training data with pathfinding and reinforcement learning
   - Uses 100 steps to generate problem instances. In the Rubik's Cube domain, this starts from the goal and 
   takes between 0 and 100 actions to generate a problem instance. 
-  - Performs search for 50 iterations on each generated problem instances. All states expanded during search are
+  - Performs pathfinding for 50 iterations on each generated problem instances. All states expanded during search are
   added to the training set. 
   - Updates the target network every 100 iterations. 
   - Uses LHBL training update by backing up the entire search tree. 
@@ -163,7 +163,7 @@ batched versions of search cannot currently be used during training.
 
 
 ```{tip}
-While the exact updater name is "up_rl_v", DeepXube, finds the correct updater algorithm based on the "up_rl" prefix and the type
+While the exact updater name is "path_rl_v", DeepXube, finds the correct updater algorithm based on the "path_rl" prefix and the type
 of functions and pathfinding algorithms.
 ```
 
@@ -184,10 +184,13 @@ An output file is saved in output.txt in the training directory.
 An interactive visualization of training can be obtained during or after training with:
 `deepxube train_summary --dir results/cube3/models/`.
 
-This shows the percentage solves, path costs of solutions, search iterations of solved instances, cost-to-go targets, and 
-number of instances created as a function of the number of steps used to generate problem instances. It also shows the 
-neural network prediction as a function of the target cost-to-go. The slider at the bottom can be used to step through 
-training iteration. This plot is updated once every target network update.
+This shows the percent of search that finished, probabilities of generating an instance for each step, 
+percent of problem instnaces solved, path costs of solutions, search iterations of solved instances, 
+cost-to-go backups, and number of instances created as a function of the number of steps used to generate problem instances. 
+It also shows the neural network prediction as a function of the target cost-to-go for the 
+first iteration of training for that update. 
+The slider at the bottom can be used to step through training iteration. 
+This plot is updated once every target network update.
 
 <div style="text-align: center;">
 <img src="../_static/gifs/train_summary.gif" alt="Train summary" width="100%">

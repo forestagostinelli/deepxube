@@ -592,13 +592,13 @@ API
 
    Bases: :py:obj:`deepxube.base.domain.GoalStartRevWalkable`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ], :py:obj:`deepxube.base.domain.ActsRev`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ], :py:obj:`deepxube.base.domain.NodesLabelsSampleable`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ], :py:obj:`deepxube.base.domain.EdgesLabelsSampleable`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ], :py:obj:`deepxube.base.domain.EdgesSampleable`\ [\ :py:obj:`deepxube.base.domain.S`\ , :py:obj:`deepxube.base.domain.A`\ , :py:obj:`deepxube.base.domain.G`\ ], :py:obj:`abc.ABC`
 
-   .. py:method:: random_walk_rev_no_path_cost(states: typing.List[deepxube.base.domain.S], num_steps_l: typing.List[int]) -> typing.List[deepxube.base.domain.S]
-      :canonical: deepxube.base.domain.GoalStartRevWalkableActsRev.random_walk_rev_no_path_cost
-
    .. py:method:: random_walk_rev(states: typing.List[deepxube.base.domain.S], num_steps_l: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[typing.List[deepxube.base.domain.A]], typing.List[float]]
       :canonical: deepxube.base.domain.GoalStartRevWalkableActsRev.random_walk_rev
 
       .. autodoc2-docstring:: deepxube.base.domain.GoalStartRevWalkableActsRev.random_walk_rev
+
+   .. py:method:: random_walk_rev_no_path_cost(states: typing.List[deepxube.base.domain.S], num_steps_l: typing.List[int]) -> typing.List[deepxube.base.domain.S]
+      :canonical: deepxube.base.domain.GoalStartRevWalkableActsRev.random_walk_rev_no_path_cost
 
    .. py:method:: samp_nodes_and_labels(steps_gen: typing.List[int]) -> typing.Tuple[typing.List[deepxube.base.domain.S], typing.List[deepxube.base.domain.G], typing.List[typing.Any], typing.List[float]]
       :canonical: deepxube.base.domain.GoalStartRevWalkableActsRev.samp_nodes_and_labels

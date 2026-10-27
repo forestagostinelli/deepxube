@@ -75,7 +75,7 @@ API
 
    .. autodoc2-docstring:: deepxube.pathfinding.graph_search.SchOver
 
-.. py:class:: InstanceGraph(*args: typing.Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, **kwargs: typing.Any)
+.. py:class:: InstanceGraph(*args: typing.Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, finished_heur_thresh: typing.Optional[float] = None, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.graph_search.InstanceGraph
 
    Bases: :py:obj:`deepxube.base.pathfinding.Instance`, :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.pathfinding.graph_search.SchOver`\ ]
@@ -122,7 +122,7 @@ API
 
    .. autodoc2-docstring:: deepxube.pathfinding.graph_search.IGraph
 
-.. py:class:: GraphSearch(*args: typing.Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, **kwargs: typing.Any)
+.. py:class:: GraphSearch(*args: typing.Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, finished_heur_thresh: typing.Optional[float] = None, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.graph_search.GraphSearch
 
    Bases: :py:obj:`deepxube.base.pathfinding.PathFind`\ [\ :py:obj:`deepxube.pathfinding.graph_search.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.pathfinding.graph_search.IGraph`\ ], :py:obj:`abc.ABC`
@@ -170,7 +170,7 @@ API
 
       .. autodoc2-docstring:: deepxube.pathfinding.graph_search.InstanceEdgeGraph.push_pop_edges
 
-.. py:class:: GraphSearchHeurNode(*args: typing.Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, **kwargs: typing.Any)
+.. py:class:: GraphSearchHeurNode(*args: typing.Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, finished_heur_thresh: typing.Optional[float] = None, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.graph_search.GraphSearchHeurNode
 
    Bases: :py:obj:`deepxube.pathfinding.graph_search.GraphSearch`\ [\ :py:obj:`deepxube.pathfinding.graph_search.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHV_T`\ , :py:obj:`deepxube.pathfinding.graph_search.InstanceNodeGraph`\ ], :py:obj:`deepxube.base.pathfinding.PathFindNodeStatic`\ [\ :py:obj:`deepxube.pathfinding.graph_search.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHV_T`\ , :py:obj:`deepxube.pathfinding.graph_search.InstanceNodeGraph`\ ], :py:obj:`deepxube.base.pathfinding.PathFindSetHeurV`\ [\ :py:obj:`deepxube.pathfinding.graph_search.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHV_T`\ , :py:obj:`deepxube.pathfinding.graph_search.InstanceNodeGraph`\ ], :py:obj:`abc.ABC`
@@ -183,7 +183,7 @@ API
 
       .. autodoc2-docstring:: deepxube.pathfinding.graph_search.GraphSearchHeurNode._compute_costs
 
-.. py:class:: GraphSearchHeurEdge(*args: typing.Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, **kwargs: typing.Any)
+.. py:class:: GraphSearchHeurEdge(*args: typing.Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, finished_heur_thresh: typing.Optional[float] = None, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.graph_search.GraphSearchHeurEdge
 
    Bases: :py:obj:`deepxube.pathfinding.graph_search.GraphSearch`\ [\ :py:obj:`deepxube.pathfinding.graph_search.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHQ_T`\ , :py:obj:`deepxube.pathfinding.graph_search.InstanceEdgeGraph`\ ], :py:obj:`deepxube.base.pathfinding.PathFindEdgeStatic`\ [\ :py:obj:`deepxube.pathfinding.graph_search.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHQ_T`\ , :py:obj:`deepxube.pathfinding.graph_search.InstanceEdgeGraph`\ ], :py:obj:`deepxube.base.pathfinding.PathFindSetHeurQ`\ [\ :py:obj:`deepxube.pathfinding.graph_search.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHQ_T`\ , :py:obj:`deepxube.pathfinding.graph_search.InstanceEdgeGraph`\ ], :py:obj:`abc.ABC`
@@ -196,7 +196,7 @@ API
 
       .. autodoc2-docstring:: deepxube.pathfinding.graph_search.GraphSearchHeurEdge._compute_costs
 
-.. py:class:: GraphSearchHeurNodeActsEnum(*args: typing.Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, **kwargs: typing.Any)
+.. py:class:: GraphSearchHeurNodeActsEnum(*args: typing.Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, finished_heur_thresh: typing.Optional[float] = None, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.graph_search.GraphSearchHeurNodeActsEnum
 
    Bases: :py:obj:`deepxube.pathfinding.graph_search.GraphSearchHeurNode`\ [\ :py:obj:`deepxube.base.domain.ActsEnum`\ , :py:obj:`deepxube.base.pathfind_fns.PFNsHeurV`\ ], :py:obj:`deepxube.base.pathfinding.PathFindActsEnum`\ [\ :py:obj:`deepxube.base.domain.ActsEnum`\ , :py:obj:`deepxube.base.pathfind_fns.PFNsHeurV`\ , :py:obj:`deepxube.pathfinding.graph_search.InstanceNodeGraph`\ ]
@@ -219,7 +219,7 @@ API
 
       .. autodoc2-docstring:: deepxube.pathfinding.graph_search.GraphSearchHeurNodeActsEnum.description
 
-.. py:class:: GraphSearchHeurEdgeActsEnum(*args: typing.Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, **kwargs: typing.Any)
+.. py:class:: GraphSearchHeurEdgeActsEnum(*args: typing.Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, finished_heur_thresh: typing.Optional[float] = None, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.graph_search.GraphSearchHeurEdgeActsEnum
 
    Bases: :py:obj:`deepxube.pathfinding.graph_search.GraphSearchHeurEdge`\ [\ :py:obj:`deepxube.base.domain.ActsEnum`\ , :py:obj:`deepxube.base.pathfind_fns.PFNsHeurQ`\ ], :py:obj:`deepxube.base.pathfinding.PathFindActsEnum`\ [\ :py:obj:`deepxube.base.domain.ActsEnum`\ , :py:obj:`deepxube.base.pathfind_fns.PFNsHeurQ`\ , :py:obj:`deepxube.pathfinding.graph_search.InstanceEdgeGraph`\ ]
@@ -242,7 +242,7 @@ API
 
       .. autodoc2-docstring:: deepxube.pathfinding.graph_search.GraphSearchHeurEdgeActsEnum.description
 
-.. py:class:: GraphSearchHeurNodeActsPolicy(*args: typing.Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, **kwargs: typing.Any)
+.. py:class:: GraphSearchHeurNodeActsPolicy(*args: typing.Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, finished_heur_thresh: typing.Optional[float] = None, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.graph_search.GraphSearchHeurNodeActsPolicy
 
    Bases: :py:obj:`deepxube.pathfinding.graph_search.GraphSearchHeurNode`\ [\ :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.pathfind_fns.PFNsHeurVPolicy`\ ], :py:obj:`deepxube.base.pathfinding.PathFindActsPolicy`\ [\ :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.pathfind_fns.PFNsHeurVPolicy`\ , :py:obj:`deepxube.pathfinding.graph_search.InstanceNodeGraph`\ ]
@@ -268,7 +268,7 @@ API
    .. py:method:: __repr__() -> str
       :canonical: deepxube.pathfinding.graph_search.GraphSearchHeurNodeActsPolicy.__repr__
 
-.. py:class:: GraphSearchHeurEdgeActsPolicy(*args: typing.Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, **kwargs: typing.Any)
+.. py:class:: GraphSearchHeurEdgeActsPolicy(*args: typing.Any, batch_size: int = 1, weight: float = 1.0, eps: float = 0.0, finished_heur_thresh: typing.Optional[float] = None, **kwargs: typing.Any)
    :canonical: deepxube.pathfinding.graph_search.GraphSearchHeurEdgeActsPolicy
 
    Bases: :py:obj:`deepxube.pathfinding.graph_search.GraphSearchHeurEdge`\ [\ :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.pathfind_fns.PFNsHeurQPolicy`\ ], :py:obj:`deepxube.base.pathfinding.PathFindActsPolicy`\ [\ :py:obj:`deepxube.base.domain.Domain`\ , :py:obj:`deepxube.base.pathfind_fns.PFNsHeurQPolicy`\ , :py:obj:`deepxube.pathfinding.graph_search.InstanceEdgeGraph`\ ]
@@ -294,84 +294,38 @@ API
    .. py:method:: __repr__() -> str
       :canonical: deepxube.pathfinding.graph_search.GraphSearchHeurEdgeActsPolicy.__repr__
 
-.. py:class:: GraphSearchParser
+.. py:class:: GraphSearchParser()
    :canonical: deepxube.pathfinding.graph_search.GraphSearchParser
 
-   Bases: :py:obj:`deepxube.base.factory.Parser`, :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.base.factory.DelimParser`
 
-   .. py:method:: parse(args_str: str) -> typing.Dict[str, typing.Any]
-      :canonical: deepxube.pathfinding.graph_search.GraphSearchParser.parse
+   .. py:property:: delim
+      :canonical: deepxube.pathfinding.graph_search.GraphSearchParser.delim
+      :type: str
 
-      .. autodoc2-docstring:: deepxube.pathfinding.graph_search.GraphSearchParser.parse
+      .. autodoc2-docstring:: deepxube.pathfinding.graph_search.GraphSearchParser.delim
 
-   .. py:method:: help() -> str
-      :canonical: deepxube.pathfinding.graph_search.GraphSearchParser.help
-
-      .. autodoc2-docstring:: deepxube.pathfinding.graph_search.GraphSearchParser.help
-
-   .. py:method:: _alg_name() -> str
-      :canonical: deepxube.pathfinding.graph_search.GraphSearchParser._alg_name
-      :abstractmethod:
-
-      .. autodoc2-docstring:: deepxube.pathfinding.graph_search.GraphSearchParser._alg_name
-
-.. py:class:: GraphSearchNodeParser
+.. py:class:: GraphSearchNodeParser()
    :canonical: deepxube.pathfinding.graph_search.GraphSearchNodeParser
 
    Bases: :py:obj:`deepxube.pathfinding.graph_search.GraphSearchParser`
 
-   .. py:method:: _alg_name() -> str
-      :canonical: deepxube.pathfinding.graph_search.GraphSearchNodeParser._alg_name
-
-      .. autodoc2-docstring:: deepxube.pathfinding.graph_search.GraphSearchNodeParser._alg_name
-
-.. py:class:: GraphSearchEdgeParser
+.. py:class:: GraphSearchEdgeParser()
    :canonical: deepxube.pathfinding.graph_search.GraphSearchEdgeParser
 
    Bases: :py:obj:`deepxube.pathfinding.graph_search.GraphSearchParser`
 
-   .. py:method:: _alg_name() -> str
-      :canonical: deepxube.pathfinding.graph_search.GraphSearchEdgeParser._alg_name
-
-      .. autodoc2-docstring:: deepxube.pathfinding.graph_search.GraphSearchEdgeParser._alg_name
-
-.. py:class:: GraphSearchHasPolicyParser
+.. py:class:: GraphSearchHasPolicyParser()
    :canonical: deepxube.pathfinding.graph_search.GraphSearchHasPolicyParser
 
-   Bases: :py:obj:`deepxube.base.factory.Parser`, :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.pathfinding.graph_search.GraphSearchParser`
 
-   .. py:method:: parse(args_str: str) -> typing.Dict[str, typing.Any]
-      :canonical: deepxube.pathfinding.graph_search.GraphSearchHasPolicyParser.parse
-
-      .. autodoc2-docstring:: deepxube.pathfinding.graph_search.GraphSearchHasPolicyParser.parse
-
-   .. py:method:: help() -> str
-      :canonical: deepxube.pathfinding.graph_search.GraphSearchHasPolicyParser.help
-
-      .. autodoc2-docstring:: deepxube.pathfinding.graph_search.GraphSearchHasPolicyParser.help
-
-   .. py:method:: _alg_name() -> str
-      :canonical: deepxube.pathfinding.graph_search.GraphSearchHasPolicyParser._alg_name
-      :abstractmethod:
-
-      .. autodoc2-docstring:: deepxube.pathfinding.graph_search.GraphSearchHasPolicyParser._alg_name
-
-.. py:class:: GraphSearchNodeHasPolicyParser
+.. py:class:: GraphSearchNodeHasPolicyParser()
    :canonical: deepxube.pathfinding.graph_search.GraphSearchNodeHasPolicyParser
 
    Bases: :py:obj:`deepxube.pathfinding.graph_search.GraphSearchHasPolicyParser`
 
-   .. py:method:: _alg_name() -> str
-      :canonical: deepxube.pathfinding.graph_search.GraphSearchNodeHasPolicyParser._alg_name
-
-      .. autodoc2-docstring:: deepxube.pathfinding.graph_search.GraphSearchNodeHasPolicyParser._alg_name
-
-.. py:class:: GraphSearchEdgeHasPolicyParser
+.. py:class:: GraphSearchEdgeHasPolicyParser()
    :canonical: deepxube.pathfinding.graph_search.GraphSearchEdgeHasPolicyParser
 
    Bases: :py:obj:`deepxube.pathfinding.graph_search.GraphSearchHasPolicyParser`
-
-   .. py:method:: _alg_name() -> str
-      :canonical: deepxube.pathfinding.graph_search.GraphSearchEdgeHasPolicyParser._alg_name
-
-      .. autodoc2-docstring:: deepxube.pathfinding.graph_search.GraphSearchEdgeHasPolicyParser._alg_name

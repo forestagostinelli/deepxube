@@ -13,6 +13,6 @@ Submodules
    :titlesonly:
    :maxdepth: 1
 
+   deepxube.updaters.updater_path_sup
    deepxube.updaters.updater_sup
-   deepxube.updaters.updater_rl
-   deepxube.updaters.updater_pathsup
+   deepxube.updaters.updater_path_rl

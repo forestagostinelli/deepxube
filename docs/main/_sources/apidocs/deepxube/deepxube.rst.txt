@@ -33,6 +33,7 @@ Submodules
    :titlesonly:
    :maxdepth: 1
 
+   deepxube._viz
    deepxube._cli
    deepxube._train_cli
    deepxube._solve

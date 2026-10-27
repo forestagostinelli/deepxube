@@ -186,7 +186,7 @@ We can now train a heuristic function that takes a flat input for the
 grid domain. It should learn to solve over 95% of problem instances with 
 20 iterations of A* search during training.
 
-`deepxube train --domain grid_tut.7d --fn heurv,resnet_fc.100H_1B_bn --pathfind graph --up up_rl.100sm_100up_20sitrs_lhbl_2p --tr tr_h.200bs_1000maxit --dir results/grid_tut/flatin_v/`
+`deepxube train --domain grid_tut.7d --fn heurv,resnet_fc.100H_1B_bn --pathfind graph --up path_rl.100sm_100up_20sitrs_lhbl_2p --tr tr_h.200bs_1000maxit --dir results/grid_tut/flatin_v/`
 
 ```{literalinclude} ../../tutorial/results/grid_tut/flatin_v/output.txt
 :language: none
@@ -219,7 +219,7 @@ be the index of the output that corresponds to each action in `actions_l`.
 We can now train a deep Q-network that takes a flat input for the
 grid domain.
 
-`deepxube train --domain grid_tut.7d --fn heurq_fixout,resnet_fc.100H_1B_bn --pathfind graph --up up_rl.100sm_100up_20sitrs_lhbl_2p --tr tr_h.200bs_1000maxit --dir results/grid_tut/flatin_qfix/`
+`deepxube train --domain grid_tut.7d --fn heurq_fixout,resnet_fc.100H_1B_bn --pathfind graph --up path_rl.100sm_100up_20sitrs_lhbl_2p --tr tr_h.200bs_1000maxit --dir results/grid_tut/flatin_qfix/`
 
 ```{literalinclude} ../../tutorial/results/grid_tut/flatin_qfix/output.txt
 :language: none
@@ -251,7 +251,7 @@ number of applicable actions.
 We can now train a deep Q-network that takes the action as in input and a 
 flat input for the grid domain.
 
-`deepxube train --domain grid_tut.7d --fn heurq_in,resnet_fc.100H_1B_bn --pathfind graph --up up_rl.100sm_100up_20sitrs_lhbl_2p --tr tr_h.200bs_1000maxit --dir results/grid_tut/flatin_qin/`
+`deepxube train --domain grid_tut.7d --fn heurq_in,resnet_fc.100H_1B_bn --pathfind graph --up path_rl.100sm_100up_20sitrs_lhbl_2p --tr tr_h.200bs_1000maxit --dir results/grid_tut/flatin_qin/`
 
 ```{literalinclude} ../../tutorial/results/grid_tut/flatin_qin/output.txt
 :language: none
@@ -330,7 +330,7 @@ A parser for the custom neural network can be implemented to allow for setting h
 
 We can now train a network with 16 channels and a fully connected layer of size 100:
 
-`deepxube train --domain grid_tut.7d --fn heurv,gridnet_tut.16ch_100fc --pathfind graph --up up_rl.100sm_100up_20sitrs_lhbl_2p --tr tr_h.200bs_1000maxit --dir results/grid_tut/gridnet_v/`
+`deepxube train --domain grid_tut.7d --fn heurv,gridnet_tut.16ch_100fc --pathfind graph --up path_rl.100sm_100up_20sitrs_lhbl_2p --tr tr_h.200bs_1000maxit --dir results/grid_tut/gridnet_v/`
 
 ```{literalinclude} ../../tutorial/results/grid_tut/gridnet_v/output.txt
 :language: none

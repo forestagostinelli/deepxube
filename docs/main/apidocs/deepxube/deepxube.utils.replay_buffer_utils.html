@@ -290,9 +290,9 @@
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="deepxube.updaters.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters</span></code></a><input aria-label="Toggle navigation of deepxube.updaters" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="deepxube.updaters.updater_path_sup.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters.updater_path_sup</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="deepxube.updaters.updater_sup.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters.updater_sup</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="deepxube.updaters.updater_rl.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters.updater_rl</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="deepxube.updaters.updater_pathsup.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters.updater_pathsup</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepxube.updaters.updater_path_rl.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters.updater_path_rl</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="deepxube.pathfind_fns.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.pathfind_fns</span></code></a><input aria-label="Toggle navigation of deepxube.pathfind_fns" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -320,6 +320,7 @@
 <li class="toctree-l4"><a class="reference internal" href="deepxube.base.pathfinding.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.base.pathfinding</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="deepxube._viz.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube._viz</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="deepxube._cli.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube._cli</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="deepxube._train_cli.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube._train_cli</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="deepxube._solve.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube._solve</span></code></a></li>
@@ -388,6 +389,9 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayBufferVLab" title="deepxube.utils.replay_buffer_utils.ReplayBufferVLab"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReplayBufferVLab</span></code></a></p></td>
 <td></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayBufferQLab" title="deepxube.utils.replay_buffer_utils.ReplayBufferQLab"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReplayBufferQLab</span></code></a></p></td>
+<td></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -409,25 +413,31 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayVLabElem" title="deepxube.utils.replay_buffer_utils.ReplayVLabElem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReplayVLabElem</span></code></a></p></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.InputV" title="deepxube.utils.replay_buffer_utils.InputV"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InputV</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayQLabElem" title="deepxube.utils.replay_buffer_utils.ReplayQLabElem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReplayQLabElem</span></code></a></p></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.InputQ" title="deepxube.utils.replay_buffer_utils.InputQ"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InputQ</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.InputV" title="deepxube.utils.replay_buffer_utils.InputV"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InputV</span></code></a></p></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.InputP" title="deepxube.utils.replay_buffer_utils.InputP"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InputP</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.InputQ" title="deepxube.utils.replay_buffer_utils.InputQ"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InputQ</span></code></a></p></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayV" title="deepxube.utils.replay_buffer_utils.ReplayV"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReplayV</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.InputP" title="deepxube.utils.replay_buffer_utils.InputP"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InputP</span></code></a></p></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayQ" title="deepxube.utils.replay_buffer_utils.ReplayQ"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReplayQ</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayV" title="deepxube.utils.replay_buffer_utils.ReplayV"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReplayV</span></code></a></p></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayP" title="deepxube.utils.replay_buffer_utils.ReplayP"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReplayP</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayQ" title="deepxube.utils.replay_buffer_utils.ReplayQ"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReplayQ</span></code></a></p></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayVLab" title="deepxube.utils.replay_buffer_utils.ReplayVLab"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReplayVLab</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayP" title="deepxube.utils.replay_buffer_utils.ReplayP"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReplayP</span></code></a></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayVLab" title="deepxube.utils.replay_buffer_utils.ReplayVLab"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReplayVLab</span></code></a></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayQLab" title="deepxube.utils.replay_buffer_utils.ReplayQLab"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReplayQLab</span></code></a></p></td>
 <td></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.Elem" title="deepxube.utils.replay_buffer_utils.Elem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Elem</span></code></a></p></td>
@@ -466,6 +476,11 @@
 <dd></dd></dl>
 
 <dl class="py data">
+<dt class="sig sig-object py" id="deepxube.utils.replay_buffer_utils.ReplayQLabElem">
+<span class="sig-prename descclassname"><span class="pre">deepxube.utils.replay_buffer_utils.</span></span><span class="sig-name descname"><span class="pre">ReplayQLabElem</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#deepxube.utils.replay_buffer_utils.ReplayQLabElem" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
 <dt class="sig sig-object py" id="deepxube.utils.replay_buffer_utils.InputV">
 <span class="sig-prename descclassname"><span class="pre">deepxube.utils.replay_buffer_utils.</span></span><span class="sig-name descname"><span class="pre">InputV</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#deepxube.utils.replay_buffer_utils.InputV" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -498,6 +513,11 @@
 <dl class="py data">
 <dt class="sig sig-object py" id="deepxube.utils.replay_buffer_utils.ReplayVLab">
 <span class="sig-prename descclassname"><span class="pre">deepxube.utils.replay_buffer_utils.</span></span><span class="sig-name descname"><span class="pre">ReplayVLab</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#deepxube.utils.replay_buffer_utils.ReplayVLab" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="deepxube.utils.replay_buffer_utils.ReplayQLab">
+<span class="sig-prename descclassname"><span class="pre">deepxube.utils.replay_buffer_utils.</span></span><span class="sig-name descname"><span class="pre">ReplayQLab</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#deepxube.utils.replay_buffer_utils.ReplayQLab" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py data">
@@ -610,6 +630,22 @@
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="deepxube.utils.replay_buffer_utils.ReplayBufferQLab">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">deepxube.utils.replay_buffer_utils.</span></span><span class="sig-name descname"><span class="pre">ReplayBufferQLab</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#deepxube.utils.replay_buffer_utils.ReplayBufferQLab" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayBuffer" title="deepxube.utils.replay_buffer_utils.ReplayBuffer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepxube.utils.replay_buffer_utils.ReplayBuffer</span></code></a>[<a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayQLabElem" title="deepxube.utils.replay_buffer_utils.ReplayQLabElem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepxube.utils.replay_buffer_utils.ReplayQLabElem</span></code></a>, <a class="reference internal" href="#deepxube.utils.replay_buffer_utils.InputQ" title="deepxube.utils.replay_buffer_utils.InputQ"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepxube.utils.replay_buffer_utils.InputQ</span></code></a>, <a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayQLab" title="deepxube.utils.replay_buffer_utils.ReplayQLab"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepxube.utils.replay_buffer_utils.ReplayQLab</span></code></a>]</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="deepxube.utils.replay_buffer_utils.ReplayBufferQLab.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">deepxube.utils.replay_buffer_utils.InputQ</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replay_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">deepxube.utils.replay_buffer_utils.ReplayQLab</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#deepxube.utils.replay_buffer_utils.ReplayBufferQLab.add" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepxube.utils.replay_buffer_utils.ReplayBufferQLab._elems_to_ret">
+<span class="sig-name descname"><span class="pre">_elems_to_ret</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">elems</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">deepxube.utils.replay_buffer_utils.ReplayQLabElem</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">deepxube.utils.replay_buffer_utils.InputQ</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">deepxube.utils.replay_buffer_utils.ReplayQLab</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#deepxube.utils.replay_buffer_utils.ReplayBufferQLab._elems_to_ret" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </section>
 </section>
 </section>
@@ -702,6 +738,7 @@
 <li><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayQElem"><code class="docutils literal notranslate"><span class="pre">ReplayQElem</span></code></a></li>
 <li><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayPElem"><code class="docutils literal notranslate"><span class="pre">ReplayPElem</span></code></a></li>
 <li><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayVLabElem"><code class="docutils literal notranslate"><span class="pre">ReplayVLabElem</span></code></a></li>
+<li><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayQLabElem"><code class="docutils literal notranslate"><span class="pre">ReplayQLabElem</span></code></a></li>
 <li><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.InputV"><code class="docutils literal notranslate"><span class="pre">InputV</span></code></a></li>
 <li><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.InputQ"><code class="docutils literal notranslate"><span class="pre">InputQ</span></code></a></li>
 <li><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.InputP"><code class="docutils literal notranslate"><span class="pre">InputP</span></code></a></li>
@@ -709,6 +746,7 @@
 <li><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayQ"><code class="docutils literal notranslate"><span class="pre">ReplayQ</span></code></a></li>
 <li><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayP"><code class="docutils literal notranslate"><span class="pre">ReplayP</span></code></a></li>
 <li><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayVLab"><code class="docutils literal notranslate"><span class="pre">ReplayVLab</span></code></a></li>
+<li><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayQLab"><code class="docutils literal notranslate"><span class="pre">ReplayQLab</span></code></a></li>
 <li><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.Elem"><code class="docutils literal notranslate"><span class="pre">Elem</span></code></a></li>
 <li><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ID_T"><code class="docutils literal notranslate"><span class="pre">ID_T</span></code></a></li>
 <li><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.RD_T"><code class="docutils literal notranslate"><span class="pre">RD_T</span></code></a></li>
@@ -738,6 +776,11 @@
 <li><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayBufferVLab"><code class="docutils literal notranslate"><span class="pre">ReplayBufferVLab</span></code></a><ul>
 <li><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayBufferVLab.add"><code class="docutils literal notranslate"><span class="pre">ReplayBufferVLab.add()</span></code></a></li>
 <li><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayBufferVLab._elems_to_ret"><code class="docutils literal notranslate"><span class="pre">ReplayBufferVLab._elems_to_ret()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayBufferQLab"><code class="docutils literal notranslate"><span class="pre">ReplayBufferQLab</span></code></a><ul>
+<li><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayBufferQLab.add"><code class="docutils literal notranslate"><span class="pre">ReplayBufferQLab.add()</span></code></a></li>
+<li><a class="reference internal" href="#deepxube.utils.replay_buffer_utils.ReplayBufferQLab._elems_to_ret"><code class="docutils literal notranslate"><span class="pre">ReplayBufferQLab._elems_to_ret()</span></code></a></li>
 </ul>
 </li>
 </ul>

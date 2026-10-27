@@ -101,7 +101,7 @@ perform batch normalization.
 
 ## Training
 
-`deepxube train --domain cube3 --fn heurv,resnet_fc_asym.200H_2B_bn_20o --pathfind graph --up up_rl.100sm_100up_50sitrs_lhbl_2p --tr tr_h.200bs_5000maxit_50disp --dir results/heur_asym_loss/models/`
+`deepxube train --domain cube3 --fn heurv,resnet_fc_asym.200H_2B_bn_20o --pathfind graph --up path_rl.100sm_100up_50sitrs_lhbl_2p --tr tr_h.200bs_5000maxit_50disp --dir results/heur_asym_loss/models/`
 
 `_20o`: To have a penalty of coefficient of 20 for the overestimation penalty.
 

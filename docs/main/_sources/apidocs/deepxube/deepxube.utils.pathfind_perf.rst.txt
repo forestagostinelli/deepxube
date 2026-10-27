@@ -64,7 +64,12 @@ API
 
       .. autodoc2-docstring:: deepxube.utils.pathfind_perf.PathFindPerf.per_solved
 
-   .. py:method:: stats() -> typing.Tuple[float, float, float]
+   .. py:method:: per_finished() -> float
+      :canonical: deepxube.utils.pathfind_perf.PathFindPerf.per_finished
+
+      .. autodoc2-docstring:: deepxube.utils.pathfind_perf.PathFindPerf.per_finished
+
+   .. py:method:: stats() -> typing.Tuple[float, float, float, float]
       :canonical: deepxube.utils.pathfind_perf.PathFindPerf.stats
 
       .. autodoc2-docstring:: deepxube.utils.pathfind_perf.PathFindPerf.stats
@@ -74,7 +79,7 @@ API
 
       .. autodoc2-docstring:: deepxube.utils.pathfind_perf.PathFindPerf.to_string
 
-.. py:function:: get_eq_weighted_perf(step_to_search_perf: typing.Dict[int, deepxube.utils.pathfind_perf.PathFindPerf]) -> typing.Tuple[float, float, float]
+.. py:function:: get_eq_weighted_perf(step_to_search_perf: typing.Dict[int, deepxube.utils.pathfind_perf.PathFindPerf]) -> typing.Tuple[float, float, float, float]
    :canonical: deepxube.utils.pathfind_perf.get_eq_weighted_perf
 
    .. autodoc2-docstring:: deepxube.utils.pathfind_perf.get_eq_weighted_perf

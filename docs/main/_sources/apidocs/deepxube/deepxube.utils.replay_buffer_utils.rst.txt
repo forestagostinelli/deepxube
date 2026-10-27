@@ -26,6 +26,8 @@ Classes
      -
    * - :py:obj:`ReplayBufferVLab <deepxube.utils.replay_buffer_utils.ReplayBufferVLab>`
      -
+   * - :py:obj:`ReplayBufferQLab <deepxube.utils.replay_buffer_utils.ReplayBufferQLab>`
+     -
 
 Data
 ~~~~
@@ -45,6 +47,9 @@ Data
           :summary:
    * - :py:obj:`ReplayVLabElem <deepxube.utils.replay_buffer_utils.ReplayVLabElem>`
      - .. autodoc2-docstring:: deepxube.utils.replay_buffer_utils.ReplayVLabElem
+          :summary:
+   * - :py:obj:`ReplayQLabElem <deepxube.utils.replay_buffer_utils.ReplayQLabElem>`
+     - .. autodoc2-docstring:: deepxube.utils.replay_buffer_utils.ReplayQLabElem
           :summary:
    * - :py:obj:`InputV <deepxube.utils.replay_buffer_utils.InputV>`
      - .. autodoc2-docstring:: deepxube.utils.replay_buffer_utils.InputV
@@ -66,6 +71,9 @@ Data
           :summary:
    * - :py:obj:`ReplayVLab <deepxube.utils.replay_buffer_utils.ReplayVLab>`
      - .. autodoc2-docstring:: deepxube.utils.replay_buffer_utils.ReplayVLab
+          :summary:
+   * - :py:obj:`ReplayQLab <deepxube.utils.replay_buffer_utils.ReplayQLab>`
+     - .. autodoc2-docstring:: deepxube.utils.replay_buffer_utils.ReplayQLab
           :summary:
    * - :py:obj:`Elem <deepxube.utils.replay_buffer_utils.Elem>`
      - .. autodoc2-docstring:: deepxube.utils.replay_buffer_utils.Elem
@@ -103,6 +111,12 @@ API
    :value: None
 
    .. autodoc2-docstring:: deepxube.utils.replay_buffer_utils.ReplayVLabElem
+
+.. py:data:: ReplayQLabElem
+   :canonical: deepxube.utils.replay_buffer_utils.ReplayQLabElem
+   :value: None
+
+   .. autodoc2-docstring:: deepxube.utils.replay_buffer_utils.ReplayQLabElem
 
 .. py:data:: InputV
    :canonical: deepxube.utils.replay_buffer_utils.InputV
@@ -145,6 +159,12 @@ API
    :value: None
 
    .. autodoc2-docstring:: deepxube.utils.replay_buffer_utils.ReplayVLab
+
+.. py:data:: ReplayQLab
+   :canonical: deepxube.utils.replay_buffer_utils.ReplayQLab
+   :value: None
+
+   .. autodoc2-docstring:: deepxube.utils.replay_buffer_utils.ReplayQLab
 
 .. py:data:: Elem
    :canonical: deepxube.utils.replay_buffer_utils.Elem
@@ -255,3 +275,18 @@ API
       :canonical: deepxube.utils.replay_buffer_utils.ReplayBufferVLab._elems_to_ret
 
       .. autodoc2-docstring:: deepxube.utils.replay_buffer_utils.ReplayBufferVLab._elems_to_ret
+
+.. py:class:: ReplayBufferQLab(max_size: int)
+   :canonical: deepxube.utils.replay_buffer_utils.ReplayBufferQLab
+
+   Bases: :py:obj:`deepxube.utils.replay_buffer_utils.ReplayBuffer`\ [\ :py:obj:`deepxube.utils.replay_buffer_utils.ReplayQLabElem`\ , :py:obj:`deepxube.utils.replay_buffer_utils.InputQ`\ , :py:obj:`deepxube.utils.replay_buffer_utils.ReplayQLab`\ ]
+
+   .. py:method:: add(input_data: deepxube.utils.replay_buffer_utils.InputQ, replay_data: deepxube.utils.replay_buffer_utils.ReplayQLab) -> None
+      :canonical: deepxube.utils.replay_buffer_utils.ReplayBufferQLab.add
+
+      .. autodoc2-docstring:: deepxube.utils.replay_buffer_utils.ReplayBufferQLab.add
+
+   .. py:method:: _elems_to_ret(elems: typing.List[deepxube.utils.replay_buffer_utils.ReplayQLabElem]) -> typing.Tuple[deepxube.utils.replay_buffer_utils.InputQ, deepxube.utils.replay_buffer_utils.ReplayQLab]
+      :canonical: deepxube.utils.replay_buffer_utils.ReplayBufferQLab._elems_to_ret
+
+      .. autodoc2-docstring:: deepxube.utils.replay_buffer_utils.ReplayBufferQLab._elems_to_ret

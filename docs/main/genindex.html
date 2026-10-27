@@ -288,9 +288,9 @@
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="apidocs/deepxube/deepxube.updaters.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters</span></code></a><input aria-label="Toggle navigation of deepxube.updaters" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters.updater_path_sup</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="apidocs/deepxube/deepxube.updaters.updater_sup.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters.updater_sup</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="apidocs/deepxube/deepxube.updaters.updater_rl.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters.updater_rl</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters.updater_pathsup</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters.updater_path_rl</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="apidocs/deepxube/deepxube.pathfind_fns.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.pathfind_fns</span></code></a><input aria-label="Toggle navigation of deepxube.pathfind_fns" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -318,6 +318,7 @@
 <li class="toctree-l4"><a class="reference internal" href="apidocs/deepxube/deepxube.base.pathfinding.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.base.pathfinding</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="apidocs/deepxube/deepxube._viz.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube._viz</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="apidocs/deepxube/deepxube._cli.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube._cli</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="apidocs/deepxube/deepxube._train_cli.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube._train_cli</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="apidocs/deepxube/deepxube._solve.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube._solve</span></code></a></li>
@@ -413,6 +414,8 @@
         <ul>
           <li><a href="apidocs/deepxube/deepxube.base.pathfind_fns.html#deepxube.base.pathfind_fns.DeepXubeNNetPar.__getstate__">(deepxube.base.pathfind_fns.DeepXubeNNetPar method)</a>
 </li>
+          <li><a href="apidocs/deepxube/deepxube.base.pathfinding.html#deepxube.base.pathfinding.Node.__getstate__">(deepxube.base.pathfinding.Node method)</a>
+</li>
           <li><a href="apidocs/deepxube/deepxube.domains.sokoban.html#deepxube.domains.sokoban.Sokoban.__getstate__">(deepxube.domains.sokoban.Sokoban method)</a>
 </li>
         </ul></li>
@@ -497,6 +500,8 @@
 </li>
           <li><a href="apidocs/deepxube/deepxube.domains.lightsout.html#deepxube.domains.lightsout.LOAction.__repr__">(deepxube.domains.lightsout.LOAction method)</a>
 </li>
+          <li><a href="apidocs/deepxube/deepxube.domains.npuzzle.html#deepxube.domains.npuzzle.NPAction.__repr__">(deepxube.domains.npuzzle.NPAction method)</a>
+</li>
           <li><a href="apidocs/deepxube/deepxube.domains.npuzzle.html#deepxube.domains.npuzzle.NPuzzle.__repr__">(deepxube.domains.npuzzle.NPuzzle method)</a>
 </li>
           <li><a href="apidocs/deepxube/deepxube.domains.sokoban.html#deepxube.domains.sokoban.SkAction.__repr__">(deepxube.domains.sokoban.SkAction method)</a>
@@ -527,6 +532,8 @@
 </li>
         </ul></li>
         <li><a href="apidocs/deepxube/deepxube.utils.data_utils.html#deepxube.utils.data_utils.SharedNDArray.__setitem__">__setitem__() (deepxube.utils.data_utils.SharedNDArray method)</a>
+</li>
+        <li><a href="apidocs/deepxube/deepxube.base.pathfinding.html#deepxube.base.pathfinding.Node.__setstate__">__setstate__() (deepxube.base.pathfinding.Node method)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.pathfinding.html#deepxube.base.pathfinding.EdgeQ.__slots__">__slots__ (deepxube.base.pathfinding.EdgeQ attribute)</a>
 
@@ -578,36 +585,10 @@
           <li><a href="apidocs/deepxube/deepxube.trainers.train_policy.html#deepxube.trainers.train_policy.TrainPolicy._add_post_up_info">(deepxube.trainers.train_policy.TrainPolicy method)</a>
 </li>
         </ul></li>
-        <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.BeamSearchEdgeHasPolicyParser._alg_name">_alg_name() (deepxube.pathfinding.beam_search.BeamSearchEdgeHasPolicyParser method)</a>
+        <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.RolloutParser._alg_name">_alg_name() (deepxube.pathfinding.beam_search.RolloutParser method)</a>
 
         <ul>
-          <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.BeamSearchEdgeParser._alg_name">(deepxube.pathfinding.beam_search.BeamSearchEdgeParser method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.BeamSearchHasPolicyParser._alg_name">(deepxube.pathfinding.beam_search.BeamSearchHasPolicyParser method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.BeamSearchNodeHasPolicyParser._alg_name">(deepxube.pathfinding.beam_search.BeamSearchNodeHasPolicyParser method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.BeamSearchNodeParser._alg_name">(deepxube.pathfinding.beam_search.BeamSearchNodeParser method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.BeamSearchParser._alg_name">(deepxube.pathfinding.beam_search.BeamSearchParser method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.BeamSearchPolicyParser._alg_name">(deepxube.pathfinding.beam_search.BeamSearchPolicyParser method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.RolloutParser._alg_name">(deepxube.pathfinding.beam_search.RolloutParser method)</a>
-</li>
           <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.RolloutPolicyParser._alg_name">(deepxube.pathfinding.beam_search.RolloutPolicyParser method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.pathfinding.graph_search.html#deepxube.pathfinding.graph_search.GraphSearchEdgeHasPolicyParser._alg_name">(deepxube.pathfinding.graph_search.GraphSearchEdgeHasPolicyParser method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.pathfinding.graph_search.html#deepxube.pathfinding.graph_search.GraphSearchEdgeParser._alg_name">(deepxube.pathfinding.graph_search.GraphSearchEdgeParser method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.pathfinding.graph_search.html#deepxube.pathfinding.graph_search.GraphSearchHasPolicyParser._alg_name">(deepxube.pathfinding.graph_search.GraphSearchHasPolicyParser method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.pathfinding.graph_search.html#deepxube.pathfinding.graph_search.GraphSearchNodeHasPolicyParser._alg_name">(deepxube.pathfinding.graph_search.GraphSearchNodeHasPolicyParser method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.pathfinding.graph_search.html#deepxube.pathfinding.graph_search.GraphSearchNodeParser._alg_name">(deepxube.pathfinding.graph_search.GraphSearchNodeParser method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.pathfinding.graph_search.html#deepxube.pathfinding.graph_search.GraphSearchParser._alg_name">(deepxube.pathfinding.graph_search.GraphSearchParser method)</a>
 </li>
         </ul></li>
         <li><a href="apidocs/deepxube/deepxube.pathfinding.graph_search.html#deepxube.pathfinding.graph_search.InstanceGraph._check_closed">_check_closed() (deepxube.pathfinding.graph_search.InstanceGraph method)</a>
@@ -656,6 +637,8 @@
           <li><a href="apidocs/deepxube/deepxube.utils.replay_buffer_utils.html#deepxube.utils.replay_buffer_utils.ReplayBufferP._elems_to_ret">(deepxube.utils.replay_buffer_utils.ReplayBufferP method)</a>
 </li>
           <li><a href="apidocs/deepxube/deepxube.utils.replay_buffer_utils.html#deepxube.utils.replay_buffer_utils.ReplayBufferQ._elems_to_ret">(deepxube.utils.replay_buffer_utils.ReplayBufferQ method)</a>
+</li>
+          <li><a href="apidocs/deepxube/deepxube.utils.replay_buffer_utils.html#deepxube.utils.replay_buffer_utils.ReplayBufferQLab._elems_to_ret">(deepxube.utils.replay_buffer_utils.ReplayBufferQLab method)</a>
 </li>
           <li><a href="apidocs/deepxube/deepxube.utils.replay_buffer_utils.html#deepxube.utils.replay_buffer_utils.ReplayBufferV._elems_to_ret">(deepxube.utils.replay_buffer_utils.ReplayBufferV method)</a>
 </li>
@@ -713,11 +696,11 @@
         <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdatePathFindHER._get_her_data">_get_her_data() (deepxube.base.updater.UpdatePathFindHER method)</a>
 
         <ul>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLHERABC._get_her_data">(deepxube.updaters.updater_rl.UpdateHeurQRLHERABC method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurQRLHERABC._get_her_data">(deepxube.updaters.updater_path_rl.UpdateHeurQRLHERABC method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLHERABC._get_her_data">(deepxube.updaters.updater_rl.UpdateHeurVRLHERABC method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurVRLHERABC._get_her_data">(deepxube.updaters.updater_path_rl.UpdateHeurVRLHERABC method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLHERABC._get_her_data">(deepxube.updaters.updater_rl.UpdatePolicyRLHERABC method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdatePolicyRLHERABC._get_her_data">(deepxube.updaters.updater_path_rl.UpdatePolicyRLHERABC method)</a>
 </li>
         </ul></li>
     </ul></td>
@@ -775,25 +758,29 @@
         <ul>
           <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdatePathFindHER._get_labels_no_rb">(deepxube.base.updater.UpdatePathFindHER method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html#deepxube.updaters.updater_pathsup.UpdateHeurVPathSupKeepGoalABC._get_labels_no_rb">(deepxube.updaters.updater_pathsup.UpdateHeurVPathSupKeepGoalABC method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurQRLKeepGoalABC._get_labels_no_rb">(deepxube.updaters.updater_path_rl.UpdateHeurQRLKeepGoalABC method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLKeepGoalABC._get_labels_no_rb">(deepxube.updaters.updater_rl.UpdateHeurQRLKeepGoalABC method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurVRLKeepGoalABC._get_labels_no_rb">(deepxube.updaters.updater_path_rl.UpdateHeurVRLKeepGoalABC method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLKeepGoalABC._get_labels_no_rb">(deepxube.updaters.updater_rl.UpdateHeurVRLKeepGoalABC method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdatePolicyRLKeepGoalABC._get_labels_no_rb">(deepxube.updaters.updater_path_rl.UpdatePolicyRLKeepGoalABC method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoalABC._get_labels_no_rb">(deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoalABC method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateHeurQPathSupKeepGoalABC._get_labels_no_rb">(deepxube.updaters.updater_path_sup.UpdateHeurQPathSupKeepGoalABC method)</a>
+</li>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateHeurVPathSupKeepGoalABC._get_labels_no_rb">(deepxube.updaters.updater_path_sup.UpdateHeurVPathSupKeepGoalABC method)</a>
 </li>
         </ul></li>
         <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdatePathFind._get_labels_rb">_get_labels_rb() (deepxube.base.updater.UpdatePathFind method)</a>
 
         <ul>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html#deepxube.updaters.updater_pathsup.UpdateHeurVPathSup._get_labels_rb">(deepxube.updaters.updater_pathsup.UpdateHeurVPathSup method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurQRL._get_labels_rb">(deepxube.updaters.updater_path_rl.UpdateHeurQRL method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRL._get_labels_rb">(deepxube.updaters.updater_rl.UpdateHeurQRL method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurVRL._get_labels_rb">(deepxube.updaters.updater_path_rl.UpdateHeurVRL method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRL._get_labels_rb">(deepxube.updaters.updater_rl.UpdateHeurVRL method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdatePolicyRL._get_labels_rb">(deepxube.updaters.updater_path_rl.UpdatePolicyRL method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRL._get_labels_rb">(deepxube.updaters.updater_rl.UpdatePolicyRL method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateHeurQPathSup._get_labels_rb">(deepxube.updaters.updater_path_sup.UpdateHeurQPathSup method)</a>
+</li>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateHeurVPathSup._get_labels_rb">(deepxube.updaters.updater_path_sup.UpdateHeurVPathSup method)</a>
 </li>
         </ul></li>
         <li><a href="apidocs/deepxube/deepxube._solve.html#deepxube._solve._get_mean">_get_mean() (in module deepxube._solve)</a>
@@ -814,66 +801,32 @@
         </ul></li>
         <li><a href="apidocs/deepxube/deepxube.domains.npuzzle.html#deepxube.domains.npuzzle.NPuzzle._get_num_inversions">_get_num_inversions() (deepxube.domains.npuzzle.NPuzzle method)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.Update._get_pathfind_functions">_get_pathfind_functions() (deepxube.base.updater.Update method)</a>
-
-        <ul>
-          <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateSup._get_pathfind_functions">(deepxube.base.updater.UpdateSup method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html#deepxube.updaters.updater_pathsup.UpdateHeurVPathSupKeepGoal._get_pathfind_functions">(deepxube.updaters.updater_pathsup.UpdateHeurVPathSupKeepGoal method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html#deepxube.updaters.updater_pathsup.UpdateHeurVRLKeepGoalPolicy._get_pathfind_functions">(deepxube.updaters.updater_pathsup.UpdateHeurVRLKeepGoalPolicy method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLHER._get_pathfind_functions">(deepxube.updaters.updater_rl.UpdateHeurQRLHER method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLHERPolicy._get_pathfind_functions">(deepxube.updaters.updater_rl.UpdateHeurQRLHERPolicy method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLKeepGoal._get_pathfind_functions">(deepxube.updaters.updater_rl.UpdateHeurQRLKeepGoal method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLKeepGoalPolicy._get_pathfind_functions">(deepxube.updaters.updater_rl.UpdateHeurQRLKeepGoalPolicy method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLHER._get_pathfind_functions">(deepxube.updaters.updater_rl.UpdateHeurVRLHER method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLHERPolicy._get_pathfind_functions">(deepxube.updaters.updater_rl.UpdateHeurVRLHERPolicy method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLKeepGoal._get_pathfind_functions">(deepxube.updaters.updater_rl.UpdateHeurVRLKeepGoal method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLKeepGoalPolicy._get_pathfind_functions">(deepxube.updaters.updater_rl.UpdateHeurVRLKeepGoalPolicy method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLHER._get_pathfind_functions">(deepxube.updaters.updater_rl.UpdatePolicyRLHER method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLHERHeurQ._get_pathfind_functions">(deepxube.updaters.updater_rl.UpdatePolicyRLHERHeurQ method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLHERHeurV._get_pathfind_functions">(deepxube.updaters.updater_rl.UpdatePolicyRLHERHeurV method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoal._get_pathfind_functions">(deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoal method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoalHeurQ._get_pathfind_functions">(deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoalHeurQ method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoalHeurV._get_pathfind_functions">(deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoalHeurV method)</a>
-</li>
-        </ul></li>
         <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdatePathFind._get_rb">_get_rb() (deepxube.base.updater.UpdatePathFind method)</a>
 
         <ul>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html#deepxube.updaters.updater_pathsup.UpdateHeurVPathSup._get_rb">(deepxube.updaters.updater_pathsup.UpdateHeurVPathSup method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurQRL._get_rb">(deepxube.updaters.updater_path_rl.UpdateHeurQRL method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRL._get_rb">(deepxube.updaters.updater_rl.UpdateHeurQRL method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurVRL._get_rb">(deepxube.updaters.updater_path_rl.UpdateHeurVRL method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRL._get_rb">(deepxube.updaters.updater_rl.UpdateHeurVRL method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdatePolicyRL._get_rb">(deepxube.updaters.updater_path_rl.UpdatePolicyRL method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRL._get_rb">(deepxube.updaters.updater_rl.UpdatePolicyRL method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateHeurQPathSup._get_rb">(deepxube.updaters.updater_path_sup.UpdateHeurQPathSup method)</a>
+</li>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateHeurVPathSup._get_rb">(deepxube.updaters.updater_path_sup.UpdateHeurVPathSup method)</a>
 </li>
         </ul></li>
         <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdatePathFind._get_rb_data">_get_rb_data() (deepxube.base.updater.UpdatePathFind method)</a>
 
         <ul>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html#deepxube.updaters.updater_pathsup.UpdateHeurVPathSup._get_rb_data">(deepxube.updaters.updater_pathsup.UpdateHeurVPathSup method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurQRL._get_rb_data">(deepxube.updaters.updater_path_rl.UpdateHeurQRL method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRL._get_rb_data">(deepxube.updaters.updater_rl.UpdateHeurQRL method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurVRL._get_rb_data">(deepxube.updaters.updater_path_rl.UpdateHeurVRL method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRL._get_rb_data">(deepxube.updaters.updater_rl.UpdateHeurVRL method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdatePolicyRL._get_rb_data">(deepxube.updaters.updater_path_rl.UpdatePolicyRL method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRL._get_rb_data">(deepxube.updaters.updater_rl.UpdatePolicyRL method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateHeurQPathSup._get_rb_data">(deepxube.updaters.updater_path_sup.UpdateHeurQPathSup method)</a>
+</li>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateHeurVPathSup._get_rb_data">(deepxube.updaters.updater_path_sup.UpdateHeurVPathSup method)</a>
 </li>
         </ul></li>
         <li><a href="apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.NextStateNPActsEnumFixed._get_state_np_actions">_get_state_np_actions() (deepxube.base.domain.NextStateNPActsEnumFixed method)</a>
@@ -882,11 +835,11 @@
 </li>
         <li><a href="apidocs/deepxube/deepxube.domains.npuzzle.html#deepxube.domains.npuzzle.NPuzzle._get_swap_zero_idxs">_get_swap_zero_idxs() (deepxube.domains.npuzzle.NPuzzle method)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHasHeurQ._get_targ_heurq_fn">_get_targ_heurq_fn() (deepxube.base.updater.UpdateHasHeurQ method)</a>
+        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHeurQ._get_targ_heurq_fn">_get_targ_heurq_fn() (deepxube.base.updater.UpdateHeurQ method)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHasHeurV._get_targ_heurv_fn">_get_targ_heurv_fn() (deepxube.base.updater.UpdateHasHeurV method)</a>
+        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHeurV._get_targ_heurv_fn">_get_targ_heurv_fn() (deepxube.base.updater.UpdateHeurV method)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHasPolicy._get_targ_policy_fn">_get_targ_policy_fn() (deepxube.base.updater.UpdateHasPolicy method)</a>
+        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdatePolicy._get_targ_policy_fn">_get_targ_policy_fn() (deepxube.base.updater.UpdatePolicy method)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.domains.sokoban.html#deepxube.domains.sokoban._get_train_states">_get_train_states() (in module deepxube.domains.sokoban)</a>
 </li>
@@ -921,6 +874,8 @@
         <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.Update._make_instances">_make_instances() (deepxube.base.updater.Update method)</a>
 
         <ul>
+          <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateLabel._make_instances">(deepxube.base.updater.UpdateLabel method)</a>
+</li>
           <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateRL._make_instances">(deepxube.base.updater.UpdateRL method)</a>
 </li>
           <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateSup._make_instances">(deepxube.base.updater.UpdateSup method)</a>
@@ -928,6 +883,16 @@
         </ul></li>
         <li><a href="apidocs/deepxube/deepxube.base.factory.html#deepxube.base.factory.DelimParser._match_arg_name">_match_arg_name() (deepxube.base.factory.DelimParser method)</a>
 </li>
+        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.Update._modify_pathfind_fns">_modify_pathfind_fns() (deepxube.base.updater.Update method)</a>
+
+        <ul>
+          <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHeurQ._modify_pathfind_fns">(deepxube.base.updater.UpdateHeurQ method)</a>
+</li>
+          <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHeurV._modify_pathfind_fns">(deepxube.base.updater.UpdateHeurV method)</a>
+</li>
+          <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdatePolicy._modify_pathfind_fns">(deepxube.base.updater.UpdatePolicy method)</a>
+</li>
+        </ul></li>
         <li><a href="apidocs/deepxube/deepxube.domains.cube3.html#deepxube.domains.cube3.InteractiveCube._mouse_motion">_mouse_motion() (deepxube.domains.cube3.InteractiveCube method)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.domains.cube3.html#deepxube.domains.cube3.InteractiveCube._mouse_press">_mouse_press() (deepxube.domains.cube3.InteractiveCube method)</a>
@@ -971,8 +936,6 @@
         <li><a href="apidocs/deepxube/deepxube._cli.html#deepxube._cli._parse_time">_parse_time() (in module deepxube._cli)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube._cli.html#deepxube._cli._parse_train_summary">_parse_train_summary() (in module deepxube._cli)</a>
-</li>
-        <li><a href="apidocs/deepxube/deepxube._cli.html#deepxube._cli._parse_viz_info">_parse_viz_info() (in module deepxube._cli)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateEdgePathFind._pathfind_step">_pathfind_step() (deepxube.base.updater.UpdateEdgePathFind method)</a>
 
@@ -1088,7 +1051,7 @@
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.pathfinding.html#deepxube.base.pathfinding.PathFind._verbose">_verbose() (deepxube.base.pathfinding.PathFind method)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube._cli.html#deepxube._cli._viz_state_goal_update">_viz_state_goal_update() (in module deepxube._cli)</a>
+        <li><a href="apidocs/deepxube/deepxube._viz.html#deepxube._viz._viz_state_goal_update">_viz_state_goal_update() (in module deepxube._viz)</a>
 </li>
     </ul></td>
   </tr></table>
@@ -1132,6 +1095,8 @@
           <li><a href="apidocs/deepxube/deepxube.utils.replay_buffer_utils.html#deepxube.utils.replay_buffer_utils.ReplayBufferP.add">(deepxube.utils.replay_buffer_utils.ReplayBufferP method)</a>
 </li>
           <li><a href="apidocs/deepxube/deepxube.utils.replay_buffer_utils.html#deepxube.utils.replay_buffer_utils.ReplayBufferQ.add">(deepxube.utils.replay_buffer_utils.ReplayBufferQ method)</a>
+</li>
+          <li><a href="apidocs/deepxube/deepxube.utils.replay_buffer_utils.html#deepxube.utils.replay_buffer_utils.ReplayBufferQLab.add">(deepxube.utils.replay_buffer_utils.ReplayBufferQLab method)</a>
 </li>
           <li><a href="apidocs/deepxube/deepxube.utils.replay_buffer_utils.html#deepxube.utils.replay_buffer_utils.ReplayBufferV.add">(deepxube.utils.replay_buffer_utils.ReplayBufferV method)</a>
 </li>
@@ -1188,6 +1153,8 @@
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.trainer.html#deepxube.base.trainer.TrainArgs.balance_steps">balance_steps (deepxube.base.trainer.TrainArgs attribute)</a>
 </li>
+        <li><a href="apidocs/deepxube/deepxube.base.trainer.html#deepxube.base.trainer.StepsBalanceable.balance_steps">balance_steps() (deepxube.base.trainer.StepsBalanceable method)</a>
+</li>
         <li><a href="apidocs/deepxube/deepxube.domains.cube3.html#deepxube.domains.cube3.InteractiveCube.base_face">base_face (deepxube.domains.cube3.InteractiveCube attribute)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.domains.cube3.html#deepxube.domains.cube3.InteractiveCube.base_face_centroid">base_face_centroid (deepxube.domains.cube3.InteractiveCube attribute)</a>
@@ -1208,10 +1175,10 @@
 </li>
         <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.BeamSearchHeurEdge">BeamSearchHeurEdge (class in deepxube.pathfinding.beam_search)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsEnum">BeamSearchHeurEdgeActsEnum (class in deepxube.pathfinding.beam_search)</a>
-</li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsEnum">BeamSearchHeurEdgeActsEnum (class in deepxube.pathfinding.beam_search)</a>
+</li>
         <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsPolicy">BeamSearchHeurEdgeActsPolicy (class in deepxube.pathfinding.beam_search)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.BeamSearchHeurNode">BeamSearchHeurNode (class in deepxube.pathfinding.beam_search)</a>
@@ -1312,8 +1279,6 @@
         </ul></li>
         <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.D_GS_T">D_GS_T (in module deepxube.base.updater)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html#deepxube.updaters.updater_pathsup.D_NL_T">D_NL_T (in module deepxube.updaters.updater_pathsup)</a>
-</li>
         <li><a href="apidocs/deepxube/deepxube.base.pathfinding.html#deepxube.base.pathfinding.DActsEnum">DActsEnum (in module deepxube.base.pathfinding)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.trainer.html#deepxube.base.trainer.Train.data_parallel">data_parallel() (deepxube.base.trainer.Train static method)</a>
@@ -1367,6 +1332,13 @@
 
         <ul>
           <li><a href="apidocs/deepxube/deepxube._train_cli.html#module-deepxube._train_cli">module</a>
+</li>
+        </ul></li>
+        <li>
+    deepxube._viz
+
+        <ul>
+          <li><a href="apidocs/deepxube/deepxube._viz.html#module-deepxube._viz">module</a>
 </li>
         </ul></li>
         <li>
@@ -1635,8 +1607,6 @@
           <li><a href="apidocs/deepxube/deepxube.pytorch.nnet_utils.html#module-deepxube.pytorch.nnet_utils">module</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     deepxube.pytorch.pytorch_models
 
@@ -1644,6 +1614,8 @@
           <li><a href="apidocs/deepxube/deepxube.pytorch.pytorch_models.html#module-deepxube.pytorch.pytorch_models">module</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     deepxube.tests_cli
 
@@ -1687,17 +1659,17 @@
 </li>
         </ul></li>
         <li>
-    deepxube.updaters.updater_pathsup
+    deepxube.updaters.updater_path_rl
 
         <ul>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html#module-deepxube.updaters.updater_pathsup">module</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#module-deepxube.updaters.updater_path_rl">module</a>
 </li>
         </ul></li>
         <li>
-    deepxube.updaters.updater_rl
+    deepxube.updaters.updater_path_sup
 
         <ul>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#module-deepxube.updaters.updater_rl">module</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#module-deepxube.updaters.updater_path_sup">module</a>
 </li>
         </ul></li>
         <li>
@@ -1798,7 +1770,15 @@
 </li>
           <li><a href="apidocs/deepxube/deepxube.domains.grid.html#deepxube.domains.grid.GridParser.delim">(deepxube.domains.grid.GridParser property)</a>
 </li>
+          <li><a href="apidocs/deepxube/deepxube.nnets.resnet_2d.html#deepxube.nnets.resnet_2d.Resnet2DParser.delim">(deepxube.nnets.resnet_2d.Resnet2DParser property)</a>
+</li>
           <li><a href="apidocs/deepxube/deepxube.nnets.resnet_fc.html#deepxube.nnets.resnet_fc.ResnetFCParser.delim">(deepxube.nnets.resnet_fc.ResnetFCParser property)</a>
+</li>
+          <li><a href="apidocs/deepxube/deepxube.pathfind_fns.fns_core.html#deepxube.pathfind_fns.fns_core.GridParser.delim">(deepxube.pathfind_fns.fns_core.GridParser property)</a>
+</li>
+          <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.BeamSearchParser.delim">(deepxube.pathfinding.beam_search.BeamSearchParser property)</a>
+</li>
+          <li><a href="apidocs/deepxube/deepxube.pathfinding.graph_search.html#deepxube.pathfinding.graph_search.GraphSearchParser.delim">(deepxube.pathfinding.graph_search.GraphSearchParser property)</a>
 </li>
         </ul></li>
         <li><a href="apidocs/deepxube/deepxube.base.factory.html#deepxube.base.factory.DelimParser">DelimParser (class in deepxube.base.factory)</a>
@@ -1880,19 +1860,21 @@
 </li>
           <li><a href="apidocs/deepxube/deepxube.pathfinding.supervised.html#deepxube.pathfinding.supervised.PathFindNodeSup.domain_type">(deepxube.pathfinding.supervised.PathFindNodeSup static method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html#deepxube.updaters.updater_pathsup.UpdateHeurVPathSupKeepGoalABC.domain_type">(deepxube.updaters.updater_pathsup.UpdateHeurVPathSupKeepGoalABC static method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurQRLHERABC.domain_type">(deepxube.updaters.updater_path_rl.UpdateHeurQRLHERABC static method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLHERABC.domain_type">(deepxube.updaters.updater_rl.UpdateHeurQRLHERABC static method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurQRLKeepGoalABC.domain_type">(deepxube.updaters.updater_path_rl.UpdateHeurQRLKeepGoalABC static method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLKeepGoalABC.domain_type">(deepxube.updaters.updater_rl.UpdateHeurQRLKeepGoalABC static method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurVRLHERABC.domain_type">(deepxube.updaters.updater_path_rl.UpdateHeurVRLHERABC static method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLHERABC.domain_type">(deepxube.updaters.updater_rl.UpdateHeurVRLHERABC static method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurVRLKeepGoalABC.domain_type">(deepxube.updaters.updater_path_rl.UpdateHeurVRLKeepGoalABC static method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLKeepGoalABC.domain_type">(deepxube.updaters.updater_rl.UpdateHeurVRLKeepGoalABC static method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdatePolicyRLHERABC.domain_type">(deepxube.updaters.updater_path_rl.UpdatePolicyRLHERABC static method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLHERABC.domain_type">(deepxube.updaters.updater_rl.UpdatePolicyRLHERABC static method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdatePolicyRLKeepGoalABC.domain_type">(deepxube.updaters.updater_path_rl.UpdatePolicyRLKeepGoalABC static method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoalABC.domain_type">(deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoalABC static method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateHeurQPathSupKeepGoalABC.domain_type">(deepxube.updaters.updater_path_sup.UpdateHeurQPathSupKeepGoalABC static method)</a>
+</li>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateHeurVPathSupKeepGoalABC.domain_type">(deepxube.updaters.updater_path_sup.UpdateHeurVPathSupKeepGoalABC static method)</a>
 </li>
           <li><a href="apidocs/deepxube/deepxube.updaters.updater_sup.html#deepxube.updaters.updater_sup.UpdateHeurQSup.domain_type">(deepxube.updaters.updater_sup.UpdateHeurQSup static method)</a>
 </li>
@@ -1962,7 +1944,11 @@
         <li><a href="apidocs/deepxube/deepxube.base.factory.html#deepxube.base.factory.FactoryAutoBuild">FactoryAutoBuild (class in deepxube.base.factory)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube._cli.html#deepxube._cli.fig_to_rgba">fig_to_rgba() (in module deepxube._cli)</a>
+
+        <ul>
+          <li><a href="apidocs/deepxube/deepxube._viz.html#deepxube._viz.fig_to_rgba">(in module deepxube._viz)</a>
 </li>
+        </ul></li>
         <li><a href="apidocs/deepxube/deepxube.base.pathfinding.html#deepxube.base.pathfinding.InstanceNode.filter_expanded_nodes">filter_expanded_nodes() (deepxube.base.pathfinding.InstanceNode method)</a>
 
         <ul>
@@ -2023,6 +2009,8 @@
           <li><a href="apidocs/deepxube/deepxube.pytorch.pytorch_models.html#deepxube.pytorch.pytorch_models.SPLASH.forward">(deepxube.pytorch.pytorch_models.SPLASH method)</a>
 </li>
           <li><a href="apidocs/deepxube/deepxube.pytorch.pytorch_models.html#deepxube.pytorch.pytorch_models.SPLASH1.forward">(deepxube.pytorch.pytorch_models.SPLASH1 method)</a>
+</li>
+          <li><a href="apidocs/deepxube/deepxube.pytorch.pytorch_models.html#deepxube.pytorch.pytorch_models.UpsampleConv.forward">(deepxube.pytorch.pytorch_models.UpsampleConv method)</a>
 </li>
         </ul></li>
         <li><a href="apidocs/deepxube/deepxube.domains.cube3.html#deepxube.domains.cube3.Quaternion.from_v_theta">from_v_theta() (deepxube.domains.cube3.Quaternion class method)</a>
@@ -2133,21 +2121,9 @@
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.GoalGrndAtoms.get_ground_atoms">get_ground_atoms() (deepxube.base.domain.GoalGrndAtoms method)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHasHeurQ.get_heurq_fn">get_heurq_fn() (deepxube.base.updater.UpdateHasHeurQ method)</a>
-
-        <ul>
-          <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHeurQ.get_heurq_fn">(deepxube.base.updater.UpdateHeurQ method)</a>
+        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHeurQ.get_heurq_nnet_par">get_heurq_nnet_par() (deepxube.base.updater.UpdateHeurQ method)</a>
 </li>
-        </ul></li>
-        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHasHeurQ.get_heurq_nnet_par">get_heurq_nnet_par() (deepxube.base.updater.UpdateHasHeurQ method)</a>
-</li>
-        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHasHeurV.get_heurv_fn">get_heurv_fn() (deepxube.base.updater.UpdateHasHeurV method)</a>
-
-        <ul>
-          <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHeurV.get_heurv_fn">(deepxube.base.updater.UpdateHeurV method)</a>
-</li>
-        </ul></li>
-        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHasHeurV.get_heurv_nnet_par">get_heurv_nnet_par() (deepxube.base.updater.UpdateHasHeurV method)</a>
+        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHeurV.get_heurv_nnet_par">get_heurv_nnet_par() (deepxube.base.updater.UpdateHeurV method)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube._cli.html#deepxube._cli.get_immediate_mixins">get_immediate_mixins() (in module deepxube._cli)</a>
 </li>
@@ -2258,15 +2234,17 @@
         <ul>
           <li><a href="apidocs/deepxube/deepxube.trainers.train_heur.html#deepxube.trainers.train_heur.TrainHeur.get_nnet_name">(deepxube.trainers.train_heur.TrainHeur static method)</a>
 </li>
+          <li><a href="apidocs/deepxube/deepxube.trainers.train_policy.html#deepxube.trainers.train_policy.TrainPolicy.get_nnet_name">(deepxube.trainers.train_policy.TrainPolicy static method)</a>
+</li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.Domain.get_nnet_par_dict">get_nnet_par_dict() (deepxube.base.domain.Domain method)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.pytorch.nnet_utils.html#deepxube.pytorch.nnet_utils.NNetPar.get_nnet_par_fn">get_nnet_par_fn() (deepxube.pytorch.nnet_utils.NNetPar method)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.pytorch.nnet_utils.html#deepxube.pytorch.nnet_utils.NNetPar.get_nnet_par_fn_w_info">get_nnet_par_fn_w_info() (deepxube.pytorch.nnet_utils.NNetPar method)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="apidocs/deepxube/deepxube.pytorch.nnet_utils.html#deepxube.pytorch.nnet_utils.NNetPar.get_nnet_par_infos">get_nnet_par_infos() (deepxube.pytorch.nnet_utils.NNetPar method)</a>
 
         <ul>
@@ -2305,16 +2283,26 @@
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.SupportsPDDL.get_pddl_domain">get_pddl_domain() (deepxube.base.domain.SupportsPDDL method)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHasPolicy.get_policy_fn">get_policy_fn() (deepxube.base.updater.UpdateHasPolicy method)</a>
-
-        <ul>
-          <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdatePolicy.get_policy_fn">(deepxube.base.updater.UpdatePolicy method)</a>
-</li>
-        </ul></li>
-        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHasPolicy.get_policy_nnet_par">get_policy_nnet_par() (deepxube.base.updater.UpdateHasPolicy method)</a>
+        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdatePolicy.get_policy_nnet_par">get_policy_nnet_par() (deepxube.base.updater.UpdatePolicy method)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.logic.logic_objects.html#deepxube.logic.logic_objects.Literal.get_pred_arity_pos_id">get_pred_arity_pos_id() (deepxube.logic.logic_objects.Literal method)</a>
 </li>
+        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.Update.get_rb_max_size">get_rb_max_size() (deepxube.base.updater.Update method)</a>
+
+        <ul>
+          <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdatePathFind.get_rb_max_size">(deepxube.base.updater.UpdatePathFind method)</a>
+</li>
+          <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateSup.get_rb_max_size">(deepxube.base.updater.UpdateSup method)</a>
+</li>
+        </ul></li>
+        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.Update.get_rb_size">get_rb_size() (deepxube.base.updater.Update method)</a>
+
+        <ul>
+          <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdatePathFind.get_rb_size">(deepxube.base.updater.UpdatePathFind method)</a>
+</li>
+          <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateSup.get_rb_size">(deepxube.base.updater.UpdateSup method)</a>
+</li>
+        </ul></li>
         <li><a href="apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.ActsEnum.get_state_actions">get_state_actions() (deepxube.base.domain.ActsEnum method)</a>
 
         <ul>
@@ -2450,6 +2438,8 @@
         <ul>
           <li><a href="apidocs/deepxube/deepxube.domains.npuzzle.html#deepxube.domains.npuzzle.GridParser">(class in deepxube.domains.npuzzle)</a>
 </li>
+          <li><a href="apidocs/deepxube/deepxube.pathfind_fns.fns_core.html#deepxube.pathfind_fns.fns_core.GridParser">(class in deepxube.pathfind_fns.fns_core)</a>
+</li>
         </ul></li>
         <li><a href="apidocs/deepxube/deepxube.domains.grid.html#deepxube.domains.grid.GridState">GridState (class in deepxube.domains.grid)</a>
 </li>
@@ -2496,17 +2486,7 @@
 </li>
           <li><a href="apidocs/deepxube/deepxube.domains.npuzzle.html#deepxube.domains.npuzzle.GridParser.help">(deepxube.domains.npuzzle.GridParser method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.nnets.resnet_2d.html#deepxube.nnets.resnet_2d.ResnetFCParser.help">(deepxube.nnets.resnet_2d.ResnetFCParser method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.BeamSearchHasPolicyParser.help">(deepxube.pathfinding.beam_search.BeamSearchHasPolicyParser method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.BeamSearchParser.help">(deepxube.pathfinding.beam_search.BeamSearchParser method)</a>
-</li>
           <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.RolloutParser.help">(deepxube.pathfinding.beam_search.RolloutParser method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.pathfinding.graph_search.html#deepxube.pathfinding.graph_search.GraphSearchHasPolicyParser.help">(deepxube.pathfinding.graph_search.GraphSearchHasPolicyParser method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.pathfinding.graph_search.html#deepxube.pathfinding.graph_search.GraphSearchParser.help">(deepxube.pathfinding.graph_search.GraphSearchParser method)</a>
 </li>
         </ul></li>
     </ul></td>
@@ -2583,6 +2563,12 @@
 </li>
         <li><a href="apidocs/deepxube/deepxube.pytorch.nnet_utils.html#deepxube.pytorch.nnet_utils.NNetPar.init_nnet_par_fn">init_nnet_par_fn() (deepxube.pytorch.nnet_utils.NNetPar method)</a>
 </li>
+        <li><a href="apidocs/deepxube/deepxube.base.trainer.html#deepxube.base.trainer.Status.init_step_probs">init_step_probs() (deepxube.base.trainer.Status method)</a>
+
+        <ul>
+          <li><a href="apidocs/deepxube/deepxube.base.trainer.html#deepxube.base.trainer.StepsBalanceable.init_step_probs">(deepxube.base.trainer.StepsBalanceable method)</a>
+</li>
+        </ul></li>
         <li><a href="apidocs/deepxube/deepxube.utils.timing_utils.html#deepxube.utils.timing_utils.init_times">init_times() (in module deepxube.utils.timing_utils)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.pathfinding.html#deepxube.base.pathfinding.INode_T">INode_T (in module deepxube.base.pathfinding)</a>
@@ -2599,10 +2585,10 @@
 </li>
         <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.InstanceBeam">InstanceBeam (class in deepxube.pathfinding.beam_search)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.base.pathfinding.html#deepxube.base.pathfinding.InstanceEdge">InstanceEdge (class in deepxube.base.pathfinding)</a>
-</li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="apidocs/deepxube/deepxube.base.pathfinding.html#deepxube.base.pathfinding.InstanceEdge">InstanceEdge (class in deepxube.base.pathfinding)</a>
+</li>
         <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.InstanceEdgeBeam">InstanceEdgeBeam (class in deepxube.pathfinding.beam_search)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.pathfinding.graph_search.html#deepxube.pathfinding.graph_search.InstanceEdgeGraph">InstanceEdgeGraph (class in deepxube.pathfinding.graph_search)</a>
@@ -2765,6 +2751,8 @@
 </li>
           <li><a href="apidocs/deepxube/deepxube._train_cli.html#module-deepxube._train_cli">deepxube._train_cli</a>
 </li>
+          <li><a href="apidocs/deepxube/deepxube._viz.html#module-deepxube._viz">deepxube._viz</a>
+</li>
           <li><a href="apidocs/deepxube/deepxube.base.html#module-deepxube.base">deepxube.base</a>
 </li>
           <li><a href="apidocs/deepxube/deepxube.base.domain.html#module-deepxube.base.domain">deepxube.base.domain</a>
@@ -2855,9 +2843,9 @@
 </li>
           <li><a href="apidocs/deepxube/deepxube.updaters.html#module-deepxube.updaters">deepxube.updaters</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html#module-deepxube.updaters.updater_pathsup">deepxube.updaters.updater_pathsup</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#module-deepxube.updaters.updater_path_rl">deepxube.updaters.updater_path_rl</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#module-deepxube.updaters.updater_rl">deepxube.updaters.updater_rl</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#module-deepxube.updaters.updater_path_sup">deepxube.updaters.updater_path_sup</a>
 </li>
           <li><a href="apidocs/deepxube/deepxube.updaters.updater_sup.html#module-deepxube.updaters.updater_sup">deepxube.updaters.updater_sup</a>
 </li>
@@ -2973,6 +2961,8 @@
 </li>
           <li><a href="apidocs/deepxube/deepxube.trainers.train_heur.html#deepxube.trainers.train_heur.TrainHeur.nnet_type">(deepxube.trainers.train_heur.TrainHeur static method)</a>
 </li>
+          <li><a href="apidocs/deepxube/deepxube.trainers.train_policy.html#deepxube.trainers.train_policy.TrainPolicy.nnet_type">(deepxube.trainers.train_policy.TrainPolicy static method)</a>
+</li>
         </ul></li>
         <li><a href="apidocs/deepxube/deepxube.pytorch.nnet_utils.html#deepxube.pytorch.nnet_utils.NNetCallable">NNetCallable (in module deepxube.pytorch.nnet_utils)</a>
 </li>
@@ -3043,17 +3033,7 @@
 </li>
           <li><a href="apidocs/deepxube/deepxube.domains.npuzzle.html#deepxube.domains.npuzzle.GridParser.parse">(deepxube.domains.npuzzle.GridParser method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.nnets.resnet_2d.html#deepxube.nnets.resnet_2d.ResnetFCParser.parse">(deepxube.nnets.resnet_2d.ResnetFCParser method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.BeamSearchHasPolicyParser.parse">(deepxube.pathfinding.beam_search.BeamSearchHasPolicyParser method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.BeamSearchParser.parse">(deepxube.pathfinding.beam_search.BeamSearchParser method)</a>
-</li>
           <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.RolloutParser.parse">(deepxube.pathfinding.beam_search.RolloutParser method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.pathfinding.graph_search.html#deepxube.pathfinding.graph_search.GraphSearchHasPolicyParser.parse">(deepxube.pathfinding.graph_search.GraphSearchHasPolicyParser method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.pathfinding.graph_search.html#deepxube.pathfinding.graph_search.GraphSearchParser.parse">(deepxube.pathfinding.graph_search.GraphSearchParser method)</a>
 </li>
         </ul></li>
         <li><a href="apidocs/deepxube/deepxube.logic.logic_utils.html#deepxube.logic.logic_utils.parse_clause">parse_clause() (in module deepxube.logic.logic_utils)</a>
@@ -3063,6 +3043,8 @@
         <li><a href="apidocs/deepxube/deepxube.logic.logic_utils.html#deepxube.logic.logic_utils.parse_literal">parse_literal() (in module deepxube.logic.logic_utils)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube._solve.html#deepxube._solve.parse_solve">parse_solve() (in module deepxube._solve)</a>
+</li>
+        <li><a href="apidocs/deepxube/deepxube._viz.html#deepxube._viz.parse_viz">parse_viz() (in module deepxube._viz)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.factory.html#deepxube.base.factory.Parser">Parser (class in deepxube.base.factory)</a>
 </li>
@@ -3080,10 +3062,6 @@
 
         <ul>
           <li><a href="apidocs/deepxube/deepxube.base.pathfinding.html#deepxube.base.pathfinding.PathFindSup.pathfind_functions_type">(deepxube.base.pathfinding.PathFindSup static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.Update.pathfind_functions_type">(deepxube.base.updater.Update static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateSup.pathfind_functions_type">(deepxube.base.updater.UpdateSup static method)</a>
 </li>
           <li><a href="apidocs/deepxube/deepxube.pathfinding.beam_search.html#deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsEnum.pathfind_functions_type">(deepxube.pathfinding.beam_search.BeamSearchHeurEdgeActsEnum static method)</a>
 </li>
@@ -3103,51 +3081,21 @@
 </li>
           <li><a href="apidocs/deepxube/deepxube.pathfinding.graph_search.html#deepxube.pathfinding.graph_search.GraphSearchHeurNodeActsPolicy.pathfind_functions_type">(deepxube.pathfinding.graph_search.GraphSearchHeurNodeActsPolicy static method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html#deepxube.updaters.updater_pathsup.UpdateHeurVPathSupKeepGoal.pathfind_functions_type">(deepxube.updaters.updater_pathsup.UpdateHeurVPathSupKeepGoal static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html#deepxube.updaters.updater_pathsup.UpdateHeurVRLKeepGoalPolicy.pathfind_functions_type">(deepxube.updaters.updater_pathsup.UpdateHeurVRLKeepGoalPolicy static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLHER.pathfind_functions_type">(deepxube.updaters.updater_rl.UpdateHeurQRLHER static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLHERPolicy.pathfind_functions_type">(deepxube.updaters.updater_rl.UpdateHeurQRLHERPolicy static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLKeepGoal.pathfind_functions_type">(deepxube.updaters.updater_rl.UpdateHeurQRLKeepGoal static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLKeepGoalPolicy.pathfind_functions_type">(deepxube.updaters.updater_rl.UpdateHeurQRLKeepGoalPolicy static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLHER.pathfind_functions_type">(deepxube.updaters.updater_rl.UpdateHeurVRLHER static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLHERPolicy.pathfind_functions_type">(deepxube.updaters.updater_rl.UpdateHeurVRLHERPolicy static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLKeepGoal.pathfind_functions_type">(deepxube.updaters.updater_rl.UpdateHeurVRLKeepGoal static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLKeepGoalPolicy.pathfind_functions_type">(deepxube.updaters.updater_rl.UpdateHeurVRLKeepGoalPolicy static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLHER.pathfind_functions_type">(deepxube.updaters.updater_rl.UpdatePolicyRLHER static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLHERHeurQ.pathfind_functions_type">(deepxube.updaters.updater_rl.UpdatePolicyRLHERHeurQ static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLHERHeurV.pathfind_functions_type">(deepxube.updaters.updater_rl.UpdatePolicyRLHERHeurV static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoal.pathfind_functions_type">(deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoal static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoalHeurQ.pathfind_functions_type">(deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoalHeurQ static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoalHeurV.pathfind_functions_type">(deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoalHeurV static method)</a>
-</li>
         </ul></li>
         <li><a href="apidocs/deepxube/deepxube._cli.html#deepxube._cli.pathfind_info">pathfind_info() (in module deepxube._cli)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.Update.pathfind_type">pathfind_type() (deepxube.base.updater.Update static method)</a>
 
         <ul>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html#deepxube.updaters.updater_pathsup.UpdateHeurVPathSup.pathfind_type">(deepxube.updaters.updater_pathsup.UpdateHeurVPathSup static method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurQRL.pathfind_type">(deepxube.updaters.updater_path_rl.UpdateHeurQRL static method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRL.pathfind_type">(deepxube.updaters.updater_rl.UpdateHeurQRL static method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurVRL.pathfind_type">(deepxube.updaters.updater_path_rl.UpdateHeurVRL static method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRL.pathfind_type">(deepxube.updaters.updater_rl.UpdateHeurVRL static method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdatePolicyRL.pathfind_type">(deepxube.updaters.updater_path_rl.UpdatePolicyRL static method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRL.pathfind_type">(deepxube.updaters.updater_rl.UpdatePolicyRL static method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateHeurQPathSup.pathfind_type">(deepxube.updaters.updater_path_sup.UpdateHeurQPathSup static method)</a>
+</li>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateHeurVPathSup.pathfind_type">(deepxube.updaters.updater_path_sup.UpdateHeurVPathSup static method)</a>
 </li>
           <li><a href="apidocs/deepxube/deepxube.updaters.updater_sup.html#deepxube.updaters.updater_sup.UpdateHeurQSup.pathfind_type">(deepxube.updaters.updater_sup.UpdateHeurQSup static method)</a>
 </li>
@@ -3176,8 +3124,6 @@
 </li>
         <li><a href="apidocs/deepxube/deepxube.pathfinding.supervised.html#deepxube.pathfinding.supervised.PathFindNodeSup">PathFindNodeSup (class in deepxube.pathfinding.supervised)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="apidocs/deepxube/deepxube.utils.pathfind_perf.html#deepxube.utils.pathfind_perf.PathFindPerf">PathFindPerf (class in deepxube.utils.pathfind_perf)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.pathfinding.html#deepxube.base.pathfinding.PathFindSetHeurQ">PathFindSetHeurQ (class in deepxube.base.pathfinding)</a>
@@ -3190,6 +3136,8 @@
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.domain.html#deepxube.base.domain.SupportsPDDL.pddl_action_to_action">pddl_action_to_action() (deepxube.base.domain.SupportsPDDL method)</a>
 </li>
+        <li><a href="apidocs/deepxube/deepxube.utils.pathfind_perf.html#deepxube.utils.pathfind_perf.PathFindPerf.per_finished">per_finished() (deepxube.utils.pathfind_perf.PathFindPerf method)</a>
+</li>
         <li><a href="apidocs/deepxube/deepxube.utils.pathfind_perf.html#deepxube.utils.pathfind_perf.PathFindPerf.per_solved">per_solved() (deepxube.utils.pathfind_perf.PathFindPerf method)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.pathfind_fns.html#deepxube.base.pathfind_fns.PFNs">PFNs (class in deepxube.base.pathfind_fns)</a>
@@ -3198,6 +3146,8 @@
 </li>
         <li><a href="apidocs/deepxube/deepxube.pathfind_fns.fns_core.html#deepxube.pathfind_fns.fns_core.PFNsHeurQC">PFNsHeurQC (class in deepxube.pathfind_fns.fns_core)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="apidocs/deepxube/deepxube.base.pathfind_fns.html#deepxube.base.pathfind_fns.PFNsHeurQPolicy">PFNsHeurQPolicy (class in deepxube.base.pathfind_fns)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.pathfind_fns.fns_core.html#deepxube.pathfind_fns.fns_core.PFNsHeurQPolicyC">PFNsHeurQPolicyC (class in deepxube.pathfind_fns.fns_core)</a>
@@ -3420,15 +3370,17 @@
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.pathfinding.html#deepxube.base.pathfinding.PathFind.remove_instances">remove_instances() (deepxube.base.pathfinding.PathFind method)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="apidocs/deepxube/deepxube.logic.logic_utils.html#deepxube.logic.logic_utils.replace_anon_vars">replace_anon_vars() (in module deepxube.logic.logic_utils)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="apidocs/deepxube/deepxube.utils.replay_buffer_utils.html#deepxube.utils.replay_buffer_utils.ReplayBuffer">ReplayBuffer (class in deepxube.utils.replay_buffer_utils)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.utils.replay_buffer_utils.html#deepxube.utils.replay_buffer_utils.ReplayBufferP">ReplayBufferP (class in deepxube.utils.replay_buffer_utils)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.utils.replay_buffer_utils.html#deepxube.utils.replay_buffer_utils.ReplayBufferQ">ReplayBufferQ (class in deepxube.utils.replay_buffer_utils)</a>
+</li>
+        <li><a href="apidocs/deepxube/deepxube.utils.replay_buffer_utils.html#deepxube.utils.replay_buffer_utils.ReplayBufferQLab">ReplayBufferQLab (class in deepxube.utils.replay_buffer_utils)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.utils.replay_buffer_utils.html#deepxube.utils.replay_buffer_utils.ReplayBufferV">ReplayBufferV (class in deepxube.utils.replay_buffer_utils)</a>
 </li>
@@ -3442,6 +3394,10 @@
 </li>
         <li><a href="apidocs/deepxube/deepxube.utils.replay_buffer_utils.html#deepxube.utils.replay_buffer_utils.ReplayQElem">ReplayQElem (in module deepxube.utils.replay_buffer_utils)</a>
 </li>
+        <li><a href="apidocs/deepxube/deepxube.utils.replay_buffer_utils.html#deepxube.utils.replay_buffer_utils.ReplayQLab">ReplayQLab (in module deepxube.utils.replay_buffer_utils)</a>
+</li>
+        <li><a href="apidocs/deepxube/deepxube.utils.replay_buffer_utils.html#deepxube.utils.replay_buffer_utils.ReplayQLabElem">ReplayQLabElem (in module deepxube.utils.replay_buffer_utils)</a>
+</li>
         <li><a href="apidocs/deepxube/deepxube.utils.replay_buffer_utils.html#deepxube.utils.replay_buffer_utils.ReplayV">ReplayV (in module deepxube.utils.replay_buffer_utils)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.utils.replay_buffer_utils.html#deepxube.utils.replay_buffer_utils.ReplayVElem">ReplayVElem (in module deepxube.utils.replay_buffer_utils)</a>
@@ -3454,14 +3410,12 @@
 </li>
         <li><a href="apidocs/deepxube/deepxube.nnets.resnet_2d.html#deepxube.nnets.resnet_2d.Resnet2D">Resnet2D (class in deepxube.nnets.resnet_2d)</a>
 </li>
+        <li><a href="apidocs/deepxube/deepxube.nnets.resnet_2d.html#deepxube.nnets.resnet_2d.Resnet2DParser">Resnet2DParser (class in deepxube.nnets.resnet_2d)</a>
+</li>
         <li><a href="apidocs/deepxube/deepxube.nnets.resnet_fc.html#deepxube.nnets.resnet_fc.ResnetFCHeur">ResnetFCHeur (class in deepxube.nnets.resnet_fc)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.nnets.resnet_2d.html#deepxube.nnets.resnet_2d.ResnetFCParser">ResnetFCParser (class in deepxube.nnets.resnet_2d)</a>
-
-        <ul>
-          <li><a href="apidocs/deepxube/deepxube.nnets.resnet_fc.html#deepxube.nnets.resnet_fc.ResnetFCParser">(class in deepxube.nnets.resnet_fc)</a>
+        <li><a href="apidocs/deepxube/deepxube.nnets.resnet_fc.html#deepxube.nnets.resnet_fc.ResnetFCParser">ResnetFCParser (class in deepxube.nnets.resnet_fc)</a>
 </li>
-        </ul></li>
         <li><a href="apidocs/deepxube/deepxube.nnets.resnet_fc.html#deepxube.nnets.resnet_fc.ResnetFCParserHeur">ResnetFCParserHeur (class in deepxube.nnets.resnet_fc)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.nnets.resnet_fc.html#deepxube.nnets.resnet_fc.ResnetFCParserPolicy">ResnetFCParserPolicy (class in deepxube.nnets.resnet_fc)</a>
@@ -3734,6 +3688,8 @@
         </ul></li>
         <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpArgs.step_max">step_max (deepxube.base.updater.UpArgs attribute)</a>
 </li>
+        <li><a href="apidocs/deepxube/deepxube.base.trainer.html#deepxube.base.trainer.StepsBalanceable">StepsBalanceable (class in deepxube.base.trainer)</a>
+</li>
         <li><a href="apidocs/deepxube/deepxube.domains.cube3.html#deepxube.domains.cube3.InteractiveCube.stickermargin">stickermargin (deepxube.domains.cube3.InteractiveCube attribute)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.domains.cube3.html#deepxube.domains.cube3.InteractiveCube.stickerthickness">stickerthickness (deepxube.domains.cube3.InteractiveCube attribute)</a>
@@ -3790,6 +3746,8 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="apidocs/deepxube/deepxube.base.factory.html#deepxube.base.factory.T">T (in module deepxube.base.factory)</a>
 </li>
+        <li><a href="apidocs/deepxube/deepxube.tests_cli.time_tests.html#deepxube.tests_cli.time_tests.test_edgeslabelable">test_edgeslabelable() (in module deepxube.tests_cli.time_tests)</a>
+</li>
         <li><a href="apidocs/deepxube/deepxube.tests_cli.time_tests.html#deepxube.tests_cli.time_tests.test_env">test_env() (in module deepxube.tests_cli.time_tests)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.tests_cli.time_tests.html#deepxube.tests_cli.time_tests.test_envenumerableacts">test_envenumerableacts() (in module deepxube.tests_cli.time_tests)</a>
@@ -3797,6 +3755,10 @@
         <li><a href="apidocs/deepxube/deepxube.tests_cli.time_tests.html#deepxube.tests_cli.time_tests.test_envstartgoalrw">test_envstartgoalrw() (in module deepxube.tests_cli.time_tests)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.tests_cli.time_tests.html#deepxube.tests_cli.time_tests.test_heur_nnet_par">test_heur_nnet_par() (in module deepxube.tests_cli.time_tests)</a>
+</li>
+        <li><a href="apidocs/deepxube/deepxube.tests_cli.time_tests.html#deepxube.tests_cli.time_tests.test_nodeslabelable">test_nodeslabelable() (in module deepxube.tests_cli.time_tests)</a>
+</li>
+        <li><a href="apidocs/deepxube/deepxube.tests_cli.time_tests.html#deepxube.tests_cli.time_tests.test_nodeslabelssampleable">test_nodeslabelssampleable() (in module deepxube.tests_cli.time_tests)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.tests_cli.time_tests.html#deepxube.tests_cli.time_tests.test_policy_nnet_par">test_policy_nnet_par() (in module deepxube.tests_cli.time_tests)</a>
 </li>
@@ -3862,6 +3824,8 @@
           <li><a href="apidocs/deepxube/deepxube.domains.lightsout.html#deepxube.domains.lightsout.LightsOut.to_np_2d_sg">(deepxube.domains.lightsout.LightsOut method)</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="apidocs/deepxube/deepxube.base.nnet_input.html#deepxube.base.nnet_input.PolicyNNetIn.to_np_ctx">to_np_ctx() (deepxube.base.nnet_input.PolicyNNetIn method)</a>
 
         <ul>
@@ -3872,8 +3836,6 @@
           <li><a href="apidocs/deepxube/deepxube.base.nnet_input.html#deepxube.base.nnet_input.StateGoalIn.to_np_ctx">(deepxube.base.nnet_input.StateGoalIn method)</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="apidocs/deepxube/deepxube.base.nnet_input.html#deepxube.base.nnet_input.PolicyNNetIn.to_np_ctx_option">to_np_ctx_option() (deepxube.base.nnet_input.PolicyNNetIn method)</a>
 
         <ul>
@@ -3933,7 +3895,11 @@
         <li><a href="apidocs/deepxube/deepxube.trainers.train_heur.html#deepxube.trainers.train_heur.TrainHeur">TrainHeur (class in deepxube.trainers.train_heur)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.trainers.train_heur.html#deepxube.trainers.train_heur.TrainHeurParser">TrainHeurParser (class in deepxube.trainers.train_heur)</a>
+
+        <ul>
+          <li><a href="apidocs/deepxube/deepxube.trainers.train_policy.html#deepxube.trainers.train_policy.TrainHeurParser">(class in deepxube.trainers.train_policy)</a>
 </li>
+        </ul></li>
         <li><a href="apidocs/deepxube/deepxube.base.trainer.html#deepxube.base.trainer.TrainParser">TrainParser (class in deepxube.base.trainer)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.trainers.train_policy.html#deepxube.trainers.train_policy.TrainPolicy">TrainPolicy (class in deepxube.trainers.train_policy)</a>
@@ -3994,6 +3960,8 @@
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.Update">Update (class in deepxube.base.updater)</a>
 </li>
+        <li><a href="apidocs/deepxube/deepxube.base.trainer.html#deepxube.base.trainer.TrainSummary.update_itr_to_step_probs_stats">update_itr_to_step_probs_stats() (deepxube.base.trainer.TrainSummary method)</a>
+</li>
         <li><a href="apidocs/deepxube/deepxube.base.nnet.html#deepxube.base.nnet.DeepXubeNNet.update_optimizer">update_optimizer() (deepxube.base.nnet.DeepXubeNNet method)</a>
 
         <ul>
@@ -4010,12 +3978,6 @@
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateEdgePathFind">UpdateEdgePathFind (class in deepxube.base.updater)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHasHeurQ">UpdateHasHeurQ (class in deepxube.base.updater)</a>
-</li>
-        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHasHeurV">UpdateHasHeurV (class in deepxube.base.updater)</a>
-</li>
-        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHasPolicy">UpdateHasPolicy (class in deepxube.base.updater)</a>
-</li>
         <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHER">UpdateHER (class in deepxube.base.updater)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHeur">UpdateHeur (class in deepxube.base.updater)</a>
@@ -4024,19 +3986,21 @@
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHeurQPathFind">UpdateHeurQPathFind (class in deepxube.base.updater)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRL">UpdateHeurQRL (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateHeurQPathSup">UpdateHeurQPathSup (class in deepxube.updaters.updater_path_sup)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLHER">UpdateHeurQRLHER (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateHeurQPathSupKeepGoal">UpdateHeurQPathSupKeepGoal (class in deepxube.updaters.updater_path_sup)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLHERABC">UpdateHeurQRLHERABC (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateHeurQPathSupKeepGoalABC">UpdateHeurQPathSupKeepGoalABC (class in deepxube.updaters.updater_path_sup)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLHERPolicy">UpdateHeurQRLHERPolicy (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurQRL">UpdateHeurQRL (class in deepxube.updaters.updater_path_rl)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLKeepGoal">UpdateHeurQRLKeepGoal (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurQRLHER">UpdateHeurQRLHER (class in deepxube.updaters.updater_path_rl)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLKeepGoalABC">UpdateHeurQRLKeepGoalABC (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurQRLHERABC">UpdateHeurQRLHERABC (class in deepxube.updaters.updater_path_rl)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLKeepGoalPolicy">UpdateHeurQRLKeepGoalPolicy (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurQRLKeepGoal">UpdateHeurQRLKeepGoal (class in deepxube.updaters.updater_path_rl)</a>
+</li>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurQRLKeepGoalABC">UpdateHeurQRLKeepGoalABC (class in deepxube.updaters.updater_path_rl)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.updaters.updater_sup.html#deepxube.updaters.updater_sup.UpdateHeurQSup">UpdateHeurQSup (class in deepxube.updaters.updater_sup)</a>
 </li>
@@ -4044,31 +4008,27 @@
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateHeurVPathFind">UpdateHeurVPathFind (class in deepxube.base.updater)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html#deepxube.updaters.updater_pathsup.UpdateHeurVPathSup">UpdateHeurVPathSup (class in deepxube.updaters.updater_pathsup)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateHeurVPathSup">UpdateHeurVPathSup (class in deepxube.updaters.updater_path_sup)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html#deepxube.updaters.updater_pathsup.UpdateHeurVPathSupKeepGoal">UpdateHeurVPathSupKeepGoal (class in deepxube.updaters.updater_pathsup)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateHeurVPathSupKeepGoal">UpdateHeurVPathSupKeepGoal (class in deepxube.updaters.updater_path_sup)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html#deepxube.updaters.updater_pathsup.UpdateHeurVPathSupKeepGoalABC">UpdateHeurVPathSupKeepGoalABC (class in deepxube.updaters.updater_pathsup)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateHeurVPathSupKeepGoalABC">UpdateHeurVPathSupKeepGoalABC (class in deepxube.updaters.updater_path_sup)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRL">UpdateHeurVRL (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurVRL">UpdateHeurVRL (class in deepxube.updaters.updater_path_rl)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLHER">UpdateHeurVRLHER (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurVRLHER">UpdateHeurVRLHER (class in deepxube.updaters.updater_path_rl)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLHERABC">UpdateHeurVRLHERABC (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurVRLHERABC">UpdateHeurVRLHERABC (class in deepxube.updaters.updater_path_rl)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLHERPolicy">UpdateHeurVRLHERPolicy (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurVRLKeepGoal">UpdateHeurVRLKeepGoal (class in deepxube.updaters.updater_path_rl)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLKeepGoal">UpdateHeurVRLKeepGoal (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurVRLKeepGoalABC">UpdateHeurVRLKeepGoalABC (class in deepxube.updaters.updater_path_rl)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLKeepGoalABC">UpdateHeurVRLKeepGoalABC (class in deepxube.updaters.updater_rl)</a>
-</li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html#deepxube.updaters.updater_pathsup.UpdateHeurVRLKeepGoalPolicy">UpdateHeurVRLKeepGoalPolicy (class in deepxube.updaters.updater_pathsup)</a>
-
-        <ul>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLKeepGoalPolicy">(class in deepxube.updaters.updater_rl)</a>
-</li>
-        </ul></li>
         <li><a href="apidocs/deepxube/deepxube.updaters.updater_sup.html#deepxube.updaters.updater_sup.UpdateHeurVSup">UpdateHeurVSup (class in deepxube.updaters.updater_sup)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateLabel">UpdateLabel (class in deepxube.base.updater)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateParser">UpdateParser (class in deepxube.base.updater)</a>
 </li>
@@ -4082,49 +4042,29 @@
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdatePolicyPathFind">UpdatePolicyPathFind (class in deepxube.base.updater)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRL">UpdatePolicyRL (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdatePolicyRL">UpdatePolicyRL (class in deepxube.updaters.updater_path_rl)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLHER">UpdatePolicyRLHER (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdatePolicyRLHER">UpdatePolicyRLHER (class in deepxube.updaters.updater_path_rl)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLHERABC">UpdatePolicyRLHERABC (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdatePolicyRLHERABC">UpdatePolicyRLHERABC (class in deepxube.updaters.updater_path_rl)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLHERHeurQ">UpdatePolicyRLHERHeurQ (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdatePolicyRLKeepGoal">UpdatePolicyRLKeepGoal (class in deepxube.updaters.updater_path_rl)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLHERHeurV">UpdatePolicyRLHERHeurV (class in deepxube.updaters.updater_rl)</a>
-</li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoal">UpdatePolicyRLKeepGoal (class in deepxube.updaters.updater_rl)</a>
-</li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoalABC">UpdatePolicyRLKeepGoalABC (class in deepxube.updaters.updater_rl)</a>
-</li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoalHeurQ">UpdatePolicyRLKeepGoalHeurQ (class in deepxube.updaters.updater_rl)</a>
-</li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoalHeurV">UpdatePolicyRLKeepGoalHeurV (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdatePolicyRLKeepGoalABC">UpdatePolicyRLKeepGoalABC (class in deepxube.updaters.updater_path_rl)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.updaters.updater_sup.html#deepxube.updaters.updater_sup.UpdatePolicySup">UpdatePolicySup (class in deepxube.updaters.updater_sup)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePQRL">UpdatePQRL (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdatePRL">UpdatePRL (class in deepxube.updaters.updater_path_rl)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePQRLHER">UpdatePQRLHER (class in deepxube.updaters.updater_rl)</a>
-</li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePRL">UpdatePRL (class in deepxube.updaters.updater_rl)</a>
-</li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePRLHER">UpdatePRLHER (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdatePRLHER">UpdatePRLHER (class in deepxube.updaters.updater_path_rl)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.updaters.updater_sup.html#deepxube.updaters.updater_sup.UpdatePSup">UpdatePSup (class in deepxube.updaters.updater_sup)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePVRL">UpdatePVRL (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateQPathSupParser">UpdateQPathSupParser (class in deepxube.updaters.updater_path_sup)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePVRLHER">UpdatePVRLHER (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateQRL">UpdateQRL (class in deepxube.updaters.updater_path_rl)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateQPRL">UpdateQPRL (class in deepxube.updaters.updater_rl)</a>
-</li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateQPRLHER">UpdateQPRLHER (class in deepxube.updaters.updater_rl)</a>
-</li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateQRL">UpdateQRL (class in deepxube.updaters.updater_rl)</a>
-</li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateQRLHER">UpdateQRLHER (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateQRLHER">UpdateQRLHER (class in deepxube.updaters.updater_path_rl)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.updaters.updater_sup.html#deepxube.updaters.updater_sup.UpdateQSup">UpdateQSup (class in deepxube.updaters.updater_sup)</a>
 </li>
@@ -4137,37 +4077,21 @@
         <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.Update.updater_functions_type">updater_functions_type() (deepxube.base.updater.Update static method)</a>
 
         <ul>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html#deepxube.updaters.updater_pathsup.UpdateHeurVPathSupKeepGoal.updater_functions_type">(deepxube.updaters.updater_pathsup.UpdateHeurVPathSupKeepGoal static method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurQRLHER.updater_functions_type">(deepxube.updaters.updater_path_rl.UpdateHeurQRLHER static method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html#deepxube.updaters.updater_pathsup.UpdateHeurVRLKeepGoalPolicy.updater_functions_type">(deepxube.updaters.updater_pathsup.UpdateHeurVRLKeepGoalPolicy static method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurQRLKeepGoal.updater_functions_type">(deepxube.updaters.updater_path_rl.UpdateHeurQRLKeepGoal static method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLHER.updater_functions_type">(deepxube.updaters.updater_rl.UpdateHeurQRLHER static method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurVRLHER.updater_functions_type">(deepxube.updaters.updater_path_rl.UpdateHeurVRLHER static method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLHERPolicy.updater_functions_type">(deepxube.updaters.updater_rl.UpdateHeurQRLHERPolicy static method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateHeurVRLKeepGoal.updater_functions_type">(deepxube.updaters.updater_path_rl.UpdateHeurVRLKeepGoal static method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLKeepGoal.updater_functions_type">(deepxube.updaters.updater_rl.UpdateHeurQRLKeepGoal static method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdatePolicyRLHER.updater_functions_type">(deepxube.updaters.updater_path_rl.UpdatePolicyRLHER static method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurQRLKeepGoalPolicy.updater_functions_type">(deepxube.updaters.updater_rl.UpdateHeurQRLKeepGoalPolicy static method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdatePolicyRLKeepGoal.updater_functions_type">(deepxube.updaters.updater_path_rl.UpdatePolicyRLKeepGoal static method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLHER.updater_functions_type">(deepxube.updaters.updater_rl.UpdateHeurVRLHER static method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateHeurQPathSupKeepGoal.updater_functions_type">(deepxube.updaters.updater_path_sup.UpdateHeurQPathSupKeepGoal static method)</a>
 </li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLHERPolicy.updater_functions_type">(deepxube.updaters.updater_rl.UpdateHeurVRLHERPolicy static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLKeepGoal.updater_functions_type">(deepxube.updaters.updater_rl.UpdateHeurVRLKeepGoal static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateHeurVRLKeepGoalPolicy.updater_functions_type">(deepxube.updaters.updater_rl.UpdateHeurVRLKeepGoalPolicy static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLHER.updater_functions_type">(deepxube.updaters.updater_rl.UpdatePolicyRLHER static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLHERHeurQ.updater_functions_type">(deepxube.updaters.updater_rl.UpdatePolicyRLHERHeurQ static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLHERHeurV.updater_functions_type">(deepxube.updaters.updater_rl.UpdatePolicyRLHERHeurV static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoal.updater_functions_type">(deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoal static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoalHeurQ.updater_functions_type">(deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoalHeurQ static method)</a>
-</li>
-          <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoalHeurV.updater_functions_type">(deepxube.updaters.updater_rl.UpdatePolicyRLKeepGoalHeurV static method)</a>
+          <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateHeurVPathSupKeepGoal.updater_functions_type">(deepxube.updaters.updater_path_sup.UpdateHeurVPathSupKeepGoal static method)</a>
 </li>
           <li><a href="apidocs/deepxube/deepxube.updaters.updater_sup.html#deepxube.updaters.updater_sup.UpdateHeurQSup.updater_functions_type">(deepxube.updaters.updater_sup.UpdateHeurQSup static method)</a>
 </li>
@@ -4183,6 +4107,8 @@
         <ul>
           <li><a href="apidocs/deepxube/deepxube.trainers.train_heur.html#deepxube.trainers.train_heur.TrainHeur.updater_type">(deepxube.trainers.train_heur.TrainHeur static method)</a>
 </li>
+          <li><a href="apidocs/deepxube/deepxube.trainers.train_policy.html#deepxube.trainers.train_policy.TrainPolicy.updater_type">(deepxube.trainers.train_policy.TrainPolicy static method)</a>
+</li>
         </ul></li>
         <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateRL">UpdateRL (class in deepxube.base.updater)</a>
 </li>
@@ -4190,17 +4116,11 @@
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpdateSup">UpdateSup (class in deepxube.base.updater)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html#deepxube.updaters.updater_pathsup.UpdateVPathSupParser">UpdateVPathSupParser (class in deepxube.updaters.updater_pathsup)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_sup.html#deepxube.updaters.updater_path_sup.UpdateVPathSupParser">UpdateVPathSupParser (class in deepxube.updaters.updater_path_sup)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_pathsup.html#deepxube.updaters.updater_pathsup.UpdateVPPathSupParser">UpdateVPPathSupParser (class in deepxube.updaters.updater_pathsup)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateVRL">UpdateVRL (class in deepxube.updaters.updater_path_rl)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateVPRL">UpdateVPRL (class in deepxube.updaters.updater_rl)</a>
-</li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateVPRLHER">UpdateVPRLHER (class in deepxube.updaters.updater_rl)</a>
-</li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateVRL">UpdateVRL (class in deepxube.updaters.updater_rl)</a>
-</li>
-        <li><a href="apidocs/deepxube/deepxube.updaters.updater_rl.html#deepxube.updaters.updater_rl.UpdateVRLHER">UpdateVRLHER (class in deepxube.updaters.updater_rl)</a>
+        <li><a href="apidocs/deepxube/deepxube.updaters.updater_path_rl.html#deepxube.updaters.updater_path_rl.UpdateVRLHER">UpdateVRLHER (class in deepxube.updaters.updater_path_rl)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.updaters.updater_sup.html#deepxube.updaters.updater_sup.UpdateVSup">UpdateVSup (class in deepxube.updaters.updater_sup)</a>
 </li>
@@ -4213,6 +4133,8 @@
         <li><a href="apidocs/deepxube/deepxube.base.pathfinding.html#deepxube.base.pathfinding.Node.upper_bound_parent_path">upper_bound_parent_path() (deepxube.base.pathfinding.Node method)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.updater.html#deepxube.base.updater.UpRLArgs">UpRLArgs (class in deepxube.base.updater)</a>
+</li>
+        <li><a href="apidocs/deepxube/deepxube.pytorch.pytorch_models.html#deepxube.pytorch.pytorch_models.UpsampleConv">UpsampleConv (class in deepxube.pytorch.pytorch_models)</a>
 </li>
         <li><a href="apidocs/deepxube/deepxube.base.nnet_input.html#deepxube.base.nnet_input.NNetInput.uses_context">uses_context() (deepxube.base.nnet_input.NNetInput static method)</a>
 </li>
@@ -4250,9 +4172,11 @@
         </ul></li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="apidocs/deepxube/deepxube._cli.html#deepxube._cli.viz">viz() (in module deepxube._cli)</a>
+        <li><a href="apidocs/deepxube/deepxube._viz.html#deepxube._viz.viz">viz() (in module deepxube._viz)</a>
 </li>
-        <li><a href="apidocs/deepxube/deepxube._cli.html#deepxube._cli.viz_step">viz_step() (in module deepxube._cli)</a>
+        <li><a href="apidocs/deepxube/deepxube._viz.html#deepxube._viz.viz_instance">viz_instance() (in module deepxube._viz)</a>
+</li>
+        <li><a href="apidocs/deepxube/deepxube._viz.html#deepxube._viz.viz_step">viz_step() (in module deepxube._viz)</a>
 </li>
     </ul></td>
   </tr></table>

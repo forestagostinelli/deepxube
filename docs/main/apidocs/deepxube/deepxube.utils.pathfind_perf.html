@@ -290,9 +290,9 @@
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="deepxube.updaters.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters</span></code></a><input aria-label="Toggle navigation of deepxube.updaters" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="deepxube.updaters.updater_path_sup.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters.updater_path_sup</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="deepxube.updaters.updater_sup.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters.updater_sup</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="deepxube.updaters.updater_rl.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters.updater_rl</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="deepxube.updaters.updater_pathsup.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters.updater_pathsup</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepxube.updaters.updater_path_rl.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters.updater_path_rl</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="deepxube.pathfind_fns.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.pathfind_fns</span></code></a><input aria-label="Toggle navigation of deepxube.pathfind_fns" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -320,6 +320,7 @@
 <li class="toctree-l4"><a class="reference internal" href="deepxube.base.pathfinding.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.base.pathfinding</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="deepxube._viz.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube._viz</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="deepxube._cli.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube._cli</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="deepxube._train_cli.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube._train_cli</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="deepxube._solve.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube._solve</span></code></a></li>
@@ -420,8 +421,13 @@
 <dd></dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="deepxube.utils.pathfind_perf.PathFindPerf.per_finished">
+<span class="sig-name descname"><span class="pre">per_finished</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#deepxube.utils.pathfind_perf.PathFindPerf.per_finished" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="deepxube.utils.pathfind_perf.PathFindPerf.stats">
-<span class="sig-name descname"><span class="pre">stats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#deepxube.utils.pathfind_perf.PathFindPerf.stats" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">stats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#deepxube.utils.pathfind_perf.PathFindPerf.stats" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -433,7 +439,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="deepxube.utils.pathfind_perf.get_eq_weighted_perf">
-<span class="sig-prename descclassname"><span class="pre">deepxube.utils.pathfind_perf.</span></span><span class="sig-name descname"><span class="pre">get_eq_weighted_perf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step_to_search_perf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#deepxube.utils.pathfind_perf.PathFindPerf" title="deepxube.utils.pathfind_perf.PathFindPerf"><span class="pre">deepxube.utils.pathfind_perf.PathFindPerf</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#deepxube.utils.pathfind_perf.get_eq_weighted_perf" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">deepxube.utils.pathfind_perf.</span></span><span class="sig-name descname"><span class="pre">get_eq_weighted_perf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step_to_search_perf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#deepxube.utils.pathfind_perf.PathFindPerf" title="deepxube.utils.pathfind_perf.PathFindPerf"><span class="pre">deepxube.utils.pathfind_perf.PathFindPerf</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#deepxube.utils.pathfind_perf.get_eq_weighted_perf" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
@@ -538,6 +544,7 @@
 <li><a class="reference internal" href="#deepxube.utils.pathfind_perf.PathFindPerf.update_perf"><code class="docutils literal notranslate"><span class="pre">PathFindPerf.update_perf()</span></code></a></li>
 <li><a class="reference internal" href="#deepxube.utils.pathfind_perf.PathFindPerf.comb_perf"><code class="docutils literal notranslate"><span class="pre">PathFindPerf.comb_perf()</span></code></a></li>
 <li><a class="reference internal" href="#deepxube.utils.pathfind_perf.PathFindPerf.per_solved"><code class="docutils literal notranslate"><span class="pre">PathFindPerf.per_solved()</span></code></a></li>
+<li><a class="reference internal" href="#deepxube.utils.pathfind_perf.PathFindPerf.per_finished"><code class="docutils literal notranslate"><span class="pre">PathFindPerf.per_finished()</span></code></a></li>
 <li><a class="reference internal" href="#deepxube.utils.pathfind_perf.PathFindPerf.stats"><code class="docutils literal notranslate"><span class="pre">PathFindPerf.stats()</span></code></a></li>
 <li><a class="reference internal" href="#deepxube.utils.pathfind_perf.PathFindPerf.to_string"><code class="docutils literal notranslate"><span class="pre">PathFindPerf.to_string()</span></code></a></li>
 </ul>

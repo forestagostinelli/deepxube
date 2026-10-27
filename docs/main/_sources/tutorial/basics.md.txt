@@ -196,7 +196,7 @@ can be used to automatically implement the functionality of the mixins for super
 To see all registered updaters use `deepxube updater_info`.
 
 To see the parser help, mixins, the required domain type, and required functions type, use  
-`deepxube updater_info --name <name>` (i.e. `deepxube updater_info --name up_rl_v`)
+`deepxube updater_info --name <name>` (i.e. `deepxube updater_info --name path_rl_v`)
 ```
 
 

@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="deepxube._train_cli" href="deepxube._train_cli.html"><link rel="prev" title="deepxube.base.pathfinding" href="deepxube.base.pathfinding.html">
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="deepxube._train_cli" href="deepxube._train_cli.html"><link rel="prev" title="deepxube._viz" href="deepxube._viz.html">
 
     <!-- Generated with Sphinx 8.1.3 and Furo 2025.12.19 -->
         <title>deepxube._cli - DeepXube documentation</title>
@@ -290,9 +290,9 @@
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="deepxube.updaters.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters</span></code></a><input aria-label="Toggle navigation of deepxube.updaters" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="deepxube.updaters.updater_path_sup.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters.updater_path_sup</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="deepxube.updaters.updater_sup.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters.updater_sup</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="deepxube.updaters.updater_rl.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters.updater_rl</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="deepxube.updaters.updater_pathsup.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters.updater_pathsup</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepxube.updaters.updater_path_rl.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.updaters.updater_path_rl</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="deepxube.pathfind_fns.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.pathfind_fns</span></code></a><input aria-label="Toggle navigation of deepxube.pathfind_fns" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -320,6 +320,7 @@
 <li class="toctree-l4"><a class="reference internal" href="deepxube.base.pathfinding.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.base.pathfinding</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="deepxube._viz.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube._viz</span></code></a></li>
 <li class="toctree-l3 current current-page"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube._cli</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="deepxube._train_cli.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube._train_cli</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="deepxube._solve.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube._solve</span></code></a></li>
@@ -409,31 +410,19 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#deepxube._cli.fig_to_rgba" title="deepxube._cli.fig_to_rgba"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fig_to_rgba</span></code></a></p></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#deepxube._cli.viz_step" title="deepxube._cli.viz_step"><code class="xref py py-obj docutils literal notranslate"><span class="pre">viz_step</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#deepxube._cli.time_test_args" title="deepxube._cli.time_test_args"><code class="xref py py-obj docutils literal notranslate"><span class="pre">time_test_args</span></code></a></p></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#deepxube._cli.viz" title="deepxube._cli.viz"><code class="xref py py-obj docutils literal notranslate"><span class="pre">viz</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#deepxube._cli.plot_itr_data" title="deepxube._cli.plot_itr_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_itr_data</span></code></a></p></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#deepxube._cli._viz_state_goal_update" title="deepxube._cli._viz_state_goal_update"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_viz_state_goal_update</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#deepxube._cli.train_summary" title="deepxube._cli.train_summary"><code class="xref py py-obj docutils literal notranslate"><span class="pre">train_summary</span></code></a></p></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#deepxube._cli.time_test_args" title="deepxube._cli.time_test_args"><code class="xref py py-obj docutils literal notranslate"><span class="pre">time_test_args</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#deepxube._cli.problem_inst_gen" title="deepxube._cli.problem_inst_gen"><code class="xref py py-obj docutils literal notranslate"><span class="pre">problem_inst_gen</span></code></a></p></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#deepxube._cli.plot_itr_data" title="deepxube._cli.plot_itr_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_itr_data</span></code></a></p></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#deepxube._cli.train_summary" title="deepxube._cli.train_summary"><code class="xref py py-obj docutils literal notranslate"><span class="pre">train_summary</span></code></a></p></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#deepxube._cli.problem_inst_gen" title="deepxube._cli.problem_inst_gen"><code class="xref py py-obj docutils literal notranslate"><span class="pre">problem_inst_gen</span></code></a></p></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#deepxube._cli.main" title="deepxube._cli.main"><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code></a></p></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#deepxube._cli._parse_viz_info" title="deepxube._cli._parse_viz_info"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_parse_viz_info</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#deepxube._cli.main" title="deepxube._cli.main"><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code></a></p></td>
 <td></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#deepxube._cli._parse_time" title="deepxube._cli._parse_time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_parse_time</span></code></a></p></td>
@@ -512,28 +501,13 @@
 <dd></dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="deepxube._cli.viz_step">
-<span class="sig-prename descclassname"><span class="pre">deepxube._cli.</span></span><span class="sig-name descname"><span class="pre">viz_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="deepxube.base.domain.html#deepxube.base.domain.StateGoalVizable" title="deepxube.base.domain.StateGoalVizable"><span class="pre">deepxube.base.domain.StateGoalVizable</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state_idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state_idx_max</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">states_on_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="deepxube.base.domain.html#deepxube.base.domain.State" title="deepxube.base.domain.State"><span class="pre">deepxube.base.domain.State</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="deepxube.base.domain.html#deepxube.base.domain.State" title="deepxube.base.domain.State"><span class="pre">deepxube.base.domain.State</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">goal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="deepxube.base.domain.html#deepxube.base.domain.Goal" title="deepxube.base.domain.Goal"><span class="pre">deepxube.base.domain.Goal</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">no_act</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fig</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">matplotlib.figure.Figure</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="deepxube.base.domain.html#deepxube.base.domain.State" title="deepxube.base.domain.State"><span class="pre">deepxube.base.domain.State</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#deepxube._cli.viz_step" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="deepxube._cli.viz">
-<span class="sig-prename descclassname"><span class="pre">deepxube._cli.</span></span><span class="sig-name descname"><span class="pre">viz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">argparse.Namespace</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#deepxube._cli.viz" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="deepxube._cli._viz_state_goal_update">
-<span class="sig-prename descclassname"><span class="pre">deepxube._cli.</span></span><span class="sig-name descname"><span class="pre">_viz_state_goal_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="deepxube.base.domain.html#deepxube.base.domain.StateGoalVizable" title="deepxube.base.domain.StateGoalVizable"><span class="pre">deepxube.base.domain.StateGoalVizable</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="deepxube.base.domain.html#deepxube.base.domain.State" title="deepxube.base.domain.State"><span class="pre">deepxube.base.domain.State</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">goal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="deepxube.base.domain.html#deepxube.base.domain.Goal" title="deepxube.base.domain.Goal"><span class="pre">deepxube.base.domain.Goal</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">fig</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">matplotlib.figure.Figure</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#deepxube._cli._viz_state_goal_update" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="deepxube._cli.time_test_args">
 <span class="sig-prename descclassname"><span class="pre">deepxube._cli.</span></span><span class="sig-name descname"><span class="pre">time_test_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">argparse.Namespace</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#deepxube._cli.time_test_args" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="deepxube._cli.plot_itr_data">
-<span class="sig-prename descclassname"><span class="pre">deepxube._cli.</span></span><span class="sig-name descname"><span class="pre">plot_itr_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">matplotlib.axes.Axes</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_slider</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">matplotlib.widgets.Slider</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">itr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">itr_to_in_out</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.typing.NDArray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">numpy.typing.NDArray</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">itr_to_steps_to_pathfindstats</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#deepxube._cli.plot_itr_data" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">deepxube._cli.</span></span><span class="sig-name descname"><span class="pre">plot_itr_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">matplotlib.axes.Axes</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_slider</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">matplotlib.widgets.Slider</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">itr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_summ</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="deepxube.base.trainer.html#deepxube.base.trainer.TrainSummary" title="deepxube.base.trainer.TrainSummary"><span class="pre">deepxube.base.trainer.TrainSummary</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#deepxube._cli.plot_itr_data" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
@@ -549,11 +523,6 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="deepxube._cli.main">
 <span class="sig-prename descclassname"><span class="pre">deepxube._cli.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#deepxube._cli.main" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="deepxube._cli._parse_viz_info">
-<span class="sig-prename descclassname"><span class="pre">deepxube._cli.</span></span><span class="sig-name descname"><span class="pre">_parse_viz_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">argparse.ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#deepxube._cli._parse_viz_info" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
@@ -589,14 +558,14 @@
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="deepxube.base.pathfinding.html">
+          <a class="prev-page" href="deepxube._viz.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube.base.pathfinding</span></code></div>
+                <div class="title"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepxube._viz</span></code></div>
                 
               </div>
             </a>
@@ -670,15 +639,11 @@
 <li><a class="reference internal" href="#deepxube._cli.updater_info"><code class="docutils literal notranslate"><span class="pre">updater_info()</span></code></a></li>
 <li><a class="reference internal" href="#deepxube._cli.trainer_info"><code class="docutils literal notranslate"><span class="pre">trainer_info()</span></code></a></li>
 <li><a class="reference internal" href="#deepxube._cli.fig_to_rgba"><code class="docutils literal notranslate"><span class="pre">fig_to_rgba()</span></code></a></li>
-<li><a class="reference internal" href="#deepxube._cli.viz_step"><code class="docutils literal notranslate"><span class="pre">viz_step()</span></code></a></li>
-<li><a class="reference internal" href="#deepxube._cli.viz"><code class="docutils literal notranslate"><span class="pre">viz()</span></code></a></li>
-<li><a class="reference internal" href="#deepxube._cli._viz_state_goal_update"><code class="docutils literal notranslate"><span class="pre">_viz_state_goal_update()</span></code></a></li>
 <li><a class="reference internal" href="#deepxube._cli.time_test_args"><code class="docutils literal notranslate"><span class="pre">time_test_args()</span></code></a></li>
 <li><a class="reference internal" href="#deepxube._cli.plot_itr_data"><code class="docutils literal notranslate"><span class="pre">plot_itr_data()</span></code></a></li>
 <li><a class="reference internal" href="#deepxube._cli.train_summary"><code class="docutils literal notranslate"><span class="pre">train_summary()</span></code></a></li>
 <li><a class="reference internal" href="#deepxube._cli.problem_inst_gen"><code class="docutils literal notranslate"><span class="pre">problem_inst_gen()</span></code></a></li>
 <li><a class="reference internal" href="#deepxube._cli.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
-<li><a class="reference internal" href="#deepxube._cli._parse_viz_info"><code class="docutils literal notranslate"><span class="pre">_parse_viz_info()</span></code></a></li>
 <li><a class="reference internal" href="#deepxube._cli._parse_time"><code class="docutils literal notranslate"><span class="pre">_parse_time()</span></code></a></li>
 <li><a class="reference internal" href="#deepxube._cli._parse_problem_instance"><code class="docutils literal notranslate"><span class="pre">_parse_problem_instance()</span></code></a></li>
 <li><a class="reference internal" href="#deepxube._cli._parse_train_summary"><code class="docutils literal notranslate"><span class="pre">_parse_train_summary()</span></code></a></li>
