@@ -12,7 +12,7 @@ We will experiment with the 6x6 sliding tile puzzle (i.e. the 35-puzzle) when tr
 
 ## Without Balancing
 
-`deepxube train --domain npuzzle.6 --fn heurv,resnet_fc.200H_2B_bn --pathfind graph --up up_rl.10000sm_100up_100sitrs_lhbl_2p --tr tr_h.200bs_5000maxit --dir results/npuzzle6/10000sm/`
+`deepxube train --domain npuzzle.6 --fn heurv,resnet_fc.200H_2B_bn --pathfind graph --up path_rl.10000sm_100up_100sitrs_lhbl_2p --tr tr_h.200bs_5000maxit --dir results/npuzzle6/10000sm/`
 
 ```{literalinclude} ../../tutorial/results/npuzzle6/10000sm/output.txt
 :language: none
@@ -31,7 +31,7 @@ Note how there is rarely an instance that is solved, the cost-to-go continues to
 
 ## With Balancing
 
-`deepxube train --domain npuzzle.6 --fn heurv,resnet_fc.200H_2B_bn --pathfind graph --up up_rl.10000sm_100up_100sitrs_lhbl_2p --tr tr_h.200bs_5000maxit_bal --dir results/npuzzle6/10000sm_bal/`
+`deepxube train --domain npuzzle.6 --fn heurv,resnet_fc.200H_2B_bn --pathfind graph --up path_rl.10000sm_100up_100sitrs_lhbl_2p --tr tr_h.200bs_5000maxit_bal --dir results/npuzzle6/10000sm_bal/`
 
 - `_bal` to balance training data
 

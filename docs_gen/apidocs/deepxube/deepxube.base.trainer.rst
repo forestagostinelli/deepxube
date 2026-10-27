@@ -25,6 +25,8 @@ Classes
    * - :py:obj:`Status <deepxube.base.trainer.Status>`
      - .. autodoc2-docstring:: deepxube.base.trainer.Status
           :summary:
+   * - :py:obj:`StepsBalanceable <deepxube.base.trainer.StepsBalanceable>`
+     -
    * - :py:obj:`TrainSummary <deepxube.base.trainer.TrainSummary>`
      - .. autodoc2-docstring:: deepxube.base.trainer.TrainSummary
           :summary:
@@ -149,7 +151,7 @@ API
 
       .. autodoc2-docstring:: deepxube.base.trainer.DataBuffer._add_circular
 
-.. py:class:: Status(step_max: int, balance_steps: bool)
+.. py:class:: Status(step_max: int)
    :canonical: deepxube.base.trainer.Status
 
    .. autodoc2-docstring:: deepxube.base.trainer.Status
@@ -162,6 +164,28 @@ API
       :canonical: deepxube.base.trainer.Status.update_step_probs
 
       .. autodoc2-docstring:: deepxube.base.trainer.Status.update_step_probs
+
+   .. py:method:: init_step_probs(step_max: int, balance_steps: bool) -> None
+      :canonical: deepxube.base.trainer.Status.init_step_probs
+
+      .. autodoc2-docstring:: deepxube.base.trainer.Status.init_step_probs
+
+.. py:class:: StepsBalanceable
+   :canonical: deepxube.base.trainer.StepsBalanceable
+
+   Bases: :py:obj:`abc.ABC`
+
+   .. py:method:: init_step_probs(status: deepxube.base.trainer.Status) -> None
+      :canonical: deepxube.base.trainer.StepsBalanceable.init_step_probs
+      :abstractmethod:
+
+      .. autodoc2-docstring:: deepxube.base.trainer.StepsBalanceable.init_step_probs
+
+   .. py:method:: balance_steps(status: deepxube.base.trainer.Status, step_to_search_perf: typing.Dict[int, deepxube.utils.pathfind_perf.PathFindPerf]) -> None
+      :canonical: deepxube.base.trainer.StepsBalanceable.balance_steps
+      :abstractmethod:
+
+      .. autodoc2-docstring:: deepxube.base.trainer.StepsBalanceable.balance_steps
 
 .. py:class:: TrainSummary()
    :canonical: deepxube.base.trainer.TrainSummary
@@ -176,6 +200,11 @@ API
       :canonical: deepxube.base.trainer.TrainSummary.update_pathfindstats
 
       .. autodoc2-docstring:: deepxube.base.trainer.TrainSummary.update_pathfindstats
+
+   .. py:method:: update_itr_to_step_probs_stats(step_probs_l: typing.List[float], itr: int) -> None
+      :canonical: deepxube.base.trainer.TrainSummary.update_itr_to_step_probs_stats
+
+      .. autodoc2-docstring:: deepxube.base.trainer.TrainSummary.update_itr_to_step_probs_stats
 
 .. py:data:: NNet
    :canonical: deepxube.base.trainer.NNet
@@ -194,7 +223,7 @@ API
 
    .. autodoc2-docstring:: deepxube.base.trainer.update_optimizer
 
-.. py:class:: Train(nnet_dir: str, updater: deepxube.base.trainer.Up, device: torch.device, on_gpu: bool, batch_size: int = 100, max_itrs: int = 100000, balance_steps: bool = False, loss_thresh: float = np.inf, checkpoint: int = 0, grad_accum: int = 1, display: int = 100)
+.. py:class:: Train(domain: deepxube.base.domain.Domain, nnet_dir: str, updater: deepxube.base.trainer.Up, device: torch.device, on_gpu: bool, batch_size: int = 100, max_itrs: int = 100000, balance_steps: bool = False, loss_thresh: float = np.inf, checkpoint: int = 0, grad_accum: int = 1, display: int = 100)
    :canonical: deepxube.base.trainer.Train
 
    Bases: :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.base.trainer.NNet`\ , :py:obj:`deepxube.base.trainer.Up`\ ], :py:obj:`abc.ABC`

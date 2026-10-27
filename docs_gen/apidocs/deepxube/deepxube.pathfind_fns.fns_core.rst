@@ -45,6 +45,8 @@ Classes
      -
    * - :py:obj:`PolicyNNetParC <deepxube.pathfind_fns.fns_core.PolicyNNetParC>`
      -
+   * - :py:obj:`GridParser <deepxube.pathfind_fns.fns_core.GridParser>`
+     -
    * - :py:obj:`UFNsHeurVC <deepxube.pathfind_fns.fns_core.UFNsHeurVC>`
      - .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.UFNsHeurVC
           :summary:
@@ -219,6 +221,17 @@ API
    :canonical: deepxube.pathfind_fns.fns_core.PolicyNNetParC
 
    Bases: :py:obj:`deepxube.base.pathfind_fns.PolicyNNetPar`
+
+.. py:class:: GridParser()
+   :canonical: deepxube.pathfind_fns.fns_core.GridParser
+
+   Bases: :py:obj:`deepxube.base.factory.DelimParser`
+
+   .. py:property:: delim
+      :canonical: deepxube.pathfind_fns.fns_core.GridParser.delim
+      :type: str
+
+      .. autodoc2-docstring:: deepxube.pathfind_fns.fns_core.GridParser.delim
 
 .. py:class:: UFNsHeurVC
    :canonical: deepxube.pathfind_fns.fns_core.UFNsHeurVC

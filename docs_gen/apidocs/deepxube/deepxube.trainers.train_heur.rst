@@ -24,7 +24,7 @@ Classes
 API
 ~~~
 
-.. py:class:: TrainHeur(nnet_dir: str, updater: deepxube.base.trainer.Up, device: torch.device, on_gpu: bool, batch_size: int = 100, max_itrs: int = 100000, balance_steps: bool = False, loss_thresh: float = np.inf, checkpoint: int = 0, grad_accum: int = 1, display: int = 100)
+.. py:class:: TrainHeur(domain: deepxube.base.domain.Domain, nnet_dir: str, updater: deepxube.base.trainer.Up, device: torch.device, on_gpu: bool, batch_size: int = 100, max_itrs: int = 100000, balance_steps: bool = False, loss_thresh: float = np.inf, checkpoint: int = 0, grad_accum: int = 1, display: int = 100)
    :canonical: deepxube.trainers.train_heur.TrainHeur
 
    Bases: :py:obj:`deepxube.base.trainer.Train`\ [\ :py:obj:`deepxube.base.nnet.HeurNNet`\ , :py:obj:`deepxube.base.updater.UpdateHeur`\ ], :py:obj:`abc.ABC`

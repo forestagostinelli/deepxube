@@ -18,11 +18,13 @@ Classes
 
    * - :py:obj:`TrainPolicy <deepxube.trainers.train_policy.TrainPolicy>`
      -
+   * - :py:obj:`TrainHeurParser <deepxube.trainers.train_policy.TrainHeurParser>`
+     -
 
 API
 ~~~
 
-.. py:class:: TrainPolicy(nnet_dir: str, updater: deepxube.base.trainer.Up, device: torch.device, on_gpu: bool, batch_size: int = 100, max_itrs: int = 100000, balance_steps: bool = False, loss_thresh: float = np.inf, checkpoint: int = 0, grad_accum: int = 1, display: int = 100)
+.. py:class:: TrainPolicy(domain: deepxube.base.domain.Domain, nnet_dir: str, updater: deepxube.base.trainer.Up, device: torch.device, on_gpu: bool, batch_size: int = 100, max_itrs: int = 100000, balance_steps: bool = False, loss_thresh: float = np.inf, checkpoint: int = 0, grad_accum: int = 1, display: int = 100)
    :canonical: deepxube.trainers.train_policy.TrainPolicy
 
    Bases: :py:obj:`deepxube.base.trainer.Train`\ [\ :py:obj:`deepxube.base.nnet.PolicyNNet`\ , :py:obj:`deepxube.base.updater.UpdatePolicy`\ ]
@@ -33,6 +35,24 @@ API
 
       .. autodoc2-docstring:: deepxube.trainers.train_policy.TrainPolicy.data_parallel
 
+   .. py:method:: nnet_type() -> typing.Type[deepxube.base.nnet.PolicyNNet]
+      :canonical: deepxube.trainers.train_policy.TrainPolicy.nnet_type
+      :staticmethod:
+
+      .. autodoc2-docstring:: deepxube.trainers.train_policy.TrainPolicy.nnet_type
+
+   .. py:method:: updater_type() -> typing.Type[deepxube.base.updater.UpdatePolicy]
+      :canonical: deepxube.trainers.train_policy.TrainPolicy.updater_type
+      :staticmethod:
+
+      .. autodoc2-docstring:: deepxube.trainers.train_policy.TrainPolicy.updater_type
+
+   .. py:method:: get_nnet_name() -> str
+      :canonical: deepxube.trainers.train_policy.TrainPolicy.get_nnet_name
+      :staticmethod:
+
+      .. autodoc2-docstring:: deepxube.trainers.train_policy.TrainPolicy.get_nnet_name
+
    .. py:method:: _train_itr(batch: typing.List[numpy.typing.NDArray], first_itr_in_update: bool, times: deepxube.utils.timing_utils.Times) -> float
       :canonical: deepxube.trainers.train_policy.TrainPolicy._train_itr
 
@@ -42,3 +62,8 @@ API
       :canonical: deepxube.trainers.train_policy.TrainPolicy._add_post_up_info
 
       .. autodoc2-docstring:: deepxube.trainers.train_policy.TrainPolicy._add_post_up_info
+
+.. py:class:: TrainHeurParser()
+   :canonical: deepxube.trainers.train_policy.TrainHeurParser
+
+   Bases: :py:obj:`deepxube.base.trainer.TrainParser`

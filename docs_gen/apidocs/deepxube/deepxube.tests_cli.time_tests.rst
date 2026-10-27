@@ -28,6 +28,15 @@ Functions
    * - :py:obj:`test_envenumerableacts <deepxube.tests_cli.time_tests.test_envenumerableacts>`
      - .. autodoc2-docstring:: deepxube.tests_cli.time_tests.test_envenumerableacts
           :summary:
+   * - :py:obj:`test_nodeslabelssampleable <deepxube.tests_cli.time_tests.test_nodeslabelssampleable>`
+     - .. autodoc2-docstring:: deepxube.tests_cli.time_tests.test_nodeslabelssampleable
+          :summary:
+   * - :py:obj:`test_nodeslabelable <deepxube.tests_cli.time_tests.test_nodeslabelable>`
+     - .. autodoc2-docstring:: deepxube.tests_cli.time_tests.test_nodeslabelable
+          :summary:
+   * - :py:obj:`test_edgeslabelable <deepxube.tests_cli.time_tests.test_edgeslabelable>`
+     - .. autodoc2-docstring:: deepxube.tests_cli.time_tests.test_edgeslabelable
+          :summary:
    * - :py:obj:`init_nnet <deepxube.tests_cli.time_tests.init_nnet>`
      - .. autodoc2-docstring:: deepxube.tests_cli.time_tests.init_nnet
           :summary:
@@ -66,6 +75,21 @@ API
    :canonical: deepxube.tests_cli.time_tests.test_envenumerableacts
 
    .. autodoc2-docstring:: deepxube.tests_cli.time_tests.test_envenumerableacts
+
+.. py:function:: test_nodeslabelssampleable(domain: deepxube.base.domain.NodesLabelsSampleable, num_states: int, step_min: int, step_max: int) -> None
+   :canonical: deepxube.tests_cli.time_tests.test_nodeslabelssampleable
+
+   .. autodoc2-docstring:: deepxube.tests_cli.time_tests.test_nodeslabelssampleable
+
+.. py:function:: test_nodeslabelable(domain: deepxube.base.domain.NodesLabelable, states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal]) -> None
+   :canonical: deepxube.tests_cli.time_tests.test_nodeslabelable
+
+   .. autodoc2-docstring:: deepxube.tests_cli.time_tests.test_nodeslabelable
+
+.. py:function:: test_edgeslabelable(domain: deepxube.base.domain.EdgesLabelable, states: typing.List[deepxube.base.domain.State], goals: typing.List[deepxube.base.domain.Goal], actions: typing.List[deepxube.base.domain.Action]) -> None
+   :canonical: deepxube.tests_cli.time_tests.test_edgeslabelable
+
+   .. autodoc2-docstring:: deepxube.tests_cli.time_tests.test_edgeslabelable
 
 .. py:function:: init_nnet(nnet_par: deepxube.pytorch.nnet_utils.NNetPar) -> typing.Tuple[torch.nn.Module, torch.device]
    :canonical: deepxube.tests_cli.time_tests.init_nnet

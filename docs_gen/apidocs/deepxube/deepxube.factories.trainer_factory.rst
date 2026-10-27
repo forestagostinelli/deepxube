@@ -41,7 +41,7 @@ API
 
    .. autodoc2-docstring:: deepxube.factories.trainer_factory.trainer_factory
 
-.. py:function:: get_trainer_from_args(nnet_dir: str, updater: deepxube.base.updater.Update, device: torch.device, on_gpu: bool, trainer_name_args: str) -> typing.Tuple[deepxube.base.trainer.Train, str]
+.. py:function:: get_trainer_from_args(domain: deepxube.base.domain.Domain, nnet_dir: str, updater: deepxube.base.updater.Update, device: torch.device, on_gpu: bool, trainer_name_args: str) -> typing.Tuple[deepxube.base.trainer.Train, str]
    :canonical: deepxube.factories.trainer_factory.get_trainer_from_args
 
    .. autodoc2-docstring:: deepxube.factories.trainer_factory.get_trainer_from_args

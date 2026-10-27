@@ -159,7 +159,7 @@ API
 
    .. autodoc2-docstring:: deepxube.base.nnet._flatten_list
 
-.. py:class:: PolicyVAE(nnet_input: deepxube.base.nnet.PNNetIn, num_samp: int, kl_weight: float, **kwargs: typing.Any)
+.. py:class:: PolicyVAE(nnet_input: deepxube.base.nnet.PNNetIn, num_samp: int, kl_weight: float = 0.1, **kwargs: typing.Any)
    :canonical: deepxube.base.nnet.PolicyVAE
 
    Bases: :py:obj:`deepxube.base.nnet.PolicyNNet`\ [\ :py:obj:`deepxube.base.nnet.PNNetIn`\ ]

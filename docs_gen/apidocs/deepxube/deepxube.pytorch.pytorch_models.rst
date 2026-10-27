@@ -26,6 +26,8 @@ Classes
      -
    * - :py:obj:`ReLU2 <deepxube.pytorch.pytorch_models.ReLU2>`
      -
+   * - :py:obj:`UpsampleConv <deepxube.pytorch.pytorch_models.UpsampleConv>`
+     -
    * - :py:obj:`ResnetModel <deepxube.pytorch.pytorch_models.ResnetModel>`
      -
    * - :py:obj:`FullyConnectedModel <deepxube.pytorch.pytorch_models.FullyConnectedModel>`
@@ -105,6 +107,16 @@ API
 
    .. autodoc2-docstring:: deepxube.pytorch.pytorch_models.get_act_fn
 
+.. py:class:: UpsampleConv(in_channels: int, out_channels: int, mode: str = 'nearest')
+   :canonical: deepxube.pytorch.pytorch_models.UpsampleConv
+
+   Bases: :py:obj:`torch.nn.Module`
+
+   .. py:method:: forward(x: torch.Tensor) -> torch.Tensor
+      :canonical: deepxube.pytorch.pytorch_models.UpsampleConv.forward
+
+      .. autodoc2-docstring:: deepxube.pytorch.pytorch_models.UpsampleConv.forward
+
 .. py:class:: ResnetModel(block_init: typing.Callable[[], torch.nn.Module], num_resnet_blocks: int, act_fn: str)
    :canonical: deepxube.pytorch.pytorch_models.ResnetModel
 
@@ -115,7 +127,7 @@ API
 
       .. autodoc2-docstring:: deepxube.pytorch.pytorch_models.ResnetModel.forward
 
-.. py:class:: FullyConnectedModel(input_dim: int, dims: typing.List[int], acts: typing.List[str], batch_norms: typing.Optional[typing.List[bool]] = None, weight_norms: typing.Optional[typing.List[bool]] = None, group_norms: typing.Optional[typing.List[int]] = None)
+.. py:class:: FullyConnectedModel(input_dim: int, dims: typing.List[int], acts: typing.List[str], batch_norms: typing.Optional[typing.List[bool]] = None, weight_norms: typing.Optional[typing.List[bool]] = None, group_norms: typing.Optional[typing.List[int]] = None, pre: bool = False)
    :canonical: deepxube.pytorch.pytorch_models.FullyConnectedModel
 
    Bases: :py:obj:`torch.nn.Module`
@@ -125,7 +137,7 @@ API
 
       .. autodoc2-docstring:: deepxube.pytorch.pytorch_models.FullyConnectedModel.forward
 
-.. py:class:: Conv2dModel(chan_in: int, channel_sizes: typing.List[int], kernel_sizes: typing.List[int], paddings: typing.List[int], layer_acts: typing.List[str], batch_norms: typing.Optional[typing.List[bool]] = None, strides: typing.Optional[typing.List[int]] = None, transpose: bool = False, weight_norms: typing.Optional[typing.List[bool]] = None, dropouts: typing.Optional[typing.List[float]] = None)
+.. py:class:: Conv2dModel(chan_in: int, channel_sizes: typing.List[int], kernel_sizes: typing.List[int], paddings: typing.List[int], layer_acts: typing.List[str], batch_norms: typing.Optional[typing.List[bool]] = None, strides: typing.Optional[typing.List[int]] = None, transpose: bool = False, weight_norms: typing.Optional[typing.List[bool]] = None, group_norms: typing.Optional[typing.List[int]] = None, dropouts: typing.Optional[typing.List[float]] = None, zero_inits: typing.Optional[typing.List[bool]] = None, pre: bool = False)
    :canonical: deepxube.pytorch.pytorch_models.Conv2dModel
 
    Bases: :py:obj:`torch.nn.Module`

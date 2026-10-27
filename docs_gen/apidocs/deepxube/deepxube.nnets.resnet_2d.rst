@@ -18,13 +18,13 @@ Classes
 
    * - :py:obj:`Resnet2D <deepxube.nnets.resnet_2d.Resnet2D>`
      -
-   * - :py:obj:`ResnetFCParser <deepxube.nnets.resnet_2d.ResnetFCParser>`
+   * - :py:obj:`Resnet2DParser <deepxube.nnets.resnet_2d.Resnet2DParser>`
      -
 
 API
 ~~~
 
-.. py:class:: Resnet2D(nnet_input: deepxube.base.nnet_input.TwoDIn, out_dim: int, q_fix: bool, num_chan: int = 64, num_blocks: int = 4, batch_norm: bool = False, weight_norm: bool = False, act_fn: str = 'RELU')
+.. py:class:: Resnet2D(nnet_input: deepxube.base.nnet_input.TwoDIn, out_dim: int, q_fix: bool, num_chan: int = 64, num_blocks: int = 4, batch_norm: bool = False, weight_norm: bool = False, group_norm: int = -1, act_fn: str = 'RELU')
    :canonical: deepxube.nnets.resnet_2d.Resnet2D
 
    Bases: :py:obj:`deepxube.base.nnet.HeurNNet`\ [\ :py:obj:`deepxube.base.nnet_input.TwoDIn`\ ]
@@ -38,17 +38,13 @@ API
 
       .. autodoc2-docstring:: deepxube.nnets.resnet_2d.Resnet2D._forward
 
-.. py:class:: ResnetFCParser
-   :canonical: deepxube.nnets.resnet_2d.ResnetFCParser
+.. py:class:: Resnet2DParser()
+   :canonical: deepxube.nnets.resnet_2d.Resnet2DParser
 
-   Bases: :py:obj:`deepxube.base.factory.Parser`
+   Bases: :py:obj:`deepxube.base.factory.DelimParser`
 
-   .. py:method:: parse(args_str: str) -> typing.Dict[str, typing.Any]
-      :canonical: deepxube.nnets.resnet_2d.ResnetFCParser.parse
+   .. py:property:: delim
+      :canonical: deepxube.nnets.resnet_2d.Resnet2DParser.delim
+      :type: str
 
-      .. autodoc2-docstring:: deepxube.nnets.resnet_2d.ResnetFCParser.parse
-
-   .. py:method:: help() -> str
-      :canonical: deepxube.nnets.resnet_2d.ResnetFCParser.help
-
-      .. autodoc2-docstring:: deepxube.nnets.resnet_2d.ResnetFCParser.help
+      .. autodoc2-docstring:: deepxube.nnets.resnet_2d.Resnet2DParser.delim

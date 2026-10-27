@@ -23,18 +23,14 @@ Classes
      -
    * - :py:obj:`UpdateHER <deepxube.base.updater.UpdateHER>`
      -
-   * - :py:obj:`UpdateHasHeurV <deepxube.base.updater.UpdateHasHeurV>`
-     -
-   * - :py:obj:`UpdateHasHeurQ <deepxube.base.updater.UpdateHasHeurQ>`
-     -
-   * - :py:obj:`UpdateHasPolicy <deepxube.base.updater.UpdateHasPolicy>`
-     -
    * - :py:obj:`UpdateSup <deepxube.base.updater.UpdateSup>`
      -
    * - :py:obj:`UpRLArgs <deepxube.base.updater.UpRLArgs>`
      - .. autodoc2-docstring:: deepxube.base.updater.UpRLArgs
           :summary:
    * - :py:obj:`UpdateRL <deepxube.base.updater.UpdateRL>`
+     -
+   * - :py:obj:`UpdateLabel <deepxube.base.updater.UpdateLabel>`
      -
    * - :py:obj:`UpdateHeur <deepxube.base.updater.UpdateHeur>`
      -
@@ -260,7 +256,7 @@ API
 .. py:class:: Update(domain: deepxube.base.updater.D, pathfind_name_args: str, up_fns: deepxube.base.updater.UFNsT, procs: int = 1, step_max: int = 100, search_itrs: int = 1, up_itrs: int = 100, up_gen_itrs: typing.Optional[int] = None, rb: int = 0, up_batch_size: typing.Optional[int] = None, nnet_batch_size: typing.Optional[int] = None, sync_main: bool = False, v: bool = False, **kwargs: typing.Any)
    :canonical: deepxube.base.updater.Update
 
-   Bases: :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ ], :py:obj:`abc.ABC`
 
    .. py:method:: domain_type() -> typing.Type[deepxube.base.updater.D]
       :canonical: deepxube.base.updater.Update.domain_type
@@ -268,13 +264,6 @@ API
       :staticmethod:
 
       .. autodoc2-docstring:: deepxube.base.updater.Update.domain_type
-
-   .. py:method:: pathfind_functions_type() -> typing.Type[deepxube.base.pathfinding.PFNsT]
-      :canonical: deepxube.base.updater.Update.pathfind_functions_type
-      :abstractmethod:
-      :staticmethod:
-
-      .. autodoc2-docstring:: deepxube.base.updater.Update.pathfind_functions_type
 
    .. py:method:: pathfind_type() -> typing.Type[deepxube.base.updater.P]
       :canonical: deepxube.base.updater.Update.pathfind_type
@@ -290,7 +279,7 @@ API
 
       .. autodoc2-docstring:: deepxube.base.updater.Update.updater_functions_type
 
-   .. py:method:: get_incompat_reason(domain: deepxube.base.domain.Domain, pathfind_fns_t: typing.Type[deepxube.base.pathfind_fns.PFNs], pathfind_t: typing.Type[deepxube.base.pathfinding.PathFind], updater_fns_t: typing.Type[deepxube.base.pathfind_fns.UFNs]) -> typing.Optional[str]
+   .. py:method:: get_incompat_reason(domain: deepxube.base.domain.Domain, pathfind_t: typing.Type[deepxube.base.pathfinding.PathFind], updater_fns_t: typing.Type[deepxube.base.pathfind_fns.UFNs]) -> typing.Optional[str]
       :canonical: deepxube.base.updater.Update.get_incompat_reason
       :classmethod:
 
@@ -354,7 +343,7 @@ API
 
       .. autodoc2-docstring:: deepxube.base.updater.Update.start_procs
 
-   .. py:method:: start_update(step_probs: typing.List[int], num_gen: int, train_batch_size: int, device: torch.device, on_gpu: bool) -> None
+   .. py:method:: start_update(step_probs: typing.List[float], num_gen: int, train_batch_size: int, device: torch.device, on_gpu: bool) -> None
       :canonical: deepxube.base.updater.Update.start_update
 
       .. autodoc2-docstring:: deepxube.base.updater.Update.start_update
@@ -364,7 +353,7 @@ API
 
       .. autodoc2-docstring:: deepxube.base.updater.Update.get_update_data
 
-   .. py:method:: end_update() -> typing.Dict[int, deepxube.utils.pathfind_perf.PathFindPerf]
+   .. py:method:: end_update() -> typing.Tuple[typing.Dict[int, deepxube.utils.pathfind_perf.PathFindPerf], int, int]
       :canonical: deepxube.base.updater.Update.end_update
 
       .. autodoc2-docstring:: deepxube.base.updater.Update.end_update
@@ -389,7 +378,19 @@ API
 
       .. autodoc2-docstring:: deepxube.base.updater.Update.update_runner
 
-   .. py:method:: _add_instances(pathfind: deepxube.base.updater.P, insts_rem: typing.List[deepxube.base.updater.InstT], batch_size: int, step_probs: typing.List[int], times: deepxube.utils.timing_utils.Times) -> None
+   .. py:method:: get_rb_size() -> int
+      :canonical: deepxube.base.updater.Update.get_rb_size
+      :abstractmethod:
+
+      .. autodoc2-docstring:: deepxube.base.updater.Update.get_rb_size
+
+   .. py:method:: get_rb_max_size() -> int
+      :canonical: deepxube.base.updater.Update.get_rb_max_size
+      :abstractmethod:
+
+      .. autodoc2-docstring:: deepxube.base.updater.Update.get_rb_max_size
+
+   .. py:method:: _add_instances(pathfind: deepxube.base.updater.P, insts_rem: typing.List[deepxube.base.updater.InstT], batch_size: int, step_probs: typing.List[float], times: deepxube.utils.timing_utils.Times) -> None
       :canonical: deepxube.base.updater.Update._add_instances
 
       .. autodoc2-docstring:: deepxube.base.updater.Update._add_instances
@@ -406,11 +407,11 @@ API
 
       .. autodoc2-docstring:: deepxube.base.updater.Update._step_sync_main
 
-   .. py:method:: _get_pathfind_functions() -> deepxube.base.pathfinding.PFNsT
-      :canonical: deepxube.base.updater.Update._get_pathfind_functions
+   .. py:method:: _modify_pathfind_fns(pathfind_fn_dict: typing.Dict[str, deepxube.pytorch.nnet_utils.NNetCallable]) -> None
+      :canonical: deepxube.base.updater.Update._modify_pathfind_fns
       :abstractmethod:
 
-      .. autodoc2-docstring:: deepxube.base.updater.Update._get_pathfind_functions
+      .. autodoc2-docstring:: deepxube.base.updater.Update._modify_pathfind_fns
 
    .. py:method:: _get_instance_data(instances: typing.List[deepxube.base.updater.InstT], rb_size: int, times: deepxube.utils.timing_utils.Times) -> typing.List[numpy.typing.NDArray]
       :canonical: deepxube.base.updater.Update._get_instance_data
@@ -453,7 +454,7 @@ API
 .. py:class:: UpdateHER(domain: deepxube.base.updater.D, pathfind_name_args: str, up_fns: deepxube.base.updater.UFNsT, procs: int = 1, step_max: int = 100, search_itrs: int = 1, up_itrs: int = 100, up_gen_itrs: typing.Optional[int] = None, rb: int = 0, up_batch_size: typing.Optional[int] = None, nnet_batch_size: typing.Optional[int] = None, sync_main: bool = False, v: bool = False, **kwargs: typing.Any)
    :canonical: deepxube.base.updater.UpdateHER
 
-   Bases: :py:obj:`deepxube.base.updater.Update`\ [\ :py:obj:`deepxube.base.updater.D_GS_T`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.base.updater.Update`\ [\ :py:obj:`deepxube.base.updater.D_GS_T`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ ], :py:obj:`abc.ABC`
 
    .. py:method:: _step_sync_main(pathfind: deepxube.base.updater.P, times: deepxube.utils.timing_utils.Times) -> typing.List[numpy.typing.NDArray]
       :canonical: deepxube.base.updater.UpdateHER._step_sync_main
@@ -482,66 +483,6 @@ API
 
       .. autodoc2-docstring:: deepxube.base.updater.UpdateHER._get_her_edge_data
 
-.. py:class:: UpdateHasHeurV(domain: deepxube.base.updater.D, pathfind_name_args: str, up_fns: deepxube.base.updater.UFNsT, procs: int = 1, step_max: int = 100, search_itrs: int = 1, up_itrs: int = 100, up_gen_itrs: typing.Optional[int] = None, rb: int = 0, up_batch_size: typing.Optional[int] = None, nnet_batch_size: typing.Optional[int] = None, sync_main: bool = False, v: bool = False, **kwargs: typing.Any)
-   :canonical: deepxube.base.updater.UpdateHasHeurV
-
-   Bases: :py:obj:`deepxube.base.updater.Update`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsHV_T`\ ], :py:obj:`abc.ABC`
-
-   .. py:method:: get_heurv_nnet_par() -> deepxube.base.pathfind_fns.HeurVNNetPar
-      :canonical: deepxube.base.updater.UpdateHasHeurV.get_heurv_nnet_par
-
-      .. autodoc2-docstring:: deepxube.base.updater.UpdateHasHeurV.get_heurv_nnet_par
-
-   .. py:method:: get_heurv_fn() -> deepxube.base.pathfind_fns.HeurVFn
-      :canonical: deepxube.base.updater.UpdateHasHeurV.get_heurv_fn
-
-      .. autodoc2-docstring:: deepxube.base.updater.UpdateHasHeurV.get_heurv_fn
-
-   .. py:method:: _get_targ_heurv_fn() -> deepxube.base.pathfind_fns.HeurVFn
-      :canonical: deepxube.base.updater.UpdateHasHeurV._get_targ_heurv_fn
-
-      .. autodoc2-docstring:: deepxube.base.updater.UpdateHasHeurV._get_targ_heurv_fn
-
-.. py:class:: UpdateHasHeurQ(domain: deepxube.base.updater.D, pathfind_name_args: str, up_fns: deepxube.base.updater.UFNsT, procs: int = 1, step_max: int = 100, search_itrs: int = 1, up_itrs: int = 100, up_gen_itrs: typing.Optional[int] = None, rb: int = 0, up_batch_size: typing.Optional[int] = None, nnet_batch_size: typing.Optional[int] = None, sync_main: bool = False, v: bool = False, **kwargs: typing.Any)
-   :canonical: deepxube.base.updater.UpdateHasHeurQ
-
-   Bases: :py:obj:`deepxube.base.updater.Update`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsHQ_T`\ ], :py:obj:`abc.ABC`
-
-   .. py:method:: get_heurq_nnet_par() -> deepxube.base.pathfind_fns.HeurQNNetPar
-      :canonical: deepxube.base.updater.UpdateHasHeurQ.get_heurq_nnet_par
-
-      .. autodoc2-docstring:: deepxube.base.updater.UpdateHasHeurQ.get_heurq_nnet_par
-
-   .. py:method:: get_heurq_fn() -> deepxube.base.pathfind_fns.HeurQFn
-      :canonical: deepxube.base.updater.UpdateHasHeurQ.get_heurq_fn
-
-      .. autodoc2-docstring:: deepxube.base.updater.UpdateHasHeurQ.get_heurq_fn
-
-   .. py:method:: _get_targ_heurq_fn() -> deepxube.base.pathfind_fns.HeurQFn
-      :canonical: deepxube.base.updater.UpdateHasHeurQ._get_targ_heurq_fn
-
-      .. autodoc2-docstring:: deepxube.base.updater.UpdateHasHeurQ._get_targ_heurq_fn
-
-.. py:class:: UpdateHasPolicy(domain: deepxube.base.updater.D, pathfind_name_args: str, up_fns: deepxube.base.updater.UFNsT, procs: int = 1, step_max: int = 100, search_itrs: int = 1, up_itrs: int = 100, up_gen_itrs: typing.Optional[int] = None, rb: int = 0, up_batch_size: typing.Optional[int] = None, nnet_batch_size: typing.Optional[int] = None, sync_main: bool = False, v: bool = False, **kwargs: typing.Any)
-   :canonical: deepxube.base.updater.UpdateHasPolicy
-
-   Bases: :py:obj:`deepxube.base.updater.Update`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsP_T`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsP_T`\ ], :py:obj:`abc.ABC`
-
-   .. py:method:: get_policy_nnet_par() -> deepxube.base.pathfind_fns.PolicyNNetPar
-      :canonical: deepxube.base.updater.UpdateHasPolicy.get_policy_nnet_par
-
-      .. autodoc2-docstring:: deepxube.base.updater.UpdateHasPolicy.get_policy_nnet_par
-
-   .. py:method:: get_policy_fn() -> deepxube.base.pathfind_fns.PolicyFn
-      :canonical: deepxube.base.updater.UpdateHasPolicy.get_policy_fn
-
-      .. autodoc2-docstring:: deepxube.base.updater.UpdateHasPolicy.get_policy_fn
-
-   .. py:method:: _get_targ_policy_fn() -> deepxube.base.pathfind_fns.PolicyFn
-      :canonical: deepxube.base.updater.UpdateHasPolicy._get_targ_policy_fn
-
-      .. autodoc2-docstring:: deepxube.base.updater.UpdateHasPolicy._get_targ_policy_fn
-
 .. py:data:: PS
    :canonical: deepxube.base.updater.PS
    :value: 'TypeVar(...)'
@@ -551,23 +492,22 @@ API
 .. py:class:: UpdateSup(domain: deepxube.base.updater.D, pathfind_name_args: str, up_fns: deepxube.base.updater.UFNsT, procs: int = 1, step_max: int = 100, search_itrs: int = 1, up_itrs: int = 100, up_gen_itrs: typing.Optional[int] = None, rb: int = 0, up_batch_size: typing.Optional[int] = None, nnet_batch_size: typing.Optional[int] = None, sync_main: bool = False, v: bool = False, **kwargs: typing.Any)
    :canonical: deepxube.base.updater.UpdateSup
 
-   Bases: :py:obj:`deepxube.base.updater.Update`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfind_fns.PFNs`\ , :py:obj:`deepxube.base.updater.PS`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.base.updater.Update`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.updater.PS`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ ], :py:obj:`abc.ABC`
 
-   .. py:method:: pathfind_functions_type() -> typing.Type[deepxube.base.pathfind_fns.PFNs]
-      :canonical: deepxube.base.updater.UpdateSup.pathfind_functions_type
-      :staticmethod:
+   .. py:method:: get_rb_size() -> int
+      :canonical: deepxube.base.updater.UpdateSup.get_rb_size
 
-      .. autodoc2-docstring:: deepxube.base.updater.UpdateSup.pathfind_functions_type
+      .. autodoc2-docstring:: deepxube.base.updater.UpdateSup.get_rb_size
+
+   .. py:method:: get_rb_max_size() -> int
+      :canonical: deepxube.base.updater.UpdateSup.get_rb_max_size
+
+      .. autodoc2-docstring:: deepxube.base.updater.UpdateSup.get_rb_max_size
 
    .. py:method:: _step(pathfind: deepxube.base.updater.PS, times: deepxube.utils.timing_utils.Times) -> None
       :canonical: deepxube.base.updater.UpdateSup._step
 
       .. autodoc2-docstring:: deepxube.base.updater.UpdateSup._step
-
-   .. py:method:: _get_pathfind_functions() -> deepxube.base.pathfind_fns.PFNs
-      :canonical: deepxube.base.updater.UpdateSup._get_pathfind_functions
-
-      .. autodoc2-docstring:: deepxube.base.updater.UpdateSup._get_pathfind_functions
 
    .. py:method:: _make_instances(pathfind: deepxube.base.updater.PS, steps_gen: typing.List[int], inst_infos: typing.List[typing.Any], times: deepxube.utils.timing_utils.Times) -> typing.List[deepxube.base.updater.InstT]
       :canonical: deepxube.base.updater.UpdateSup._make_instances
@@ -613,7 +553,7 @@ API
 .. py:class:: UpdateRL(*args: typing.Any, ub_heur_solns: bool = False, lhbl: bool = False, **kwargs: typing.Any)
    :canonical: deepxube.base.updater.UpdateRL
 
-   Bases: :py:obj:`deepxube.base.updater.Update`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.base.updater.Update`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ ], :py:obj:`abc.ABC`
 
    .. py:method:: _make_instances(pathfind: deepxube.base.updater.P, steps_gen: typing.List[int], inst_infos: typing.List[typing.Any], times: deepxube.utils.timing_utils.Times) -> typing.List[deepxube.base.updater.InstT]
       :canonical: deepxube.base.updater.UpdateRL._make_instances
@@ -623,10 +563,20 @@ API
    .. py:method:: __repr__() -> str
       :canonical: deepxube.base.updater.UpdateRL.__repr__
 
+.. py:class:: UpdateLabel(domain: deepxube.base.updater.D, pathfind_name_args: str, up_fns: deepxube.base.updater.UFNsT, procs: int = 1, step_max: int = 100, search_itrs: int = 1, up_itrs: int = 100, up_gen_itrs: typing.Optional[int] = None, rb: int = 0, up_batch_size: typing.Optional[int] = None, nnet_batch_size: typing.Optional[int] = None, sync_main: bool = False, v: bool = False, **kwargs: typing.Any)
+   :canonical: deepxube.base.updater.UpdateLabel
+
+   Bases: :py:obj:`deepxube.base.updater.Update`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ ], :py:obj:`abc.ABC`
+
+   .. py:method:: _make_instances(pathfind: deepxube.base.updater.P, steps_gen: typing.List[int], inst_infos: typing.List[typing.Any], times: deepxube.utils.timing_utils.Times) -> typing.List[deepxube.base.updater.InstT]
+      :canonical: deepxube.base.updater.UpdateLabel._make_instances
+
+      .. autodoc2-docstring:: deepxube.base.updater.UpdateLabel._make_instances
+
 .. py:class:: UpdateHeur(domain: deepxube.base.updater.D, pathfind_name_args: str, up_fns: deepxube.base.updater.UFNsT, procs: int = 1, step_max: int = 100, search_itrs: int = 1, up_itrs: int = 100, up_gen_itrs: typing.Optional[int] = None, rb: int = 0, up_batch_size: typing.Optional[int] = None, nnet_batch_size: typing.Optional[int] = None, sync_main: bool = False, v: bool = False, **kwargs: typing.Any)
    :canonical: deepxube.base.updater.UpdateHeur
 
-   Bases: :py:obj:`deepxube.base.updater.Update`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.base.updater.Update`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ ], :py:obj:`abc.ABC`
 
 .. py:data:: SchOver_T
    :canonical: deepxube.base.updater.SchOver_T
@@ -655,7 +605,17 @@ API
 .. py:class:: UpdatePathFind(*args: typing.Any, **kwargs: typing.Any)
    :canonical: deepxube.base.updater.UpdatePathFind
 
-   Bases: :py:obj:`deepxube.base.updater.Update`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ ], :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ , :py:obj:`deepxube.base.updater.SchOver_T`\ , :py:obj:`deepxube.base.updater.InD_T`\ , :py:obj:`deepxube.base.updater.R`\ , :py:obj:`deepxube.base.updater.RD_T`\ ]
+   Bases: :py:obj:`deepxube.base.updater.Update`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ ], :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ , :py:obj:`deepxube.base.updater.SchOver_T`\ , :py:obj:`deepxube.base.updater.InD_T`\ , :py:obj:`deepxube.base.updater.R`\ , :py:obj:`deepxube.base.updater.RD_T`\ ]
+
+   .. py:method:: get_rb_size() -> int
+      :canonical: deepxube.base.updater.UpdatePathFind.get_rb_size
+
+      .. autodoc2-docstring:: deepxube.base.updater.UpdatePathFind.get_rb_size
+
+   .. py:method:: get_rb_max_size() -> int
+      :canonical: deepxube.base.updater.UpdatePathFind.get_rb_max_size
+
+      .. autodoc2-docstring:: deepxube.base.updater.UpdatePathFind.get_rb_max_size
 
    .. py:method:: _get_rb(max_size: int) -> deepxube.base.updater.R
       :canonical: deepxube.base.updater.UpdatePathFind._get_rb
@@ -733,7 +693,7 @@ API
 .. py:class:: UpdatePathFindKeepGoal(*args: typing.Any, **kwargs: typing.Any)
    :canonical: deepxube.base.updater.UpdatePathFindKeepGoal
 
-   Bases: :py:obj:`deepxube.base.updater.UpdatePathFind`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ , :py:obj:`deepxube.base.updater.SchOver_T`\ , :py:obj:`deepxube.base.updater.InD_T`\ , :py:obj:`deepxube.base.updater.R`\ , :py:obj:`deepxube.base.updater.RD_T`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.base.updater.UpdatePathFind`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ , :py:obj:`deepxube.base.updater.SchOver_T`\ , :py:obj:`deepxube.base.updater.InD_T`\ , :py:obj:`deepxube.base.updater.R`\ , :py:obj:`deepxube.base.updater.RD_T`\ ], :py:obj:`abc.ABC`
 
    .. py:method:: _step_sync_main(pathfind: deepxube.base.updater.P, times: deepxube.utils.timing_utils.Times) -> typing.List[numpy.typing.NDArray]
       :canonical: deepxube.base.updater.UpdatePathFindKeepGoal._step_sync_main
@@ -753,7 +713,7 @@ API
 .. py:class:: UpdatePathFindHER(*args: typing.Any, **kwargs: typing.Any)
    :canonical: deepxube.base.updater.UpdatePathFindHER
 
-   Bases: :py:obj:`deepxube.base.updater.UpdatePathFind`\ [\ :py:obj:`deepxube.base.updater.D_GS_T`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ , :py:obj:`deepxube.base.updater.SchOver_T`\ , :py:obj:`deepxube.base.updater.InD_T`\ , :py:obj:`deepxube.base.updater.R`\ , :py:obj:`deepxube.base.updater.RD_T`\ ], :py:obj:`deepxube.base.updater.UpdateHER`\ [\ :py:obj:`deepxube.base.updater.D_GS_T`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ ], :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.base.updater.D_GS_T`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ , :py:obj:`deepxube.base.updater.SchOver_T`\ , :py:obj:`deepxube.base.updater.InD_T`\ , :py:obj:`deepxube.base.updater.R`\ , :py:obj:`deepxube.base.updater.RD_T`\ ]
+   Bases: :py:obj:`deepxube.base.updater.UpdatePathFind`\ [\ :py:obj:`deepxube.base.updater.D_GS_T`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ , :py:obj:`deepxube.base.updater.SchOver_T`\ , :py:obj:`deepxube.base.updater.InD_T`\ , :py:obj:`deepxube.base.updater.R`\ , :py:obj:`deepxube.base.updater.RD_T`\ ], :py:obj:`deepxube.base.updater.UpdateHER`\ [\ :py:obj:`deepxube.base.updater.D_GS_T`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ ], :py:obj:`typing.Generic`\ [\ :py:obj:`deepxube.base.updater.D_GS_T`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ , :py:obj:`deepxube.base.updater.SchOver_T`\ , :py:obj:`deepxube.base.updater.InD_T`\ , :py:obj:`deepxube.base.updater.R`\ , :py:obj:`deepxube.base.updater.RD_T`\ ]
 
    .. py:method:: _get_her_data(instances: typing.List[deepxube.base.updater.InstT], goals_inst_her: typing.List[deepxube.base.domain.Goal], times: deepxube.utils.timing_utils.Times) -> typing.Tuple[deepxube.base.updater.InD_T, deepxube.base.updater.RD_T, int]
       :canonical: deepxube.base.updater.UpdatePathFindHER._get_her_data
@@ -775,7 +735,12 @@ API
 .. py:class:: UpdateHeurV(domain: deepxube.base.updater.D, pathfind_name_args: str, up_fns: deepxube.base.updater.UFNsT, procs: int = 1, step_max: int = 100, search_itrs: int = 1, up_itrs: int = 100, up_gen_itrs: typing.Optional[int] = None, rb: int = 0, up_batch_size: typing.Optional[int] = None, nnet_batch_size: typing.Optional[int] = None, sync_main: bool = False, v: bool = False, **kwargs: typing.Any)
    :canonical: deepxube.base.updater.UpdateHeurV
 
-   Bases: :py:obj:`deepxube.base.updater.UpdateHeur`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHV_T`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsHV_T`\ ], :py:obj:`deepxube.base.updater.UpdateHasHeurV`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHV_T`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsHV_T`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.base.updater.UpdateHeur`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsHV_T`\ ], :py:obj:`abc.ABC`
+
+   .. py:method:: get_heurv_nnet_par() -> deepxube.base.pathfind_fns.HeurVNNetPar
+      :canonical: deepxube.base.updater.UpdateHeurV.get_heurv_nnet_par
+
+      .. autodoc2-docstring:: deepxube.base.updater.UpdateHeurV.get_heurv_nnet_par
 
    .. py:method:: get_train_shapes_dtypes() -> typing.List[typing.Tuple[typing.Tuple[int, ...], numpy.dtype]]
       :canonical: deepxube.base.updater.UpdateHeurV.get_train_shapes_dtypes
@@ -787,15 +752,25 @@ API
 
       .. autodoc2-docstring:: deepxube.base.updater.UpdateHeurV.get_train_nnet_par
 
-   .. py:method:: get_heurv_fn() -> deepxube.base.pathfind_fns.HeurVFn
-      :canonical: deepxube.base.updater.UpdateHeurV.get_heurv_fn
+   .. py:method:: _modify_pathfind_fns(pathfind_fn_dict: typing.Dict[str, deepxube.pytorch.nnet_utils.NNetCallable]) -> None
+      :canonical: deepxube.base.updater.UpdateHeurV._modify_pathfind_fns
 
-      .. autodoc2-docstring:: deepxube.base.updater.UpdateHeurV.get_heurv_fn
+      .. autodoc2-docstring:: deepxube.base.updater.UpdateHeurV._modify_pathfind_fns
+
+   .. py:method:: _get_targ_heurv_fn() -> deepxube.base.pathfind_fns.HeurVFn
+      :canonical: deepxube.base.updater.UpdateHeurV._get_targ_heurv_fn
+
+      .. autodoc2-docstring:: deepxube.base.updater.UpdateHeurV._get_targ_heurv_fn
 
 .. py:class:: UpdateHeurQ(domain: deepxube.base.updater.D, pathfind_name_args: str, up_fns: deepxube.base.updater.UFNsT, procs: int = 1, step_max: int = 100, search_itrs: int = 1, up_itrs: int = 100, up_gen_itrs: typing.Optional[int] = None, rb: int = 0, up_batch_size: typing.Optional[int] = None, nnet_batch_size: typing.Optional[int] = None, sync_main: bool = False, v: bool = False, **kwargs: typing.Any)
    :canonical: deepxube.base.updater.UpdateHeurQ
 
-   Bases: :py:obj:`deepxube.base.updater.UpdateHeur`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHQ_T`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsHQ_T`\ ], :py:obj:`deepxube.base.updater.UpdateHasHeurQ`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHQ_T`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsHQ_T`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.base.updater.UpdateHeur`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsHQ_T`\ ], :py:obj:`abc.ABC`
+
+   .. py:method:: get_heurq_nnet_par() -> deepxube.base.pathfind_fns.HeurQNNetPar
+      :canonical: deepxube.base.updater.UpdateHeurQ.get_heurq_nnet_par
+
+      .. autodoc2-docstring:: deepxube.base.updater.UpdateHeurQ.get_heurq_nnet_par
 
    .. py:method:: get_train_shapes_dtypes() -> typing.List[typing.Tuple[typing.Tuple[int, ...], numpy.dtype]]
       :canonical: deepxube.base.updater.UpdateHeurQ.get_train_shapes_dtypes
@@ -807,15 +782,25 @@ API
 
       .. autodoc2-docstring:: deepxube.base.updater.UpdateHeurQ.get_train_nnet_par
 
-   .. py:method:: get_heurq_fn() -> deepxube.base.pathfind_fns.HeurQFn
-      :canonical: deepxube.base.updater.UpdateHeurQ.get_heurq_fn
+   .. py:method:: _modify_pathfind_fns(pathfind_fn_dict: typing.Dict[str, deepxube.pytorch.nnet_utils.NNetCallable]) -> None
+      :canonical: deepxube.base.updater.UpdateHeurQ._modify_pathfind_fns
 
-      .. autodoc2-docstring:: deepxube.base.updater.UpdateHeurQ.get_heurq_fn
+      .. autodoc2-docstring:: deepxube.base.updater.UpdateHeurQ._modify_pathfind_fns
+
+   .. py:method:: _get_targ_heurq_fn() -> deepxube.base.pathfind_fns.HeurQFn
+      :canonical: deepxube.base.updater.UpdateHeurQ._get_targ_heurq_fn
+
+      .. autodoc2-docstring:: deepxube.base.updater.UpdateHeurQ._get_targ_heurq_fn
 
 .. py:class:: UpdatePolicy(domain: deepxube.base.updater.D, pathfind_name_args: str, up_fns: deepxube.base.updater.UFNsT, procs: int = 1, step_max: int = 100, search_itrs: int = 1, up_itrs: int = 100, up_gen_itrs: typing.Optional[int] = None, rb: int = 0, up_batch_size: typing.Optional[int] = None, nnet_batch_size: typing.Optional[int] = None, sync_main: bool = False, v: bool = False, **kwargs: typing.Any)
    :canonical: deepxube.base.updater.UpdatePolicy
 
-   Bases: :py:obj:`deepxube.base.updater.UpdateHasPolicy`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsP_T`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsP_T`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.base.updater.Update`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsP_T`\ ], :py:obj:`abc.ABC`
+
+   .. py:method:: get_policy_nnet_par() -> deepxube.base.pathfind_fns.PolicyNNetPar
+      :canonical: deepxube.base.updater.UpdatePolicy.get_policy_nnet_par
+
+      .. autodoc2-docstring:: deepxube.base.updater.UpdatePolicy.get_policy_nnet_par
 
    .. py:method:: get_train_nnet_par() -> deepxube.base.pathfind_fns.DeepXubeNNetPar
       :canonical: deepxube.base.updater.UpdatePolicy.get_train_nnet_par
@@ -827,10 +812,15 @@ API
 
       .. autodoc2-docstring:: deepxube.base.updater.UpdatePolicy.get_train_shapes_dtypes
 
-   .. py:method:: get_policy_fn() -> deepxube.base.pathfind_fns.PolicyFn
-      :canonical: deepxube.base.updater.UpdatePolicy.get_policy_fn
+   .. py:method:: _modify_pathfind_fns(pathfind_fn_dict: typing.Dict[str, deepxube.pytorch.nnet_utils.NNetCallable]) -> None
+      :canonical: deepxube.base.updater.UpdatePolicy._modify_pathfind_fns
 
-      .. autodoc2-docstring:: deepxube.base.updater.UpdatePolicy.get_policy_fn
+      .. autodoc2-docstring:: deepxube.base.updater.UpdatePolicy._modify_pathfind_fns
+
+   .. py:method:: _get_targ_policy_fn() -> deepxube.base.pathfind_fns.PolicyFn
+      :canonical: deepxube.base.updater.UpdatePolicy._get_targ_policy_fn
+
+      .. autodoc2-docstring:: deepxube.base.updater.UpdatePolicy._get_targ_policy_fn
 
 .. py:data:: InDataNode
    :canonical: deepxube.base.updater.InDataNode
@@ -847,7 +837,7 @@ API
 .. py:class:: UpdateHeurVPathFind(*args: typing.Any, **kwargs: typing.Any)
    :canonical: deepxube.base.updater.UpdateHeurVPathFind
 
-   Bases: :py:obj:`deepxube.base.updater.UpdatePathFind`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHV_T`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsHV_T`\ , :py:obj:`deepxube.base.pathfinding.Node`\ , :py:obj:`deepxube.base.updater.InDataNode`\ , :py:obj:`deepxube.base.updater.R`\ , :py:obj:`deepxube.base.updater.RD_T`\ ], :py:obj:`deepxube.base.updater.UpdateHeurV`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHV_T`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsHV_T`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.base.updater.UpdatePathFind`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsHV_T`\ , :py:obj:`deepxube.base.pathfinding.Node`\ , :py:obj:`deepxube.base.updater.InDataNode`\ , :py:obj:`deepxube.base.updater.R`\ , :py:obj:`deepxube.base.updater.RD_T`\ ], :py:obj:`deepxube.base.updater.UpdateHeurV`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsHV_T`\ ], :py:obj:`abc.ABC`
 
    .. py:method:: _pathfind_step(pathfind: deepxube.base.updater.P) -> typing.List[deepxube.base.pathfinding.Node]
       :canonical: deepxube.base.updater.UpdateHeurVPathFind._pathfind_step
@@ -872,7 +862,7 @@ API
 .. py:class:: UpdateEdgePathFind(*args: typing.Any, **kwargs: typing.Any)
    :canonical: deepxube.base.updater.UpdateEdgePathFind
 
-   Bases: :py:obj:`deepxube.base.updater.UpdatePathFind`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsT`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ , :py:obj:`deepxube.base.pathfinding.EdgeQ`\ , :py:obj:`deepxube.base.updater.InDataEdge`\ , :py:obj:`deepxube.base.updater.R`\ , :py:obj:`deepxube.base.updater.RD_T`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.base.updater.UpdatePathFind`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsT`\ , :py:obj:`deepxube.base.pathfinding.EdgeQ`\ , :py:obj:`deepxube.base.updater.InDataEdge`\ , :py:obj:`deepxube.base.updater.R`\ , :py:obj:`deepxube.base.updater.RD_T`\ ], :py:obj:`abc.ABC`
 
    .. py:method:: _pathfind_step(pathfind: deepxube.base.updater.P) -> typing.List[deepxube.base.pathfinding.EdgeQ]
       :canonical: deepxube.base.updater.UpdateEdgePathFind._pathfind_step
@@ -892,7 +882,7 @@ API
 .. py:class:: UpdateHeurQPathFind(*args: typing.Any, **kwargs: typing.Any)
    :canonical: deepxube.base.updater.UpdateHeurQPathFind
 
-   Bases: :py:obj:`deepxube.base.updater.UpdateEdgePathFind`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHQ_T`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsHQ_T`\ , :py:obj:`deepxube.base.updater.R`\ , :py:obj:`deepxube.base.updater.RD_T`\ ], :py:obj:`deepxube.base.updater.UpdateHeurQ`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsHQ_T`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsHQ_T`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.base.updater.UpdateEdgePathFind`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsHQ_T`\ , :py:obj:`deepxube.base.updater.R`\ , :py:obj:`deepxube.base.updater.RD_T`\ ], :py:obj:`deepxube.base.updater.UpdateHeurQ`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsHQ_T`\ ], :py:obj:`abc.ABC`
 
    .. py:method:: _inputs_ctgs_to_np(input_data: deepxube.base.updater.InDataEdge, labels: typing.List[float], times: deepxube.utils.timing_utils.Times) -> typing.List[numpy.typing.NDArray]
       :canonical: deepxube.base.updater.UpdateHeurQPathFind._inputs_ctgs_to_np
@@ -902,7 +892,7 @@ API
 .. py:class:: UpdatePolicyPathFind(*args: typing.Any, **kwargs: typing.Any)
    :canonical: deepxube.base.updater.UpdatePolicyPathFind
 
-   Bases: :py:obj:`deepxube.base.updater.UpdateEdgePathFind`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsP_T`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsP_T`\ , :py:obj:`deepxube.base.updater.R`\ , :py:obj:`deepxube.base.updater.RD_T`\ ], :py:obj:`deepxube.base.updater.UpdatePolicy`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.pathfinding.PFNsP_T`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsP_T`\ ], :py:obj:`abc.ABC`
+   Bases: :py:obj:`deepxube.base.updater.UpdateEdgePathFind`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsP_T`\ , :py:obj:`deepxube.base.updater.R`\ , :py:obj:`deepxube.base.updater.RD_T`\ ], :py:obj:`deepxube.base.updater.UpdatePolicy`\ [\ :py:obj:`deepxube.base.updater.D`\ , :py:obj:`deepxube.base.updater.P`\ , :py:obj:`deepxube.base.updater.InstT`\ , :py:obj:`deepxube.base.updater.UFNsP_T`\ ], :py:obj:`abc.ABC`
 
    .. py:method:: _inputs_ctgs_to_np(input_data: deepxube.base.updater.InDataEdge, labels: typing.List[float], times: deepxube.utils.timing_utils.Times) -> typing.List[numpy.typing.NDArray]
       :canonical: deepxube.base.updater.UpdatePolicyPathFind._inputs_ctgs_to_np

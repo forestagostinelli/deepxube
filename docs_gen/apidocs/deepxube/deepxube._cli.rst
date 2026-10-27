@@ -52,15 +52,6 @@ Functions
    * - :py:obj:`fig_to_rgba <deepxube._cli.fig_to_rgba>`
      - .. autodoc2-docstring:: deepxube._cli.fig_to_rgba
           :summary:
-   * - :py:obj:`viz_step <deepxube._cli.viz_step>`
-     - .. autodoc2-docstring:: deepxube._cli.viz_step
-          :summary:
-   * - :py:obj:`viz <deepxube._cli.viz>`
-     - .. autodoc2-docstring:: deepxube._cli.viz
-          :summary:
-   * - :py:obj:`_viz_state_goal_update <deepxube._cli._viz_state_goal_update>`
-     - .. autodoc2-docstring:: deepxube._cli._viz_state_goal_update
-          :summary:
    * - :py:obj:`time_test_args <deepxube._cli.time_test_args>`
      - .. autodoc2-docstring:: deepxube._cli.time_test_args
           :summary:
@@ -75,9 +66,6 @@ Functions
           :summary:
    * - :py:obj:`main <deepxube._cli.main>`
      - .. autodoc2-docstring:: deepxube._cli.main
-          :summary:
-   * - :py:obj:`_parse_viz_info <deepxube._cli._parse_viz_info>`
-     - .. autodoc2-docstring:: deepxube._cli._parse_viz_info
           :summary:
    * - :py:obj:`_parse_time <deepxube._cli._parse_time>`
      - .. autodoc2-docstring:: deepxube._cli._parse_time
@@ -152,27 +140,12 @@ API
 
    .. autodoc2-docstring:: deepxube._cli.fig_to_rgba
 
-.. py:function:: viz_step(domain: deepxube.base.domain.StateGoalVizable, data: typing.Dict, idx: int, state_idx: int, state_idx_max: int, states_on_path: typing.List[deepxube.base.domain.State], state: deepxube.base.domain.State, goal: deepxube.base.domain.Goal, no_act: bool, fig: matplotlib.figure.Figure) -> typing.Tuple[deepxube.base.domain.State, int]
-   :canonical: deepxube._cli.viz_step
-
-   .. autodoc2-docstring:: deepxube._cli.viz_step
-
-.. py:function:: viz(args: argparse.Namespace) -> None
-   :canonical: deepxube._cli.viz
-
-   .. autodoc2-docstring:: deepxube._cli.viz
-
-.. py:function:: _viz_state_goal_update(domain: deepxube.base.domain.StateGoalVizable, state: deepxube.base.domain.State, goal: deepxube.base.domain.Goal, fig: matplotlib.figure.Figure) -> None
-   :canonical: deepxube._cli._viz_state_goal_update
-
-   .. autodoc2-docstring:: deepxube._cli._viz_state_goal_update
-
 .. py:function:: time_test_args(args: argparse.Namespace) -> None
    :canonical: deepxube._cli.time_test_args
 
    .. autodoc2-docstring:: deepxube._cli.time_test_args
 
-.. py:function:: plot_itr_data(axs: typing.List[matplotlib.axes.Axes], step_slider: matplotlib.widgets.Slider, itr: int, itr_to_in_out: typing.Dict[int, typing.Tuple[numpy.typing.NDArray, numpy.typing.NDArray]], itr_to_steps_to_pathfindstats: typing.Dict[int, typing.Dict[int, typing.Dict]]) -> None
+.. py:function:: plot_itr_data(axs: typing.List[matplotlib.axes.Axes], step_slider: matplotlib.widgets.Slider, itr: int, train_summ: deepxube.base.trainer.TrainSummary) -> None
    :canonical: deepxube._cli.plot_itr_data
 
    .. autodoc2-docstring:: deepxube._cli.plot_itr_data
@@ -191,11 +164,6 @@ API
    :canonical: deepxube._cli.main
 
    .. autodoc2-docstring:: deepxube._cli.main
-
-.. py:function:: _parse_viz_info(parser: argparse.ArgumentParser) -> None
-   :canonical: deepxube._cli._parse_viz_info
-
-   .. autodoc2-docstring:: deepxube._cli._parse_viz_info
 
 .. py:function:: _parse_time(parser: argparse.ArgumentParser) -> None
    :canonical: deepxube._cli._parse_time

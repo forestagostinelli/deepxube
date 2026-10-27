@@ -80,6 +80,9 @@ API
    .. py:method:: __eq__(other: object) -> bool
       :canonical: deepxube.domains.npuzzle.NPAction.__eq__
 
+   .. py:method:: __repr__() -> str
+      :canonical: deepxube.domains.npuzzle.NPAction.__repr__
+
 .. py:class:: NPuzzle(dim: int = 4)
    :canonical: deepxube.domains.npuzzle.NPuzzle
 
