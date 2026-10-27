@@ -17,6 +17,7 @@
 * Add class for getting step probabilities functionality
 * Add %finished and step_probs to train_summary
 * Save optimizer
+* Add StepsBalanceable class to trainer.py so class can balance steps in a custom manner
 
 ## 0.3.1
 * Save .gif file of train_summary option

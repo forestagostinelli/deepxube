@@ -259,12 +259,12 @@ def plot_itr_data(axs: List[Axes], step_slider: Slider, itr: int, train_summ: Tr
     targets: List[float] = [float(np.mean(steps_to_pathfindperf[step]["ctgs_backup"])) for step in steps_at_itr]
     num_instances: List[int] = [steps_to_pathfindperf[step]["num_instances"] for step in steps_at_itr]
 
-    plot_scatter(axs[0], steps_at_itr, per_finished, "Step", "Percent Finished", False)
-    plot_scatter(axs[1], np.arange(len(step_probs)), step_probs, "Step", "Step Probabilities", False)
-    plot_scatter(axs[2], steps_at_itr, per_solved, "Step", "Percent Solved", False)
+    plot_scatter(axs[0], steps_at_itr, per_finished, "Step", "% Finished", False)
+    plot_scatter(axs[1], np.arange(len(step_probs)), step_probs, "Step", "Step Probs", False)
+    plot_scatter(axs[2], steps_at_itr, per_solved, "Step", "% Solved", False)
     plot_scatter(axs[3], steps_at_itr, path_costs, "Step", "Path Costs", False)
-    plot_scatter(axs[4], steps_at_itr, search_itrs, "Step", "Search Iterations", False)
-    plot_scatter(axs[5], steps_at_itr, targets, "Step", "Cost-to-Go Backups", False)
+    plot_scatter(axs[4], steps_at_itr, search_itrs, "Step", "Search Itrs", False)
+    plot_scatter(axs[5], steps_at_itr, targets, "Step", "CTG Backups", False)
     plot_scatter(axs[6], steps_at_itr, num_instances, "Step", "# Instances", False)
     plot_scatter(axs[7], itr_to_in_out[itr][0], itr_to_in_out[itr][1], "Target", "Prediction", True, alpha=0.2)
     step_slider.valtext.set_text(f"Iteration {itr}")

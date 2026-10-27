@@ -17,11 +17,11 @@ import os
 cases = (
     [pytest.param(a, b, c, d, id="rl") for a, b, c, d in
      product(["heurv", "heurq_fixout", "heurq_in"], ["graph", "beam.1T"],
-             ["up_rl.100up_100sm_20sitrs_4p_lhbl", "up_rl.100up_100sm_20sitrs_4p_sync_1rb", "up_her.100up_100sm_20sitrs_4p_1rb"],
+             ["path_rl.100up_100sm_20sitrs_4p_lhbl", "path_rl.100up_100sm_20sitrs_4p_sync_1rb", "path_her_rl.100up_100sm_20sitrs_4p_1rb"],
              ["tr_h.50bs_2000maxit", "tr_h.50bs_2000maxit_bal"])]
 
-    + [pytest.param(a, b, c, d, id="sup_v") for a, b, c, d in product(["heurv"], ["sup_v"],  ["up_sup.100up_100sm_1sitrs_4p"], ["tr_h.50bs_2000maxit"])]
-    + [pytest.param(a, b, c, d, id="sup_q") for a, b, c, d in product(["heurq_fixout", "heurq_in"], ["sup_q"], ["up_sup.100up_100sm_1sitrs_4p"],
+    + [pytest.param(a, b, c, d, id="sup_v") for a, b, c, d in product(["heurv"], ["sup_v"],  ["sup.100up_100sm_1sitrs_4p"], ["tr_h.50bs_2000maxit"])]
+    + [pytest.param(a, b, c, d, id="sup_q") for a, b, c, d in product(["heurq_fixout", "heurq_in"], ["sup_q"], ["sup.100up_100sm_1sitrs_4p"],
                                                                       ["tr_h.50bs_2000maxit"])]
 )
 
