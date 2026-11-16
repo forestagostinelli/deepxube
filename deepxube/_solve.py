@@ -5,15 +5,16 @@ from argparse import ArgumentParser
 import torch
 
 from deepxube.pytorch.nnet_utils import get_device
-from deepxube.base.domain import Domain, State, Action, Goal
+from deepxube.base.domain import Domain, State, Action, Goal, ActsEnum
 from deepxube.base.pathfinding import Node, Instance, get_path
 from deepxube.factories.pathfind_fns_factory import get_path_fns_nnet_par_dict
 from deepxube.factories.pathfinding_factory import get_pathfind_from_arg
+from deepxube.pathfind_fns.fns_core import PFNsHeurVC
 from deepxube.pathfinding.beam_search import BeamSearch
 from deepxube.factories.domain_factory import get_domain_from_arg
 from deepxube.utils import data_utils, misc_utils
 from deepxube.utils.command_line_utils import print_command
-from deepxube.utils.pathfind_perf import is_valid_soln
+from deepxube.utils.pathfind_utils import is_valid_soln, HeurVPathfind
 import numpy as np
 
 import pickle
@@ -54,6 +55,10 @@ def parse_solve(parser: ArgumentParser) -> None:
     parser.add_argument('--pathfind', type=str, required=True, help="Pathfinding algorithm and arguments.")
     parser.add_argument('--time_limit', type=float, default=-1.0, help="A time limit (in seconds) for search. Default is -1, which means infinite.")
     parser.add_argument('--max_itrs', type=int, default=None, help="Maximum number of search iterations. None for infinite.")
+
+    parser.add_argument('--pathfind2', type=str, default=None, help="Pathfinding algorithm and arguments for doing pathfinding to improve heuristic function. "
+                                                                    "For now, assumes using only a heurv function and ActsEnum domain.")
+    parser.add_argument('--pathfind2_itrs', type=int, default=1, help="Number of iterations to do pathfinding for heuristic function improvement.")
 
     # data
     parser.add_argument('--file', type=str, required=True, help="File containing problem instances to solve")
@@ -128,6 +133,12 @@ def solve_cli(args: argparse.Namespace) -> None:
         print(f"(name: {nnet_par.get_field_name()}, nnet_input_name_args: {nnet_par.nnet_input_name_args})")
 
     # pathfind functions
+    if args.pathfind2 is not None:
+        # pathfinding within pathfind
+        print(f"Pathfind2: {args.pathfind2}, Itrs: {args.pathfind2_itrs}")
+        assert isinstance(pathfind_fns, PFNsHeurVC)
+        assert isinstance(domain, ActsEnum)
+        pathfind_fns = PFNsHeurVC(HeurVPathfind(pathfind_fns.heurv, domain, args.pathfind2, args.pathfind2_itrs))
     print(pathfind_fns)
 
     # pathfinding

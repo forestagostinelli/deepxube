@@ -13,7 +13,7 @@ from deepxube.base.nnet import DeepXubeNNet
 from deepxube.base.domain import Domain
 from deepxube.base.pathfind_fns import DeepXubeNNetPar
 from deepxube.base.updater import Update
-from deepxube.utils.pathfind_perf import PathFindPerf, get_eq_weighted_perf
+from deepxube.utils.pathfind_utils import PathFindPerf, get_eq_weighted_perf
 from deepxube.utils.data_utils import sel_l, SharedNDArray
 from deepxube.pytorch.nnet_utils import nnet_in_out_shared_q
 from deepxube.utils.data_utils import get_nowait_noerr

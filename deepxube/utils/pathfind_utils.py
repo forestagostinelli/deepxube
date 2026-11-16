@@ -1,12 +1,17 @@
 from dataclasses import dataclass
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Any
 
 import numpy as np
 from numpy.typing import NDArray
 
 from deepxube.base.domain import State, Goal, Action, Domain
-from deepxube.base.pathfinding import Instance
+from deepxube.base.pathfinding import Instance, PathFind
 from deepxube.utils.misc_utils import scalar_stats
+from deepxube.factories.pathfinding_factory import get_pathfind_from_arg
+
+from deepxube.base.pathfind_fns import HeurVFn
+from deepxube.base.domain import ActsEnum
+from deepxube.pathfind_fns.fns_core import PFNsHeurVC
 
 
 @dataclass
@@ -121,3 +126,20 @@ def is_valid_soln(state: State, goal: Goal, soln: List[Action], domain: Domain) 
         state_soln = domain.next_state([state_soln], [action])[0][0]
 
     return domain.is_solved([state_soln], [goal])[0]
+
+
+class HeurVPathfind:
+    def __init__(self, heurv: HeurVFn, domain: ActsEnum, pathfind_name_args: str, search_itrs: int):
+        self.heurv: HeurVFn = heurv
+        self.domain: ActsEnum = domain
+        self.pathfind_name_args: str = pathfind_name_args
+        self.search_itrs: int = search_itrs
+
+    def __call__(self, states: List[State], goals: List[Goal], contexts: List[Any]) -> List[float]:
+        pathfind: PathFind = get_pathfind_from_arg(self.domain, PFNsHeurVC(self.heurv), self.pathfind_name_args)[0]
+        pathfind.add_instances(pathfind.make_instances(states, goals, None, True))
+
+        for _ in range(self.search_itrs):
+            pathfind.step()
+
+        return [instance.root_node.tree_backup() for instance in pathfind.instances]

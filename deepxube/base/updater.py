@@ -18,7 +18,7 @@ from deepxube.base.pathfind_fns import (PFNs, DeepXubeNNetPar, HeurVFn, HeurQFn,
 from deepxube.base.pathfinding import PathFind, PathFindSup, Instance, get_path, Node, EdgeQ
 from deepxube.factories.pathfinding_factory import pathfinding_factory, get_pathfind_name_kwargs, get_pathfind_from_arg
 from deepxube.factories.pathfind_fns_factory import pathfind_fns_factory
-from deepxube.utils.pathfind_perf import PathFindPerf, print_pathfindperf
+from deepxube.utils.pathfind_utils import PathFindPerf, print_pathfindperf
 
 from deepxube.utils.replay_buffer_utils import ReplayBuffer
 from deepxube.utils.data_utils import SharedNDArray, np_to_shnd, get_nowait_noerr
