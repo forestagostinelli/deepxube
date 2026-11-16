@@ -39,6 +39,7 @@ class ResnetFCHeur(HeurNNet[FlatIn]):
             zero_inits: List[bool] = [False, True]
             if weight_norm:
                 zero_inits = [False, False]
+
             def res_block_init() -> nn.Module:
                 return FullyConnectedModel(res_dim, [res_dim] * 2, [act_fn] * 2, batch_norms=[batch_norm] * 2, weight_norms=[weight_norm] * 2,
                                            group_norms=[group_norm] * 2, zero_inits=zero_inits, pre=pre)
