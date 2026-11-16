@@ -176,7 +176,8 @@ class ResnetModel(nn.Module):
 
 class FullyConnectedModel(nn.Module):
     def __init__(self, input_dim: int, dims: List[int], acts: List[str], batch_norms: Optional[List[bool]] = None,
-                 weight_norms: Optional[List[bool]] = None, group_norms: Optional[List[int]] = None, pre: bool = False):
+                 weight_norms: Optional[List[bool]] = None, group_norms: Optional[List[int]] = None, zero_inits: Optional[List[bool]] = None,
+                 pre: bool = False):
         # not pre: weight -> norm -> act; pre: norm -> act -> weight
         super().__init__()
         if batch_norms is None:
@@ -185,29 +186,42 @@ class FullyConnectedModel(nn.Module):
             weight_norms = [False] * len(dims)
         if group_norms is None:
             group_norms = [-1] * len(dims)
+        if zero_inits is None:
+            zero_inits = [False] * len(dims)
+
         self.layers: nn.ModuleList = nn.ModuleList()
 
         # layers
-        for dim, act, batch_norm, weight_norm, group_norm in zip(dims, acts, batch_norms, weight_norms, group_norms,
-                                                                 strict=True):
+        for dim, act, batch_norm, weight_norm, group_norm, zero_init in zip(dims, acts, batch_norms, weight_norms, group_norms, zero_inits, strict=True):
             module_list = nn.ModuleList()
 
             # norms
+            norm_dim: int = input_dim if pre else dim
+
             if batch_norm:
-                module_list.append(nn.BatchNorm1d(dim))
+                module_list.append(nn.BatchNorm1d(norm_dim))
 
             # group norm
             if group_norm > 0:
-                module_list.append(nn.GroupNorm(group_norm, dim))
+                module_list.append(nn.GroupNorm(group_norm, norm_dim))
 
             # activation
             module_list.append(get_act_fn(act))
 
             # linear
-            module_linear: nn.Module = nn.Linear(input_dim, dim)
+            module_linear: nn.Linear = nn.Linear(input_dim, dim)
             if weight_norm:
                 module_linear = nn.utils.parametrizations.weight_norm(module_linear)
 
+            # zero init
+            assert not (zero_init and weight_norm), "Zero init and weight norm should not both be True"
+
+            if zero_init:
+                nn.init.zeros_(module_linear.weight)
+                if module_linear.bias is not None:
+                    nn.init.zeros_(module_linear.bias)
+
+            # add linear
             if pre:
                 module_list.append(module_linear)
             else:
@@ -261,11 +275,12 @@ class Conv2dModel(nn.Module):
             module_list = nn.ModuleList()
 
             # norms
+            chan_norm: int = chan_in if pre else chan_out
             if batch_norm:
-                module_list.append(nn.BatchNorm2d(chan_out))
+                module_list.append(nn.BatchNorm2d(chan_norm))
 
             if group_norm > 0:
-                module_list.append(nn.GroupNorm(group_norm, chan_out))
+                module_list.append(nn.GroupNorm(group_norm, chan_norm))
 
             # activation
             module_list.append(get_act_fn(act))
@@ -281,14 +296,18 @@ class Conv2dModel(nn.Module):
             else:
                 conv_layer = nn.Conv2d(chan_in, chan_out, kernel_size, padding=padding, stride=stride)
 
+            if weight_norm:
+                conv_layer = parametrizations.weight_norm(conv_layer)
+
+            # zero init
+            assert not (zero_init and weight_norm), "Zero init and weight norm should not both be True"
+
             if zero_init:
                 nn.init.zeros_(conv_layer.weight)
                 if conv_layer.bias is not None:
                     nn.init.zeros_(conv_layer.bias)
 
-            if weight_norm:
-                conv_layer = parametrizations.weight_norm(conv_layer)
-
+            # add linear layer
             if pre:
                 module_list.append(conv_layer)
             else:

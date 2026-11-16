@@ -5,7 +5,7 @@ from torch import nn, Tensor
 from deepxube.base.factory import DelimParser
 from deepxube.base.nnet_input import FlatIn, FlatInPolicy
 from deepxube.base.nnet import HeurNNet, PolicyVAE
-from deepxube.pytorch.pytorch_models import FullyConnectedModel, ResnetModel, OneHot, make_onehots
+from deepxube.pytorch.pytorch_models import FullyConnectedModel, ResnetModel, OneHot, make_onehots, get_act_fn
 
 from deepxube.factories.nnet_factory import deepxube_nnet_factory
 
@@ -17,7 +17,7 @@ class ResnetFCHeur(HeurNNet[FlatIn]):
         return FlatIn
 
     def __init__(self, nnet_input: FlatIn, out_dim: int, q_fix: bool, res_dim: int = 1000, num_blocks: int = 4,
-                 batch_norm: bool = False, weight_norm: bool = False, layer_norm: bool = False, act_fn: str = "RELU"):
+                 batch_norm: bool = False, weight_norm: bool = False, group_norm: int = -1, pre: bool = False, act_fn: str = "RELU"):
         super().__init__(nnet_input, out_dim, q_fix)
         # one hots
         self.one_hots: nn.ModuleList = nn.ModuleList()
@@ -31,20 +31,32 @@ class ResnetFCHeur(HeurNNet[FlatIn]):
         # res net
         self.res_dim: int = res_dim
 
-        group_norm: int = -1
-        if layer_norm:
-            group_norm = 1
-
-        def res_block_init() -> nn.Module:
-            return FullyConnectedModel(res_dim, [res_dim] * 2, [act_fn, "LINEAR"],
-                                       batch_norms=[batch_norm] * 2, weight_norms=[weight_norm] * 2,
-                                       group_norms=[group_norm] * 2)
-
         self.heur = nn.Sequential(
             nn.Linear(input_dim_tot, res_dim),
-            ResnetModel(res_block_init, num_blocks, act_fn),
-            nn.Linear(res_dim, self.out_dim)
         )
+
+        if pre:
+            zero_inits: List[bool] = [False, True]
+            if weight_norm:
+                zero_inits = [False, False]
+            def res_block_init() -> nn.Module:
+                return FullyConnectedModel(res_dim, [res_dim] * 2, [act_fn] * 2, batch_norms=[batch_norm] * 2, weight_norms=[weight_norm] * 2,
+                                           group_norms=[group_norm] * 2, zero_inits=zero_inits, pre=pre)
+            self.heur.append(ResnetModel(res_block_init, num_blocks, "LINEAR"))
+
+            if batch_norm:
+                self.heur.append(nn.BatchNorm1d(res_dim))
+            if group_norm > 0:
+                self.heur.append(nn.GroupNorm(group_norm, res_dim))
+
+            self.heur.append(get_act_fn(act_fn))
+        else:
+            def res_block_init() -> nn.Module:
+                return FullyConnectedModel(res_dim, [res_dim] * 2, [act_fn, "LINEAR"], batch_norms=[batch_norm] * 2, weight_norms=[weight_norm] * 2,
+                                           group_norms=[group_norm] * 2, pre=pre)
+            self.heur.append(ResnetModel(res_block_init, num_blocks, act_fn))
+
+        self.heur.append(nn.Linear(res_dim, self.out_dim))
 
     def _forward(self, inputs: List[Tensor]) -> Tensor:
         inputs_oh: List[Tensor] = [one_hot(input_i) for input_i, one_hot in zip(inputs, self.one_hots)]
@@ -121,7 +133,8 @@ class ResnetFCParser(DelimParser):
         self.add_argument("B", "num_blocks", int, "number of residual blocks")
         self.add_argument("bn", "batch_norm", None, "Batch normalization")
         self.add_argument("wn", "weight_norm", None, "Weight normalization")
-        self.add_argument("ln", "layer_norm", None, "Layer normalization")
+        self.add_argument("gn", "group_norm", int, "Number of groups for group normalization. -1 means no group norm.", default=-1)
+        self.add_argument("pre", "pre", None, "Pre-activation residual network")
 
     @property
     def delim(self) -> str:
@@ -137,6 +150,5 @@ class ResnetFCParserHeur(ResnetFCParser):
 class ResnetFCParserPolicy(ResnetFCParser):
     def __init__(self) -> None:
         super().__init__()
-        self.add_argument("ln", "layer_norm", None, "Layer normalization")
         self.add_argument("E", "enc_dim", int, "Dimensionality of encoding layer")
         self.add_argument("KL", "kl_weight", int, "KL divergence penalty", default=1.0)
