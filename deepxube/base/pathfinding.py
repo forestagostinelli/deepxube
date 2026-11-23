@@ -292,11 +292,15 @@ class PathFind(Generic[D, PFNsT, I], ABC):
         nodes_popped_by_inst: List[List[Node]] = [instance.get_nodes() for instance in instances]
         for nodes_popped_inst, instance in zip(nodes_popped_by_inst, instances):
             instance.add_nodes_popped(nodes_popped_inst)
+        nodes_popped_flat: List[Node] = misc_utils.flatten(nodes_popped_by_inst)[0]
+        self.times.record_time("pop_n", time.time() - start_time)
+
+        # update context
+        start_time = time.time()
         domain: Domain = self.domain
         if isinstance(domain, ContextUpdateable):
             domain.update_contexts(nodes_popped_by_inst, instances)
-        nodes_popped_flat: List[Node] = misc_utils.flatten(nodes_popped_by_inst)[0]
-        self.times.record_time("pop_n", time.time() - start_time)
+        self.times.record_time("ctx_up", time.time() - start_time)
 
         # is solved
         self.set_is_solved(nodes_popped_flat)

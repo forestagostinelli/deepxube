@@ -226,6 +226,9 @@ def test_heur_nnet_par(heur_nnet_par: HeurNNetPar, states: List[State], goals: L
     states_per_sec = len(states) / nnet_time
     print("Computed heuristic for %i states in %s seconds (%.2f/second)" % (len(states), nnet_time, states_per_sec))
 
+    # if heur_nnet_par.get_nnet_input().uses_context():
+    #    print("")
+
 
 def test_policy_nnet_par(policy_nnet_par: PolicyNNetPar, states: List[State], goals: List[Goal], actions: List[Action]) -> None:
     # nnet format
