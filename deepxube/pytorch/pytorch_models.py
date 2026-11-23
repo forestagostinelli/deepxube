@@ -174,6 +174,54 @@ class ResnetModel(nn.Module):
         return x
 
 
+class DeepSetEnc(nn.Module):
+    def __init__(self, elem_enc_net: nn.Module, elem_enc_dim: int, set_enc_dim: int):
+        super().__init__()
+
+        self.elem_enc_net: nn.Module = elem_enc_net
+
+        self.set_enc_dim: int = set_enc_dim
+        self.smax_net = nn.Linear(elem_enc_dim, self.set_enc_dim)
+        self.enc_val_net = nn.Linear(elem_enc_dim, self.set_enc_dim)
+
+    def forward(self, x: Tensor, valid: Tensor) -> Tensor:
+        """
+        :param x: Tensor (b, n, *elem_shape)
+        :param valid: Tensor (b, n), True/1 = valid element, False/0 = padding
+        """
+        b, n = x.shape[:2]
+        elem_shape = x.shape[2:]
+        assert valid.shape == (b, n), f"valid has shape {tuple(valid.shape)}, expected {(b, n)}"
+
+        valid = valid.bool()
+
+        # encode only the valid elements, so padding never reaches the network and doesn't contaminate batch norm statistics
+        valid_flat = valid.reshape(-1)  # (b * n)
+        x_flat = x.reshape(b * n, *elem_shape)  # (b * n, *elem_shape)
+        enc_base = self.elem_enc_net(x_flat[valid_flat])  # (num_valid, *elem_enc_shape)
+
+        # get softmax and corresponding values
+        enc_base = enc_base.flatten(1)  # (num_valid, elem_enc_dim), works when num_valid == 0
+        smax_valid = self.smax_net(enc_base)   # (num_valid, set_enc_dim)
+        vals_valid = self.enc_val_net(enc_base)  # (num_valid, set_enc_dim)
+
+        # scatter back into full (b * n, set_enc_dim) tensors
+        neg_fill = torch.finfo(smax_valid.dtype).min
+        smax_vals = smax_valid.new_full((b * n, self.set_enc_dim), neg_fill)  # (b * n, set_enc_dim)
+        smax_vals[valid_flat] = smax_valid
+        enc_vals = vals_valid.new_zeros((b * n, self.set_enc_dim))  # (b * n, set_enc_dim)
+        enc_vals[valid_flat] = vals_valid
+
+        smax_vals = smax_vals.view(b, n, self.set_enc_dim)  # (b, n, set_enc_dim)
+        enc_vals = enc_vals.view(b, n, self.set_enc_dim)  # (b, n, set_enc_dim)
+
+        # temperature uses the number of real elements in each set
+        n_valid = valid.sum(dim=1).clamp(min=1).to(smax_vals.dtype).view(b, 1, 1)
+        smax = torch.softmax(smax_vals / n_valid.sqrt(), dim=1)
+
+        return (smax * enc_vals).sum(dim=1)
+
+
 class FullyConnectedModel(nn.Module):
     def __init__(self, input_dim: int, dims: List[int], acts: List[str], batch_norms: Optional[List[bool]] = None,
                  weight_norms: Optional[List[bool]] = None, group_norms: Optional[List[int]] = None, zero_inits: Optional[List[bool]] = None,
